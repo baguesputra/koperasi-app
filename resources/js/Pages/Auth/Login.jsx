@@ -22,15 +22,15 @@ export default function Login({ status, canResetPassword }) {
         <div className="min-h-screen flex bg-slate-50">
             <Head title="Login" />
 
-            {/* Panel kiri - branding */}
-            <div className="hidden lg:flex lg:w-1/2 bg-brand-navy text-white flex-col justify-between p-12">
+            {/* Panel kiri - branding, sekarang background PUTIH */}
+            <div className="hidden lg:flex lg:w-1/2 bg-white text-slate-800 flex-col justify-between p-12 border-r border-slate-100">
                 <img src="/images/logo.png" alt="Koperasi App" className="w-12 h-12" />
 
                 <div>
-                    <h1 className="text-3xl font-bold leading-snug mb-3">
+                    <h1 className="text-3xl font-bold leading-snug mb-3 text-brand-navy">
                         Kelola simpan pinjam anggota dengan lebih mudah.
                     </h1>
-                    <p className="text-slate-300 text-base leading-relaxed max-w-md">
+                    <p className="text-slate-500 text-base leading-relaxed max-w-md">
                         Satu sistem terpadu untuk pengelolaan anggota, simpanan,
                         pinjaman, dan pelaporan koperasi.
                     </p>
@@ -41,18 +41,18 @@ export default function Login({ status, canResetPassword }) {
                 </p>
             </div>
 
-            {/* Panel kanan - form login */}
-            <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12">
+            {/* Panel kanan - form login, sekarang background NAVY */}
+            <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 bg-brand-navy">
                 <div className="w-full max-w-sm">
                     <div className="flex lg:hidden items-center gap-2 mb-8">
                         <img src="/images/logo.png" alt="Koperasi App" className="w-10 h-10" />
-                        <span className="text-lg font-bold text-slate-800">Koperasi App</span>
+                        <span className="text-lg font-bold text-white">Koperasi App</span>
                     </div>
 
-                    <h2 className="text-2xl font-bold text-slate-800 mb-1">
+                    <h2 className="text-2xl font-bold text-white mb-1">
                         Selamat datang kembali
                     </h2>
-                    <p className="text-base text-slate-400 mb-8">
+                    <p className="text-base text-slate-300 mb-8">
                         Masuk ke akun kamu untuk melanjutkan
                     </p>
 
@@ -64,7 +64,7 @@ export default function Login({ status, canResetPassword }) {
 
                     <form onSubmit={submit} className="space-y-5">
                         <div>
-                            <InputLabel htmlFor="email" value="Email" className="text-base font-semibold text-slate-700" />
+                            <InputLabel htmlFor="email" value="Email" className="text-base font-semibold text-slate-200" />
                             <div className="relative mt-1.5">
                                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                                 <input
@@ -72,7 +72,7 @@ export default function Login({ status, canResetPassword }) {
                                     type="email"
                                     name="email"
                                     value={data.email}
-                                    className="block w-full pl-11 pr-4 py-3 text-base rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
+                                    className="block w-full pl-11 pr-4 py-3 text-base rounded-xl border border-white/20 bg-white/5 text-white placeholder:text-slate-400 focus:border-brand-green focus:ring-2 focus:ring-brand-green/30 outline-none transition-colors"
                                     autoComplete="username"
                                     autoFocus
                                     onChange={(e) => setData('email', e.target.value)}
@@ -84,7 +84,7 @@ export default function Login({ status, canResetPassword }) {
 
                         <div>
                             <div className="flex items-center justify-between">
-                                <InputLabel htmlFor="password" value="Password" className="text-base font-semibold text-slate-700" />
+                                <InputLabel htmlFor="password" value="Password" className="text-base font-semibold text-slate-200" />
                                 {canResetPassword && (
                                     <Link
                                         href={route('password.request')}
@@ -101,7 +101,7 @@ export default function Login({ status, canResetPassword }) {
                                     type="password"
                                     name="password"
                                     value={data.password}
-                                    className="block w-full pl-11 pr-4 py-3 text-base rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
+                                    className="block w-full pl-11 pr-4 py-3 text-base rounded-xl border border-white/20 bg-white/5 text-white placeholder:text-slate-400 focus:border-brand-green focus:ring-2 focus:ring-brand-green/30 outline-none transition-colors"
                                     autoComplete="current-password"
                                     onChange={(e) => setData('password', e.target.value)}
                                     placeholder="••••••••"
@@ -116,7 +116,7 @@ export default function Login({ status, canResetPassword }) {
                                 checked={data.remember}
                                 onChange={(e) => setData('remember', e.target.checked)}
                             />
-                            <span className="text-base text-slate-600">
+                            <span className="text-base text-slate-300">
                                 Ingat saya di perangkat ini
                             </span>
                         </label>
