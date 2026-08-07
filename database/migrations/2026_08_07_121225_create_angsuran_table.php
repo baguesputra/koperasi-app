@@ -1,0 +1,30 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+{
+    Schema::create('angsuran', function (Blueprint $table) {
+        $table->id();
+        $table->foreignId('pinjaman_id')->constrained('pinjaman')->cascadeOnDelete();
+        $table->unsignedInteger('cicilan_ke');
+        $table->decimal('nominal_pokok', 15, 2);
+        $table->decimal('nominal_bunga', 15, 2);
+        $table->decimal('total_bayar', 15, 2);
+        $table->enum('status', ['belum_bayar', 'lunas'])->default('belum_bayar');
+        $table->date('tanggal_jatuh_tempo');
+        $table->date('tanggal_konfirmasi_bayar')->nullable();
+        $table->foreignId('confirmed_by')->nullable()->constrained('users'); // bendahara
+        $table->timestamps();
+    });
+}
+
+    public function down(): void
+    {
+        Schema::dropIfExists('angsuran');
+    }
+};
