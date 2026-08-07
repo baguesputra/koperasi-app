@@ -3,26 +3,21 @@ import { LogOut } from 'lucide-react';
 
 export default function Topbar() {
     const { auth } = usePage().props;
-
     const initial = auth.user?.name?.charAt(0)?.toUpperCase() ?? '?';
 
     return (
-        <header className="flex items-center justify-between bg-white border-b border-gray-200 px-6 py-3.5">
-            <div className="text-sm text-gray-400">
-                Selamat datang kembali
-            </div>
+        <header className="flex items-center justify-between bg-white border-b border-slate-200 px-6 py-3.5">
+            <div className="text-sm text-slate-400">Selamat datang kembali</div>
 
             <div className="flex items-center gap-4">
                 <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-sm font-semibold">
+                    <div className="w-9 h-9 rounded-full bg-brand-green-light text-brand-green-dark flex items-center justify-center text-sm font-bold">
                         {initial}
                     </div>
                     <div className="leading-tight">
-                        <p className="text-sm font-medium text-gray-800">
-                            {auth.user?.name}
-                        </p>
-                        <p className="text-xs text-gray-400 capitalize">
-                            {auth.user?.roles?.[0] ?? '-'}
+                        <p className="text-sm font-semibold text-slate-800">{auth.user?.name}</p>
+                        <p className="text-xs text-slate-400 capitalize">
+                            {auth.user?.roles?.[0]?.replace('_', ' ') ?? '-'}
                         </p>
                     </div>
                 </div>
@@ -31,7 +26,7 @@ export default function Topbar() {
                     href={route('logout')}
                     method="post"
                     as="button"
-                    className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-600 transition-colors border-l border-gray-200 pl-4"
+                    className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-red-600 transition-colors border-l border-slate-200 pl-4"
                 >
                     <LogOut size={16} />
                     Logout

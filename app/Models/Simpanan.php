@@ -5,56 +5,34 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Anggota extends Model
+class Simpanan extends Model
 {
     use HasFactory;
 
-    protected $table = 'anggota';
+    protected $table = 'simpanan';
 
     protected $fillable = [
-        'user_id',
-        'no_anggota',
-        'nama',
-        'cabang',
-        'unit_bisnis',
-        'jabatan',
-        'tanggal_mulai_kerja',
-        'tanggal_jadi_anggota',
-        'status',
+        'anggota_id',
+        'jenis',
+        'jumlah',
+        'bulan_periode',
+        'tanggal_input',
+        'input_by',
     ];
 
     protected $casts = [
-        'tanggal_mulai_kerja' => 'date',
-        'tanggal_jadi_anggota' => 'date',
+        'jumlah' => 'decimal:2',
+        'tanggal_input' => 'date',
     ];
 
-    public function user(): BelongsTo
+    public function anggota(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Anggota::class);
     }
 
-    public function simpanan(): HasMany
+    public function inputOleh(): BelongsTo
     {
-        return $this->hasMany(Simpanan::class);
-    }
-
-    public function pinjaman(): HasMany
-    {
-        return $this->hasMany(Pinjaman::class);
-    }
-
-    /**
-     * Hitung lama keanggotaan dalam tahun (desimal), acuan untuk limit pinjaman.
-     */
-    public function getLamaKeanggotaanTahunAttribute(): float
-    {
-        return $this->tanggal_jadi_anggota->diffInDays(now()) / 365;
-    }
-
-    public function pinjamanAktif()
-    {
-        return $this->pinjaman()->whereIn('status', ['aktif'])->first();
+        return $this->belongsTo(User::class, 'input_by');
     }
 }

@@ -1,6 +1,3 @@
-import defaultTheme from 'tailwindcss/defaultTheme';
-import forms from '@tailwindcss/forms';
-
 /** @type {import('tailwindcss').Config} */
 export default {
     content: [
@@ -9,14 +6,26 @@ export default {
         './resources/views/**/*.blade.php',
         './resources/js/**/*.jsx',
     ],
-
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+                sans: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            },
+            colors: {
+                brand: {
+                    navy: {
+                        DEFAULT: '#0F1E36',
+                        light: '#1A2E4D',
+                        dark: '#0A1526',
+                    },
+                    green: {
+                        DEFAULT: '#1FA24C',
+                        light: '#E8F8EE',
+                        dark: '#178A3E',
+                    },
+                },
             },
         },
     },
-
-    plugins: [forms],
+    plugins: [],
 };

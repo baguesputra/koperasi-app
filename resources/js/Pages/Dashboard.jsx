@@ -1,44 +1,53 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head } from '@inertiajs/react';
 import { Users, PiggyBank, HandCoins, ClipboardCheck } from 'lucide-react';
+import { formatRupiah } from '@/Utils/formatCurrency';
 
-const widgets = [
-    {
-        label: 'Total Anggota Aktif',
-        value: '-',
-        icon: Users,
-        color: 'bg-blue-50 text-blue-600',
-    },
-    {
-        label: 'Total Simpanan',
-        value: '-',
-        icon: PiggyBank,
-        color: 'bg-emerald-50 text-emerald-600',
-    },
-    {
-        label: 'Pinjaman Outstanding',
-        value: '-',
-        icon: HandCoins,
-        color: 'bg-amber-50 text-amber-600',
-    },
-    {
-        label: 'Menunggu Approval',
-        value: '-',
-        icon: ClipboardCheck,
-        color: 'bg-rose-50 text-rose-600',
-    },
-];
+export default function Dashboard({ stats, aktivitasTerbaru }) {
+    const widgets = [
+        {
+            label: 'Total Anggota Aktif',
+            value: stats.total_anggota_aktif,
+            icon: Users,
+            tone: 'bg-brand-navy/5 text-brand-navy',
+        },
+        {
+            label: 'Total Simpanan',
+            value: formatRupiah(stats.total_simpanan),
+            icon: PiggyBank,
+            tone: 'bg-brand-green-light text-brand-green-dark',
+        },
+        {
+            label: 'Pinjaman Outstanding',
+            value: formatRupiah(stats.pinjaman_outstanding),
+            icon: HandCoins,
+            tone: 'bg-amber-50 text-amber-700',
+        },
+        {
+            label: 'Menunggu Approval',
+            value: stats.menunggu_approval,
+            icon: ClipboardCheck,
+            tone: 'bg-red-50 text-red-600',
+        },
+    ];
 
-export default function Dashboard() {
+    const statusLabel = {
+        diajukan: 'Diajukan',
+        ditinjau_bendahara: 'Ditinjau Bendahara',
+        approved_bendahara: 'Disetujui Bendahara',
+        approved_ketua: 'Disetujui Ketua',
+        aktif: 'Aktif',
+        lunas: 'Lunas',
+        ditolak: 'Ditolak',
+    };
+
     return (
         <AppLayout>
             <Head title="Dashboard" />
 
             <div className="mb-6">
-                <h1 className="text-2xl font-semibold text-gray-800">
-                    Dashboard
-                </h1>
-                <p className="text-sm text-gray-400 mt-1">
+                <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
+                <p className="text-base text-slate-400 mt-1">
                     Ringkasan aktivitas koperasi hari ini
                 </p>
             </div>
@@ -49,13 +58,13 @@ export default function Dashboard() {
                     return (
                         <div
                             key={widget.label}
-                            className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow"
+                            className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5"
                         >
-                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 ${widget.color}`}>
-                                <Icon size={20} />
+                            <div className={`w-11 h-11 rounded-xl flex items-center justify-center mb-3 ${widget.tone}`}>
+                                <Icon size={22} />
                             </div>
-                            <p className="text-sm text-gray-500">{widget.label}</p>
-                            <p className="text-2xl font-semibold text-gray-800 mt-1">
+                            <p className="text-sm text-slate-500">{widget.label}</p>
+                            <p className="text-2xl font-bold text-slate-800 mt-1">
                                 {widget.value}
                             </p>
                         </div>
@@ -63,16 +72,37 @@ export default function Dashboard() {
                 })}
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <p className="text-sm font-semibold text-gray-700 mb-4">
-                    Aktivitas Terbaru
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                <p className="text-base font-bold text-slate-700 mb-4">
+                    Pengajuan Pinjaman Terbaru
                 </p>
-                <div className="flex flex-col items-center justify-center py-10 text-center">
-                    <p className="text-sm text-gray-400">Belum ada data aktivitas.</p>
-                    <p className="text-xs text-gray-300 mt-1">
-                        Data akan muncul setelah modul transaksi aktif.
-                    </p>
-                </div>
+
+                {aktivitasTerbaru.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-10 text-center">
+                        <p className="text-base text-slate-400">Belum ada data aktivitas.</p>
+                    </div>
+                ) : (
+                    <div className="divide-y divide-slate-100">
+                        {aktivitasTerbaru.map((item, i) => (
+                            <div key={i} className="flex items-center justify-between py-3.5">
+                                <div>
+                                    <p className="text-base font-semibold text-slate-800">
+                                        {item.nama}
+                                    </p>
+                                    <p className="text-sm text-slate-400">{item.tanggal}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-base font-bold text-slate-800">
+                                        {formatRupiah(item.nominal)}
+                                    </p>
+                                    <p className="text-sm text-slate-500">
+                                        {statusLabel[item.status] ?? item.status}
+                                    </p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
         </AppLayout>
     );
