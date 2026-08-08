@@ -5,7 +5,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\DashboardController;
-
+use App\Http\Controllers\AnggotaController;
 
 
 Route::get('/', function () {
@@ -20,6 +20,10 @@ Route::get('/', function () {
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
+
+Route::middleware(['auth', 'role:admin|bendahara|ketua_koperasi'])->group(function () {
+    Route::get('/anggota', [AnggotaController::class, 'index'])->name('anggota.index');
+});
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

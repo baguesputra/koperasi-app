@@ -3,10 +3,14 @@ import Topbar from './Partials/Topbar';
 
 export default function NavbarLayout({ children }) {
     return (
-        <div className="min-h-screen bg-gray-50">
-            <Navbar />
-            <Topbar />
-            <main className="p-6">{children}</main>
+        <div className="min-h-screen bg-slate-50">
+            <div className="sticky top-0 z-50">
+                <Navbar />
+                <Topbar />
+            </div>
+            <main className="p-6 lg:p-8 max-w-[1400px] w-full mx-auto">
+                {children}
+            </main>
         </div>
     );
 }
