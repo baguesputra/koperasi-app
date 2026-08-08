@@ -9,60 +9,63 @@ const menuGroups = [
     {
         label: 'Utama',
         items: [
-            { label: 'Dashboard', routeName: 'dashboard', icon: LayoutDashboard, roles: ['admin', 'bendahara', 'ketua_koperasi'] },
+            { label: 'Dashboard', routeName: 'dashboard', icon: LayoutDashboard, permission: null },
         ],
     },
     {
         label: 'Data',
         items: [
-            { label: 'Anggota', routeName: 'anggota.index', icon: Users, roles: ['admin', 'bendahara', 'ketua_koperasi'] },
-            { label: 'Simpanan', routeName: 'simpanan.index', icon: PiggyBank, roles: ['admin', 'bendahara', 'ketua_koperasi'] },
-            { label: 'Pinjaman', routeName: 'pinjaman.index', icon: HandCoins, roles: ['admin', 'bendahara', 'ketua_koperasi'] },
+            { label: 'Anggota', routeName: 'anggota.index', icon: Users, permission: 'anggota.lihat' },
+            { label: 'Simpanan', routeName: 'simpanan.index', icon: PiggyBank, permission: 'simpanan.lihat' },
+            { label: 'Pinjaman', routeName: 'pinjaman.index', icon: HandCoins, permission: 'pinjaman.lihat' },
         ],
     },
     {
         label: 'Proses Bendahara',
         items: [
-            { label: 'Approval Pinjaman', routeName: 'bendahara.pinjaman.index', icon: ClipboardCheck, roles: ['bendahara'] },
-            { label: 'Angsuran', routeName: 'bendahara.angsuran.index', icon: CalendarCheck, roles: ['bendahara'] },
-            { label: 'Konfirmasi Simpanan', routeName: 'bendahara.simpanan.index', icon: HeartHandshake, roles: ['bendahara'] },
+            { label: 'Approval Pinjaman', routeName: 'bendahara.pinjaman.index', icon: ClipboardCheck, permission: 'pinjaman.tinjau-bendahara' },
+            { label: 'Angsuran', routeName: 'bendahara.angsuran.index', icon: CalendarCheck, permission: 'angsuran.konfirmasi' },
+            { label: 'Konfirmasi Simpanan', routeName: 'bendahara.simpanan.index', icon: HeartHandshake, permission: 'simpanan.konfirmasi' },
         ],
     },
     {
         label: 'Proses Ketua',
         items: [
-            { label: 'Approval Pinjaman', routeName: 'ketua.pinjaman.index', icon: ClipboardCheck, roles: ['ketua_koperasi'] },
+            { label: 'Approval Pinjaman', routeName: 'ketua.pinjaman.index', icon: ClipboardCheck, permission: 'pinjaman.approve-ketua' },
         ],
     },
     {
         label: 'Keuangan',
         items: [
-            { label: 'Kas Koperasi', routeName: 'kas-koperasi.index', icon: Wallet, roles: ['admin', 'bendahara', 'ketua_koperasi'] },
-            { label: 'Laporan', routeName: null, icon: FileBarChart, roles: ['admin', 'bendahara', 'ketua_koperasi'] },
+            { label: 'Kas Koperasi', routeName: 'kas-koperasi.index', icon: Wallet, permission: 'kas.lihat' },
+            { label: 'Laporan', routeName: null, icon: FileBarChart, permission: 'laporan.lihat' },
         ],
     },
     {
         label: 'Administrasi',
         items: [
-            { label: 'Pengaturan', routeName: 'pengaturan.index', icon: Settings, roles: ['admin'] },
+            { label: 'Pengaturan', routeName: 'pengaturan.index', icon: Settings, permission: 'pengaturan.kelola' },
         ],
     },
 ];
 
 export default function Sidebar() {
     const { auth } = usePage().props;
-    const userRoles = auth.user?.roles ?? [];
+    const userPermissions = auth.user?.permissions ?? [];
+
+    function bisaAkses(permission) {
+        return permission === null || userPermissions.includes(permission);
+    }
 
     const visibleGroups = menuGroups
         .map((group) => ({
             ...group,
-            items: group.items.filter((item) => item.roles.some((r) => userRoles.includes(r))),
+            items: group.items.filter((item) => bisaAkses(item.permission)),
         }))
         .filter((group) => group.items.length > 0);
 
     return (
         <aside className="w-64 bg-white border-r border-slate-200 min-h-screen flex flex-col">
-            {/* Header logo - background putih, garis bawah navy tebal, sejajar dengan Topbar */}
             <div className="h-16 px-5 flex items-center gap-2.5 border-b-2 border-brand-navy shrink-0">
                 <img src="/images/logo.png" alt="Koperasi App" className="w-8 h-8" />
                 <span className="text-base font-bold text-slate-800">Koperasi App</span>
