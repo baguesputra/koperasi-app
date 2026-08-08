@@ -3,17 +3,17 @@ import { LogOut } from 'lucide-react';
 
 const menuGroups = [
     [
-        { label: 'Dashboard', href: route('dashboard'), roles: ['admin', 'bendahara', 'ketua_koperasi'] },
+        { label: 'Dashboard', href: 'dashboard', roles: ['admin', 'bendahara', 'ketua_koperasi'] },
     ],
     [
-        { label: 'Anggota', href: route('anggota.index'), roles: ['admin'] },
+        { label: 'Anggota', href: 'anggota.index', roles: ['admin', 'bendahara', 'ketua_koperasi'] },
         { label: 'Simpanan', href: '#', roles: ['admin', 'bendahara'] },
         { label: 'Pinjaman', href: '#', roles: ['admin', 'bendahara', 'ketua_koperasi'] },
     ],
     [
-        // { label: 'Approval Pinjaman', href: route().has('bendahara.pinjaman.index') && userRoles.includes('bendahara') ? route('bendahara.pinjaman.index') : route('ketua.pinjaman.index'), roles: ['bendahara', 'ketua_koperasi'] },
+        { label: 'Approval Pinjaman', href: 'approval-pinjaman', roles: ['bendahara', 'ketua_koperasi'] },
         { label: 'Laporan', href: '#', roles: ['admin', 'bendahara', 'ketua_koperasi'] },
-        { label: 'Pengaturan', href: route('pengaturan.index'), roles: ['admin'] },
+        { label: 'Pengaturan', href: 'pengaturan.index', roles: ['admin'] },
     ],
 ];
 
@@ -21,6 +21,19 @@ export default function Navbar() {
     const { auth } = usePage().props;
     const userRoles = auth.user?.roles ?? [];
     const initial = auth.user?.name?.charAt(0)?.toUpperCase() ?? '?';
+
+    function resolveHref(item) {
+        if (item.href === '#') return '#';
+
+        // Kasus khusus: "Approval Pinjaman" beda route name tergantung role
+        if (item.href === 'approval-pinjaman') {
+            return userRoles.includes('bendahara')
+                ? route('bendahara.pinjaman.index')
+                : route('ketua.pinjaman.index');
+        }
+
+        return route(item.href);
+    }
 
     const visibleGroups = menuGroups
         .map((items) => items.filter((item) => item.roles.some((r) => userRoles.includes(r))))
@@ -40,14 +53,16 @@ export default function Navbar() {
                     {visibleGroups.map((items, groupIndex) => (
                         <div key={groupIndex} className="flex items-center">
                             {groupIndex > 0 && (
-                                <span className="w-px h-5 bg-slate-200 mx-3" />
+                                <span className="w-0.5 h-6 bg-slate-300 mx-3" />
                             )}
                             {items.map((item) => {
-                                const isActive = item.href !== '#' && route().current(item.href);
+                                const href = resolveHref(item);
+                                const isActive = href !== '#' && route().current(item.href.includes('.') ? item.href : undefined);
+
                                 return (
                                     <Link
                                         key={item.label}
-                                        href={item.href}
+                                        href={href}
                                         className={`text-sm font-semibold px-3.5 py-2 rounded-lg transition-colors ${
                                             isActive
                                                 ? 'bg-brand-green text-white'
@@ -68,7 +83,7 @@ export default function Navbar() {
                     {initial}
                 </div>
 
-                <span className="w-px h-5 bg-slate-200" />
+                <span className="w-0.5 h-6 bg-slate-300" />
 
                 <Link
                     href={route('logout')}
