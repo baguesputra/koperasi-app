@@ -15,7 +15,7 @@ class DashboardController extends Controller
     {
         $anggota = auth()->user()->anggota;
 
-        $totalSimpanan = $anggota->simpanan()->sum('jumlah');
+        $totalSimpanan = $anggota->simpanan()->whereIn('jenis', ['pokok', 'wajib'])->sum('jumlah');
         $pinjamanAktif = $anggota->pinjamanAktif();
 
         $cekEligibilitas = $this->eligibilitas->cek($anggota);

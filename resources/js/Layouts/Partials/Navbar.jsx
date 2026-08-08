@@ -12,6 +12,8 @@ const menuGroups = [
     ],
     [
         { label: 'Approval Pinjaman', routeName: 'approval-pinjaman', roles: ['bendahara', 'ketua_koperasi'] },
+        { label: 'Angsuran', routeName: 'bendahara.angsuran.index', roles: ['bendahara'] },
+        { label: 'Konfirmasi Simpanan', routeName: 'bendahara.simpanan.index', roles: ['bendahara'] },
         { label: 'Kas Koperasi', routeName: 'kas-koperasi.index', roles: ['admin', 'bendahara', 'ketua_koperasi'] },
         { label: 'Laporan', routeName: null, roles: ['admin', 'bendahara', 'ketua_koperasi'] },
         { label: 'Pengaturan', routeName: 'pengaturan.index', roles: ['admin'] },

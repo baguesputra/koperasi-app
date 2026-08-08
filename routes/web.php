@@ -14,6 +14,9 @@ use App\Http\Controllers\Bendahara\PinjamanController as BendaharaPinjamanContro
 use App\Http\Controllers\Ketua\PinjamanController as KetuaPinjamanController;
 use App\Http\Controllers\PinjamanController;
 use App\Http\Controllers\KasKoperasiController;
+use App\Http\Controllers\Bendahara\AngsuranController;
+use App\Http\Controllers\SimpananController;
+use App\Http\Controllers\Bendahara\SimpananController as BendaharaSimpananController;
 
 
 Route::get('/', function () {
@@ -34,6 +37,8 @@ Route::middleware(['auth', 'role:anggota'])->prefix('portal')->name('portal.')->
     Route::post('/pinjaman/simulasi', [PortalPinjamanController::class, 'simulasi'])->name('pinjaman.simulasi');
     Route::post('/pinjaman', [PortalPinjamanController::class, 'store'])->name('pinjaman.store');
     Route::get('/pinjaman/berhasil', [PortalPinjamanController::class, 'berhasil'])->name('pinjaman.berhasil');
+
+   
 });
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
@@ -44,6 +49,8 @@ Route::middleware(['auth', 'role:admin|bendahara|ketua_koperasi'])->group(functi
     Route::get('/anggota', [AnggotaController::class, 'index'])->name('anggota.index');
     Route::get('/pinjaman', [PinjamanController::class, 'index'])->name('pinjaman.index');
     Route::get('/kas-koperasi', [KasKoperasiController::class, 'index'])->name('kas-koperasi.index');
+    Route::get('/simpanan', [SimpananController::class, 'index'])->name('simpanan.index');
+    Route::get('/simpanan/{anggota}', [SimpananController::class, 'show'])->name('simpanan.show');
 });
 
 Route::middleware(['auth', 'role:bendahara'])->group(function () {
@@ -69,6 +76,12 @@ Route::middleware(['auth', 'role:bendahara'])->prefix('bendahara')->name('bendah
     Route::get('/pinjaman/{pinjaman}', [BendaharaPinjamanController::class, 'show'])->name('pinjaman.show');
     Route::post('/pinjaman/{pinjaman}/approve', [BendaharaPinjamanController::class, 'approve'])->name('pinjaman.approve');
     Route::post('/pinjaman/{pinjaman}/reject', [BendaharaPinjamanController::class, 'reject'])->name('pinjaman.reject');
+
+    Route::get('/angsuran', [AngsuranController::class, 'index'])->name('angsuran.index');
+    Route::post('/angsuran/konfirmasi', [AngsuranController::class, 'konfirmasi'])->name('angsuran.konfirmasi');
+
+    Route::get('/simpanan', [BendaharaSimpananController::class, 'index'])->name('simpanan.index');
+    Route::post('/simpanan/konfirmasi', [BendaharaSimpananController::class, 'konfirmasi'])->name('simpanan.konfirmasi');
 });
 
 Route::middleware(['auth', 'role:ketua_koperasi'])->prefix('ketua')->name('ketua.')->group(function () {

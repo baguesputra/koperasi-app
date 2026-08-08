@@ -1,8 +1,7 @@
 import SidebarLayout from './SidebarLayout';
 import NavbarLayout from './NavbarLayout';
 
-// Navbar dipakai untuk sisi Koperasi (Admin/Bendahara/Ketua) - menu tidak banyak
-const LAYOUT_MODE = 'navbar';
+const LAYOUT_MODE = 'sidebar';
 
 export default function AppLayout({ children }) {
     if (LAYOUT_MODE === 'navbar') {

@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             KasKoperasiSeeder::class,
             AnggotaSeeder::class,
             PinjamanSeeder::class,
+            SettingSimpananSeeder::class,
         ]);
     }
 }
