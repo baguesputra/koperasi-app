@@ -13,6 +13,7 @@ const menuGroups = [
     [
         { label: 'Approval Pinjaman', href: '#', roles: ['bendahara', 'ketua_koperasi'] },
         { label: 'Laporan', href: '#', roles: ['admin', 'bendahara', 'ketua_koperasi'] },
+        { label: 'Pengaturan', href: route('pengaturan.index'), roles: ['admin'] },
     ],
 ];
 

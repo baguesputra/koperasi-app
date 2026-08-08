@@ -4,6 +4,7 @@ namespace App\Services\Pinjaman;
 
 use App\Models\Anggota;
 use App\Models\TabelTenor;
+use App\Models\SettingLimitPinjaman;
 
 class EligibilitasPinjamanService
 {
@@ -49,16 +50,15 @@ class EligibilitasPinjamanService
     {
         $lamaTahun = $anggota->lama_keanggotaan_tahun;
 
-        if ($lamaTahun < 1) {
-            return 1_000_000;
-        }
+        $kategori = match (true) {
+            $lamaTahun < 1 => 'anggota_baru',
+            $lamaTahun >= 5 => 'anggota_lama',
+            default => $anggota->jabatan === 'hod' ? 'hod' : 'staff',
+        };
 
-        if ($lamaTahun >= 5) {
-            return 10_000_001; // TODO: angka pasti masih menunggu konfirmasi (sementara > 10 juta)
-        }
+        $setting = SettingLimitPinjaman::where('kategori', $kategori)->first();
 
-        // 1-5 tahun: limit berdasarkan jabatan
-        return $anggota->jabatan === 'hod' ? 10_000_000 : 7_000_000;
+        return (float) ($setting->limit_maksimal ?? 1_000_000);
     }
 
     /**

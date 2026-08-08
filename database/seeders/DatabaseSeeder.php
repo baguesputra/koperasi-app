@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             TabelTenorSeeder::class,
             SettingBungaSeeder::class,
+            SettingLimitPinjamanSeeder::class,
             KasKoperasiSeeder::class,
             AnggotaSeeder::class,
             PinjamanSeeder::class,

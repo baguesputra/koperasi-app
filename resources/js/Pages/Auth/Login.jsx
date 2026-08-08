@@ -37,7 +37,7 @@ export default function Login({ status, canResetPassword }) {
                 </div>
 
                 <p className="text-sm text-slate-400">
-                    &copy; {new Date().getFullYear()} Koperasi App. Internal use only.
+                    &copy; {new Date().getFullYear()} Koperasi App - PT. Tata Optima Property
                 </p>
             </div>
 

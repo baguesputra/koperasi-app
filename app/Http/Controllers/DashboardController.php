@@ -10,8 +10,11 @@ use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function index(): Response
+    public function index(): Response|\Illuminate\Http\RedirectResponse
     {
+        if (auth()->user()->hasRole('anggota')) {
+        return redirect()->route('portal.dashboard');
+    }
         $aktivitasTerbaru = Pinjaman::with('anggota')
             ->latest('tanggal_pengajuan')
             ->take(5)

@@ -44,10 +44,12 @@ export default function Index({ anggota, filters, daftarCabang }) {
                         <Upload size={18} />
                         Import Excel
                     </Button>
-                    <Button variant="primary" size="md">
-                        <Plus size={18} />
-                        Tambah Anggota
-                    </Button>
+                    <Link href={route('anggota.create')}>
+                        <Button variant="primary" size="md">
+                            <Plus size={18} />
+                            Tambah Anggota
+                        </Button>
+                    </Link>
                 </div>
             </div>
 
@@ -112,7 +114,7 @@ export default function Index({ anggota, filters, daftarCabang }) {
                                     <tr key={a.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
                                         <td className="px-5 py-3.5 text-base text-slate-600">{a.no_anggota}</td>
                                         <td className="px-5 py-3.5 text-base font-semibold text-slate-800">
-                                            <Link href="#" className="hover:text-brand-green">
+                                            <Link href={route('anggota.edit', a.id)} className="hover:text-brand-green">
                                                 {a.nama}
                                             </Link>
                                         </td>

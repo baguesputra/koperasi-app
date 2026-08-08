@@ -57,4 +57,19 @@ class Anggota extends Model
     {
         return $this->pinjaman()->whereIn('status', ['aktif'])->first();
     }
+
+    public static function generateNoAnggota(): string
+    {
+        $tahun = now()->year;
+
+        $nomorTerakhir = self::where('no_anggota', 'like', "ANG-{$tahun}-%")
+            ->orderByDesc('no_anggota')
+            ->value('no_anggota');
+
+        $urutan = $nomorTerakhir
+            ? ((int) substr($nomorTerakhir, -4)) + 1
+            : 1;
+
+        return sprintf('ANG-%d-%04d', $tahun, $urutan);
+    }
 }
