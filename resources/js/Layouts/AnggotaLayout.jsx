@@ -3,7 +3,7 @@ import { Home, FileText, History, User, LogOut } from 'lucide-react';
 
 const menuUtama = [
     { label: 'Beranda', href: route('portal.dashboard'), icon: Home, match: 'portal.dashboard' },
-    { label: 'Ajukan Pinjaman', href: '#', icon: FileText, match: 'portal.pinjaman.create' },
+    { label: 'Ajukan Pinjaman', href: route('portal.pinjaman.create'), icon: FileText, match: 'portal.pinjaman.create' },
     { label: 'Riwayat', href: route('portal.riwayat'), icon: History, match: 'portal.riwayat' },
     { label: 'Profil', href: '#', icon: User, match: 'portal.profil' },
 ];

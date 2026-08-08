@@ -11,7 +11,7 @@ const menuGroups = [
         { label: 'Pinjaman', href: '#', roles: ['admin', 'bendahara', 'ketua_koperasi'] },
     ],
     [
-        { label: 'Approval Pinjaman', href: '#', roles: ['bendahara', 'ketua_koperasi'] },
+        // { label: 'Approval Pinjaman', href: route().has('bendahara.pinjaman.index') && userRoles.includes('bendahara') ? route('bendahara.pinjaman.index') : route('ketua.pinjaman.index'), roles: ['bendahara', 'ketua_koperasi'] },
         { label: 'Laporan', href: '#', roles: ['admin', 'bendahara', 'ketua_koperasi'] },
         { label: 'Pengaturan', href: route('pengaturan.index'), roles: ['admin'] },
     ],

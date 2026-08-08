@@ -61,7 +61,7 @@ export default function Dashboard({ anggota, totalSimpanan, pinjamanAktif, bisaA
             <div className="mb-6">
                 {bisaAjukan ? (
                     <Link
-                        href="#"
+                        href={route('portal.pinjaman.create')}
                         className="block w-full sm:w-auto sm:inline-block text-center px-8 py-4 text-base font-bold rounded-2xl bg-brand-green text-white shadow-sm hover:bg-brand-green-dark transition-colors"
                     >
                         Ajukan Pinjaman
