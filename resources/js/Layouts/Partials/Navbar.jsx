@@ -3,17 +3,18 @@ import { LogOut } from 'lucide-react';
 
 const menuGroups = [
     [
-        { label: 'Dashboard', href: 'dashboard', roles: ['admin', 'bendahara', 'ketua_koperasi'] },
+        { label: 'Dashboard', routeName: 'dashboard', roles: ['admin', 'bendahara', 'ketua_koperasi'] },
     ],
     [
-        { label: 'Anggota', href: 'anggota.index', roles: ['admin', 'bendahara', 'ketua_koperasi'] },
-        { label: 'Simpanan', href: '#', roles: ['admin', 'bendahara'] },
-        { label: 'Pinjaman', href: '#', roles: ['admin', 'bendahara', 'ketua_koperasi'] },
+        { label: 'Anggota', routeName: 'anggota.index', roles: ['admin', 'bendahara', 'ketua_koperasi'] },
+        { label: 'Simpanan', routeName: null, roles: ['admin', 'bendahara'] },
+        { label: 'Pinjaman', routeName: 'pinjaman.index', roles: ['admin', 'bendahara', 'ketua_koperasi'] },
     ],
     [
-        { label: 'Approval Pinjaman', href: 'approval-pinjaman', roles: ['bendahara', 'ketua_koperasi'] },
-        { label: 'Laporan', href: '#', roles: ['admin', 'bendahara', 'ketua_koperasi'] },
-        { label: 'Pengaturan', href: 'pengaturan.index', roles: ['admin'] },
+        { label: 'Approval Pinjaman', routeName: 'approval-pinjaman', roles: ['bendahara', 'ketua_koperasi'] },
+        { label: 'Kas Koperasi', routeName: 'kas-koperasi.index', roles: ['admin', 'bendahara', 'ketua_koperasi'] },
+        { label: 'Laporan', routeName: null, roles: ['admin', 'bendahara', 'ketua_koperasi'] },
+        { label: 'Pengaturan', routeName: 'pengaturan.index', roles: ['admin'] },
     ],
 ];
 
@@ -22,17 +23,17 @@ export default function Navbar() {
     const userRoles = auth.user?.roles ?? [];
     const initial = auth.user?.name?.charAt(0)?.toUpperCase() ?? '?';
 
-    function resolveHref(item) {
-        if (item.href === '#') return '#';
-
-        // Kasus khusus: "Approval Pinjaman" beda route name tergantung role
-        if (item.href === 'approval-pinjaman') {
-            return userRoles.includes('bendahara')
-                ? route('bendahara.pinjaman.index')
-                : route('ketua.pinjaman.index');
+    function resolve(item) {
+        if (item.routeName === 'approval-pinjaman') {
+            const actualRoute = userRoles.includes('bendahara') ? 'bendahara.pinjaman.index' : 'ketua.pinjaman.index';
+            return { href: route(actualRoute), isActive: route().current(actualRoute) || route().current('bendahara.pinjaman.show') || route().current('ketua.pinjaman.show') };
         }
 
-        return route(item.href);
+        if (!item.routeName) {
+            return { href: '#', isActive: false };
+        }
+
+        return { href: route(item.routeName), isActive: route().current(item.routeName) };
     }
 
     const visibleGroups = menuGroups
@@ -52,21 +53,15 @@ export default function Navbar() {
                 <div className="flex items-center">
                     {visibleGroups.map((items, groupIndex) => (
                         <div key={groupIndex} className="flex items-center">
-                            {groupIndex > 0 && (
-                                <span className="w-0.5 h-6 bg-slate-300 mx-3" />
-                            )}
+                            {groupIndex > 0 && <span className="w-0.5 h-6 bg-slate-300 mx-3" />}
                             {items.map((item) => {
-                                const href = resolveHref(item);
-                                const isActive = href !== '#' && route().current(item.href.includes('.') ? item.href : undefined);
-
+                                const { href, isActive } = resolve(item);
                                 return (
                                     <Link
                                         key={item.label}
                                         href={href}
                                         className={`text-sm font-semibold px-3.5 py-2 rounded-lg transition-colors ${
-                                            isActive
-                                                ? 'bg-brand-green text-white'
-                                                : 'text-slate-600 hover:bg-slate-100'
+                                            isActive ? 'bg-brand-green text-white' : 'text-slate-600 hover:bg-slate-100'
                                         }`}
                                     >
                                         {item.label}
@@ -82,9 +77,7 @@ export default function Navbar() {
                 <div className="w-9 h-9 rounded-full bg-brand-green text-white flex items-center justify-center text-sm font-bold">
                     {initial}
                 </div>
-
                 <span className="w-0.5 h-6 bg-slate-300" />
-
                 <Link
                     href={route('logout')}
                     method="post"

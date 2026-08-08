@@ -9,9 +9,11 @@ use App\Http\Controllers\AnggotaController;
 use App\Http\Controllers\PengaturanController;
 use App\Http\Controllers\Portal\DashboardController as PortalDashboardController;
 use App\Http\Controllers\Portal\RiwayatController;
-use App\Http\Controllers\Portal\PinjamanController;
+use App\Http\Controllers\Portal\PinjamanController as PortalPinjamanController;
 use App\Http\Controllers\Bendahara\PinjamanController as BendaharaPinjamanController;
 use App\Http\Controllers\Ketua\PinjamanController as KetuaPinjamanController;
+use App\Http\Controllers\PinjamanController;
+use App\Http\Controllers\KasKoperasiController;
 
 
 Route::get('/', function () {
@@ -27,11 +29,11 @@ Route::middleware(['auth', 'role:anggota'])->prefix('portal')->name('portal.')->
     Route::get('/dashboard', [PortalDashboardController::class, 'index'])->name('dashboard');
     Route::get('/riwayat', [RiwayatController::class, 'index'])->name('riwayat');
 
-    Route::get('/pinjaman/ajukan', [PinjamanController::class, 'create'])->name('pinjaman.create');
-    Route::post('/pinjaman/cek-nominal', [PinjamanController::class, 'cekNominal'])->name('pinjaman.cek-nominal');
-    Route::post('/pinjaman/simulasi', [PinjamanController::class, 'simulasi'])->name('pinjaman.simulasi');
-    Route::post('/pinjaman', [PinjamanController::class, 'store'])->name('pinjaman.store');
-    Route::get('/pinjaman/berhasil', [PinjamanController::class, 'berhasil'])->name('pinjaman.berhasil');
+    Route::get('/pinjaman/ajukan', [PortalPinjamanController::class, 'create'])->name('pinjaman.create');
+    Route::post('/pinjaman/cek-nominal', [PortalPinjamanController::class, 'cekNominal'])->name('pinjaman.cek-nominal');
+    Route::post('/pinjaman/simulasi', [PortalPinjamanController::class, 'simulasi'])->name('pinjaman.simulasi');
+    Route::post('/pinjaman', [PortalPinjamanController::class, 'store'])->name('pinjaman.store');
+    Route::get('/pinjaman/berhasil', [PortalPinjamanController::class, 'berhasil'])->name('pinjaman.berhasil');
 });
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
@@ -40,6 +42,12 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
 
 Route::middleware(['auth', 'role:admin|bendahara|ketua_koperasi'])->group(function () {
     Route::get('/anggota', [AnggotaController::class, 'index'])->name('anggota.index');
+    Route::get('/pinjaman', [PinjamanController::class, 'index'])->name('pinjaman.index');
+    Route::get('/kas-koperasi', [KasKoperasiController::class, 'index'])->name('kas-koperasi.index');
+});
+
+Route::middleware(['auth', 'role:bendahara'])->group(function () {
+    Route::post('/kas-koperasi/topup', [KasKoperasiController::class, 'topup'])->name('kas-koperasi.topup');
 });
 
 Route::middleware(['auth', 'role:admin'])->group(function () {

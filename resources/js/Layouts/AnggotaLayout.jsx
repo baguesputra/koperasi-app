@@ -14,9 +14,8 @@ export default function AnggotaLayout({ children }) {
 
     return (
         <div className="min-h-screen bg-slate-50 pb-20 lg:pb-0">
-            {/* Satu bar navigasi - responsif, bukan 2 bar terpisah */}
             <header className="sticky top-0 z-50 bg-white border-b border-slate-200">
-                <div className="max-w-3xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-2.5 shrink-0">
                         <img src="/images/logo.png" alt="Koperasi App" className="w-8 h-8" />
                         <span className="font-bold text-base text-slate-800 hidden sm:inline">
@@ -24,8 +23,7 @@ export default function AnggotaLayout({ children }) {
                         </span>
                     </div>
 
-                    {/* Menu inline - HANYA tampil di layar besar, jadi 1 baris dengan header */}
-                    <nav className="hidden lg:flex items-center gap-1 flex-1 justify-center">
+                    <nav className="hidden lg:flex items-center gap-1">
                         {menuUtama.map((item) => {
                             const Icon = item.icon;
                             const isActive = item.href !== '#' && route().current(item.match);
@@ -62,14 +60,12 @@ export default function AnggotaLayout({ children }) {
                 </div>
             </header>
 
-            {/* Konten */}
-            <main className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
+            <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
                 {children}
             </main>
 
-            {/* Bottom navigation - HANYA tampil di layar kecil, satu-satunya nav di mobile */}
             <nav className="lg:hidden fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 px-2 py-2 z-50">
-                <div className="max-w-3xl mx-auto flex items-center justify-around">
+                <div className="max-w-6xl mx-auto flex items-center justify-around">
                     {menuUtama.map((item) => {
                         const Icon = item.icon;
                         const isActive = item.href !== '#' && route().current(item.match);
