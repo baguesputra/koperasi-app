@@ -15,6 +15,8 @@ export default function Edit({ anggota, daftarCabang }) {
         tanggal_mulai_kerja: anggota.tanggal_mulai_kerja?.slice(0, 10) ?? '',
         tanggal_jadi_anggota: anggota.tanggal_jadi_anggota?.slice(0, 10) ?? '',
         status: anggota.status,
+        limit_custom: anggota.limit_custom ?? '',
+        limit_custom_keterangan: anggota.limit_custom_keterangan ?? '',
     });
 
     function submit(e) {
@@ -110,6 +112,30 @@ export default function Edit({ anggota, daftarCabang }) {
                             <option value="nonaktif">Nonaktif</option>
                         </select>
                     </FormField>
+
+                    <div className="mt-6 pt-6 border-t border-slate-100">
+                        <p className="text-base font-bold text-slate-700 mb-1">Limit Pinjaman Khusus (Opsional)</p>
+                        <p className="text-sm text-slate-400 mb-4">
+                            Isi jika anggota ini punya kebijakan limit berbeda dari aturan umum. Kosongkan untuk memakai aturan otomatis berdasarkan jabatan &amp; lama keanggotaan.
+                        </p>
+
+                        <FormField label="Nominal Limit Khusus" error={errors.limit_custom} hint="Kosongkan untuk hapus limit khusus">
+                            <TextField
+                                type="number"
+                                value={data.limit_custom}
+                                onChange={(e) => setData('limit_custom', e.target.value)}
+                                placeholder="Contoh: 10000000"
+                            />
+                        </FormField>
+
+                        <FormField label="Alasan / Keterangan" error={errors.limit_custom_keterangan}>
+                            <TextField
+                                value={data.limit_custom_keterangan}
+                                onChange={(e) => setData('limit_custom_keterangan', e.target.value)}
+                                placeholder="Contoh: Kebijakan khusus dari Ketua Koperasi, karyawan lama pindah cabang"
+                            />
+                        </FormField>
+                    </div>
 
                     <div className="flex items-center gap-3 mt-2">
                         <Button type="submit" variant="primary" disabled={processing}>

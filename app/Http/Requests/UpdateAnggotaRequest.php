@@ -21,6 +21,8 @@ class UpdateAnggotaRequest extends FormRequest
             'tanggal_mulai_kerja' => ['required', 'date', 'before_or_equal:today'],
             'tanggal_jadi_anggota' => ['required', 'date', 'before_or_equal:today'],
             'status' => ['required', 'string', 'in:aktif,nonaktif'],
+            'limit_custom' => ['nullable', 'numeric', 'min:0'],
+            'limit_custom_keterangan' => ['nullable', 'required_with:limit_custom', 'string', 'max:255'],
         ];
     }
 

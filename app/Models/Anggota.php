@@ -23,11 +23,14 @@ class Anggota extends Model
         'tanggal_mulai_kerja',
         'tanggal_jadi_anggota',
         'status',
+        'limit_custom',
+        'limit_custom_keterangan',
     ];
 
     protected $casts = [
         'tanggal_mulai_kerja' => 'date',
         'tanggal_jadi_anggota' => 'date',
+        'limit_custom' => 'decimal:2',
     ];
 
     public function user(): BelongsTo

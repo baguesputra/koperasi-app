@@ -17,6 +17,7 @@ use App\Http\Controllers\KasKoperasiController;
 use App\Http\Controllers\Bendahara\AngsuranController;
 use App\Http\Controllers\SimpananController;
 use App\Http\Controllers\Bendahara\SimpananController as BendaharaSimpananController;
+use App\Http\Controllers\RoleController;
 
 
 Route::get('/', function () {
@@ -97,6 +98,11 @@ Route::middleware(['auth', 'permission:pengaturan.kelola', 'password.confirm'])-
     Route::delete('/pengaturan/tenor/{tenor}', [PengaturanController::class, 'destroyTenor'])->name('pengaturan.tenor.destroy');
     Route::post('/pengaturan/bunga', [PengaturanController::class, 'updateBunga'])->name('pengaturan.bunga.update');
     Route::post('/pengaturan/simpanan/{setting}', [PengaturanController::class, 'updateSimpanan'])->name('pengaturan.simpanan.update');
+    Route::get('/role', [RoleController::class, 'index'])->name('role.index');
+    Route::post('/role', [RoleController::class, 'store'])->name('role.store');
+    Route::get('/role/{role}/edit', [RoleController::class, 'edit'])->name('role.edit');
+    Route::put('/role/{role}', [RoleController::class, 'update'])->name('role.update');
+    Route::delete('/role/{role}', [RoleController::class, 'destroy'])->name('role.destroy');
 });
 
 // ==========================================

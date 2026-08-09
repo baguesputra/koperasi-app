@@ -48,6 +48,12 @@ class EligibilitasPinjamanService
      */
     public function limitMaksimal(Anggota $anggota): float
     {
+         // Prioritas 1: kalau ada limit custom yang di-set Admin, pakai itu
+        if ($anggota->limit_custom !== null) {
+            return (float) $anggota->limit_custom;
+        }
+
+        // Prioritas 2: logic kategori otomatis (default)
         $lamaTahun = $anggota->lama_keanggotaan_tahun;
 
         $kategori = match (true) {

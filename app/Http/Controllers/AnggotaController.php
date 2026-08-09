@@ -8,6 +8,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 use App\Http\Requests\StoreAnggotaRequest;
 use App\Http\Requests\UpdateAnggotaRequest;
+use App\Models\AuditLog;
 
 class AnggotaController extends Controller
 {
@@ -81,7 +82,20 @@ class AnggotaController extends Controller
 
     public function update(UpdateAnggotaRequest $request, Anggota $anggota)
     {
+        $limitCustomLama = $anggota->limit_custom;
+
         $anggota->update($request->validated());
+
+        if ($limitCustomLama != $request->limit_custom) {
+            AuditLog::catat(
+                'update_limit_custom_anggota',
+                "Limit khusus untuk {$anggota->nama} diubah menjadi " .
+                    ($request->limit_custom ? 'Rp ' . number_format($request->limit_custom, 0, ',', '.') : 'dihapus (kembali ke aturan umum)') .
+                    ". Alasan: {$request->limit_custom_keterangan}",
+                ['limit_custom' => $limitCustomLama],
+                ['limit_custom' => $request->limit_custom, 'keterangan' => $request->limit_custom_keterangan]
+            );
+        }
 
         return redirect()->route('anggota.index')
             ->with('status', 'Data anggota berhasil diperbarui.');
