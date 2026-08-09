@@ -89,13 +89,14 @@ Route::middleware(['auth', 'permission:anggota.kelola'])->group(function () {
 // ==========================================
 // PENGATURAN (khusus Admin)
 // ==========================================
-Route::middleware(['auth', 'permission:pengaturan.kelola'])->group(function () {
+Route::middleware(['auth', 'permission:pengaturan.kelola', 'password.confirm'])->group(function () {
     Route::get('/pengaturan', [PengaturanController::class, 'index'])->name('pengaturan.index');
     Route::put('/pengaturan/limit/{limit}', [PengaturanController::class, 'updateLimit'])->name('pengaturan.limit.update');
     Route::post('/pengaturan/tenor', [PengaturanController::class, 'storeTenor'])->name('pengaturan.tenor.store');
     Route::put('/pengaturan/tenor/{tenor}', [PengaturanController::class, 'updateTenor'])->name('pengaturan.tenor.update');
     Route::delete('/pengaturan/tenor/{tenor}', [PengaturanController::class, 'destroyTenor'])->name('pengaturan.tenor.destroy');
     Route::post('/pengaturan/bunga', [PengaturanController::class, 'updateBunga'])->name('pengaturan.bunga.update');
+    Route::post('/pengaturan/simpanan/{setting}', [PengaturanController::class, 'updateSimpanan'])->name('pengaturan.simpanan.update');
 });
 
 // ==========================================
