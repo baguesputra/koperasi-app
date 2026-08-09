@@ -3,12 +3,13 @@
 namespace App\Http\Controllers\Portal;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class RiwayatController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $anggota = auth()->user()->anggota;
 
@@ -22,6 +23,8 @@ class RiwayatController extends Controller
                 'tenor_bulan' => $p->tenor_bulan,
                 'status' => $p->status,
                 'tanggal_pengajuan' => $p->tanggal_pengajuan->format('d M Y'),
+                'catatan_bendahara' => $p->catatan_bendahara,
+                'catatan_ketua' => $p->catatan_ketua,
                 'angsuran' => $p->angsuran->map(fn ($a) => [
                     'cicilan_ke' => $a->cicilan_ke,
                     'total_bayar' => (float) $a->total_bayar,
@@ -31,19 +34,41 @@ class RiwayatController extends Controller
                 ]),
             ]);
 
-        $simpanan = $anggota->simpanan()
-            ->latest('tanggal_input')
-            ->get()
-            ->map(fn ($s) => [
-                'jenis' => $s->jenis,
-                'jumlah' => (float) $s->jumlah,
-                'bulan_periode' => $s->bulan_periode,
-                'tanggal_input' => $s->tanggal_input->format('d M Y'),
-            ]);
+        $bulanFilter = $request->input('bulan');
+
+        $querySimpanan = $anggota->simpanan()->latest('tanggal_input');
+        if ($bulanFilter) {
+            $querySimpanan->where('bulan_periode', $bulanFilter);
+        }
+
+        $simpanan = $querySimpanan->get()->map(fn ($s) => [
+            'jenis' => $s->jenis,
+            'jumlah' => (float) $s->jumlah,
+            'bulan_periode' => $s->bulan_periode,
+            'tanggal_input' => $s->tanggal_input->format('d M Y'),
+        ]);
+
+        $daftarBulanTersedia = $anggota->simpanan()
+            ->select('bulan_periode')
+            ->distinct()
+            ->orderByDesc('bulan_periode')
+            ->pluck('bulan_periode');
+
+        // Ringkasan
+        $totalPinjamanDiajukan = $anggota->pinjaman()->count();
+        $totalPinjamanLunas = $anggota->pinjaman()->where('status', 'lunas')->count();
+        $totalSimpananTerkumpul = $anggota->simpanan()->whereIn('jenis', ['pokok', 'wajib'])->sum('jumlah');
 
         return Inertia::render('Portal/Riwayat', [
             'pinjaman' => $pinjaman,
             'simpanan' => $simpanan,
+            'daftarBulanTersedia' => $daftarBulanTersedia,
+            'bulanFilter' => $bulanFilter,
+            'ringkasan' => [
+                'total_pinjaman_diajukan' => $totalPinjamanDiajukan,
+                'total_pinjaman_lunas' => $totalPinjamanLunas,
+                'total_simpanan_terkumpul' => (float) $totalSimpananTerkumpul,
+            ],
         ]);
     }
 }

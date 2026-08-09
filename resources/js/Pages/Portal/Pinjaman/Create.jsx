@@ -1,36 +1,41 @@
 import AnggotaLayout from '@/Layouts/AnggotaLayout';
 import { Head, Link, router } from '@inertiajs/react';
-import { useState } from 'react';
-import { ArrowLeft, ArrowRight, AlertCircle, Check } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import {
+    ArrowLeft, AlertCircle, Check, ShieldCheck,
+    Phone, Clock, Wallet,
+} from 'lucide-react';
 
 function formatRupiah(angka) {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
 }
 
-const TOTAL_STEP = 3;
-
 export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal }) {
-    const [step, setStep] = useState(1);
     const [nominal, setNominal] = useState('');
+    const [nominalValid, setNominalValid] = useState(false);
     const [tenorMaksimal, setTenorMaksimal] = useState(null);
     const [tenorDipilih, setTenorDipilih] = useState(null);
     const [jadwal, setJadwal] = useState([]);
     const [totalDibayar, setTotalDibayar] = useState(0);
     const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
+    const [loadingNominal, setLoadingNominal] = useState(false);
+    const [loadingSubmit, setLoadingSubmit] = useState(false);
+
+    const tenorRef = useRef(null);
+    const ringkasanRef = useRef(null);
 
     if (!bisaAjukan) {
         return (
             <AnggotaLayout>
                 <Head title="Ajukan Pinjaman" />
-                <div className="flex items-start gap-3 bg-amber-50 border border-amber-100 rounded-2xl p-5 max-w-xl">
+                <div className="max-w-2xl mx-auto flex items-start gap-3 bg-amber-50 border border-amber-100 rounded-2xl p-5">
                     <AlertCircle className="text-amber-600 shrink-0 mt-0.5" size={22} />
                     <div>
                         <p className="text-base font-semibold text-amber-800 mb-1">Belum bisa mengajukan pinjaman</p>
                         <p className="text-sm text-amber-700">{alasanTidakBisa}</p>
                     </div>
                 </div>
-                <Link href={route('portal.dashboard')} className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-brand-navy mt-5">
+                <Link href={route('portal.dashboard')} className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-brand-navy mt-5 max-w-2xl mx-auto">
                     <ArrowLeft size={16} />
                     Kembali ke Beranda
                 </Link>
@@ -38,259 +43,224 @@ export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal }) {
         );
     }
 
-    async function lanjutDariNominal() {
-        setError('');
+    // Debounce cek nominal - otomatis validasi tanpa perlu tombol
+    useEffect(() => {
         if (!nominal || Number(nominal) <= 0) {
-            setError('Masukkan nominal pinjaman terlebih dahulu.');
+            setNominalValid(false);
+            setTenorMaksimal(null);
+            setTenorDipilih(null);
             return;
         }
 
-        setLoading(true);
-        try {
-            const res = await window.axios.post(route('portal.pinjaman.cek-nominal'), { nominal });
-            setTenorMaksimal(res.data.tenor_maksimal);
-            setStep(2);
-        } catch (e) {
-            setError(e.response?.data?.pesan ?? 'Terjadi kesalahan, coba lagi.');
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    async function lanjutDariTenor() {
         setError('');
-        if (!tenorDipilih) {
-            setError('Pilih tenor terlebih dahulu.');
-            return;
-        }
+        const timeout = setTimeout(async () => {
+            setLoadingNominal(true);
+            try {
+                const res = await window.axios.post(route('portal.pinjaman.cek-nominal'), { nominal });
+                setTenorMaksimal(res.data.tenor_maksimal);
+                setNominalValid(true);
+                setTimeout(() => tenorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+            } catch (e) {
+                setNominalValid(false);
+                setTenorMaksimal(null);
+                setError(e.response?.data?.pesan ?? 'Terjadi kesalahan, coba lagi.');
+            } finally {
+                setLoadingNominal(false);
+            }
+        }, 600);
 
-        setLoading(true);
+        return () => clearTimeout(timeout);
+    }, [nominal]);
+
+    // Begitu tenor dipilih, langsung hitung simulasi
+    async function pilihTenor(bulan) {
+        setTenorDipilih(bulan);
         try {
             const res = await window.axios.post(route('portal.pinjaman.simulasi'), {
-                nominal,
-                tenor_bulan: tenorDipilih,
+                nominal, tenor_bulan: bulan,
             });
             setJadwal(res.data.jadwal);
             setTotalDibayar(res.data.total_dibayar);
-            setStep(3);
+            setTimeout(() => ringkasanRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
         } catch (e) {
-            setError('Terjadi kesalahan, coba lagi.');
-        } finally {
-            setLoading(false);
+            setError('Terjadi kesalahan menghitung simulasi.');
         }
     }
 
     function submitPengajuan() {
-        setLoading(true);
+        setLoadingSubmit(true);
         router.post(
             route('portal.pinjaman.store'),
             { nominal, tenor_bulan: tenorDipilih },
             {
                 onError: (errors) => {
                     setError(errors.pengajuan ?? 'Terjadi kesalahan, coba lagi.');
-                    setLoading(false);
+                    setLoadingSubmit(false);
                 },
             }
         );
     }
 
+    const opsiTenor = tenorMaksimal ? Array.from({ length: tenorMaksimal }, (_, i) => i + 1) : [];
+
     return (
         <AnggotaLayout>
             <Head title="Ajukan Pinjaman" />
 
-            <div className="max-w-xl">
-                <Link href={route('portal.dashboard')} className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-brand-navy mb-5">
-                    <ArrowLeft size={16} />
-                    Batal
-                </Link>
+            <Link href={route('portal.dashboard')} className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-brand-navy mb-5">
+                <ArrowLeft size={16} />
+                Batal, kembali ke Beranda
+            </Link>
 
-                {/* Indikator step */}
-                <div className="flex items-center gap-2 mb-6">
-                    {[1, 2, 3].map((s) => (
-                        <div key={s} className="flex items-center flex-1">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
-                                s < step ? 'bg-brand-green text-white' : s === step ? 'bg-brand-navy text-white' : 'bg-slate-200 text-slate-400'
-                            }`}>
-                                {s < step ? <Check size={16} /> : s}
-                            </div>
-                            {s < TOTAL_STEP && (
-                                <div className={`flex-1 h-1 mx-1.5 rounded ${s < step ? 'bg-brand-green' : 'bg-slate-200'}`} />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Kolom form - progresif, reveal ke bawah */}
+                <div className="lg:col-span-2 space-y-5">
+                    {error && (
+                        <div className="flex items-start gap-2.5 bg-red-50 border border-red-100 rounded-xl p-4">
+                            <AlertCircle className="text-red-500 shrink-0 mt-0.5" size={18} />
+                            <p className="text-sm text-red-700">{error}</p>
+                        </div>
+                    )}
+
+                    {/* Section 1: Nominal */}
+                    <div className="bg-white rounded-2xl border border-slate-100 p-6">
+                        <p className="text-base font-bold text-slate-800 mb-1">Berapa nominal yang ingin dipinjam?</p>
+                        <p className="text-sm text-slate-400 mb-4">
+                            Limit maksimal Anda: <span className="font-semibold text-slate-600">{formatRupiah(limitMaksimal)}</span>
+                        </p>
+
+                        <div className="relative">
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-semibold text-slate-400">Rp</span>
+                            <input
+                                type="number"
+                                value={nominal}
+                                onChange={(e) => setNominal(e.target.value)}
+                                placeholder="0"
+                                autoFocus
+                                className="w-full pl-12 pr-12 py-4 text-2xl font-bold rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
+                            />
+                            {loadingNominal && (
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 border-2 border-brand-green border-t-transparent rounded-full animate-spin" />
+                            )}
+                            {nominalValid && !loadingNominal && (
+                                <Check className="absolute right-4 top-1/2 -translate-y-1/2 text-brand-green" size={22} />
                             )}
                         </div>
-                    ))}
+                    </div>
+
+                    {/* Section 2: Tenor - muncul setelah nominal valid */}
+                    {nominalValid && tenorMaksimal && (
+                        <div ref={tenorRef} className="bg-white rounded-2xl border border-slate-100 p-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                            <p className="text-base font-bold text-slate-800 mb-1">Pilih lama cicilan (tenor)</p>
+                            <p className="text-sm text-slate-400 mb-4">
+                                Tenor maksimal untuk nominal ini: {tenorMaksimal} bulan
+                            </p>
+
+                            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2.5">
+                                {opsiTenor.map((bulan) => (
+                                    <button
+                                        key={bulan}
+                                        onClick={() => pilihTenor(bulan)}
+                                        className={`py-3 rounded-xl text-base font-bold border-2 transition-colors ${
+                                            tenorDipilih === bulan
+                                                ? 'border-brand-green bg-brand-green-light text-brand-green-dark'
+                                                : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                                        }`}
+                                    >
+                                        {bulan}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Section 3: Ringkasan - muncul setelah tenor dipilih */}
+                    {tenorDipilih && jadwal.length > 0 && (
+                        <div ref={ringkasanRef} className="bg-white rounded-2xl border border-slate-100 p-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                            <p className="text-base font-bold text-slate-800 mb-4">Ringkasan Pengajuan</p>
+
+                            <div className="bg-slate-50 rounded-xl p-4 mb-4 space-y-2.5">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm text-slate-500">Nominal Pinjaman</span>
+                                    <span className="text-base font-bold text-slate-800">{formatRupiah(nominal)}</span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm text-slate-500">Tenor</span>
+                                    <span className="text-base font-bold text-slate-800">{tenorDipilih} bulan</span>
+                                </div>
+                                <div className="flex items-center justify-between pt-2.5 border-t border-slate-200">
+                                    <span className="text-sm text-slate-500">Total yang Dibayar</span>
+                                    <span className="text-base font-bold text-brand-navy">{formatRupiah(totalDibayar)}</span>
+                                </div>
+                            </div>
+
+                            <p className="text-sm font-semibold text-slate-600 mb-2.5">Simulasi cicilan per bulan:</p>
+                            <div className="divide-y divide-slate-50 mb-5 max-h-56 overflow-y-auto border border-slate-100 rounded-xl">
+                                {jadwal.map((c) => (
+                                    <div key={c.cicilan_ke} className="flex items-center justify-between px-4 py-2.5">
+                                        <span className="text-sm text-slate-500">Cicilan ke-{c.cicilan_ke}</span>
+                                        <span className="text-base font-semibold text-slate-800">{formatRupiah(c.total_bayar)}</span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <button
+                                onClick={submitPengajuan}
+                                disabled={loadingSubmit}
+                                className="w-full py-4 text-base font-bold rounded-2xl bg-brand-green text-white hover:bg-brand-green-dark transition-colors disabled:opacity-50"
+                            >
+                                {loadingSubmit ? 'Mengirim...' : 'Ajukan Sekarang'}
+                            </button>
+                        </div>
+                    )}
                 </div>
 
-                {error && (
-                    <div className="flex items-start gap-2.5 bg-red-50 border border-red-100 rounded-xl p-4 mb-5">
-                        <AlertCircle className="text-red-500 shrink-0 mt-0.5" size={18} />
-                        <p className="text-sm text-red-700">{error}</p>
+                {/* Panel info - kanan, cuma desktop */}
+                <div className="space-y-4">
+                    <div className="bg-brand-navy rounded-2xl p-5 text-white">
+                        <div className="flex items-center gap-2 mb-3">
+                            <ShieldCheck size={20} className="text-brand-green" />
+                            <p className="text-sm font-bold">Proses Persetujuan</p>
+                        </div>
+                        <div className="space-y-3">
+                            <div className="flex gap-3">
+                                <div className="w-6 h-6 rounded-full bg-white/15 flex items-center justify-center text-xs font-bold shrink-0">1</div>
+                                <p className="text-sm text-slate-300">Pengajuan ditinjau oleh Bendahara Koperasi</p>
+                            </div>
+                            <div className="flex gap-3">
+                                <div className="w-6 h-6 rounded-full bg-white/15 flex items-center justify-center text-xs font-bold shrink-0">2</div>
+                                <p className="text-sm text-slate-300">Disetujui final oleh Ketua Koperasi</p>
+                            </div>
+                            <div className="flex gap-3">
+                                <div className="w-6 h-6 rounded-full bg-brand-green/20 flex items-center justify-center text-xs font-bold shrink-0">
+                                    <Wallet size={12} className="text-brand-green" />
+                                </div>
+                                <p className="text-sm text-slate-300">Dana dicairkan &amp; jadwal cicilan aktif</p>
+                            </div>
+                        </div>
                     </div>
-                )}
 
-                {step === 1 && (
-                    <StepNominal
-                        nominal={nominal}
-                        setNominal={setNominal}
-                        limitMaksimal={limitMaksimal}
-                        onLanjut={lanjutDariNominal}
-                        loading={loading}
-                    />
-                )}
+                    <div className="bg-white rounded-2xl border border-slate-100 p-5">
+                        <div className="flex items-center gap-2 mb-2">
+                            <Clock size={18} className="text-amber-500" />
+                            <p className="text-sm font-bold text-slate-700">Tidak Ada Batas Waktu</p>
+                        </div>
+                        <p className="text-sm text-slate-500">
+                            Proses peninjauan tidak memiliki batas waktu pasti, tergantung antrean pengajuan yang masuk.
+                        </p>
+                    </div>
 
-                {step === 2 && (
-                    <StepTenor
-                        nominal={nominal}
-                        tenorMaksimal={tenorMaksimal}
-                        tenorDipilih={tenorDipilih}
-                        setTenorDipilih={setTenorDipilih}
-                        onKembali={() => { setStep(1); setError(''); }}
-                        onLanjut={lanjutDariTenor}
-                        loading={loading}
-                    />
-                )}
-
-                {step === 3 && (
-                    <StepRingkasan
-                        nominal={nominal}
-                        tenorDipilih={tenorDipilih}
-                        jadwal={jadwal}
-                        totalDibayar={totalDibayar}
-                        onKembali={() => { setStep(2); setError(''); }}
-                        onSubmit={submitPengajuan}
-                        loading={loading}
-                    />
-                )}
+                    <div className="bg-white rounded-2xl border border-slate-100 p-5">
+                        <div className="flex items-center gap-2 mb-2">
+                            <Phone size={18} className="text-brand-navy" />
+                            <p className="text-sm font-bold text-slate-700">Ada Pertanyaan?</p>
+                        </div>
+                        <p className="text-sm text-slate-500">
+                            Hubungi Bendahara Koperasi untuk informasi lebih lanjut mengenai status pengajuan Anda.
+                        </p>
+                    </div>
+                </div>
             </div>
         </AnggotaLayout>
-    );
-}
-
-function StepNominal({ nominal, setNominal, limitMaksimal, onLanjut, loading }) {
-    return (
-        <div className="bg-white rounded-2xl border border-slate-100 p-6">
-            <p className="text-sm font-semibold text-brand-green mb-1">Langkah 1 dari 3</p>
-            <h2 className="text-xl font-bold text-slate-800 mb-2">Berapa nominal yang ingin dipinjam?</h2>
-            <p className="text-sm text-slate-400 mb-5">
-                Limit maksimal Anda: <span className="font-semibold text-slate-600">{formatRupiah(limitMaksimal)}</span>
-            </p>
-
-            <div className="relative mb-6">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-semibold text-slate-400">Rp</span>
-                <input
-                    type="number"
-                    value={nominal}
-                    onChange={(e) => setNominal(e.target.value)}
-                    placeholder="0"
-                    autoFocus
-                    className="w-full pl-12 pr-4 py-4 text-2xl font-bold rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
-                />
-            </div>
-
-            <button
-                onClick={onLanjut}
-                disabled={loading}
-                className="w-full flex items-center justify-center gap-2 py-4 text-base font-bold rounded-2xl bg-brand-green text-white hover:bg-brand-green-dark transition-colors disabled:opacity-50"
-            >
-                {loading ? 'Memeriksa...' : 'Lanjutkan'}
-                {!loading && <ArrowRight size={18} />}
-            </button>
-        </div>
-    );
-}
-
-function StepTenor({ nominal, tenorMaksimal, tenorDipilih, setTenorDipilih, onKembali, onLanjut, loading }) {
-    const opsiTenor = Array.from({ length: tenorMaksimal }, (_, i) => i + 1);
-
-    return (
-        <div className="bg-white rounded-2xl border border-slate-100 p-6">
-            <p className="text-sm font-semibold text-brand-green mb-1">Langkah 2 dari 3</p>
-            <h2 className="text-xl font-bold text-slate-800 mb-2">Pilih lama cicilan (tenor)</h2>
-            <p className="text-sm text-slate-400 mb-5">
-                Untuk pinjaman {formatRupiah(nominal)}, tenor maksimal {tenorMaksimal} bulan
-            </p>
-
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5 mb-6">
-                {opsiTenor.map((bulan) => (
-                    <button
-                        key={bulan}
-                        onClick={() => setTenorDipilih(bulan)}
-                        className={`py-3.5 rounded-xl text-base font-bold border-2 transition-colors ${
-                            tenorDipilih === bulan
-                                ? 'border-brand-green bg-brand-green-light text-brand-green-dark'
-                                : 'border-slate-200 text-slate-600 hover:border-slate-300'
-                        }`}
-                    >
-                        {bulan} bln
-                    </button>
-                ))}
-            </div>
-
-            <div className="flex items-center gap-3">
-                <button
-                    onClick={onKembali}
-                    className="px-6 py-4 text-base font-bold rounded-2xl border border-slate-300 text-slate-600 hover:bg-slate-50 transition-colors"
-                >
-                    Kembali
-                </button>
-                <button
-                    onClick={onLanjut}
-                    disabled={loading}
-                    className="flex-1 flex items-center justify-center gap-2 py-4 text-base font-bold rounded-2xl bg-brand-green text-white hover:bg-brand-green-dark transition-colors disabled:opacity-50"
-                >
-                    {loading ? 'Menghitung...' : 'Lanjutkan'}
-                    {!loading && <ArrowRight size={18} />}
-                </button>
-            </div>
-        </div>
-    );
-}
-
-function StepRingkasan({ nominal, tenorDipilih, jadwal, totalDibayar, onKembali, onSubmit, loading }) {
-    return (
-        <div className="bg-white rounded-2xl border border-slate-100 p-6">
-            <p className="text-sm font-semibold text-brand-green mb-1">Langkah 3 dari 3</p>
-            <h2 className="text-xl font-bold text-slate-800 mb-5">Periksa kembali pengajuan Anda</h2>
-
-            <div className="bg-slate-50 rounded-xl p-4 mb-5 space-y-2.5">
-                <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-500">Nominal Pinjaman</span>
-                    <span className="text-base font-bold text-slate-800">{formatRupiah(nominal)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-500">Tenor</span>
-                    <span className="text-base font-bold text-slate-800">{tenorDipilih} bulan</span>
-                </div>
-                <div className="flex items-center justify-between pt-2.5 border-t border-slate-200">
-                    <span className="text-sm text-slate-500">Total yang Dibayar</span>
-                    <span className="text-base font-bold text-brand-navy">{formatRupiah(totalDibayar)}</span>
-                </div>
-            </div>
-
-            <p className="text-sm font-semibold text-slate-600 mb-3">Simulasi cicilan per bulan:</p>
-            <div className="divide-y divide-slate-50 mb-6 max-h-64 overflow-y-auto border border-slate-100 rounded-xl">
-                {jadwal.map((c) => (
-                    <div key={c.cicilan_ke} className="flex items-center justify-between px-4 py-3">
-                        <span className="text-sm text-slate-500">Cicilan ke-{c.cicilan_ke}</span>
-                        <span className="text-base font-semibold text-slate-800">{formatRupiah(c.total_bayar)}</span>
-                    </div>
-                ))}
-            </div>
-
-            <div className="flex items-center gap-3">
-                <button
-                    onClick={onKembali}
-                    className="px-6 py-4 text-base font-bold rounded-2xl border border-slate-300 text-slate-600 hover:bg-slate-50 transition-colors"
-                >
-                    Kembali
-                </button>
-                <button
-                    onClick={onSubmit}
-                    disabled={loading}
-                    className="flex-1 py-4 text-base font-bold rounded-2xl bg-brand-green text-white hover:bg-brand-green-dark transition-colors disabled:opacity-50"
-                >
-                    {loading ? 'Mengirim...' : 'Ajukan Sekarang'}
-                </button>
-            </div>
-        </div>
     );
 }
