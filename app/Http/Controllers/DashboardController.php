@@ -9,10 +9,11 @@ use App\Models\Pinjaman;
 use App\Models\Simpanan;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Http\RedirectResponse;
 
 class DashboardController extends Controller
 {
-    public function index(): Response
+    public function index(): Response|RedirectResponse
     {
         if (auth()->user()->hasRole('anggota')) {
             return redirect()->route('portal.dashboard');
