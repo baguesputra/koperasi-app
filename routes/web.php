@@ -18,6 +18,7 @@ use App\Http\Controllers\Bendahara\AngsuranController;
 use App\Http\Controllers\SimpananController;
 use App\Http\Controllers\Bendahara\SimpananController as BendaharaSimpananController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\Portal\ProfilController;
 
 
 Route::get('/', function () {
@@ -33,14 +34,22 @@ Route::get('/', function () {
 // PORTAL ANGGOTA
 // ==========================================
 Route::middleware(['auth', 'permission:portal.akses'])->prefix('portal')->name('portal.')->group(function () {
+    //Menu Utama
     Route::get('/dashboard', [PortalDashboardController::class, 'index'])->name('dashboard');
     Route::get('/riwayat', [RiwayatController::class, 'index'])->name('riwayat');
 
+    //------------ Pinjaman -----------------
     Route::get('/pinjaman/ajukan', [PortalPinjamanController::class, 'create'])->name('pinjaman.create');
     Route::post('/pinjaman/cek-nominal', [PortalPinjamanController::class, 'cekNominal'])->name('pinjaman.cek-nominal');
     Route::post('/pinjaman/simulasi', [PortalPinjamanController::class, 'simulasi'])->name('pinjaman.simulasi');
     Route::post('/pinjaman', [PortalPinjamanController::class, 'store'])->name('pinjaman.store');
     Route::get('/pinjaman/berhasil', [PortalPinjamanController::class, 'berhasil'])->name('pinjaman.berhasil');
+
+    //------------ Profile ----------------
+    Route::get('/profil', [ProfilController::class, 'index'])->name('profil');
+    Route::post('/profil/rekening', [ProfilController::class, 'storeRekening'])->name('profil.rekening.store');
+    Route::put('/profil/rekening/{rekening}/default', [ProfilController::class, 'setDefaultRekening'])->name('profil.rekening.default');
+    Route::delete('/profil/rekening/{rekening}', [ProfilController::class, 'destroyRekening'])->name('profil.rekening.destroy');
 });
 
 // ==========================================
@@ -98,6 +107,7 @@ Route::middleware(['auth', 'permission:pengaturan.kelola', 'password.confirm'])-
     Route::delete('/pengaturan/tenor/{tenor}', [PengaturanController::class, 'destroyTenor'])->name('pengaturan.tenor.destroy');
     Route::post('/pengaturan/bunga', [PengaturanController::class, 'updateBunga'])->name('pengaturan.bunga.update');
     Route::post('/pengaturan/simpanan/{setting}', [PengaturanController::class, 'updateSimpanan'])->name('pengaturan.simpanan.update');
+    //--------- Role ------------
     Route::get('/role', [RoleController::class, 'index'])->name('role.index');
     Route::post('/role', [RoleController::class, 'store'])->name('role.store');
     Route::get('/role/{role}/edit', [RoleController::class, 'edit'])->name('role.edit');

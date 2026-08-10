@@ -165,6 +165,20 @@ function RiwayatPinjaman({ pinjaman }) {
 
                         {isExpanded && (
                             <div className="border-t border-slate-100">
+                                {p.keperluan && (
+                                    <div className="p-4 bg-slate-50 border-b border-slate-100">
+                                        <p className="text-xs text-slate-400 mb-0.5">Keperluan</p>
+                                        <p className="text-sm text-slate-700">{p.keperluan}</p>
+                                    </div>
+                                )}
+                                {p.rekening?.bank && (
+                                    <div className="p-4 border-b border-slate-100">
+                                        <p className="text-xs text-slate-400 mb-0.5">Rekening Tujuan</p>
+                                        <p className="text-sm font-semibold text-slate-700">{p.rekening.bank} &bull; {p.rekening.no_rekening}</p>
+                                        <p className="text-xs text-slate-400">a.n. {p.rekening.atas_nama}</p>
+                                    </div>
+                                )}
+
                                 {p.status === 'ditolak' && (p.catatan_bendahara || p.catatan_ketua) && (
                                     <div className="p-4 bg-red-50 border-b border-slate-100">
                                         <p className="text-sm font-semibold text-red-700 mb-0.5">Alasan Penolakan</p>

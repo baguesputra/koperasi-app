@@ -45,7 +45,7 @@ export default function AnggotaLayout({ children }) {
                                     <p className="text-xs text-slate-400">{auth.user?.email}</p>
                                 </div>
                                 <Link
-                                    href="#"
+                                    href={route('portal.profil')}
                                     className="flex items-center gap-2.5 px-4 py-3 text-sm text-slate-600 hover:bg-slate-50 transition-colors"
                                 >
                                     <User size={16} />

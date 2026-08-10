@@ -8,6 +8,7 @@ use App\Models\Pinjaman;
 use App\Services\Pinjaman\PersetujuanPinjamanService;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Helpers\TerbilangHelper;
 
 class PinjamanController extends Controller
 {
@@ -43,8 +44,15 @@ class PinjamanController extends Controller
             'pinjaman' => [
                 'id' => $pinjaman->id,
                 'nominal' => (float) $pinjaman->nominal,
+                'terbilang' => TerbilangHelper::angkaKeTerbilang($pinjaman->nominal),
                 'tenor_bulan' => $pinjaman->tenor_bulan,
                 'persentase_bunga' => (float) $pinjaman->persentase_bunga,
+                'keperluan' => $pinjaman->keperluan,
+                'rekening' => [
+                    'bank' => $pinjaman->snapshot_bank,
+                    'no_rekening' => $pinjaman->snapshot_no_rekening,
+                    'atas_nama' => $pinjaman->snapshot_atas_nama,
+                ],
                 'status' => $pinjaman->status,
                 'tanggal_pengajuan' => $pinjaman->tanggal_pengajuan->format('d M Y'),
                 'sudah_pakai_privilege_reloan' => $pinjaman->sudah_pakai_privilege_reloan,

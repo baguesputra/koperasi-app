@@ -62,6 +62,21 @@ export default function Show({ pinjaman }) {
                         </div>
                     </Card>
 
+                    <Card>
+                        <p className="text-sm font-semibold text-slate-400 mb-1">Terbilang</p>
+                        <p className="text-base italic text-slate-700 mb-4">{pinjaman.terbilang}</p>
+
+                        <p className="text-sm font-semibold text-slate-400 mb-1">Keperluan Peminjaman</p>
+                        <p className="text-base text-slate-700 mb-4">{pinjaman.keperluan || '-'}</p>
+
+                        <p className="text-sm font-semibold text-slate-400 mb-1.5">Rekening Tujuan Pencairan</p>
+                        <div className="bg-slate-50 rounded-xl p-4">
+                            <p className="text-base font-bold text-slate-800">{pinjaman.rekening.bank}</p>
+                            <p className="text-sm text-slate-600">{pinjaman.rekening.no_rekening}</p>
+                            <p className="text-sm text-slate-400">a.n. {pinjaman.rekening.atas_nama}</p>
+                        </div>
+                    </Card>
+
                     {pinjaman.catatan_bendahara && (
                         <Card className="bg-slate-50">
                             <p className="text-sm font-semibold text-slate-400 mb-1.5">Catatan dari Bendahara</p>

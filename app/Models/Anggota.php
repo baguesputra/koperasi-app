@@ -48,6 +48,11 @@ class Anggota extends Model
         return $this->hasMany(Pinjaman::class);
     }
 
+    public function rekening(): HasMany
+    {
+        return $this->hasMany(RekeningAnggota::class);
+    }
+
     /**
      * Hitung lama keanggotaan dalam tahun (desimal), acuan untuk limit pinjaman.
      */

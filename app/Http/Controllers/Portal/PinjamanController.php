@@ -17,9 +17,6 @@ class PinjamanController extends Controller
         private PengajuanPinjamanService $pengajuan,
     ) {}
 
-    /**
-     * Halaman wizard pengajuan pinjaman.
-     */
     public function create(): Response
     {
         $anggota = auth()->user()->anggota;
@@ -29,12 +26,12 @@ class PinjamanController extends Controller
             'bisaAjukan' => $cek['boleh'],
             'alasanTidakBisa' => $cek['alasan'],
             'limitMaksimal' => $this->eligibilitas->limitMaksimal($anggota),
+            'rekeningTersimpan' => $anggota->rekening()->orderByDesc('is_default')->get([
+                'id', 'nama_bank', 'no_rekening', 'atas_nama', 'is_default',
+            ]),
         ]);
     }
 
-    /**
-     * Step 1 -> 2: cek nominal valid, kembalikan tenor maksimal yang diizinkan.
-     */
     public function cekNominal(Request $request)
     {
         $request->validate(['nominal' => ['required', 'numeric', 'min:1']]);
@@ -55,19 +52,13 @@ class PinjamanController extends Controller
         if (! $tenorMaksimal) {
             return response()->json([
                 'valid' => false,
-                'pesan' => 'Nominal pinjaman tidak sesuai dengan ketentuan yang berlaku.',
+                'pesan' => 'Ketentuan tenor untuk nominal ini belum diatur. Silakan hubungi Admin koperasi.',
             ], 422);
         }
 
-        return response()->json([
-            'valid' => true,
-            'tenor_maksimal' => $tenorMaksimal,
-        ]);
+        return response()->json(['valid' => true, 'tenor_maksimal' => $tenorMaksimal]);
     }
 
-    /**
-     * Step 2 -> 3: hitung simulasi jadwal cicilan.
-     */
     public function simulasi(Request $request)
     {
         $request->validate([
@@ -83,20 +74,35 @@ class PinjamanController extends Controller
         ]);
     }
 
-    /**
-     * Step 3: submit final pengajuan.
-     */
     public function store(Request $request)
     {
         $request->validate([
             'nominal' => ['required', 'numeric', 'min:1'],
             'tenor_bulan' => ['required', 'integer', 'min:1'],
+            'keperluan' => ['required', 'string', 'min:5', 'max:500'],
+            'rekening_mode' => ['required', 'in:tersimpan,baru'],
+            'rekening_id' => ['required_if:rekening_mode,tersimpan', 'nullable', 'integer'],
+            'nama_bank' => ['required_if:rekening_mode,baru', 'nullable', 'string', 'max:100'],
+            'no_rekening' => ['required_if:rekening_mode,baru', 'nullable', 'string', 'max:50'],
+            'atas_nama' => ['required_if:rekening_mode,baru', 'nullable', 'string', 'max:100'],
         ]);
 
         $anggota = auth()->user()->anggota;
 
         try {
-            $this->pengajuan->ajukan($anggota, (float) $request->nominal, (int) $request->tenor_bulan);
+            $this->pengajuan->ajukan(
+                $anggota,
+                (float) $request->nominal,
+                (int) $request->tenor_bulan,
+                $request->keperluan,
+                [
+                    'mode' => $request->rekening_mode,
+                    'rekening_id' => $request->rekening_id,
+                    'nama_bank' => $request->nama_bank,
+                    'no_rekening' => $request->no_rekening,
+                    'atas_nama' => $request->atas_nama,
+                ]
+            );
         } catch (RuntimeException $e) {
             return back()->withErrors(['pengajuan' => $e->getMessage()]);
         }
