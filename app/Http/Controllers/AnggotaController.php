@@ -9,6 +9,9 @@ use Inertia\Response;
 use App\Http\Requests\StoreAnggotaRequest;
 use App\Http\Requests\UpdateAnggotaRequest;
 use App\Models\AuditLog;
+use App\Exports\AnggotaTemplateExport;
+use App\Imports\AnggotaImport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class AnggotaController extends Controller
 {
@@ -99,5 +102,30 @@ class AnggotaController extends Controller
 
         return redirect()->route('anggota.index')
             ->with('status', 'Data anggota berhasil diperbarui.');
+    }
+
+    public function downloadTemplate()
+    {
+        return Excel::download(new AnggotaTemplateExport, 'template-import-anggota.xlsx');
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,xls'],
+        ]);
+
+        $import = new AnggotaImport;
+        Excel::import($import, $request->file('file'));
+
+        return back()->with([
+            'importBerhasil' => $import->berhasil,
+            'importGagal' => $import->gagal,
+        ]);
+    }
+
+    public function importIndex(): \Inertia\Response
+    {
+        return Inertia::render('Anggota/Import');
     }
 }

@@ -40,10 +40,12 @@ export default function Index({ anggota, filters, daftarCabang }) {
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <Button variant="outline" size="md">
-                        <Upload size={18} />
-                        Import Excel
-                    </Button>
+                    <Link href={route('anggota.import.index')}>
+                        <Button variant="outline" size="md">
+                            <Upload size={18} />
+                            Import Excel
+                        </Button>
+                    </Link>
                     <Link href={route('anggota.create')}>
                         <Button variant="primary" size="md">
                             <Plus size={18} />

@@ -95,6 +95,9 @@ Route::middleware(['auth', 'permission:anggota.kelola'])->group(function () {
     Route::post('/anggota', [AnggotaController::class, 'store'])->name('anggota.store');
     Route::get('/anggota/{anggota}/edit', [AnggotaController::class, 'edit'])->name('anggota.edit');
     Route::put('/anggota/{anggota}', [AnggotaController::class, 'update'])->name('anggota.update');
+    Route::get('/anggota/template', [AnggotaController::class, 'downloadTemplate'])->name('anggota.template');
+    Route::get('/anggota/import', [AnggotaController::class, 'importIndex'])->name('anggota.import.index');
+    Route::post('/anggota/import', [AnggotaController::class, 'import'])->name('anggota.import');
 });
 
 // ==========================================

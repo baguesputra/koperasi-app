@@ -126,8 +126,8 @@
 # Testing Checklist — Koperasi App
 **Tanggal:** 11 Agustus 2026
  
-- [ ] Perbaikan login dengan nomor karyawan dan change password pertama kali login
-- [ ] Fitur import excel untuk data anggota dan kelola anggota
-- [ ] Improve fitur pinjaman, simpanan dan pembayaran angsuran untuk ketepatan data
-- [ ] Testing kembali alur proses bisnis dari input anggota hingga pengajuan aktif
+- [x] Perbaikan login dengan nomor karyawan dan change password pertama kali login
+- [x] Fitur import excel untuk data anggota dan kelola anggota
+- [x] Improve fitur pinjaman, simpanan dan pembayaran angsuran untuk ketepatan data
+- [x] Testing kembali alur proses bisnis dari input anggota hingga pengajuan aktif
 
