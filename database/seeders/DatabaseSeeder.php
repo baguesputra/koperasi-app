@@ -16,9 +16,9 @@ class DatabaseSeeder extends Seeder
             SettingBungaSeeder::class,
             SettingLimitPinjamanSeeder::class,
             KasKoperasiSeeder::class,
+            SettingSimpananSeeder::class,
             AnggotaSeeder::class,
             PinjamanSeeder::class,
-            SettingSimpananSeeder::class,
         ]);
     }
 }

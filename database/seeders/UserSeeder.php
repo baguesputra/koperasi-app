@@ -11,35 +11,34 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         $admin = User::firstOrCreate(
-            ['email' => 'admin@koperasi.test'],
-            ['name' => 'Admin Koperasi', 'password' => Hash::make('password')]
+            ['no_karyawan' => 'ADM-000001'],
+            ['name' => 'Admin Koperasi', 'email' => 'admin@koperasi.test', 'password' => Hash::make('ADM-000001')]
         );
         $admin->assignRole('admin');
 
         $bendahara = User::firstOrCreate(
-            ['email' => 'bendahara@koperasi.test'],
-            ['name' => 'Bendahara Koperasi', 'password' => Hash::make('password')]
+            ['no_karyawan' => 'BEN-000001'],
+            ['name' => 'Bendahara Koperasi', 'email' => 'bendahara@koperasi.test', 'password' => Hash::make('BEN-000001')]
         );
         $bendahara->assignRole('bendahara');
 
         $ketua = User::firstOrCreate(
-            ['email' => 'ketua@koperasi.test'],
-            ['name' => 'Ketua Koperasi', 'password' => Hash::make('password')]
+            ['no_karyawan' => 'KET-000001'],
+            ['name' => 'Ketua Koperasi', 'email' => 'ketua@koperasi.test', 'password' => Hash::make('KET-000001')]
         );
         $ketua->assignRole('ketua_koperasi');
 
-        // 4 akun anggota dummy, sesuai skenario testing
         $anggotaUsers = [
-            ['email' => 'anggota.baru@koperasi.test', 'name' => 'Anggota Baru'],
-            ['email' => 'anggota.sedang@koperasi.test', 'name' => 'Anggota Sedang'],
-            ['email' => 'anggota.lama@koperasi.test', 'name' => 'Anggota Lama'],
-            ['email' => 'anggota.reloan@koperasi.test', 'name' => 'Anggota Reloan'],
+            ['no_karyawan' => 'TOP-100001', 'email' => 'anggota.baru@koperasi.test','name' => 'Anggota Baru'],
+            ['no_karyawan' => 'TOP-100002', 'email' => 'anggota.sedang@koperasi.test','name' => 'Anggota Sedang'],
+            ['no_karyawan' => 'TOP-100003', 'email' => 'anggota.lama@koperasi.test','name' => 'Anggota Lama'],
+            ['no_karyawan' => 'TOP-100004', 'email' => 'anggota.reloan@koperasi.test','name' => 'Anggota Reloan'],
         ];
 
         foreach ($anggotaUsers as $data) {
             $user = User::firstOrCreate(
-                ['email' => $data['email']],
-                ['name' => $data['name'], 'password' => Hash::make('password')]
+                ['no_karyawan' => $data['no_karyawan'],'email' => $data['email']],
+                ['name' => $data['name'], 'password' => Hash::make($data['no_karyawan'])]
             );
             $user->assignRole('anggota');
         }

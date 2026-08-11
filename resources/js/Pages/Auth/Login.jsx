@@ -2,11 +2,11 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import Checkbox from '@/Components/Checkbox';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { Lock, Mail } from 'lucide-react';
+import { Lock, User } from 'lucide-react';
 
 export default function Login({ status, canResetPassword }) {
     const { data, setData, post, processing, errors, reset } = useForm({
-        email: '',
+        no_karyawan: '',
         password: '',
         remember: false,
     });
@@ -64,22 +64,22 @@ export default function Login({ status, canResetPassword }) {
 
                     <form onSubmit={submit} className="space-y-5">
                         <div>
-                            <InputLabel htmlFor="email" value="Email" className="text-base font-semibold text-slate-200" />
+                            <InputLabel htmlFor="no_karyawan" value="No. Karyawan" className="text-base font-semibold text-slate-200" />
                             <div className="relative mt-1.5">
-                                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                                 <input
-                                    id="email"
-                                    type="email"
-                                    name="email"
-                                    value={data.email}
+                                    id="no_karyawan"
+                                    type="text"
+                                    name="no_karyawan"
+                                    value={data.no_karyawan}
                                     className="block w-full pl-11 pr-4 py-3 text-base rounded-xl border border-white/20 bg-white/5 text-white placeholder:text-slate-400 focus:border-brand-green focus:ring-2 focus:ring-brand-green/30 outline-none transition-colors"
                                     autoComplete="username"
                                     autoFocus
-                                    onChange={(e) => setData('email', e.target.value)}
-                                    placeholder="nama@perusahaan.com"
+                                    onChange={(e) => setData('no_karyawan', e.target.value)}
+                                    placeholder="TOP-123456"
                                 />
                             </div>
-                            <InputError message={errors.email} className="mt-2" />
+                            <InputError message={errors.no_karyawan} className="mt-2" />
                         </div>
 
                         <div>

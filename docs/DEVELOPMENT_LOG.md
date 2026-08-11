@@ -1,5 +1,12 @@
-# Testing Checklist — Koperasi App
-**Tanggal:** 9 Agustus 2026
+# Koperasi App
+**Tanggal:** 7 Agustus 2026
+- Design relasi database (mysql)
+- merancang alur proses bisnis koperasi
+- merancang fitur penunjang sistem
+- menentukan bahasa pemrograman (laravel 13 + inertia js)
+
+
+**Tanggal:** 8 dan 10 Agustus 2026
 
 ## 1. Login & Role
 - [x] Login sebagai Admin
@@ -114,13 +121,13 @@
 - [ ] validasi setelah jadi anggota harus 3 bulan terdahulu baru bisa pengajuan
 - [ ] validasi harus sudah simpanan pokok selama 1 tahun atau ditampilkan pada form approval bendahara dan ketua
 - [ ] validasi awal simpanan 100.000 50.000 wajib di awal saja 45.000 tiap bulan dan 5.000 dana sosial tidak muncul di anggota
-  
 
 
-  Perbaikan bug — format lama keanggotaan, redirect login anggota, dan validasi form tambah rekening.
-Redesign halaman portal Anggota — navbar disederhanakan (logo ke Beranda, avatar dengan dropdown Profil/Keluar), Dashboard dirombak menampilkan status pinjaman personal (aktif/diproses/ditolak/bisa mengajukan), breakdown simpanan, dan info ketentuan (tenor & simpanan) yang otomatis mengikuti Pengaturan.
-Redesign halaman Riwayat — ditambah ringkasan statistik, status visual per pinjaman, alasan penolakan, dan filter periode simpanan.
-Redesign alur pengajuan pinjaman — wizard diubah jadi satu halaman progresif (mengurangi klik), dilengkapi info proses persetujuan di sampingnya.
-Fitur baru pada pengajuan pinjaman — penambahan Keperluan Peminjaman, Terbilang otomatis, dan Rekening Tujuan Pencairan (bisa pilih rekening tersimpan atau tambah baru), tampil lengkap di halaman review Bendahara, Ketua, dan Riwayat Anggota.
-Halaman Profil Anggota (baru) — menampilkan data diri dan pengelolaan rekening bank tersimpan.
-Redesign Dashboard Koperasi (Admin/Bendahara/Ketua) — widget diperkaya (saldo kas, keuntungan, dana sosial), ditambah panel "Perlu Ditindaklanjuti" yang bisa langsung diklik, grafik tren simpanan-pinjaman, dan aktivitas terbaru yang lebih lengkap.
+# Testing Checklist — Koperasi App
+**Tanggal:** 11 Agustus 2026
+ 
+- [ ] Perbaikan login dengan nomor karyawan dan change password pertama kali login
+- [ ] Fitur import excel untuk data anggota dan kelola anggota
+- [ ] Improve fitur pinjaman, simpanan dan pembayaran angsuran untuk ketepatan data
+- [ ] Testing kembali alur proses bisnis dari input anggota hingga pengajuan aktif
+

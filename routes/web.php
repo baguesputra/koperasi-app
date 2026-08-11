@@ -19,6 +19,7 @@ use App\Http\Controllers\SimpananController;
 use App\Http\Controllers\Bendahara\SimpananController as BendaharaSimpananController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\Portal\ProfilController;
+use App\Http\Controllers\Auth\GantiPasswordWajibController;
 
 
 Route::get('/', function () {
@@ -149,6 +150,8 @@ Route::middleware(['auth', 'permission:pinjaman.approve-ketua'])->prefix('ketua'
 // PROFILE (semua user login)
 // ==========================================
 Route::middleware('auth')->group(function () {
+    Route::get('/ganti-password-wajib', [GantiPasswordWajibController::class, 'index'])->name('password.wajib-ganti');
+    Route::post('/ganti-password-wajib', [GantiPasswordWajibController::class, 'update'])->name('password.wajib-ganti.update');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
