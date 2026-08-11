@@ -13,7 +13,7 @@ class SettingLimitPinjamanSeeder extends Seeder
             ['kategori' => 'anggota_baru', 'label' => 'Anggota < 1 Tahun', 'limit_maksimal' => 1_000_000],
             ['kategori' => 'staff', 'label' => 'Staff (1-5 Tahun)', 'limit_maksimal' => 7_000_000],
             ['kategori' => 'hod', 'label' => 'HOD (1-5 Tahun)', 'limit_maksimal' => 10_000_000],
-            ['kategori' => 'anggota_lama', 'label' => 'Anggota ≥ 5 Tahun', 'limit_maksimal' => 10_000_001],
+            ['kategori' => 'anggota_lama', 'label' => 'Anggota ≥ 5 Tahun', 'limit_maksimal' => 10_000_000],
         ];
 
         foreach ($data as $row) {
