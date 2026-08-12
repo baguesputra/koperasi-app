@@ -8,6 +8,8 @@ use Laravel\Socialite\Two\User as SocialiteUser;
 
 class PerusahaanProvider extends AbstractProvider implements ProviderInterface
 {
+    protected $scopes = [];
+
     protected function getAuthUrl($state): string
     {
         return $this->buildAuthUrlFromBase(config('services.sso.authorize_url'), $state);
@@ -16,6 +18,13 @@ class PerusahaanProvider extends AbstractProvider implements ProviderInterface
     protected function getTokenUrl(): string
     {
         return config('services.sso.token_url');
+    }
+
+    protected function getTokenFields($code)
+    {
+        return array_merge(parent::getTokenFields($code), [
+            'grant_type' => 'authorization_code',
+        ]);
     }
 
     protected function getUserByToken($token): array
@@ -29,11 +38,10 @@ class PerusahaanProvider extends AbstractProvider implements ProviderInterface
 
     protected function mapUserToObject(array $user): SocialiteUser
     {
-        // TODO: sesuaikan field ini setelah dapat dokumentasi API dari tim perusahaan
         return (new SocialiteUser())->setRaw($user)->map([
-            'id' => $user['id'] ?? null,
-            'nickname' => $user['employee_id'] ?? $user['nik'] ?? null, // -> dipetakan ke no_karyawan
-            'name' => $user['name'] ?? $user['nama'] ?? null,
+            'id' => $user['sub'] ?? null,
+            'nickname' => $user['nickname'] ?? null,
+            'name' => $user['name'] ?? null,
             'email' => $user['email'] ?? null,
         ]);
     }
