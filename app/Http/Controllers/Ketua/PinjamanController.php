@@ -21,7 +21,7 @@ class PinjamanController extends Controller
             ->where('status', 'approved_bendahara')
             ->latest('tanggal_pengajuan')
             ->get()
-            ->map($this->formatRingkas());
+            ->map($this->formatLengkap());
 
         $riwayat = Pinjaman::with('anggota')
             ->whereIn('status', ['aktif', 'lunas', 'ditolak'])
@@ -42,30 +42,7 @@ class PinjamanController extends Controller
         $pinjaman->load('anggota');
 
         return Inertia::render('Ketua/Pinjaman/Show', [
-            'pinjaman' => [
-                'id' => $pinjaman->id,
-                'nominal' => (float) $pinjaman->nominal,
-                'terbilang' => TerbilangHelper::angkaKeTerbilang($pinjaman->nominal),
-                'tenor_bulan' => $pinjaman->tenor_bulan,
-                'persentase_bunga' => (float) $pinjaman->persentase_bunga,
-                'keperluan' => $pinjaman->keperluan,
-                'rekening' => [
-                    'bank' => $pinjaman->snapshot_bank,
-                    'no_rekening' => $pinjaman->snapshot_no_rekening,
-                    'atas_nama' => $pinjaman->snapshot_atas_nama,
-                ],
-                'status' => $pinjaman->status,
-                'tanggal_pengajuan' => $pinjaman->tanggal_pengajuan->format('d M Y'),
-                'sudah_pakai_privilege_reloan' => $pinjaman->sudah_pakai_privilege_reloan,
-                'catatan_bendahara' => $pinjaman->catatan_bendahara,
-                'anggota' => [
-                    'nama' => $pinjaman->anggota->nama,
-                    'no_anggota' => $pinjaman->anggota->no_anggota,
-                    'cabang' => $pinjaman->anggota->cabang,
-                    'jabatan' => $pinjaman->anggota->jabatan,
-                    'lama_keanggotaan_tahun' => round($pinjaman->anggota->lama_keanggotaan_tahun, 1),
-                ],
-            ],
+            'pinjaman' => $this->formatLengkap()($pinjaman),
         ]);
     }
 
@@ -94,10 +71,39 @@ class PinjamanController extends Controller
         return fn ($p) => [
             'id' => $p->id,
             'nama' => $p->anggota->nama,
+            'no_anggota' => $p->anggota->no_anggota,
             'nominal' => (float) $p->nominal,
             'tenor_bulan' => $p->tenor_bulan,
             'status' => $p->status,
             'tanggal_pengajuan' => $p->tanggal_pengajuan->format('d M Y'),
+        ];
+    }
+
+    private function formatLengkap(): \Closure
+    {
+        return fn ($p) => [
+            'id' => $p->id,
+            'nominal' => (float) $p->nominal,
+            'terbilang' => TerbilangHelper::angkaKeTerbilang($p->nominal),
+            'tenor_bulan' => $p->tenor_bulan,
+            'persentase_bunga' => (float) $p->persentase_bunga,
+            'keperluan' => $p->keperluan,
+            'rekening' => [
+                'bank' => $p->snapshot_bank,
+                'no_rekening' => $p->snapshot_no_rekening,
+                'atas_nama' => $p->snapshot_atas_nama,
+            ],
+            'status' => $p->status,
+            'tanggal_pengajuan' => $p->tanggal_pengajuan->format('d M Y'),
+            'sudah_pakai_privilege_reloan' => $p->sudah_pakai_privilege_reloan,
+            'catatan_bendahara' => $p->catatan_bendahara,
+            'anggota' => [
+                'nama' => $p->anggota->nama,
+                'no_anggota' => $p->anggota->no_anggota,
+                'cabang' => $p->anggota->cabang,
+                'jabatan' => $p->anggota->jabatan,
+                'lama_keanggotaan_tahun' => round($p->anggota->lama_keanggotaan_tahun, 1),
+            ],
         ];
     }
 }
