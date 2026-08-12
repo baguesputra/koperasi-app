@@ -5,14 +5,14 @@ import {
     ClipboardCheck, ShieldCheck, AlertCircle, CalendarClock,
     HandCoins as PinjamanIcon, CheckCircle2,
 } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import Card from '@/Components/ui/Card';
 import StatWidget from '@/Components/ui/StatWidget';
 import PageHeader from '@/Components/ui/PageHeader';
 import { formatRupiah, formatRupiahSingkat } from '@/Utils/formatCurrency';
 import { statusStyle } from '@/Utils/status';
 
-export default function Dashboard({ stats, actionable, grafikTren, aktivitasTerbaru }) {
+export default function Dashboard({ stats, actionable, grafikTren, grafikKas, aktivitasTerbaru }) {
     const widgets = [
         { label: 'Total Anggota Aktif', value: stats.total_anggota_aktif, icon: Users, tone: 'navy' },
         { label: 'Total Simpanan', value: formatRupiah(stats.total_simpanan), icon: PiggyBank, tone: 'green' },
@@ -36,11 +36,11 @@ export default function Dashboard({ stats, actionable, grafikTren, aktivitasTerb
             <PageHeader title="Dashboard" subtitle="Ringkasan aktivitas koperasi hari ini" />
 
             {/* Widget Utama */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                {widgets.map((w) => (
-                    <StatWidget key={w.label} label={w.label} value={w.value} icon={w.icon} tone={w.tone} />
-                ))}
-            </div>
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        {widgets.map((w) => (
+            <StatWidget compact key={w.label} label={w.label} value={w.value} icon={w.icon} tone={w.tone} />
+        ))}
+    </div>
 
             {/* Perlu Ditindaklanjuti */}
             <div className="mb-6">
@@ -52,15 +52,15 @@ export default function Dashboard({ stats, actionable, grafikTren, aktivitasTerb
                             <Link
                                 key={item.label}
                                 href={item.href}
-                                className={`rounded-2xl border p-4 transition-colors ${
+                                className={`rounded-2xl border p-3.5 transition-colors ${
                                     item.urgent
                                         ? 'bg-amber-50 border-amber-100 hover:bg-amber-100/70'
                                         : 'bg-white border-slate-100 hover:bg-slate-50'
                                 }`}
                             >
-                                <div className="flex items-center justify-between mb-2">
-                                    <Icon size={18} className={item.urgent ? 'text-amber-600' : 'text-slate-400'} />
-                                    <span className={`text-2xl font-bold ${item.urgent ? 'text-amber-700' : 'text-slate-700'}`}>
+                                <div className="flex items-center justify-between mb-1.5">
+                                    <Icon size={16} className={item.urgent ? 'text-amber-600' : 'text-slate-400'} />
+                                    <span className={`text-xl font-bold ${item.urgent ? 'text-amber-700' : 'text-slate-700'}`}>
                                         {item.value}
                                     </span>
                                 </div>
@@ -134,6 +134,45 @@ export default function Dashboard({ stats, actionable, grafikTren, aktivitasTerb
                     )}
                 </Card>
             </div>
+
+            {/* Mutasi Kas */}
+            <Card className="mt-5 sm:p-6">
+                <p className="text-base font-bold text-slate-700 mb-4">Mutasi Kas Koperasi (6 Bulan Terakhir)</p>
+                <ResponsiveContainer width="100%" height={280}>
+                    <BarChart data={grafikKas} margin={{ left: -10 }} barCategoryGap="25%">
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                        <XAxis dataKey="bulan" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={formatRupiahSingkat} />
+                        <Tooltip
+                            cursor={{ fill: 'rgba(15, 30, 54, 0.04)' }}
+                            formatter={(value) => formatRupiah(value)}
+                            contentStyle={{ borderRadius: 12, border: '1px solid #f1f5f9', fontSize: 13 }}
+                        />
+                        <Bar stackId="masuk" dataKey="topup" name="Topup Saldo" fill="#86EFAC" maxBarSize={26} />
+                        <Bar stackId="masuk" dataKey="angsuran" name="Pembayaran Angsuran" fill="#1FA24C" />
+                        <Bar stackId="masuk" dataKey="dana_sosial" name="Dana Sosial" fill="#F59E0B" radius={[4, 4, 0, 0]} />
+                        <Bar stackId="keluar" dataKey="pencairan" name="Pencairan Pinjaman" fill="#EF4444" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                </ResponsiveContainer>
+                <div className="flex items-center gap-5 mt-2 justify-center flex-wrap">
+                    <div className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-sm bg-green-300" />
+                        <span className="text-xs text-slate-500">Topup Saldo</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-sm bg-brand-green" />
+                        <span className="text-xs text-slate-500">Pembayaran Angsuran</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-sm bg-amber-500" />
+                        <span className="text-xs text-slate-500">Dana Sosial</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-sm bg-red-500" />
+                        <span className="text-xs text-slate-500">Pencairan Pinjaman</span>
+                    </div>
+                </div>
+            </Card>
         </AppLayout>
     );
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Anggota;
 use App\Models\Angsuran;
+use App\Models\JurnalKas;
 use App\Models\KasKoperasi;
 use App\Models\Pinjaman;
 use App\Models\Simpanan;
@@ -67,6 +68,44 @@ class DashboardController extends Controller
             'pinjaman' => $dataPinjaman[$i],
         ]);
 
+        // Mutasi kas - per kategori (jurnal) & dana sosial (simpanan), 6 bulan terakhir
+        $dataTopup = [];
+        $dataAngsuran = [];
+        $dataPencairan = [];
+        $dataDanaSosial = [];
+
+        for ($i = 5; $i >= 0; $i--) {
+            $bulan = now()->subMonths($i);
+
+            $dataTopup[] = (float) JurnalKas::where('kategori', 'topup_bulanan')
+                ->whereYear('tanggal', $bulan->year)
+                ->whereMonth('tanggal', $bulan->month)
+                ->sum('jumlah');
+
+            $dataAngsuran[] = (float) JurnalKas::where('kategori', 'pembayaran_angsuran')
+                ->whereYear('tanggal', $bulan->year)
+                ->whereMonth('tanggal', $bulan->month)
+                ->sum('jumlah');
+
+            $dataPencairan[] = (float) JurnalKas::where('kategori', 'pencairan_pinjaman')
+                ->whereYear('tanggal', $bulan->year)
+                ->whereMonth('tanggal', $bulan->month)
+                ->sum('jumlah');
+
+            $dataDanaSosial[] = (float) Simpanan::where('jenis', 'dana_sosial')
+                ->whereYear('tanggal_input', $bulan->year)
+                ->whereMonth('tanggal_input', $bulan->month)
+                ->sum('jumlah');
+        }
+
+        $grafikKas = collect($labelBulan)->map(fn ($label, $i) => [
+            'bulan' => $label,
+            'topup' => $dataTopup[$i],
+            'angsuran' => $dataAngsuran[$i],
+            'pencairan' => $dataPencairan[$i],
+            'dana_sosial' => $dataDanaSosial[$i],
+        ]);
+
         // Aktivitas terbaru gabungan
         $aktivitasPinjaman = Pinjaman::with('anggota')
             ->latest('tanggal_pengajuan')
@@ -118,6 +157,7 @@ class DashboardController extends Controller
                 'angsuran_jatuh_tempo' => $angsuranJatuhTempoBulanIni,
             ],
             'grafikTren' => $grafikTren,
+            'grafikKas' => $grafikKas,
             'aktivitasTerbaru' => $aktivitasTerbaru,
         ]);
     }
