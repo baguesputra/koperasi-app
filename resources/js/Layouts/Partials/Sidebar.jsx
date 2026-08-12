@@ -44,8 +44,12 @@ const menuGroups = [
 ];
 
 export default function Sidebar() {
-    const { auth } = usePage().props;
+    const { auth, notifications } = usePage().props;
     const userPermissions = auth.user?.permissions ?? [];
+    const badgeAngka = {
+        'bendahara.pinjaman.index': notifications?.menunggu_tinjauan_bendahara ?? 0,
+        'ketua.pinjaman.index': notifications?.menunggu_approval_ketua ?? 0,
+    };
 
     function bisaAkses(permission) {
         return permission === null || userPermissions.includes(permission);
@@ -76,6 +80,7 @@ export default function Sidebar() {
                                 const Icon = item.icon;
                                 const href = item.routeName ? route(item.routeName) : '#';
                                 const isActive = item.routeName && route().current(item.routeName);
+                                const badge = item.routeName ? badgeAngka[item.routeName] : 0;
 
                                 return (
                                     <Link
@@ -88,7 +93,12 @@ export default function Sidebar() {
                                         }`}
                                     >
                                         <Icon size={18} strokeWidth={2} className={isActive ? 'text-brand-green' : ''} />
-                                        {item.label}
+                                        <span className="flex-1 truncate">{item.label}</span>
+                                        {badge > 0 && (
+                                            <span className="shrink-0 min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white flex items-center justify-center text-xs font-bold">
+                                                {badge}
+                                            </span>
+                                        )}
                                     </Link>
                                 );
                             })}

@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
 use Inertia\Middleware;
+use App\Models\Pinjaman;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -45,6 +46,26 @@ class HandleInertiaRequests extends Middleware
             'importBerhasil' => fn () => $request->session()->get('importBerhasil'),
             'importGagal' => fn () => $request->session()->get('importGagal'),
         ],
+        'notifications' => function () use ($request) {
+            $user = $request->user();
+
+            if (! $user) {
+                return [];
+            }
+
+            $permissions = $user->getAllPermissions()->pluck('name');
+            $notifications = [];
+
+            if ($permissions->contains('pinjaman.tinjau-bendahara')) {
+                $notifications['menunggu_tinjauan_bendahara'] = Pinjaman::where('status', 'diajukan')->count();
+            }
+
+            if ($permissions->contains('pinjaman.approve-ketua')) {
+                $notifications['menunggu_approval_ketua'] = Pinjaman::where('status', 'approved_bendahara')->count();
+            }
+
+            return $notifications;
+        },
     ];
     }
 }
