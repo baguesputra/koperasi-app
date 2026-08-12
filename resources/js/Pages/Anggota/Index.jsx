@@ -1,12 +1,40 @@
 import AppLayout from '@/Layouts/AppLayout';
-import { Head, Link, router } from '@inertiajs/react';
-import { Search, Plus, Upload } from 'lucide-react';
+import { Head, router } from '@inertiajs/react';
+import { Search, Plus, Upload, Pencil, Users, UserCheck, UserX } from 'lucide-react';
 import { useState } from 'react';
-import Button from '@/Components/ui/Button';
+import ButtonLink from '@/Components/ui/ButtonLink';
 import Card from '@/Components/ui/Card';
+import StatWidget from '@/Components/ui/StatWidget';
+import StatusBadge from '@/Components/ui/StatusBadge';
+import PageHeader from '@/Components/ui/PageHeader';
+import TextField from '@/Components/ui/TextField';
+import Select from '@/Components/ui/Select';
+import Drawer from '@/Components/ui/Drawer';
+import EditDrawer from './Partials/EditDrawer';
 
-export default function Index({ anggota, filters, daftarCabang }) {
+const jabatanLabel = { staff: 'Staff', hod: 'HOD' };
+
+function formatLamaAnggota(tahun) {
+    if (tahun < 1) {
+        const bulan = Math.max(1, Math.round(tahun * 12));
+        return `${bulan} bulan`;
+    }
+    return `${tahun} tahun`;
+}
+
+export default function Index({ anggota, statistik, filters, daftarCabang }) {
     const [cari, setCari] = useState(filters.cari ?? '');
+    const [editAnggota, setEditAnggota] = useState(null);
+    const [drawerOpen, setDrawerOpen] = useState(false);
+
+    function bukaEdit(a) {
+        setEditAnggota(a);
+        setDrawerOpen(true);
+    }
+
+    function tutupEdit() {
+        setDrawerOpen(false);
+    }
 
     function terapkanFilter(overrides = {}) {
         router.get(
@@ -21,73 +49,65 @@ export default function Index({ anggota, filters, daftarCabang }) {
         terapkanFilter({ cari });
     }
 
-    const statusStyle = {
-        aktif: 'bg-brand-green-light text-brand-green-dark',
-        nonaktif: 'bg-slate-100 text-slate-500',
-    };
-
-    const jabatanLabel = { staff: 'Staff', hod: 'HOD' };
-
     return (
         <AppLayout>
             <Head title="Anggota" />
 
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-800">Anggota</h1>
-                    <p className="text-base text-slate-400 mt-1">
-                        {anggota.total} anggota terdaftar
-                    </p>
-                </div>
+            <PageHeader title="Anggota" subtitle={`${anggota.total} anggota terdaftar`}>
                 <div className="flex items-center gap-3">
-                    <Link href={route('anggota.import.index')}>
-                        <Button variant="outline" size="md">
-                            <Upload size={18} />
-                            Import Excel
-                        </Button>
-                    </Link>
-                    <Link href={route('anggota.create')}>
-                        <Button variant="primary" size="md">
-                            <Plus size={18} />
-                            Tambah Anggota
-                        </Button>
-                    </Link>
+                    <ButtonLink href={route('anggota.import.index')} variant="outline">
+                        <Upload size={18} />
+                        Import Excel
+                    </ButtonLink>
+                    <ButtonLink href={route('anggota.create')}>
+                        <Plus size={18} />
+                        Tambah Anggota
+                    </ButtonLink>
                 </div>
+            </PageHeader>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                <StatWidget compact label="Total Anggota" value={statistik.total} icon={Users} tone="navy" />
+                <StatWidget compact label="Anggota Aktif" value={statistik.aktif} icon={UserCheck} tone="green" />
+                <StatWidget compact label="Anggota Nonaktif" value={statistik.nonaktif} icon={UserX} tone="amber" />
             </div>
 
-            <Card padding="normal" className="mb-5">
+            <Card className="mb-5">
                 <div className="flex flex-col sm:flex-row gap-3">
                     <form onSubmit={handleCariSubmit} className="flex-1 relative">
                         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                        <input
+                        <TextField
                             type="text"
+                            size="sm"
                             value={cari}
                             onChange={(e) => setCari(e.target.value)}
                             placeholder="Cari nama atau nomor anggota..."
-                            className="w-full pl-11 pr-4 py-2.5 text-base rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
+                            className="pl-11"
                         />
                     </form>
 
-                    <select
+                    <Select
+                        size="sm"
                         value={filters.cabang ?? ''}
                         onChange={(e) => terapkanFilter({ cabang: e.target.value })}
-                        className="px-4 py-2.5 text-base rounded-xl border border-slate-300 focus:border-brand-green outline-none"
+                        className="sm:w-48"
                     >
                         <option value="">Semua Cabang</option>
                         {daftarCabang.map((c) => (
                             <option key={c} value={c}>{c}</option>
                         ))}
-                    </select>
+                    </Select>
 
-                    <select
+                    <Select
+                        size="sm"
                         value={filters.status ?? ''}
                         onChange={(e) => terapkanFilter({ status: e.target.value })}
-                        className="px-4 py-2.5 text-base rounded-xl border border-slate-300 focus:border-brand-green outline-none"
+                        className="sm:w-40"
                     >
                         <option value="">Semua Status</option>
                         <option value="aktif">Aktif</option>
                         <option value="nonaktif">Nonaktif</option>
-                    </select>
+                    </Select>
                 </div>
             </Card>
 
@@ -96,12 +116,12 @@ export default function Index({ anggota, filters, daftarCabang }) {
                     <table className="w-full">
                         <thead>
                             <tr className="border-b border-slate-100 text-left">
-                                <th className="px-5 py-3.5 text-sm font-semibold text-slate-500">No. Anggota</th>
-                                <th className="px-5 py-3.5 text-sm font-semibold text-slate-500">Nama</th>
+                                <th className="px-5 py-3.5 text-sm font-semibold text-slate-500">Anggota</th>
                                 <th className="px-5 py-3.5 text-sm font-semibold text-slate-500">Cabang</th>
                                 <th className="px-5 py-3.5 text-sm font-semibold text-slate-500">Jabatan</th>
                                 <th className="px-5 py-3.5 text-sm font-semibold text-slate-500">Lama Anggota</th>
                                 <th className="px-5 py-3.5 text-sm font-semibold text-slate-500">Status</th>
+                                <th className="px-5 py-3.5 text-right text-sm font-semibold text-slate-500">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -114,19 +134,33 @@ export default function Index({ anggota, filters, daftarCabang }) {
                             ) : (
                                 anggota.data.map((a) => (
                                     <tr key={a.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                                        <td className="px-5 py-3.5 text-base text-slate-600">{a.no_anggota}</td>
-                                        <td className="px-5 py-3.5 text-base font-semibold text-slate-800">
-                                            <Link href={route('anggota.edit', a.id)} className="hover:text-brand-green">
-                                                {a.nama}
-                                            </Link>
+                                        <td className="px-5 py-3.5">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full bg-brand-green text-white flex items-center justify-center text-sm font-bold shrink-0">
+                                                    {a.nama.charAt(0).toUpperCase()}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <button onClick={() => bukaEdit(a)} className="block text-left text-base font-semibold text-slate-800 hover:text-brand-green truncate">
+                                                        {a.nama}
+                                                    </button>
+                                                    <p className="text-sm text-slate-400">{a.no_anggota}</p>
+                                                </div>
+                                            </div>
                                         </td>
                                         <td className="px-5 py-3.5 text-base text-slate-600">{a.cabang}</td>
                                         <td className="px-5 py-3.5 text-base text-slate-600">{jabatanLabel[a.jabatan]}</td>
-                                        <td className="px-5 py-3.5 text-base text-slate-600">{a.lama_keanggotaan_tahun} tahun</td>
+                                        <td className="px-5 py-3.5 text-base text-slate-600">{formatLamaAnggota(a.lama_keanggotaan_tahun)}</td>
                                         <td className="px-5 py-3.5">
-                                            <span className={`inline-flex px-3 py-1 rounded-full text-sm font-semibold ${statusStyle[a.status]}`}>
-                                                {a.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
-                                            </span>
+                                            <StatusBadge status={a.status} />
+                                        </td>
+                                        <td className="px-5 py-3.5 text-right">
+                                            <button
+                                                onClick={() => bukaEdit(a)}
+                                                className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-slate-400 hover:text-brand-green hover:bg-slate-100 transition-colors"
+                                                title="Edit anggota"
+                                            >
+                                                <Pencil size={16} />
+                                            </button>
                                         </td>
                                     </tr>
                                 ))
@@ -155,6 +189,17 @@ export default function Index({ anggota, filters, daftarCabang }) {
                     ))}
                 </div>
             )}
+
+            <Drawer show={drawerOpen} title={`Edit ${editAnggota?.nama ?? 'Anggota'}`} onClose={tutupEdit}>
+                {editAnggota && (
+                    <EditDrawer
+                        key={editAnggota.id}
+                        anggota={editAnggota}
+                        daftarCabang={daftarCabang}
+                        onClose={tutupEdit}
+                    />
+                )}
+            </Drawer>
         </AppLayout>
     );
 }

@@ -1,9 +1,10 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft } from 'lucide-react';
-import Card from '@/Components/ui/Card';
+import BackLink from '@/Components/ui/BackLink';
 import Button from '@/Components/ui/Button';
+import Card from '@/Components/ui/Card';
 import FormField from '@/Components/ui/FormField';
+import Select from '@/Components/ui/Select';
 import TextField from '@/Components/ui/TextField';
 
 export default function Edit({ anggota, daftarCabang }) {
@@ -29,23 +30,18 @@ export default function Edit({ anggota, daftarCabang }) {
             <Head title={`Edit ${anggota.nama}`} />
 
             <div className="mb-6">
-                <Link
-                    href={route('anggota.index')}
-                    className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-brand-navy mb-3"
-                >
-                    <ArrowLeft size={16} />
-                    Kembali ke daftar anggota
-                </Link>
+                <BackLink href={route('anggota.index')}>Kembali ke daftar anggota</BackLink>
                 <h1 className="text-2xl font-bold text-slate-800">Edit Anggota</h1>
                 <p className="text-base text-slate-400 mt-1">
                     Nomor anggota: <span className="font-semibold text-slate-600">{anggota.no_anggota}</span>
                 </p>
             </div>
 
-            <Card className="max-w-2xl">
+            <Card padding="sm" className="max-w-2xl">
                 <form onSubmit={submit}>
                     <FormField label="Nama Lengkap" error={errors.nama}>
                         <TextField
+                            size="sm"
                             value={data.nama}
                             onChange={(e) => setData('nama', e.target.value)}
                             autoFocus
@@ -54,31 +50,32 @@ export default function Edit({ anggota, daftarCabang }) {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
                         <FormField label="Cabang" error={errors.cabang}>
-                            <select
+                            <Select
+                                size="sm"
                                 value={data.cabang}
                                 onChange={(e) => setData('cabang', e.target.value)}
-                                className="w-full px-4 py-3 text-base rounded-xl border border-slate-300 bg-white focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
                             >
                                 {daftarCabang.map((c) => (
                                     <option key={c} value={c}>{c}</option>
                                 ))}
-                            </select>
+                            </Select>
                         </FormField>
 
                         <FormField label="Jabatan" error={errors.jabatan}>
-                            <select
+                            <Select
+                                size="sm"
                                 value={data.jabatan}
                                 onChange={(e) => setData('jabatan', e.target.value)}
-                                className="w-full px-4 py-3 text-base rounded-xl border border-slate-300 bg-white focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
                             >
                                 <option value="staff">Staff</option>
                                 <option value="hod">HOD</option>
-                            </select>
+                            </Select>
                         </FormField>
                     </div>
 
                     <FormField label="Unit Bisnis" error={errors.unit_bisnis}>
                         <TextField
+                            size="sm"
                             value={data.unit_bisnis}
                             onChange={(e) => setData('unit_bisnis', e.target.value)}
                         />
@@ -87,6 +84,7 @@ export default function Edit({ anggota, daftarCabang }) {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
                         <FormField label="Tanggal Mulai Kerja" error={errors.tanggal_mulai_kerja}>
                             <TextField
+                                size="sm"
                                 type="date"
                                 value={data.tanggal_mulai_kerja}
                                 onChange={(e) => setData('tanggal_mulai_kerja', e.target.value)}
@@ -95,6 +93,7 @@ export default function Edit({ anggota, daftarCabang }) {
 
                         <FormField label="Tanggal Jadi Anggota" error={errors.tanggal_jadi_anggota}>
                             <TextField
+                                size="sm"
                                 type="date"
                                 value={data.tanggal_jadi_anggota}
                                 onChange={(e) => setData('tanggal_jadi_anggota', e.target.value)}
@@ -103,17 +102,17 @@ export default function Edit({ anggota, daftarCabang }) {
                     </div>
 
                     <FormField label="Status" error={errors.status}>
-                        <select
+                        <Select
+                            size="sm"
                             value={data.status}
                             onChange={(e) => setData('status', e.target.value)}
-                            className="w-full px-4 py-3 text-base rounded-xl border border-slate-300 bg-white focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
                         >
                             <option value="aktif">Aktif</option>
                             <option value="nonaktif">Nonaktif</option>
-                        </select>
+                        </Select>
                     </FormField>
 
-                    <div className="mt-6 pt-6 border-t border-slate-100">
+                    <div className="mt-5 pt-5 border-t border-slate-100">
                         <p className="text-base font-bold text-slate-700 mb-1">Limit Pinjaman Khusus (Opsional)</p>
                         <p className="text-sm text-slate-400 mb-4">
                             Isi jika anggota ini punya kebijakan limit berbeda dari aturan umum. Kosongkan untuk memakai aturan otomatis berdasarkan jabatan &amp; lama keanggotaan.
@@ -121,6 +120,7 @@ export default function Edit({ anggota, daftarCabang }) {
 
                         <FormField label="Nominal Limit Khusus" error={errors.limit_custom} hint="Kosongkan untuk hapus limit khusus">
                             <TextField
+                                size="sm"
                                 type="number"
                                 value={data.limit_custom}
                                 onChange={(e) => setData('limit_custom', e.target.value)}
@@ -130,6 +130,7 @@ export default function Edit({ anggota, daftarCabang }) {
 
                         <FormField label="Alasan / Keterangan" error={errors.limit_custom_keterangan}>
                             <TextField
+                                size="sm"
                                 value={data.limit_custom_keterangan}
                                 onChange={(e) => setData('limit_custom_keterangan', e.target.value)}
                                 placeholder="Contoh: Kebijakan khusus dari Ketua Koperasi, karyawan lama pindah cabang"

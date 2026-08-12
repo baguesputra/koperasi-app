@@ -43,13 +43,23 @@ class AnggotaController extends Controller
                 'no_anggota' => $a->no_anggota,
                 'nama' => $a->nama,
                 'cabang' => $a->cabang,
+                'unit_bisnis' => $a->unit_bisnis,
                 'jabatan' => $a->jabatan,
                 'status' => $a->status,
                 'lama_keanggotaan_tahun' => round($a->lama_keanggotaan_tahun, 1),
+                'tanggal_mulai_kerja' => $a->tanggal_mulai_kerja?->format('Y-m-d'),
+                'tanggal_jadi_anggota' => $a->tanggal_jadi_anggota?->format('Y-m-d'),
+                'limit_custom' => $a->limit_custom,
+                'limit_custom_keterangan' => $a->limit_custom_keterangan,
             ]);
 
         return Inertia::render('Anggota/Index', [
             'anggota' => $anggota,
+            'statistik' => [
+                'total' => Anggota::count(),
+                'aktif' => Anggota::where('status', 'aktif')->count(),
+                'nonaktif' => Anggota::where('status', 'nonaktif')->count(),
+            ],
             'filters' => $request->only(['cari', 'cabang', 'status']),
             'daftarCabang' => ['Banjarmasin', 'Samarinda', 'Palangka'],
         ]);

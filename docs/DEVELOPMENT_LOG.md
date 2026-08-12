@@ -131,3 +131,8 @@
 - [x] Improve fitur pinjaman, simpanan dan pembayaran angsuran untuk ketepatan data
 - [x] Testing kembali alur proses bisnis dari input anggota hingga pengajuan aktif
 
+# Testing Checklist — Koperasi App
+**Tanggal:** 12 Agustus 2026
+- [ ] Persiapan Services dan Controller untuk SSO
+- [ ] Perbaikan bug ui dashboard sidebar
+- [ ]  

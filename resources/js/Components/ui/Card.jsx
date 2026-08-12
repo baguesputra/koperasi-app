@@ -1,6 +1,7 @@
 export default function Card({ children, className = '', padding = 'normal', tone = 'white' }) {
     const paddings = {
         none: '',
+        sm: 'p-4',
         normal: 'p-5',
         lg: 'p-6 sm:p-8',
     };
