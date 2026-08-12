@@ -5,10 +5,7 @@ import { HeartHandshake, Check } from 'lucide-react';
 import Card from '@/Components/ui/Card';
 import StatWidget from '@/Components/ui/StatWidget';
 import Button from '@/Components/ui/Button';
-
-function formatRupiah(angka) {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
-}
+import { formatRupiah } from '@/Utils/formatCurrency';
 
 export default function Index({ bulan, belumSimpanan, totalDanaSosialTerkumpul }) {
     const [terpilih, setTerpilih] = useState([]);
@@ -58,7 +55,7 @@ export default function Index({ bulan, belumSimpanan, totalDanaSosialTerkumpul }
                     label="Total Dana Sosial Terkumpul"
                     value={formatRupiah(totalDanaSosialTerkumpul)}
                     icon={HeartHandshake}
-                    tone="bg-brand-green-light text-brand-green-dark"
+                    tone="green"
                 />
             </div>
 

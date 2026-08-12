@@ -6,6 +6,9 @@ const statusConfig = {
     pending: { label: 'Menunggu', color: 'bg-amber-50 text-amber-700', icon: AlertCircle },
     ditolak: { label: 'Ditolak', color: 'bg-red-50 text-red-700', icon: XCircle },
     belum_bayar: { label: 'Belum Bayar', color: 'bg-slate-100 text-slate-600', icon: Clock },
+    diajukan: { label: 'Diajukan', color: 'bg-amber-50 text-amber-700', icon: Clock },
+    approved_bendahara: { label: 'Disetujui Bendahara', color: 'bg-blue-50 text-blue-700', icon: Clock },
+    nonaktif: { label: 'Nonaktif', color: 'bg-slate-100 text-slate-600', icon: XCircle },
 };
 
 export default function StatusBadge({ status }) {

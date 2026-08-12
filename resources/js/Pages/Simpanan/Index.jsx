@@ -4,10 +4,7 @@ import { Search, HeartHandshake, PiggyBank } from 'lucide-react';
 import { useState } from 'react';
 import Card from '@/Components/ui/Card';
 import StatWidget from '@/Components/ui/StatWidget';
-
-function formatRupiah(angka) {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
-}
+import { formatRupiah } from '@/Utils/formatCurrency';
 
 export default function Index({ anggota, filters, totalDanaSosialTerkumpul, totalSimpananSeluruhAnggota }) {
     const [cari, setCari] = useState(filters.cari ?? '');
@@ -31,13 +28,13 @@ export default function Index({ anggota, filters, totalDanaSosialTerkumpul, tota
                     label="Total Simpanan Seluruh Anggota"
                     value={formatRupiah(totalSimpananSeluruhAnggota)}
                     icon={PiggyBank}
-                    tone="bg-brand-navy/5 text-brand-navy"
+                    tone="navy"
                 />
                 <StatWidget
                     label="Total Dana Sosial Terkumpul"
                     value={formatRupiah(totalDanaSosialTerkumpul)}
                     icon={HeartHandshake}
-                    tone="bg-brand-green-light text-brand-green-dark"
+                    tone="green"
                 />
             </div>
 

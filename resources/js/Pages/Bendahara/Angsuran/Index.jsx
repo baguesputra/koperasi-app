@@ -5,10 +5,7 @@ import { TrendingUp, Wallet, Calendar, Check } from 'lucide-react';
 import Card from '@/Components/ui/Card';
 import StatWidget from '@/Components/ui/StatWidget';
 import Button from '@/Components/ui/Button';
-
-function formatRupiah(angka) {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
-}
+import { formatRupiah } from '@/Utils/formatCurrency';
 
 export default function Index({ bulan, daftarAngsuran, totalTagihanBulanIni, totalKeuntunganBulanIni, totalKeuntunganKeseluruhan }) {
     const [terpilih, setTerpilih] = useState([]);
@@ -39,19 +36,19 @@ export default function Index({ bulan, daftarAngsuran, totalTagihanBulanIni, tot
             label: 'Total Tagihan Bulan Ini',
             value: formatRupiah(totalTagihanBulanIni),
             icon: Calendar,
-            tone: 'bg-amber-50 text-amber-700',
+            tone: 'amber',
         },
         {
             label: 'Keuntungan Bulan Ini',
             value: formatRupiah(totalKeuntunganBulanIni),
             icon: TrendingUp,
-            tone: 'bg-brand-green-light text-brand-green-dark',
+            tone: 'green',
         },
         {
             label: 'Total Keuntungan Keseluruhan',
             value: formatRupiah(totalKeuntunganKeseluruhan),
             icon: Wallet,
-            tone: 'bg-brand-navy/5 text-brand-navy',
+            tone: 'navy',
         },
     ];
 

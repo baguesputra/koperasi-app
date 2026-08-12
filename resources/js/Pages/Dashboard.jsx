@@ -6,41 +6,20 @@ import {
     HandCoins as PinjamanIcon, CheckCircle2,
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-
-function formatRupiah(angka) {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
-}
-
-function formatRupiahSingkat(angka) {
-    if (angka >= 1_000_000) return `${(angka / 1_000_000).toFixed(1)}jt`;
-    if (angka >= 1_000) return `${(angka / 1_000).toFixed(0)}rb`;
-    return angka;
-}
-
-const statusLabel = {
-    diajukan: 'Diajukan',
-    approved_bendahara: 'Disetujui Bendahara',
-    aktif: 'Aktif',
-    lunas: 'Lunas',
-    ditolak: 'Ditolak',
-};
-
-const statusStyle = {
-    aktif: 'text-blue-600 bg-blue-50',
-    lunas: 'text-brand-green-dark bg-brand-green-light',
-    ditolak: 'text-red-600 bg-red-50',
-    diajukan: 'text-amber-700 bg-amber-50',
-    approved_bendahara: 'text-amber-700 bg-amber-50',
-};
+import Card from '@/Components/ui/Card';
+import StatWidget from '@/Components/ui/StatWidget';
+import PageHeader from '@/Components/ui/PageHeader';
+import { formatRupiah, formatRupiahSingkat } from '@/Utils/formatCurrency';
+import { statusStyle } from '@/Utils/status';
 
 export default function Dashboard({ stats, actionable, grafikTren, aktivitasTerbaru }) {
     const widgets = [
-        { label: 'Total Anggota Aktif', value: stats.total_anggota_aktif, icon: Users, tone: 'bg-brand-navy/5 text-brand-navy' },
-        { label: 'Total Simpanan', value: formatRupiah(stats.total_simpanan), icon: PiggyBank, tone: 'bg-brand-green-light text-brand-green-dark' },
-        { label: 'Pinjaman Outstanding', value: formatRupiah(stats.pinjaman_outstanding), icon: HandCoins, tone: 'bg-amber-50 text-amber-700' },
-        { label: 'Saldo Kas Koperasi', value: formatRupiah(stats.saldo_kas), icon: Wallet, tone: 'bg-brand-navy/5 text-brand-navy' },
-        { label: 'Keuntungan Bulan Ini', value: formatRupiah(stats.keuntungan_bulan_ini), icon: TrendingUp, tone: 'bg-brand-green-light text-brand-green-dark' },
-        { label: 'Dana Sosial Terkumpul', value: formatRupiah(stats.total_dana_sosial), icon: HeartHandshake, tone: 'bg-amber-50 text-amber-700' },
+        { label: 'Total Anggota Aktif', value: stats.total_anggota_aktif, icon: Users, tone: 'navy' },
+        { label: 'Total Simpanan', value: formatRupiah(stats.total_simpanan), icon: PiggyBank, tone: 'green' },
+        { label: 'Pinjaman Outstanding', value: formatRupiah(stats.pinjaman_outstanding), icon: HandCoins, tone: 'amber' },
+        { label: 'Saldo Kas Koperasi', value: formatRupiah(stats.saldo_kas), icon: Wallet, tone: 'navy' },
+        { label: 'Keuntungan Bulan Ini', value: formatRupiah(stats.keuntungan_bulan_ini), icon: TrendingUp, tone: 'green' },
+        { label: 'Dana Sosial Terkumpul', value: formatRupiah(stats.total_dana_sosial), icon: HeartHandshake, tone: 'amber' },
     ];
 
     const actionItems = [
@@ -54,25 +33,13 @@ export default function Dashboard({ stats, actionable, grafikTren, aktivitasTerb
         <AppLayout>
             <Head title="Dashboard" />
 
-            <div className="mb-6">
-                <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
-                <p className="text-base text-slate-400 mt-1">Ringkasan aktivitas koperasi hari ini</p>
-            </div>
+            <PageHeader title="Dashboard" subtitle="Ringkasan aktivitas koperasi hari ini" />
 
             {/* Widget Utama */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                {widgets.map((w) => {
-                    const Icon = w.icon;
-                    return (
-                        <div key={w.label} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-                            <div className={`w-11 h-11 rounded-xl flex items-center justify-center mb-3 ${w.tone}`}>
-                                <Icon size={22} />
-                            </div>
-                            <p className="text-sm text-slate-500">{w.label}</p>
-                            <p className="text-xl font-bold text-slate-800 mt-1">{w.value}</p>
-                        </div>
-                    );
-                })}
+                {widgets.map((w) => (
+                    <StatWidget key={w.label} label={w.label} value={w.value} icon={w.icon} tone={w.tone} />
+                ))}
             </div>
 
             {/* Perlu Ditindaklanjuti */}
@@ -106,7 +73,7 @@ export default function Dashboard({ stats, actionable, grafikTren, aktivitasTerb
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
                 {/* Grafik Tren */}
-                <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 p-5 sm:p-6">
+                <Card className="lg:col-span-2 sm:p-6">
                     <p className="text-base font-bold text-slate-700 mb-4">Tren Simpanan &amp; Pinjaman (6 Bulan Terakhir)</p>
                     <ResponsiveContainer width="100%" height={260}>
                         <AreaChart data={grafikTren} margin={{ left: -10 }}>
@@ -138,10 +105,10 @@ export default function Dashboard({ stats, actionable, grafikTren, aktivitasTerb
                             <span className="text-xs text-slate-500">Pinjaman Cair</span>
                         </div>
                     </div>
-                </div>
+                </Card>
 
                 {/* Aktivitas Terbaru */}
-                <div className="bg-white rounded-2xl border border-slate-100 p-5 sm:p-6">
+                <Card className="sm:p-6">
                     <p className="text-base font-bold text-slate-700 mb-4">Aktivitas Terbaru</p>
 
                     {aktivitasTerbaru.length === 0 ? (
@@ -165,7 +132,7 @@ export default function Dashboard({ stats, actionable, grafikTren, aktivitasTerb
                             })}
                         </div>
                     )}
-                </div>
+                </Card>
             </div>
         </AppLayout>
     );

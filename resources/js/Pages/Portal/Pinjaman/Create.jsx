@@ -5,10 +5,7 @@ import {
     ArrowLeft, AlertCircle, Check, ShieldCheck,
     Phone, Clock, Wallet,
 } from 'lucide-react';
-
-function formatRupiah(angka) {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
-}
+import { formatRupiah } from '@/Utils/formatCurrency';
 
 export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal, rekeningTersimpan }) {
     const [nominal, setNominal] = useState('');

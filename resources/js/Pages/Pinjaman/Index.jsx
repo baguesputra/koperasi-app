@@ -4,10 +4,7 @@ import { Search } from 'lucide-react';
 import { useState } from 'react';
 import Card from '@/Components/ui/Card';
 import StatusBadge from '@/Components/ui/StatusBadge';
-
-function formatRupiah(angka) {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
-}
+import { formatRupiah } from '@/Utils/formatCurrency';
 
 const statusOptions = [
     { value: '', label: 'Semua Status' },

@@ -5,10 +5,7 @@ import {
     ArrowDownCircle, Clock, XCircle, Info, Calendar,
     ShieldCheck, Percent,
 } from 'lucide-react';
-
-function formatRupiah(angka) {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
-}
+import { formatRupiah } from '@/Utils/formatCurrency';
 
 const statusPengajuanLabel = {
     diajukan: { text: 'Menunggu ditinjau Bendahara', step: 1 },

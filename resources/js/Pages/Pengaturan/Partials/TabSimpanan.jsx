@@ -1,10 +1,7 @@
 import { useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import { Pencil, Check, X } from 'lucide-react';
-
-function formatRupiah(angka) {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
-}
+import { formatRupiah } from '@/Utils/formatCurrency';
 
 export default function TabSimpanan({ settingSimpanan }) {
     const [editId, setEditId] = useState(null);

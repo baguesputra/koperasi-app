@@ -2,10 +2,7 @@ import AppLayout from '@/Layouts/AppLayout';
 import { Head, Link } from '@inertiajs/react';
 import Card from '@/Components/ui/Card';
 import StatusBadge from '@/Components/ui/StatusBadge';
-
-function formatRupiah(angka) {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
-}
+import { formatRupiah } from '@/Utils/formatCurrency';
 
 export default function Index({ menungguTinjauan, riwayat }) {
     return (

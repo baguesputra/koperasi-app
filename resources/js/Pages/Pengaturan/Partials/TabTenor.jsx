@@ -2,10 +2,7 @@ import { useForm, router } from '@inertiajs/react';
 import { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import Button from '@/Components/ui/Button';
-
-function formatRupiah(angka) {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
-}
+import { formatRupiah } from '@/Utils/formatCurrency';
 
 export default function TabTenor({ tabelTenor }) {
     const [showForm, setShowForm] = useState(false);
