@@ -27,12 +27,11 @@ Route::get('/auth/sso/redirect', [SsoController::class, 'redirect'])->name('sso.
 Route::get('/auth/sso/callback', [SsoController::class, 'callback'])->name('sso.callback');
 
 Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
+    if (auth()->check()) {
+        return redirect()->route('dashboard');
+    }
+
+    return redirect()->route('login');
 });
 
 // ==========================================

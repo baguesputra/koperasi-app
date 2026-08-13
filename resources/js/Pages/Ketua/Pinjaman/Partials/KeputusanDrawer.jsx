@@ -78,7 +78,7 @@ export default function KeputusanDrawer({ pinjaman, onClose }) {
                     <p className="text-sm font-semibold text-slate-800">{pinjaman.anggota.nama}</p>
                 </div>
                 <div>
-                    <p className="text-xs text-slate-400">No. Anggota</p>
+                    <p className="text-xs text-slate-400">No Anggota</p>
                     <p className="text-sm font-semibold text-slate-800">{pinjaman.anggota.no_anggota}</p>
                 </div>
                 <div>
