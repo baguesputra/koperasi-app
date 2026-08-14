@@ -43,7 +43,7 @@ class PinjamanController extends Controller
         if ($nominal > $limitMaksimal) {
             return response()->json([
                 'valid' => false,
-                'pesan' => 'Nominal melebihi limit maksimal Anda: Rp ' . number_format($limitMaksimal, 0, ',', '.'),
+                'pesan' => 'Nominal melebihi limit maksimal Anda: Rp '.number_format($limitMaksimal, 0, ',', '.'),
             ], 422);
         }
 
@@ -87,11 +87,9 @@ class PinjamanController extends Controller
             'atas_nama' => ['required_if:rekening_mode,baru', 'nullable', 'string', 'max:100'],
         ]);
 
-        $anggota = auth()->user()->anggota;
-
         try {
             $this->pengajuan->ajukan(
-                $anggota,
+                auth()->user(),
                 (float) $request->nominal,
                 (int) $request->tenor_bulan,
                 $request->keperluan,

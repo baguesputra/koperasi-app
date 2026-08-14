@@ -15,6 +15,7 @@ class Pinjaman extends Model
 
     protected $fillable = [
         'anggota_id',
+        'pengaju_user_id',
         'nominal',
         'tenor_bulan',
         'keperluan',
@@ -23,6 +24,7 @@ class Pinjaman extends Model
         'snapshot_atas_nama',
         'persentase_bunga',
         'status',
+        'cair_oleh_bendahara',
         'sudah_pakai_privilege_reloan',
         'tanggal_pengajuan',
         'tanggal_pencairan',
@@ -33,6 +35,7 @@ class Pinjaman extends Model
     protected $casts = [
         'nominal' => 'decimal:2',
         'persentase_bunga' => 'decimal:2',
+        'cair_oleh_bendahara' => 'boolean',
         'sudah_pakai_privilege_reloan' => 'boolean',
         'tanggal_pengajuan' => 'date',
         'tanggal_pencairan' => 'date',
@@ -41,6 +44,11 @@ class Pinjaman extends Model
     public function anggota(): BelongsTo
     {
         return $this->belongsTo(Anggota::class);
+    }
+
+    public function pengaju(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'pengaju_user_id');
     }
 
     public function angsuran(): HasMany

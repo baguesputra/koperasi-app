@@ -7,6 +7,8 @@ import { useState } from 'react';
 
 export default function AuthenticatedLayout({ header, children }) {
     const user = usePage().props.auth.user;
+    const permissions = usePage().props.auth.user?.permissions ?? [];
+    const bisaAjukanPinjaman = permissions.includes('portal.akses');
 
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
         useState(false);
@@ -66,6 +68,13 @@ export default function AuthenticatedLayout({ header, children }) {
                                         >
                                             Profile
                                         </Dropdown.Link>
+                                        {bisaAjukanPinjaman && (
+                                            <Dropdown.Link
+                                                href={route('portal.pinjaman.create')}
+                                            >
+                                                Pengajuan Pinjaman
+                                            </Dropdown.Link>
+                                        )}
                                         <Dropdown.Link
                                             href={route('logout')}
                                             method="post"
@@ -150,6 +159,11 @@ export default function AuthenticatedLayout({ header, children }) {
                             <ResponsiveNavLink href={route('profile.edit')}>
                                 Profile
                             </ResponsiveNavLink>
+                            {bisaAjukanPinjaman && (
+                                <ResponsiveNavLink href={route('portal.pinjaman.create')}>
+                                    Pengajuan Pinjaman
+                                </ResponsiveNavLink>
+                            )}
                             <ResponsiveNavLink
                                 method="post"
                                 href={route('logout')}

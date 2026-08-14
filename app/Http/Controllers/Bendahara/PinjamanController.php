@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers\Bendahara;
 
+use App\Helpers\TerbilangHelper;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\KeputusanPinjamanRequest;
 use App\Models\Pinjaman;
 use App\Services\Pinjaman\PersetujuanPinjamanService;
 use Inertia\Inertia;
 use Inertia\Response;
-use App\Helpers\TerbilangHelper;
+use RuntimeException;
 
 class PinjamanController extends Controller
 {
@@ -18,6 +19,15 @@ class PinjamanController extends Controller
     {
         $menungguTinjauan = Pinjaman::with('anggota')
             ->where('status', 'diajukan')
+            ->latest('tanggal_pengajuan')
+            ->get()
+            ->map($this->formatLengkap());
+
+        // Pinjaman yang diajukan sendiri oleh Ketua: setelah disetujui bendahara,
+        // pencairannya dilakukan oleh bendahara (bukan Ketua) agar tak self-approve.
+        $menungguPencairan = Pinjaman::with('anggota')
+            ->where('status', 'approved_bendahara')
+            ->where('cair_oleh_bendahara', true)
             ->latest('tanggal_pengajuan')
             ->get()
             ->map($this->formatLengkap());
@@ -32,6 +42,7 @@ class PinjamanController extends Controller
 
         return Inertia::render('Bendahara/Pinjaman/Index', [
             'menungguTinjauan' => $menungguTinjauan,
+            'menungguPencairan' => $menungguPencairan,
             'riwayat' => $riwayat,
         ]);
     }
@@ -59,6 +70,18 @@ class PinjamanController extends Controller
 
         return redirect()->route('bendahara.pinjaman.index')
             ->with('status', 'Pengajuan pinjaman ditolak.');
+    }
+
+    public function cair(KeputusanPinjamanRequest $request, Pinjaman $pinjaman)
+    {
+        try {
+            $this->persetujuan->cairBendahara($pinjaman, $request->catatan);
+        } catch (RuntimeException $e) {
+            return back()->withErrors(['keputusan' => $e->getMessage()]);
+        }
+
+        return redirect()->route('bendahara.pinjaman.index')
+            ->with('status', 'Pinjaman disetujui dan dana telah dicairkan.');
     }
 
     private function formatRingkas(): \Closure

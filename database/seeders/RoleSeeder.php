@@ -27,6 +27,7 @@ class RoleSeeder extends Seeder
             'angsuran.konfirmasi',
             'kas.lihat', 'kas.topup',
             'laporan.lihat',
+            'portal.akses',
         ]);
 
         $ketua = Role::firstOrCreate(['name' => 'ketua_koperasi']);
@@ -36,6 +37,7 @@ class RoleSeeder extends Seeder
             'pinjaman.lihat', 'pinjaman.approve-ketua',
             'kas.lihat',
             'laporan.lihat',
+            'portal.akses',
         ]);
 
         $anggota = Role::firstOrCreate(['name' => 'anggota']);

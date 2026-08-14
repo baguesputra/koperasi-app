@@ -34,21 +34,48 @@ class PersetujuanPinjamanService
      */
     public function approveKetua(Pinjaman $pinjaman, string $catatan): void
     {
+        $this->cairkan($pinjaman, [
+            'status' => 'aktif',
+            'catatan_ketua' => $catatan,
+        ]);
+    }
+
+    /**
+     * Bendahara mencairkan pinjaman yang diajukan sendiri oleh Ketua
+     * (cair_oleh_bendahara = true). Status jadi aktif, jadwal angsuran
+     * ter-generate, saldo kas berkurang, tercatat di jurnal atas nama bendahara.
+     */
+    public function cairBendahara(Pinjaman $pinjaman, string $catatan): void
+    {
+        $catatanBendahara = $pinjaman->catatan_bendahara
+            ? $pinjaman->catatan_bendahara.' | '.$catatan
+            : $catatan;
+
+        $this->cairkan($pinjaman, [
+            'status' => 'aktif',
+            'catatan_bendahara' => $catatanBendahara,
+        ]);
+    }
+
+    /**
+     * Logika pencairan bersama: validasi saldo, set status aktif + tanggal
+     * pencairan, generate jadwal angsuran, kurangi saldo kas, catat jurnal.
+     */
+    private function cairkan(Pinjaman $pinjaman, array $update): void
+    {
         $kas = KasKoperasi::firstOrFail();
 
         if ($kas->saldo_saat_ini < $pinjaman->nominal) {
             throw new RuntimeException(
-                'Saldo kas koperasi tidak mencukupi untuk pencairan pinjaman ini. Saldo saat ini: Rp ' .
+                'Saldo kas koperasi tidak mencukupi untuk pencairan pinjaman ini. Saldo saat ini: Rp '.
                 number_format($kas->saldo_saat_ini, 0, ',', '.')
             );
         }
 
-        DB::transaction(function () use ($pinjaman, $catatan, $kas) {
-            $pinjaman->update([
-                'status' => 'aktif',
-                'catatan_ketua' => $catatan,
+        DB::transaction(function () use ($pinjaman, $update, $kas) {
+            $pinjaman->update(array_merge($update, [
                 'tanggal_pencairan' => now(),
-            ]);
+            ]));
 
             $this->bunga->simpanJadwal($pinjaman);
 

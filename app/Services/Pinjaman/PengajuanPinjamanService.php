@@ -5,6 +5,7 @@ namespace App\Services\Pinjaman;
 use App\Models\Anggota;
 use App\Models\Pinjaman;
 use App\Models\RekeningAnggota;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -16,11 +17,13 @@ class PengajuanPinjamanService
     ) {}
 
     /**
-     * @param array $rekening ['mode' => 'tersimpan'|'baru', 'rekening_id' => ?int,
-     *                          'nama_bank' => ?string, 'no_rekening' => ?string, 'atas_nama' => ?string]
+     * @param  array  $rekening  ['mode' => 'tersimpan'|'baru', 'rekening_id' => ?int,
+     *                           'nama_bank' => ?string, 'no_rekening' => ?string, 'atas_nama' => ?string]
      */
-    public function ajukan(Anggota $anggota, float $nominal, int $tenorBulan, string $keperluan, array $rekening): Pinjaman
+    public function ajukan(User $pengaju, float $nominal, int $tenorBulan, string $keperluan, array $rekening): Pinjaman
     {
+        $anggota = $pengaju->anggota;
+
         $cekEligibilitas = $this->eligibilitas->cek($anggota);
 
         if (! $cekEligibilitas['boleh']) {
@@ -30,7 +33,7 @@ class PengajuanPinjamanService
         $limitMaksimal = $this->eligibilitas->limitMaksimal($anggota);
         if ($nominal > $limitMaksimal) {
             throw new RuntimeException(
-                'Nominal pinjaman melebihi limit maksimal Anda: Rp ' . number_format($limitMaksimal, 0, ',', '.')
+                'Nominal pinjaman melebihi limit maksimal Anda: Rp '.number_format($limitMaksimal, 0, ',', '.')
             );
         }
 
@@ -42,7 +45,10 @@ class PengajuanPinjamanService
             throw new RuntimeException("Tenor maksimal untuk nominal ini adalah {$tenorMaksimal} bulan.");
         }
 
-        return DB::transaction(function () use ($anggota, $nominal, $tenorBulan, $keperluan, $rekening) {
+        // Tentukan status awal berdasar peran pengaju (pengajuan mandiri pengurus).
+        [$statusAwal, $cairOlehBendahara, $catatanBendahara] = $this->statusAwalPengajuanMandiri($pengaju);
+
+        return DB::transaction(function () use ($pengaju, $anggota, $nominal, $tenorBulan, $keperluan, $rekening, $statusAwal, $cairOlehBendahara, $catatanBendahara) {
             $pinjamanAktif = $anggota->pinjamanAktif();
             $pakaiPrivilegeReloan = $pinjamanAktif && $pinjamanAktif->sisaAngsuran() <= 2;
 
@@ -54,6 +60,7 @@ class PengajuanPinjamanService
 
             return Pinjaman::create([
                 'anggota_id' => $anggota->id,
+                'pengaju_user_id' => $pengaju->id,
                 'nominal' => $nominal,
                 'tenor_bulan' => $tenorBulan,
                 'keperluan' => $keperluan,
@@ -61,11 +68,32 @@ class PengajuanPinjamanService
                 'snapshot_no_rekening' => $dataRekening['no_rekening'],
                 'snapshot_atas_nama' => $dataRekening['atas_nama'],
                 'persentase_bunga' => $this->bunga->persentaseBungaBerlaku(),
-                'status' => 'diajukan',
+                'status' => $statusAwal,
+                'cair_oleh_bendahara' => $cairOlehBendahara,
+                'catatan_bendahara' => $catatanBendahara,
                 'sudah_pakai_privilege_reloan' => false,
                 'tanggal_pengajuan' => now(),
             ]);
         });
+    }
+
+    /**
+     * Status awal saat pengurus mengajukan pinjaman untuk dirinya sendiri.
+     * - Bendahara: langsung disetujui bendahara, tinggal menunggu approval Ketua.
+     * - Ketua: hanya perlu persetujuan & pencairan Bendahara (bukan self-approve).
+     * - Lainnya (anggota): alur normal, menunggu tinjauan Bendahara.
+     */
+    private function statusAwalPengajuanMandiri(User $pengaju): array
+    {
+        if ($pengaju->hasRole('bendahara')) {
+            return ['approved_bendahara', false, 'Diajukan mandiri oleh Bendahara'];
+        }
+
+        if ($pengaju->hasRole('ketua_koperasi')) {
+            return ['diajukan', true, null];
+        }
+
+        return ['diajukan', false, null];
     }
 
     /**

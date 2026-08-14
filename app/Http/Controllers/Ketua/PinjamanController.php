@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Ketua;
 
+use App\Helpers\TerbilangHelper;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\KeputusanPinjamanRequest;
 use App\Models\Pinjaman;
@@ -9,7 +10,6 @@ use App\Services\Pinjaman\PersetujuanPinjamanService;
 use Inertia\Inertia;
 use Inertia\Response;
 use RuntimeException;
-use App\Helpers\TerbilangHelper;
 
 class PinjamanController extends Controller
 {
@@ -19,6 +19,7 @@ class PinjamanController extends Controller
     {
         $menungguApproval = Pinjaman::with('anggota')
             ->where('status', 'approved_bendahara')
+            ->where('cair_oleh_bendahara', false)
             ->latest('tanggal_pengajuan')
             ->get()
             ->map($this->formatLengkap());

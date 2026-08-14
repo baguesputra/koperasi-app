@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Anggota;
 use App\Models\SettingSimpanan;
+use App\Models\Simpanan;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 
@@ -13,6 +14,52 @@ class AnggotaSeeder extends Seeder
     {
         $this->seedAnggotaUtama();
         $this->seedAnggotaBulk();
+        $this->seedPengurus();
+    }
+
+    /**
+     * Buat record anggota untuk pengurus (Bendahara & Ketua) supaya mereka
+     * bisa mengajukan pinjaman mandiri lewat portal yang sama dengan anggota.
+     */
+    private function seedPengurus(): void
+    {
+        $data = [
+            [
+                'no_karyawan_user' => 'BEN-000001',
+                'no_anggota' => 'ANG-2020-0001',
+                'nama' => 'Bendahara Koperasi',
+                'cabang' => 'Banjarmasin',
+                'unit_bisnis' => 'Keuangan',
+                'department' => 'Keuangan',
+                'divisi' => 'Akuntansi',
+                'jabatan' => 'staff',
+                'tanggal_mulai_kerja' => now()->subYears(8),
+                'tanggal_jadi_anggota' => now()->subYears(7), // >= 5 tahun
+            ],
+            [
+                'no_karyawan_user' => 'KET-000001',
+                'no_anggota' => 'ANG-2019-0001',
+                'nama' => 'Ketua Koperasi',
+                'cabang' => 'Banjarmasin',
+                'unit_bisnis' => 'Keuangan',
+                'department' => 'Keuangan',
+                'divisi' => 'Akuntansi',
+                'jabatan' => 'hod',
+                'tanggal_mulai_kerja' => now()->subYears(10),
+                'tanggal_jadi_anggota' => now()->subYears(9), // >= 5 tahun
+            ],
+        ];
+
+        foreach ($data as $row) {
+            $user = User::where('no_karyawan', $row['no_karyawan_user'])->first();
+
+            $anggota = Anggota::updateOrCreate(
+                ['no_karyawan' => $row['no_karyawan_user']],
+                $this->atributAnggota($row, $user?->id)
+            );
+
+            $this->catatSimpananPokok($anggota, $user?->id);
+        }
     }
 
     /**
@@ -110,7 +157,7 @@ class AnggotaSeeder extends Seeder
             $data = [
                 'no_karyawan_user' => $noKaryawan,
                 'no_anggota' => Anggota::generateNoAnggota(),
-                'no_ktp' => '3207' . str_pad((string) $i, 12, '0', STR_PAD_LEFT),
+                'no_ktp' => '3207'.str_pad((string) $i, 12, '0', STR_PAD_LEFT),
                 'nama' => $user?->name ?? "Anggota {$noKaryawan}",
                 'cabang' => $cabang[$i % 3],
                 'unit_bisnis' => $unitBisnis[$i % 6],
@@ -154,7 +201,7 @@ class AnggotaSeeder extends Seeder
     {
         $nominalPokok = SettingSimpanan::where('jenis', 'pokok')->value('nominal') ?? 50_000;
 
-        \App\Models\Simpanan::firstOrCreate(
+        Simpanan::firstOrCreate(
             ['anggota_id' => $anggota->id, 'jenis' => 'pokok'],
             [
                 'jumlah' => $nominalPokok,

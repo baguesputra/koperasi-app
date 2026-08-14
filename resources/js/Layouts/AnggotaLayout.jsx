@@ -5,6 +5,8 @@ import { User, LogOut, ChevronDown } from 'lucide-react';
 export default function AnggotaLayout({ children }) {
     const { auth } = usePage().props;
     const initial = auth.user?.name?.charAt(0)?.toUpperCase() ?? '?';
+    const permissions = auth.user?.permissions ?? [];
+    const bisaKembaliKeCoop = permissions.includes('portal.akses');
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const dropdownRef = useRef(null);
 
@@ -51,6 +53,15 @@ export default function AnggotaLayout({ children }) {
                                     <User size={16} />
                                     Lihat Profil
                                 </Link>
+                                {bisaKembaliKeCoop && (
+                                    <Link
+                                        href={route('dashboard')}
+                                        className="flex items-center gap-2.5 px-4 py-3 text-sm text-slate-600 hover:bg-slate-50 transition-colors"
+                                    >
+                                        <User size={16} />
+                                        Dashboard Koperasi
+                                    </Link>
+                                )}
                                 <Link
                                     href={route('logout')}
                                     method="post"
