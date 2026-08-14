@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Anggota;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Laravel\Socialite\Facades\Socialite;
-use Illuminate\Support\Facades\Http;
 
 class SsoController extends Controller
 {
@@ -26,68 +27,76 @@ class SsoController extends Controller
 
             $raw = $ssoUser->getRaw();
 
-            $ssoId = $raw['id'] ?? null;
+            $ssoId = $raw['sub'] ?? $raw['id'] ?? null;
             $email = $raw['email'] ?? null;
-            $nik = $raw['nik'] ?? null;
+            $nik = $raw['nik'] ?? $raw['employee_id'] ?? null;
             $name = $raw['name'] ?? null;
 
-            // Cari user lokal berdasarkan SSO ID
-            $user = User::where('sso_id', $ssoId)->first();
-
-            // Jika belum terhubung, cari berdasarkan email
-            if (!$user && $email) {
-                $user = User::where('email', $email)->first();
+            if (! $nik) {
+                return redirect()->route('login')
+                    ->with('error', 'Data identitas dari SSO tidak lengkap. Silakan hubungi Admin.');
             }
 
-            // Jika belum ditemukan, cari berdasarkan NIK
-            if (!$user && $nik) {
+            // 1. Cari User yang sudah pernah terhubung SSO ini
+            $user = User::where('sso_id', $ssoId)->first();
+
+            // 2. Belum ada -> cari User berdasarkan No. Karyawan
+            if (! $user) {
                 $user = User::where('no_karyawan', $nik)->first();
             }
 
-            if (!$user) {
-                return redirect()
-                    ->route('login')
-                    ->with(
-                        'error',
-                        'Akun Anda belum terdaftar di aplikasi Koperasi.'
-                    );
+            // 3. Masih belum ada -> cek apakah dia sudah terdaftar sebagai ANGGOTA
+            //    (mungkin belum pernah punya akun User sama sekali)
+            if (! $user) {
+                $anggota = Anggota::where('no_karyawan', $nik)->first();
+
+                if (! $anggota) {
+                    return redirect()->route('login')
+                        ->with('error', 'Akun Anda belum terdaftar sebagai anggota koperasi. Silakan hubungi Admin.');
+                }
+
+                // Buat akun User baru, hubungkan ke Anggota yang sudah ada
+                $user = User::create([
+                    'name' => $name ?? $anggota->nama,
+                    'email' => $email,
+                    'no_karyawan' => $nik,
+                    'password' => Hash::make(str()->random(32)), // tidak pernah dipakai, login selalu via SSO
+                    'harus_ganti_password' => false,
+                ]);
+                $user->assignRole('anggota');
+
+                if (! $anggota->user_id) {
+                    $anggota->update(['user_id' => $user->id]);
+                }
             }
 
-            // Hubungkan akun lokal dengan akun SSO
+            // Sinkronkan data SSO ke user (baik yang baru maupun yang sudah ada)
             $user->update([
                 'sso_id' => $ssoId,
                 'auth_provider' => 'sso',
+                'email' => $email ?? $user->email,
                 'email_verified_at' => $user->email_verified_at ?? now(),
             ]);
 
-            // Login menggunakan guard web Laravel
             Auth::guard('web')->login($user);
-
-            // Regenerate session
             request()->session()->regenerate();
 
-            // Masuk dashboard
             return redirect()->route('dashboard');
 
         } catch (\Throwable $e) {
             report($e);
 
-            return redirect()
-                ->route('login')
-                ->with(
-                    'error',
-                    'Login SSO gagal. Silakan coba lagi.'
-                );
+            return redirect()->route('login')
+                ->with('error', 'Login SSO gagal. Silakan coba lagi.');
         }
     }
 
-  public function logout()
-{
-    return view('auth.sso-logout');
-}
+    public function logout()
+    {
+        Auth::guard('web')->logout();
+        request()->session()->invalidate();
+        request()->session()->regenerateToken();
 
-public function logoutCallback()
-{
-    return redirect()->route('login');
-}
+        return redirect()->route('login');
+    }
 }
