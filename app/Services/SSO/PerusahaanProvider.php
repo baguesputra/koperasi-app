@@ -12,7 +12,10 @@ class PerusahaanProvider extends AbstractProvider implements ProviderInterface
 
     protected function getAuthUrl($state): string
     {
-        return $this->buildAuthUrlFromBase(config('services.sso.authorize_url'), $state);
+        return $this->buildAuthUrlFromBase(
+            config('services.sso.authorize_url'),
+            $state
+        );
     }
 
     protected function getTokenUrl(): string
@@ -20,29 +23,32 @@ class PerusahaanProvider extends AbstractProvider implements ProviderInterface
         return config('services.sso.token_url');
     }
 
-    protected function getTokenFields($code)
-    {
-        return array_merge(parent::getTokenFields($code), [
-            'grant_type' => 'authorization_code',
-        ]);
-    }
-
     protected function getUserByToken($token): array
     {
-        $response = $this->getHttpClient()->get(config('services.sso.userinfo_url'), [
-            'headers' => ['Authorization' => 'Bearer '.$token],
-        ]);
+        $response = $this->getHttpClient()->get(
+            config('services.sso.userinfo_url'),
+            [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $token,
+                    'Accept' => 'application/json',
+                ],
+            ]
+        );
 
-        return json_decode((string) $response->getBody(), true);
+        return json_decode(
+            (string) $response->getBody(),
+            true
+        );
     }
 
     protected function mapUserToObject(array $user): SocialiteUser
     {
-        return (new SocialiteUser())->setRaw($user)->map([
-            'id' => $user['sub'] ?? null,
-            'nickname' => $user['nickname'] ?? null,
-            'name' => $user['name'] ?? null,
-            'email' => $user['email'] ?? null,
-        ]);
+        return (new SocialiteUser())
+            ->setRaw($user)
+            ->map([
+                'id' => $user['id'] ?? $user['sub'] ?? null,
+                'name' => $user['name'] ?? null,
+                'email' => $user['email'] ?? null,
+            ]);
     }
 }

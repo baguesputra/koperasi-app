@@ -24,6 +24,8 @@ class User extends Authenticatable
         'no_karyawan',
         'password',
         'harus_ganti_password',
+         'sso_id',
+    'auth_provider',
     ];
 
     protected $casts = [

@@ -133,6 +133,15 @@
 
 # Testing Checklist — Koperasi App
 **Tanggal:** 12 Agustus 2026
-- [ ] Persiapan Services dan Controller untuk SSO
-- [ ] Perbaikan bug ui dashboard sidebar
-- [ ]  
+- [x] Persiapan Services dan Controller untuk SSO
+- [x] Perbaikan bug ui dashboard sidebar  
+
+# Testing Checklist — Koperasi App
+**Tanggal:** 13 Agustus 2026
+- [x] Testing deploy aplikasi
+- [x] Persiapan callback untuk integrasi portal
+
+# Testing Checklist — Koperasi App
+**Tanggal:** 14 Agustus 2026
+- [ ] Testing deploy aplikasi
+- [ ] Persiapan callback untuk integrasi portal
