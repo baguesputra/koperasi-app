@@ -23,32 +23,40 @@ class PerusahaanProvider extends AbstractProvider implements ProviderInterface
         return config('services.sso.token_url');
     }
 
-    protected function getUserByToken($token): array
+    protected function getTokenFields($code)
     {
-        $response = $this->getHttpClient()->get(
-            config('services.sso.userinfo_url'),
-            [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $token,
-                    'Accept' => 'application/json',
-                ],
-            ]
-        );
-
-        return json_decode(
-            (string) $response->getBody(),
-            true
-        );
+        return [
+            'grant_type' => 'authorization_code',
+            'client_id' => config('services.sso.client_id'),
+            'client_secret' => config('services.sso.client_secret'),
+            'code' => $code,
+            'redirect_uri' => config('services.sso.redirect'),
+        ];
     }
+
+    protected function getUserByToken($token): array
+{
+    $response = $this->getHttpClient()->get(
+        config('services.sso.profile_url'),
+        [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $token,
+                'Accept' => 'application/json',
+            ],
+        ]
+    );
+
+    return json_decode($response->getBody(), true);
+}
 
     protected function mapUserToObject(array $user): SocialiteUser
-    {
-        return (new SocialiteUser())
-            ->setRaw($user)
-            ->map([
-                'id' => $user['id'] ?? $user['sub'] ?? null,
-                'name' => $user['name'] ?? null,
-                'email' => $user['email'] ?? null,
-            ]);
-    }
+{
+    return (new SocialiteUser())
+        ->setRaw($user)
+        ->map([
+            'id' => $user['id'] ?? $user['sub'] ?? null,
+            'name' => $user['name'] ?? null,
+            'email' => $user['email'] ?? null,
+        ]);
+}
 }

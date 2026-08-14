@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Socialite\Facades\Socialite;
+use Illuminate\Support\Facades\Http;
 
 class SsoController extends Controller
 {
@@ -25,25 +26,24 @@ class SsoController extends Controller
 
             $raw = $ssoUser->getRaw();
 
-            $ssoId = $raw['id'] ?? $raw['sub'] ?? null;
+            $ssoId = $raw['id'] ?? null;
             $email = $raw['email'] ?? null;
-            $nik   = $raw['nik'] ?? null;
-            $name  = $raw['name'] ?? null;
+            $nik = $raw['nik'] ?? null;
+            $name = $raw['name'] ?? null;
 
-            // Cari user berdasarkan SSO ID
+            // Cari user lokal berdasarkan SSO ID
             $user = User::where('sso_id', $ssoId)->first();
 
-            // Jika belum ditemukan, cari berdasarkan email
+            // Jika belum terhubung, cari berdasarkan email
             if (!$user && $email) {
                 $user = User::where('email', $email)->first();
             }
 
-            // Jika belum ditemukan, cari berdasarkan NIK/no_karyawan
+            // Jika belum ditemukan, cari berdasarkan NIK
             if (!$user && $nik) {
                 $user = User::where('no_karyawan', $nik)->first();
             }
 
-            // User belum terdaftar
             if (!$user) {
                 return redirect()
                     ->route('login')
@@ -53,25 +53,23 @@ class SsoController extends Controller
                     );
             }
 
-            // Hubungkan akun lokal dengan akun Gate
+            // Hubungkan akun lokal dengan akun SSO
             $user->update([
                 'sso_id' => $ssoId,
                 'auth_provider' => 'sso',
-                'name' => $name ?: $user->name,
-                'email' => $email ?: $user->email,
                 'email_verified_at' => $user->email_verified_at ?? now(),
             ]);
 
-            // Login menggunakan guard web yang sama
+            // Login menggunakan guard web Laravel
             Auth::guard('web')->login($user);
 
             // Regenerate session
             request()->session()->regenerate();
 
+            // Masuk dashboard
             return redirect()->route('dashboard');
 
         } catch (\Throwable $e) {
-
             report($e);
 
             return redirect()
@@ -82,4 +80,14 @@ class SsoController extends Controller
                 );
         }
     }
+
+  public function logout()
+{
+    return view('auth.sso-logout');
+}
+
+public function logoutCallback()
+{
+    return redirect()->route('login');
+}
 }
