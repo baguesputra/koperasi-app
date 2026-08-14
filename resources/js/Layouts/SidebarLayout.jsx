@@ -1,6 +1,19 @@
 import Sidebar from './Partials/Sidebar';
 import { Link, usePage } from '@inertiajs/react';
 import { LogOut, Settings } from 'lucide-react';
+import { router } from '@inertiajs/react';
+
+const handleLogout = () => {
+    router.post(route('logout'), {}, {
+        onSuccess: () => {
+            if (import.meta.env.VITE_AUTH_MODE === 'sso') {
+                window.location.href = 'https://gate.appdutamall.com/dashboard';
+            } else {
+                window.location.href = route('login');
+            }
+        },
+    });
+};
 
 export default function SidebarLayout({ children }) {
     const { auth } = usePage().props;
@@ -42,14 +55,22 @@ export default function SidebarLayout({ children }) {
 
                     <span className="w-0.5 h-6 bg-slate-300" />
 
-                    <Link
-                        href={route('logout')}
-                        method="post"
-                        as="button"
-                        className="flex items-center text-slate-400 hover:text-red-600 transition-colors"
-                    >
-                        <LogOut size={18} />
-                    </Link>
+                    <form method="POST" action={route('logout')}>
+    <input
+        type="hidden"
+        name="_token"
+        value={document
+            .querySelector('meta[name="csrf-token"]')
+            ?.getAttribute('content')}
+    />
+
+    <button
+        type="submit"
+        className="flex items-center text-slate-400 hover:text-red-600 transition-colors"
+    >
+        <LogOut size={18} />
+    </button>
+</form>
                 </header>
 
                 <main className="flex-1 p-6 lg:p-8 max-w-[1400px] w-full mx-auto">

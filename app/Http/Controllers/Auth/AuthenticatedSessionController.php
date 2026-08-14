@@ -57,6 +57,12 @@ class AuthenticatedSessionController extends Controller
     $request->session()->invalidate();
     $request->session()->regenerateToken();
 
-    return redirect()->to('/auth/sso/redirect');
+    if (config('auth.mode') === 'sso') {
+        return redirect()->away(
+            'https://gate.appdutamall.com/dashboard'
+        );
+    }
+
+    return redirect()->route('login');
 }
 }

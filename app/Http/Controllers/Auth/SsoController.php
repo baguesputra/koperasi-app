@@ -29,48 +29,52 @@ class SsoController extends Controller
 
             $ssoId = $raw['sub'] ?? $raw['id'] ?? null;
             $email = $raw['email'] ?? null;
-            $nik = $raw['nik'] ?? $raw['employee_id'] ?? null;
-            $name = $raw['name'] ?? null;
+            $nik   = $raw['nik'] ?? $raw['employee_id'] ?? null;
+            $name  = $raw['name'] ?? null;
 
-            if (! $nik) {
-                return redirect()->route('login')
-                    ->with('error', 'Data identitas dari SSO tidak lengkap. Silakan hubungi Admin.');
-            }
-
-            // 1. Cari User yang sudah pernah terhubung SSO ini
+            // 1. Cari berdasarkan SSO ID
             $user = User::where('sso_id', $ssoId)->first();
 
-            // 2. Belum ada -> cari User berdasarkan No. Karyawan
-            if (! $user) {
+            // 2. Kalau belum ada, cari berdasarkan email
+            if (! $user && $email) {
+                $user = User::where('email', $email)->first();
+            }
+
+            // 3. Kalau belum ada, cari berdasarkan no karyawan
+            if (! $user && $nik) {
                 $user = User::where('no_karyawan', $nik)->first();
             }
 
-            // 3. Masih belum ada -> cek apakah dia sudah terdaftar sebagai ANGGOTA
-            //    (mungkin belum pernah punya akun User sama sekali)
-            if (! $user) {
+            // 4. Kalau belum ada, cari anggota
+            if (! $user && $nik) {
                 $anggota = Anggota::where('no_karyawan', $nik)->first();
 
                 if (! $anggota) {
                     return redirect()->route('login')
-                        ->with('error', 'Akun Anda belum terdaftar sebagai anggota koperasi. Silakan hubungi Admin.');
+                        ->with(
+                            'error',
+                            'Akun Anda belum terdaftar sebagai anggota koperasi.'
+                        );
                 }
 
-                // Buat akun User baru, hubungkan ke Anggota yang sudah ada
                 $user = User::create([
                     'name' => $name ?? $anggota->nama,
                     'email' => $email,
                     'no_karyawan' => $nik,
-                    'password' => Hash::make(str()->random(32)), // tidak pernah dipakai, login selalu via SSO
+                    'password' => Hash::make(str()->random(32)),
                     'harus_ganti_password' => false,
                 ]);
+
                 $user->assignRole('anggota');
 
                 if (! $anggota->user_id) {
-                    $anggota->update(['user_id' => $user->id]);
+                    $anggota->update([
+                        'user_id' => $user->id
+                    ]);
                 }
             }
 
-            // Sinkronkan data SSO ke user (baik yang baru maupun yang sudah ada)
+            // 5. Hubungkan akun lokal dengan akun SSO
             $user->update([
                 'sso_id' => $ssoId,
                 'auth_provider' => 'sso',
@@ -78,7 +82,9 @@ class SsoController extends Controller
                 'email_verified_at' => $user->email_verified_at ?? now(),
             ]);
 
+            // 6. Login ke aplikasi Koperasi
             Auth::guard('web')->login($user);
+
             request()->session()->regenerate();
 
             return redirect()->route('dashboard');
@@ -92,11 +98,12 @@ class SsoController extends Controller
     }
 
     public function logout()
-    {
-        Auth::guard('web')->logout();
-        request()->session()->invalidate();
-        request()->session()->regenerateToken();
+{
+    Auth::guard('web')->logout();
 
-        return redirect()->route('login');
-    }
+    request()->session()->invalidate();
+    request()->session()->regenerateToken();
+
+    return redirect()->away('https://gate.appdutamall.com/dashboard');
+}
 }
