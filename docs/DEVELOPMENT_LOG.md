@@ -120,7 +120,7 @@
 - [x] pengajuan masih belum ada terbilang, keterangan, bank, no rekening, atas nama rekening ( ditambahkan jika ada bisa pengecekan rekening)
 - [ ] validasi setelah jadi anggota harus 3 bulan terdahulu baru bisa pengajuan
 - [ ] validasi harus sudah simpanan pokok selama 1 tahun atau ditampilkan pada form approval bendahara dan ketua
-- [ ] validasi awal simpanan 100.000 50.000 wajib di awal saja 45.000 tiap bulan dan 5.000 dana sosial tidak muncul di anggota
+- [x] validasi awal simpanan 100.000 50.000 wajib di awal saja 45.000 tiap bulan dan 5.000 dana sosial tidak muncul di anggota
 
 
 # Testing Checklist — Koperasi App
@@ -147,3 +147,13 @@
 - [x] improve tampilan dashboard untuk memudahkan user dalam navigasi menu
 - [x] install gitlab self host untuk repository project internal
 - [x] setting development mode sso dan mode local
+
+# Testing Checklist — Koperasi App
+**Tanggal:** 15 Agustus 2026
+
+Fitur
+- [ ] notifikasi setelah pengajuan awal, setelah approve bendahara dan approve ketua
+- [ ] notifikasi angsuran dan simpanan sudah terbayarkan ke bendahara atau ketua
+- [ ] fitur edit ajuan pinjaman (tenor) dari pihak bendahara dan ketua
+- [ ] multi tenant ( opsional )
+- [ ] import excel atau tambah anggota otomatis buat user juga
