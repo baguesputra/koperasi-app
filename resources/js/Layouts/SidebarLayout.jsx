@@ -1,20 +1,7 @@
 import Sidebar from './Partials/Sidebar';
 import { Link, usePage } from '@inertiajs/react';
 import { Settings, ChevronDown } from 'lucide-react';
-import { router } from '@inertiajs/react';
 import Dropdown from '@/Components/Dropdown';
-
-const handleLogout = () => {
-    router.post(route('logout'), {}, {
-        onSuccess: () => {
-            if (import.meta.env.VITE_AUTH_MODE === 'sso') {
-                window.location.href = 'https://gate.appdutamall.com/dashboard';
-            } else {
-                window.location.href = route('login');
-            }
-        },
-    });
-};
 
 export default function SidebarLayout({ children }) {
     const { auth } = usePage().props;
@@ -76,13 +63,22 @@ export default function SidebarLayout({ children }) {
                             <Dropdown.Link href={route('profile.edit')}>
                                 Profile
                             </Dropdown.Link>
-                            <button
-                                type="button"
-                                onClick={handleLogout}
-                                className="block w-full px-4 py-2 text-start text-sm leading-5 text-red-600 transition duration-150 ease-in-out hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
-                            >
-                                Keluar
-                            </button>
+                            <form method="POST" action={route('logout')}>
+    <input
+        type="hidden"
+        name="_token"
+        value={document
+            .querySelector('meta[name="csrf-token"]')
+            ?.getAttribute('content')}
+    />
+
+    <button
+        type="submit"
+        className="block w-full px-4 py-2 text-start text-sm leading-5 text-red-600 transition duration-150 ease-in-out hover:text-red-700 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+    >
+        Keluar
+    </button>
+</form>
                         </Dropdown.Content>
                     </Dropdown>
                 </header>

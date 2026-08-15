@@ -143,5 +143,7 @@
 
 # Testing Checklist — Koperasi App
 **Tanggal:** 14 Agustus 2026
-- [ ] Testing deploy aplikasi
-- [ ] Persiapan callback untuk integrasi portal
+- [x] integrasi login portal gate dengan koperasi
+- [x] improve tampilan dashboard untuk memudahkan user dalam navigasi menu
+- [x] install gitlab self host untuk repository project internal
+- [x] setting development mode sso dan mode local
