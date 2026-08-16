@@ -32,13 +32,40 @@ class PersetujuanPinjamanService
      * Ketua approve final -> pinjaman langsung aktif, jadwal angsuran ter-generate,
      * saldo kas berkurang, tercatat di jurnal.
      */
-    public function approveKetua(Pinjaman $pinjaman, string $catatan): void
-    {
-        $this->cairkan($pinjaman, [
+   public function approveKetua(Pinjaman $pinjaman, string $catatan): void
+{
+    $kas = KasKoperasi::firstOrFail();
+
+    if ($kas->saldo_pinjaman < $pinjaman->nominal) {
+        throw new RuntimeException(
+            'Saldo kas pinjaman koperasi tidak mencukupi. Saldo saat ini: Rp ' .
+            number_format($kas->saldo_pinjaman, 0, ',', '.')
+        );
+    }
+
+    DB::transaction(function () use ($pinjaman, $catatan, $kas) {
+        $pinjaman->update([
             'status' => 'aktif',
             'catatan_ketua' => $catatan,
+            'tanggal_pencairan' => now(),
         ]);
-    }
+
+        $this->bunga->simpanJadwal($pinjaman);
+
+        $kas->decrement('saldo_pinjaman', $pinjaman->nominal);
+
+        JurnalKas::create([
+            'tipe' => 'keluar',
+            'kategori' => 'pencairan_pinjaman',
+            'kantong' => 'pinjaman',
+            'jumlah' => $pinjaman->nominal,
+            'keterangan' => "Pencairan pinjaman - {$pinjaman->anggota->nama}",
+            'referensi_id' => $pinjaman->id,
+            'tanggal' => now(),
+            'created_by' => auth()->id(),
+        ]);
+    });
+}
 
     /**
      * Bendahara mencairkan pinjaman yang diajukan sendiri oleh Ketua

@@ -5,6 +5,8 @@ namespace App\Services\Simpanan;
 use App\Models\Anggota;
 use App\Models\Simpanan;
 use App\Models\SettingSimpanan;
+use App\Models\KasKoperasi;
+use App\Models\JurnalKas;
 use Illuminate\Support\Facades\DB;
 
 class KonfirmasiSimpananService
@@ -27,32 +29,47 @@ class KonfirmasiSimpananService
      * Tiap anggota otomatis dapat 2 baris: wajib + dana_sosial.
      */
     public function konfirmasiMassal(array $anggotaIds, string $bulanPeriode, int $inputByUserId): int
-    {
-        $nominalWajib = SettingSimpanan::where('jenis', 'wajib')->value('nominal') ?? 0;
-        $nominalDanaSosial = SettingSimpanan::where('jenis', 'dana_sosial')->value('nominal') ?? 0;
+{
+    $nominalWajib = SettingSimpanan::where('jenis', 'wajib')->value('nominal') ?? 0;
+    $nominalDanaSosial = SettingSimpanan::where('jenis', 'dana_sosial')->value('nominal') ?? 0;
 
-        DB::transaction(function () use ($anggotaIds, $bulanPeriode, $inputByUserId, $nominalWajib, $nominalDanaSosial) {
-            foreach ($anggotaIds as $anggotaId) {
-                Simpanan::create([
-                    'anggota_id' => $anggotaId,
-                    'jenis' => 'wajib',
-                    'jumlah' => $nominalWajib,
-                    'bulan_periode' => $bulanPeriode,
-                    'tanggal_input' => now(),
-                    'input_by' => $inputByUserId,
-                ]);
+    DB::transaction(function () use ($anggotaIds, $bulanPeriode, $inputByUserId, $nominalWajib, $nominalDanaSosial) {
+        $kas = KasKoperasi::firstOrFail();
 
-                Simpanan::create([
-                    'anggota_id' => $anggotaId,
-                    'jenis' => 'dana_sosial',
-                    'jumlah' => $nominalDanaSosial,
-                    'bulan_periode' => $bulanPeriode,
-                    'tanggal_input' => now(),
-                    'input_by' => $inputByUserId,
-                ]);
-            }
-        });
+        foreach ($anggotaIds as $anggotaId) {
+            Simpanan::create([
+                'anggota_id' => $anggotaId,
+                'jenis' => 'wajib',
+                'jumlah' => $nominalWajib,
+                'bulan_periode' => $bulanPeriode,
+                'tanggal_input' => now(),
+                'input_by' => $inputByUserId,
+            ]);
 
-        return count($anggotaIds);
-    }
+            Simpanan::create([
+                'anggota_id' => $anggotaId,
+                'jenis' => 'dana_sosial',
+                'jumlah' => $nominalDanaSosial,
+                'bulan_periode' => $bulanPeriode,
+                'tanggal_input' => now(),
+                'input_by' => $inputByUserId,
+            ]);
+
+            $kas->increment('saldo_dana_sosial', $nominalDanaSosial);
+
+            JurnalKas::create([
+                'tipe' => 'masuk',
+                'kategori' => 'dana_sosial_bulanan',
+                'kantong' => 'dana_sosial',
+                'jumlah' => $nominalDanaSosial,
+                'keterangan' => "Dana sosial bulan {$bulanPeriode}",
+                'referensi_id' => $anggotaId,
+                'tanggal' => now(),
+                'created_by' => $inputByUserId,
+            ]);
+        }
+    });
+
+    return count($anggotaIds);
+}
 }

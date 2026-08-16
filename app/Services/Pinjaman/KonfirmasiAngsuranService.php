@@ -34,6 +34,7 @@ class KonfirmasiAngsuranService
                 JurnalKas::create([
                     'tipe' => 'masuk',
                     'kategori' => 'pembayaran_angsuran',
+                    'kantong' => 'pinjaman',
                     'jumlah' => $angsuran->total_bayar,
                     'keterangan' => "Angsuran ke-{$angsuran->cicilan_ke} - {$angsuran->pinjaman->anggota->nama}",
                     'referensi_id' => $angsuran->id,
@@ -41,7 +42,7 @@ class KonfirmasiAngsuranService
                     'created_by' => $confirmedByUserId,
                 ]);
 
-                $kas->increment('saldo_saat_ini', $angsuran->total_bayar);
+                $kas->increment('saldo_pinjaman', $angsuran->total_bayar);
 
                 $this->tandaiLunasJikaSelesai($angsuran->pinjaman);
             }

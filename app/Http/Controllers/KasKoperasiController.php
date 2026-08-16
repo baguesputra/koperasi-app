@@ -14,21 +14,20 @@ class KasKoperasiController extends Controller
     {
         $kas = KasKoperasi::firstOrFail();
 
-        $riwayat = JurnalKas::latest('tanggal')
-            ->latest('id')
-            ->take(30)
-            ->get()
+        $riwayat = JurnalKas::latest('tanggal')->latest('id')->take(30)->get()
             ->map(fn ($j) => [
                 'id' => $j->id,
                 'tipe' => $j->tipe,
                 'kategori' => $j->kategori,
+                'kantong' => $j->kantong,
                 'jumlah' => (float) $j->jumlah,
                 'keterangan' => $j->keterangan,
                 'tanggal' => $j->tanggal->format('d M Y'),
             ]);
 
         return Inertia::render('KasKoperasi/Index', [
-            'saldoSaatIni' => (float) $kas->saldo_saat_ini,
+            'saldoPinjaman' => (float) $kas->saldo_pinjaman,
+            'saldoDanaSosial' => (float) $kas->saldo_dana_sosial,
             'riwayat' => $riwayat,
         ]);
     }
@@ -36,22 +35,25 @@ class KasKoperasiController extends Controller
     public function topup(Request $request)
     {
         $request->validate([
+            'kantong' => ['required', 'in:pinjaman,dana_sosial'],
             'jumlah' => ['required', 'numeric', 'min:1'],
             'keterangan' => ['nullable', 'string', 'max:255'],
         ]);
 
         $kas = KasKoperasi::firstOrFail();
-        $kas->increment('saldo_saat_ini', $request->jumlah);
+        $kolom = $request->kantong === 'pinjaman' ? 'saldo_pinjaman' : 'saldo_dana_sosial';
+        $kas->increment($kolom, $request->jumlah);
 
         JurnalKas::create([
             'tipe' => 'masuk',
             'kategori' => 'topup_bulanan',
+            'kantong' => $request->kantong,
             'jumlah' => $request->jumlah,
             'keterangan' => $request->keterangan ?: 'Topup saldo koperasi',
             'tanggal' => now(),
             'created_by' => auth()->id(),
         ]);
 
-        return back()->with('status', 'Saldo kas koperasi berhasil ditambahkan.');
+        return back()->with('status', 'Saldo berhasil ditambahkan.');
     }
 }

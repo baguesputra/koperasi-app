@@ -48,18 +48,17 @@ class EligibilitasPinjamanService
      */
     public function limitMaksimal(Anggota $anggota): float
     {
-         // Prioritas 1: kalau ada limit custom yang di-set Admin, pakai itu
         if ($anggota->limit_custom !== null) {
             return (float) $anggota->limit_custom;
         }
 
-        // Prioritas 2: logic kategori otomatis (default)
         $lamaTahun = $anggota->lama_keanggotaan_tahun;
 
         $kategori = match (true) {
-            $lamaTahun < 1 => 'anggota_baru',
-            $lamaTahun >= 5 => 'anggota_lama',
-            default => $anggota->jabatan === 'hod' ? 'hod' : 'staff',
+            $lamaTahun < 1 => 'kurang_1_tahun',
+            $lamaTahun < 3 => 'satu_sampai_3_tahun',
+            $lamaTahun < 5 => 'tiga_sampai_5_tahun',
+            default => 'lebih_5_tahun',
         };
 
         $setting = SettingLimitPinjaman::where('kategori', $kategori)->first();

@@ -15,6 +15,7 @@ class JurnalKas extends Model
     protected $fillable = [
         'tipe',
         'kategori',
+        'kantong',
         'jumlah',
         'keterangan',
         'referensi_id',

@@ -10,14 +10,14 @@ class SettingLimitPinjamanSeeder extends Seeder
     public function run(): void
     {
         $data = [
-            ['kategori' => 'anggota_baru', 'label' => 'Anggota < 1 Tahun', 'limit_maksimal' => 1_000_000],
-            ['kategori' => 'staff', 'label' => 'Staff (1-5 Tahun)', 'limit_maksimal' => 7_000_000],
-            ['kategori' => 'hod', 'label' => 'HOD (1-5 Tahun)', 'limit_maksimal' => 10_000_000],
-            ['kategori' => 'anggota_lama', 'label' => 'Anggota ≥ 5 Tahun', 'limit_maksimal' => 10_000_000],
+            ['kategori' => 'kurang_1_tahun', 'label' => 'Anggota < 1 Tahun', 'limit_maksimal' => 1_000_000],
+            ['kategori' => 'satu_sampai_3_tahun', 'label' => 'Anggota 1-3 Tahun', 'limit_maksimal' => 5_000_000],
+            ['kategori' => 'tiga_sampai_5_tahun', 'label' => 'Anggota 3-5 Tahun', 'limit_maksimal' => 7_000_000],
+            ['kategori' => 'lebih_5_tahun', 'label' => 'Anggota > 5 Tahun', 'limit_maksimal' => 10_000_000],
         ];
 
         foreach ($data as $row) {
-            SettingLimitPinjaman::firstOrCreate(['kategori' => $row['kategori']], $row);
+            SettingLimitPinjaman::updateOrCreate(['kategori' => $row['kategori']], $row);
         }
     }
 }

@@ -61,7 +61,7 @@ class AnggotaController extends Controller
                 'nonaktif' => Anggota::where('status', 'nonaktif')->count(),
             ],
             'filters' => $request->only(['cari', 'cabang', 'status']),
-            'daftarCabang' => ['Banjarmasin', 'Samarinda', 'Palangka'],
+            'daftarCabang' => ['Banjarmasin', 'Samarinda', 'Palangka', 'Jakarta'],
         ]);
     }
 
@@ -69,7 +69,7 @@ class AnggotaController extends Controller
     {
         return Inertia::render('Anggota/Create', [
             'noAnggotaBerikutnya' => Anggota::generateNoAnggota(),
-            'daftarCabang' => ['Banjarmasin', 'Samarinda', 'Palangka'],
+            'daftarCabang' => ['Banjarmasin', 'Samarinda', 'Palangka', 'Jakarta'],
         ]);
     }
 
@@ -89,7 +89,7 @@ class AnggotaController extends Controller
     {
         return Inertia::render('Anggota/Edit', [
             'anggota' => $anggota,
-            'daftarCabang' => ['Banjarmasin', 'Samarinda', 'Palangka'],
+            'daftarCabang' => ['Banjarmasin', 'Samarinda', 'Palangka', 'Jakarta'],
         ]);
     }
 
