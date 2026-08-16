@@ -7,10 +7,14 @@ use App\Models\Simpanan;
 use App\Models\SettingSimpanan;
 use App\Models\KasKoperasi;
 use App\Models\JurnalKas;
+use App\Services\Keuangan\JurnalKasService;
 use Illuminate\Support\Facades\DB;
 
 class KonfirmasiSimpananService
 {
+    public function __construct(
+        private JurnalKasService $jurnalKas,
+    ) {}
     /**
      * Anggota aktif yang BELUM punya catatan simpanan wajib untuk bulan tertentu.
      */
@@ -56,17 +60,18 @@ class KonfirmasiSimpananService
             ]);
 
             $kas->increment('saldo_dana_sosial', $nominalDanaSosial);
+            $kas->decrement('saldo_pinjaman', $pinjaman->nominal);
 
-            JurnalKas::create([
-                'tipe' => 'masuk',
-                'kategori' => 'dana_sosial_bulanan',
-                'kantong' => 'dana_sosial',
-                'jumlah' => $nominalDanaSosial,
-                'keterangan' => "Dana sosial bulan {$bulanPeriode}",
-                'referensi_id' => $anggotaId,
-                'tanggal' => now(),
-                'created_by' => $inputByUserId,
-            ]);
+            $this->jurnalKas->catat(
+                tipe: 'masuk',
+                kategori: 'dana_sosial_bulanan',
+                kantong: 'dana_sosial',
+                jumlah: $nominalDanaSosial,
+                keterangan: "Dana sosial bulan {$bulanPeriode}",
+                referensi_id: $anggotaId,
+                tanggal: now(),
+                created_by: $inputByUserId,
+            );
         }
     });
 

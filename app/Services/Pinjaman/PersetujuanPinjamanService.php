@@ -5,12 +5,16 @@ namespace App\Services\Pinjaman;
 use App\Models\JurnalKas;
 use App\Models\KasKoperasi;
 use App\Models\Pinjaman;
+use App\Services\Keuangan\JurnalKasService;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 class PersetujuanPinjamanService
 {
-    public function __construct(private PerhitunganBungaService $bunga) {}
+    public function __construct(
+        private PerhitunganBungaService $bunga,
+        private JurnalKasService $jurnalKas,
+    ) {}
 
     public function approveBendahara(Pinjaman $pinjaman, string $catatan): void
     {
@@ -33,39 +37,31 @@ class PersetujuanPinjamanService
      * saldo kas berkurang, tercatat di jurnal.
      */
    public function approveKetua(Pinjaman $pinjaman, string $catatan): void
-{
-    $kas = KasKoperasi::firstOrFail();
+    {
+        $kas = KasKoperasi::firstOrFail();
 
-    if ($kas->saldo_pinjaman < $pinjaman->nominal) {
-        throw new RuntimeException(
-            'Saldo kas pinjaman koperasi tidak mencukupi. Saldo saat ini: Rp ' .
-            number_format($kas->saldo_pinjaman, 0, ',', '.')
-        );
+        if ($kas->saldo_pinjaman < $pinjaman->nominal) {
+            throw new RuntimeException(/* ... */);
+        }
+
+        DB::transaction(function () use ($pinjaman, $catatan, $kas) {
+            $pinjaman->update([/* ... */]);
+            $this->bunga->simpanJadwal($pinjaman);
+
+            $kas->decrement('saldo_pinjaman', $pinjaman->nominal); // update saldo DULU
+
+            $this->jurnalKas->catat(
+                tipe: 'keluar',
+                kategori: 'pencairan_pinjaman',
+                kantong: 'pinjaman',
+                jumlah: $pinjaman->nominal,
+                keterangan: "Pencairan pinjaman - {$pinjaman->anggota->nama}",
+                referensiId: $pinjaman->id,
+                tanggal: now()->format('Y-m-d'),
+                userId: auth()->id(),
+            ); // BARU catat jurnal, setelah saldo ter-update
+        });
     }
-
-    DB::transaction(function () use ($pinjaman, $catatan, $kas) {
-        $pinjaman->update([
-            'status' => 'aktif',
-            'catatan_ketua' => $catatan,
-            'tanggal_pencairan' => now(),
-        ]);
-
-        $this->bunga->simpanJadwal($pinjaman);
-
-        $kas->decrement('saldo_pinjaman', $pinjaman->nominal);
-
-        JurnalKas::create([
-            'tipe' => 'keluar',
-            'kategori' => 'pencairan_pinjaman',
-            'kantong' => 'pinjaman',
-            'jumlah' => $pinjaman->nominal,
-            'keterangan' => "Pencairan pinjaman - {$pinjaman->anggota->nama}",
-            'referensi_id' => $pinjaman->id,
-            'tanggal' => now(),
-            'created_by' => auth()->id(),
-        ]);
-    });
-}
 
     /**
      * Bendahara mencairkan pinjaman yang diajukan sendiri oleh Ketua

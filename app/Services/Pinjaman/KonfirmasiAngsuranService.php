@@ -6,9 +6,13 @@ use App\Models\Angsuran;
 use App\Models\JurnalKas;
 use App\Models\KasKoperasi;
 use Illuminate\Support\Facades\DB;
+use App\Services\Keuangan\JurnalKasService;
 
 class KonfirmasiAngsuranService
 {
+    public function __construct(
+        private JurnalKasService $jurnalKas,
+    ) {}
     /**
      * Konfirmasi pembayaran beberapa angsuran sekaligus (bulk).
      * Setiap angsuran yang lunas otomatis: catat jurnal kas, tambah saldo,
@@ -31,16 +35,18 @@ class KonfirmasiAngsuranService
                     'confirmed_by' => $confirmedByUserId,
                 ]);
 
-                JurnalKas::create([
-                    'tipe' => 'masuk',
-                    'kategori' => 'pembayaran_angsuran',
-                    'kantong' => 'pinjaman',
-                    'jumlah' => $angsuran->total_bayar,
-                    'keterangan' => "Angsuran ke-{$angsuran->cicilan_ke} - {$angsuran->pinjaman->anggota->nama}",
-                    'referensi_id' => $angsuran->id,
-                    'tanggal' => now(),
-                    'created_by' => $confirmedByUserId,
-                ]);
+                $kas->decrement('saldo_pinjaman', $pinjaman->nominal);
+
+                $this->jurnalKas->catat(
+                    tipe: 'masuk',
+                    kategori: 'pembayaran_angsuran',
+                    kantong: 'pinjaman',
+                    jumlah: $angsuran->total_bayar,
+                    keterangan: "Angsuran ke-{$angsuran->cicilan_ke} - {$angsuran->pinjaman->anggota->nama}",
+                    referensi_id: $angsuran->id,
+                    tanggal: now(),
+                    created_by: $confirmedByUserId,
+                );
 
                 $kas->increment('saldo_pinjaman', $angsuran->total_bayar);
 

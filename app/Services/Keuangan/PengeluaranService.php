@@ -7,9 +7,14 @@ use App\Models\KasKoperasi;
 use App\Models\Pengeluaran;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
+use App\Services\Keuangan\JurnalKasService;
 
 class PengeluaranService
 {
+    public function __construct(
+        private JurnalKasService $jurnalKas,
+    ) {}
+    
     public function catat(string $jenis, float $jumlah, string $keterangan, string $tanggal, int $userId): Pengeluaran
     {
         $kas = KasKoperasi::firstOrFail();
@@ -32,17 +37,18 @@ class PengeluaranService
             ]);
 
             $kas->decrement($kolomSaldo, $jumlah);
+            $kas->decrement('saldo_pinjaman', $pinjaman->nominal);
 
-            JurnalKas::create([
-                'tipe' => 'keluar',
-                'kategori' => $jenis === 'koperasi' ? 'pengeluaran_koperasi' : 'pengeluaran_dana_sosial',
-                'kantong' => $jenis === 'koperasi' ? 'pinjaman' : 'dana_sosial',
-                'jumlah' => $jumlah,
-                'keterangan' => $keterangan,
-                'referensi_id' => $pengeluaran->id,
-                'tanggal' => $tanggal,
-                'created_by' => $userId,
-            ]);
+            $this->jurnalKas->catat(
+                tipe: 'keluar',
+                kategori: $jenis === 'koperasi' ? 'pengeluaran_koperasi' : 'pengeluaran_dana_sosial',
+                kantong: $jenis === 'koperasi' ? 'pinjaman' : 'dana_sosial',
+                jumlah: $jumlah,
+                keterangan: $keterangan,
+                referensi_id: $pengeluaran->id,
+                tanggal: $tanggal,
+                created_by: $userId,
+            );
 
             return $pengeluaran;
         });

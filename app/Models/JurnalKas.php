@@ -17,6 +17,7 @@ class JurnalKas extends Model
         'kategori',
         'kantong',
         'jumlah',
+        'saldo_setelah',
         'keterangan',
         'referensi_id',
         'tanggal',
