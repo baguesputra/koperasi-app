@@ -200,7 +200,7 @@ class PinjamanSeeder extends Seeder
      */
     private function catatMutasiPinjaman(Pinjaman $pinjaman): void
     {
-        $kas = KasKoperasi::firstOrCreate(['id' => 1], ['saldo_saat_ini' => 0]);
+        $kas = KasKoperasi::firstOrCreate(['id' => 1], ['saldo_pinjaman' => 0]);
         $benId = $this->benId();
         $ketuaId = $this->ketuaId();
 
@@ -217,7 +217,7 @@ class PinjamanSeeder extends Seeder
             );
 
             if ($jurnal->wasRecentlyCreated) {
-                $kas->decrement('saldo_saat_ini', $pinjaman->nominal);
+                $kas->decrement('saldo_pinjaman', $pinjaman->nominal);
             }
         }
 
@@ -239,7 +239,7 @@ class PinjamanSeeder extends Seeder
             );
 
             if ($jurnal->wasRecentlyCreated) {
-                $kas->increment('saldo_saat_ini', $angsuran->total_bayar);
+                $kas->increment('saldo_pinjaman', $angsuran->total_bayar);
             }
         }
     }
@@ -249,7 +249,7 @@ class PinjamanSeeder extends Seeder
      */
     private function seedTopupKas(): void
     {
-        $kas = KasKoperasi::firstOrCreate(['id' => 1], ['saldo_saat_ini' => 0]);
+        $kas = KasKoperasi::firstOrCreate(['id' => 1], ['saldo_pinjaman' => 0]);
         $benId = $this->benId();
 
         $topups = [
@@ -269,7 +269,7 @@ class PinjamanSeeder extends Seeder
             );
 
             if ($jurnal->wasRecentlyCreated) {
-                $kas->increment('saldo_saat_ini', $t['jumlah']);
+                $kas->increment('saldo_pinjaman', $t['jumlah']);
             }
         }
     }

@@ -21,6 +21,8 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\Portal\ProfilController;
 use App\Http\Controllers\Auth\GantiPasswordWajibController;
 use App\Http\Controllers\Auth\SsoController;
+use App\Http\Controllers\PengeluaranController;
+
 
 //--------------------- Portal SSO -------------------------
 Route::get('/auth/sso/redirect', [SsoController::class, 'redirect'])->name('sso.redirect');
@@ -176,6 +178,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
+
+
+Route::middleware(['auth', 'permission:kas.lihat'])->group(function () {
+    Route::get('/pengeluaran', [PengeluaranController::class, 'index'])->name('pengeluaran.index');
+});
+
+Route::middleware(['auth', 'permission:kas.topup'])->group(function () {
+    Route::post('/pengeluaran', [PengeluaranController::class, 'store'])->name('pengeluaran.store');
 });
 
 require __DIR__.'/auth.php';

@@ -2,7 +2,7 @@ import { Link, usePage } from '@inertiajs/react';
 import {
     LayoutDashboard, Users, PiggyBank, HandCoins,
     ClipboardCheck, CalendarCheck, HeartHandshake,
-    Wallet, FileBarChart, 
+    Wallet, FileBarChart, Receipt,
 } from 'lucide-react';
 
 const menuGroups = [
@@ -38,6 +38,7 @@ const menuGroups = [
         label: 'Keuangan',
         items: [
             { label: 'Kas Koperasi', routeName: 'kas-koperasi.index', icon: Wallet, permission: 'kas.lihat' },
+            { label: 'Pengeluaran', routeName: 'pengeluaran.index', icon: Receipt, permission: 'kas.lihat' },
             { label: 'Laporan', routeName: null, icon: FileBarChart, permission: 'laporan.lihat' },
         ],
     },
