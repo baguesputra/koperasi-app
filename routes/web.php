@@ -22,6 +22,8 @@ use App\Http\Controllers\Portal\ProfilController;
 use App\Http\Controllers\Auth\GantiPasswordWajibController;
 use App\Http\Controllers\Auth\SsoController;
 use App\Http\Controllers\PengeluaranController;
+use App\Http\Controllers\Portal\PengajuanLimitController as PortalPengajuanLimitController;
+use App\Http\Controllers\Ketua\PengajuanLimitController as KetuaPengajuanLimitController;
 
 
 //--------------------- Portal SSO -------------------------
@@ -70,6 +72,10 @@ Route::middleware(['auth', 'permission:portal.akses'])->prefix('portal')->name('
     Route::post('/profil/rekening', [ProfilController::class, 'storeRekening'])->name('profil.rekening.store');
     Route::put('/profil/rekening/{rekening}/default', [ProfilController::class, 'setDefaultRekening'])->name('profil.rekening.default');
     Route::delete('/profil/rekening/{rekening}', [ProfilController::class, 'destroyRekening'])->name('profil.rekening.destroy');
+
+    //------------ Pengajuan Limit ----------------
+    Route::get('/pengajuan-limit', [PortalPengajuanLimitController::class, 'create'])->name('pengajuan-limit.create');
+    Route::post('/pengajuan-limit', [PortalPengajuanLimitController::class, 'store'])->name('pengajuan-limit.store');
 });
 
 // ==========================================
@@ -167,6 +173,10 @@ Route::middleware(['auth', 'permission:pinjaman.approve-ketua'])->prefix('ketua'
     Route::get('/pinjaman/{pinjaman}', [KetuaPinjamanController::class, 'show'])->name('pinjaman.show');
     Route::post('/pinjaman/{pinjaman}/approve', [KetuaPinjamanController::class, 'approve'])->name('pinjaman.approve');
     Route::post('/pinjaman/{pinjaman}/reject', [KetuaPinjamanController::class, 'reject'])->name('pinjaman.reject');
+    Route::get('/pengajuan-limit', [KetuaPengajuanLimitController::class, 'index'])->name('pengajuan-limit.index');
+    Route::get('/pengajuan-limit/{pengajuanLimit}', [KetuaPengajuanLimitController::class, 'show'])->name('pengajuan-limit.show');
+    Route::post('/pengajuan-limit/{pengajuanLimit}/approve', [KetuaPengajuanLimitController::class, 'approve'])->name('pengajuan-limit.approve');
+    Route::post('/pengajuan-limit/{pengajuanLimit}/reject', [KetuaPengajuanLimitController::class, 'reject'])->name('pengajuan-limit.reject');
 });
 
 // ==========================================

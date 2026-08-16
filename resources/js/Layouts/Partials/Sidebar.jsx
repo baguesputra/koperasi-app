@@ -2,7 +2,7 @@ import { Link, usePage } from '@inertiajs/react';
 import {
     LayoutDashboard, Users, PiggyBank, HandCoins,
     ClipboardCheck, CalendarCheck, HeartHandshake,
-    Wallet, FileBarChart, Receipt,
+    Wallet, FileBarChart, Receipt, TrendingUp,
 } from 'lucide-react';
 
 const menuGroups = [
@@ -32,6 +32,7 @@ const menuGroups = [
         label: 'Proses Ketua',
         items: [
             { label: 'Approval Pinjaman', routeName: 'ketua.pinjaman.index', icon: ClipboardCheck, permission: 'pinjaman.approve-ketua' },
+            { label: 'Pengajuan Limit', routeName: 'ketua.pengajuan-limit.index', icon: TrendingUp, permission: 'pinjaman.approve-ketua' },
         ],
     },
     {
