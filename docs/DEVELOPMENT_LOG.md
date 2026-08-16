@@ -157,3 +157,22 @@ Fitur
 - [ ] fitur edit ajuan pinjaman (tenor) dari pihak bendahara dan ketua
 - [ ] multi tenant ( opsional )
 - [ ] import excel atau tambah anggota otomatis buat user juga
+
+
+# Testing Checklist — Koperasi App
+**Tanggal:** 18 Agustus 2026
+Summary hasil meeting dengan koperasi 15 Agustus 2026
+Tahap 1 (Fondasi Data) — Limit baru, 2 Kantong Kas, Cabang Jakarta, Perluasan Akses
+Tahap 2 — Modul Pengeluaran
+Tahap 3 — Fitur Limit Khusus (pengajuan)
+Tahap 4 — Fitur Percepatan (paling kompleks, butuh waktu lebih)
+Tahap 5 — Modul Resign
+Tahap 6 — Tutup Buku
+Tahap 7 — Tab per Cabang, Cetak Slip, Tanda Tangan Digital (penyempurnaan UI)
+
+# Testing Checklist — Koperasi App
+**Tanggal:** 19 Agustus 2026
+Summary hasil meeting dengan koperasi 15 Agustus 2026
+- [ ] (Fondasi Data) — Limit baru, 2 Kantong Kas (Pinjaman dan dana sosial), Cabang Jakarta, Perluasan Akses
+- [ ] Modul Pengeluaran
+- [ ] Fitur Limit Khusus (pengajuan)
