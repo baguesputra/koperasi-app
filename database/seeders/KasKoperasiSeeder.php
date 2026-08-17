@@ -3,6 +3,8 @@
 namespace Database\Seeders;
 
 use App\Models\KasKoperasi;
+use App\Models\User;
+use App\Services\Keuangan\JurnalKasService;
 use Illuminate\Database\Seeder;
 
 class KasKoperasiSeeder extends Seeder
