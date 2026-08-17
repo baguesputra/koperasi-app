@@ -174,7 +174,16 @@ Tahap 7 — Tab per Cabang, Cetak Slip, Tanda Tangan Digital (penyempurnaan UI)
 **Tanggal:** 19 Agustus 2026
 Summary hasil meeting dengan koperasi 15 Agustus 2026
 - [ ] Perancangan ulang sistem kas koperasi
-- [ ] (Fondasi Data) — Limit baru, 2 Kantong Kas (Pinjaman dan dana sosial), Cabang Jakarta, Perluasan Akses
-- [ ] Modul Pengeluaran
-- [ ] Fitur Limit Khusus (pengajuan)
+- [ ] Rekonstruksi Pondasi Data Limit baru, 2 Kantong Kas (Pinjaman dan dana sosial), Cabang Jakarta, Perluasan Akses
+- [ ] Pembuatan Modul Pengeluaran
+- [ ] Pembuatan Fitur Limit Khusus (pengajuan)
 - [ ] centralize cash flow koperasi dan lock update cash flow
+
+# Testing Checklist — Koperasi App
+**Tanggal:** 20 Agustus 2026
+Summary hasil meeting dengan koperasi 15 Agustus 2026
+- [ ] Perbaikan race condition pada data konfirmasi angsuran dan simpanan
+- [ ] Menambah idempotency key jika terjadi double klik action crud
+- [ ] Perancangan audit trail dari sisi keuangan
+- [ ] Menambah reconciliation otomatis
+- [ ] Fitur percepatan, penmabahan bulan dan pelunasan langsung yang berjalan
