@@ -173,6 +173,8 @@ Tahap 7 — Tab per Cabang, Cetak Slip, Tanda Tangan Digital (penyempurnaan UI)
 # Testing Checklist — Koperasi App
 **Tanggal:** 19 Agustus 2026
 Summary hasil meeting dengan koperasi 15 Agustus 2026
+- [ ] Perancangan ulang sistem kas koperasi
 - [ ] (Fondasi Data) — Limit baru, 2 Kantong Kas (Pinjaman dan dana sosial), Cabang Jakarta, Perluasan Akses
 - [ ] Modul Pengeluaran
 - [ ] Fitur Limit Khusus (pengajuan)
+- [ ] centralize cash flow koperasi dan lock update cash flow
