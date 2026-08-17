@@ -27,8 +27,32 @@ class KonfirmasiSimpananService
         $nominalWajib = SettingSimpanan::where('jenis', 'wajib')->value('nominal') ?? 0;
         $nominalDanaSosial = SettingSimpanan::where('jenis', 'dana_sosial')->value('nominal') ?? 0;
 
-        DB::transaction(function () use ($anggotaIds, $bulanPeriode, $inputByUserId, $nominalWajib, $nominalDanaSosial) {
+        return DB::transaction(function () use ($anggotaIds, $bulanPeriode, $inputByUserId, $nominalWajib, $nominalDanaSosial) {
+            // Lock baris anggota yang mau diproses, supaya proses lain tidak bisa
+            // proses anggota yang sama secara bersamaan
+            $anggotaTerkunci = Anggota::whereIn('id', $anggotaIds)
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+
+            $jumlahDiproses = 0;
+
             foreach ($anggotaIds as $anggotaId) {
+                if (! $anggotaTerkunci->has($anggotaId)) {
+                    continue;
+                }
+
+                // Cek ULANG di dalam lock - pastikan belum ada simpanan wajib bulan ini
+                // (mencegah duplikasi kalau ada proses lain yang barusan submit)
+                $sudahAda = Simpanan::where('anggota_id', $anggotaId)
+                    ->where('jenis', 'wajib')
+                    ->where('bulan_periode', $bulanPeriode)
+                    ->exists();
+
+                if ($sudahAda) {
+                    continue; // sudah dikonfirmasi proses lain, lewati
+                }
+
                 Simpanan::create([
                     'anggota_id' => $anggotaId,
                     'jenis' => 'wajib',
@@ -57,9 +81,11 @@ class KonfirmasiSimpananService
                     tanggal: now()->format('Y-m-d'),
                     userId: $inputByUserId,
                 );
-            }
-        });
 
-        return count($anggotaIds);
+                $jumlahDiproses++;
+            }
+
+            return $jumlahDiproses;
+        });
     }
 }

@@ -12,12 +12,14 @@ class KonfirmasiAngsuranService
 
     public function konfirmasiMassal(array $angsuranIds, int $confirmedByUserId): int
     {
-        $angsuranList = Angsuran::with('pinjaman.anggota')
-            ->whereIn('id', $angsuranIds)
-            ->where('status', 'belum_bayar')
-            ->get();
+        return DB::transaction(function () use ($angsuranIds, $confirmedByUserId) {
+            // Lock baris yang mau diproses - proses lain harus antre kalau coba pegang baris yang sama
+            $angsuranList = Angsuran::with('pinjaman.anggota')
+                ->whereIn('id', $angsuranIds)
+                ->where('status', 'belum_bayar')
+                ->lockForUpdate()
+                ->get();
 
-        DB::transaction(function () use ($angsuranList, $confirmedByUserId) {
             foreach ($angsuranList as $angsuran) {
                 $angsuran->update([
                     'status' => 'lunas',
@@ -38,9 +40,9 @@ class KonfirmasiAngsuranService
 
                 $this->tandaiLunasJikaSelesai($angsuran->pinjaman);
             }
-        });
 
-        return $angsuranList->count();
+            return $angsuranList->count();
+        });
     }
 
     private function tandaiLunasJikaSelesai($pinjaman): void
