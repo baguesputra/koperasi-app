@@ -2,6 +2,7 @@ import Sidebar from './Partials/Sidebar';
 import { Link, usePage } from '@inertiajs/react';
 import { Settings, ChevronDown } from 'lucide-react';
 import Dropdown from '@/Components/Dropdown';
+import { useState } from 'react';
 
 export default function SidebarLayout({ children }) {
     const { auth } = usePage().props;
@@ -9,14 +10,24 @@ export default function SidebarLayout({ children }) {
     const bisaPengaturan = auth.user?.permissions?.includes('pengaturan.kelola');
     const bisaAjukanPinjaman = auth.user?.permissions?.includes('portal.akses');
 
+    const [collapsed, setCollapsed] = useState(
+        () => typeof window !== 'undefined' && localStorage.getItem('sidebar-collapsed') === '1',
+    );
+    const toggleSidebar = () =>
+        setCollapsed((prev) => {
+            const next = !prev;
+            localStorage.setItem('sidebar-collapsed', next ? '1' : '0');
+            return next;
+        });
+
     return (
         <div className="flex min-h-screen bg-slate-50">
-            <div className="sticky top-0 h-screen shrink-0">
-                <Sidebar />
+            <div className="sticky top-0 h-screen shrink-0 p-3">
+                <Sidebar collapsed={collapsed} onToggle={toggleSidebar} />
             </div>
 
             <div className="flex-1 flex flex-col min-w-0">
-                <header className="h-16 sticky top-0 z-40 bg-white border-b-2 border-brand-navy px-6 flex items-center justify-end gap-4 shrink-0">
+                <header className="h-16 sticky top-0 z-40 bg-slate-50 px-6 flex items-center justify-end gap-4 shrink-0">
                     {bisaPengaturan && (
                         <>
                             <Link

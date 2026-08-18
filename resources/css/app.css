@@ -7,3 +7,11 @@
 body {
     font-size: 16px; /* base lebih besar dari default browser (biasanya 14-16px), sesuai prinsip elderly-friendly */
 }
+
+.scrollbar-hide {
+    -ms-overflow-style: none; /* IE/Edge lama */
+    scrollbar-width: none; /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+    display: none; /* Chrome/Safari/Edge */
+}
