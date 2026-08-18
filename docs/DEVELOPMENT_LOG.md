@@ -188,3 +188,8 @@ Summary hasil meeting dengan koperasi 15 Agustus 2026
 - [ ] Perancangan audit trail dari sisi keuangan
 - [ ] Menambah reconciliation otomatis
 - [ ] Fitur percepatan, penmabahan bulan dan pelunasan langsung yang berjalan
+
+# Testing Checklist — Koperasi App
+**Tanggal:** 20 Agustus 2026
+Summary hasil meeting dengan koperasi 15 Agustus 2026
+- [ ] Gabung jadi 1 halaman approval bendahara dan ketua
