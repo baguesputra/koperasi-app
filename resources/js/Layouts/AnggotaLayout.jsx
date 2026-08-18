@@ -62,15 +62,22 @@ export default function AnggotaLayout({ children }) {
                                         Dashboard Koperasi
                                     </Link>
                                 )}
-                                <Link
-                                    href={route('logout')}
-                                    method="post"
-                                    as="button"
-                                    className="flex items-center gap-2.5 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors w-full text-left"
-                                >
-                                    <LogOut size={16} />
-                                    Keluar
-                                </Link>
+                                <form method="POST" action={route('logout')}>
+    <input
+        type="hidden"
+        name="_token"
+        value={document
+            .querySelector('meta[name="csrf-token"]')
+            ?.getAttribute('content')}
+    />
+
+    <button
+        type="submit"
+        className="block w-full px-4 py-2 text-start text-sm leading-5 text-red-600 transition duration-150 ease-in-out hover:text-red-700 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+    >
+        Keluar
+    </button>
+</form>
                             </div>
                         )}
                     </div>

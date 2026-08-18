@@ -100,12 +100,8 @@
 ## 12. Responsivitas
 - [ ] Sisi Koperasi (Sidebar) — cek di layar besar & kecil
 - [x] Sisi Anggota (Navbar) — cek di HP, tablet, desktop
-- [ ] Wizard Pengajuan Pinjaman — panel info kanan hilang di layar kecil
+- [x] Wizard Pengajuan Pinjaman — panel info kanan hilang di layar kecil
 - [x] Semua tombol & teks tetap terbaca jelas di ukuran layar kecil
-
-## 13. Catatan Bug / Temuan
-- [ ] _(isi di sini saat testing berlangsung)_
-
 
 
 ## Noted
@@ -159,9 +155,9 @@ Fitur
 - [ ] import excel atau tambah anggota otomatis buat user juga
 
 
-# Testing Checklist — Koperasi App
-**Tanggal:** 18 Agustus 2026
-Summary hasil meeting dengan koperasi 15 Agustus 2026
+# Meeting dengan Koperasi
+**Tanggal:** 15 Agustus 2026
+Summary hasil meeting
 Tahap 1 (Fondasi Data) — Limit baru, 2 Kantong Kas, Cabang Jakarta, Perluasan Akses
 Tahap 2 — Modul Pengeluaran
 Tahap 3 — Fitur Limit Khusus (pengajuan)
@@ -170,19 +166,24 @@ Tahap 5 — Modul Resign
 Tahap 6 — Tutup Buku
 Tahap 7 — Tab per Cabang, Cetak Slip, Tanda Tangan Digital (penyempurnaan UI)
 
+Optimisasi
+- LockUpdate ( mengatasi jika terjadi data yang sama masuk ke kas sehingga perlu dibuatkan antrian )
+- Idempotency key ( mentgatasi jika terjadi pengguana action bersamaan sehingga data double atau tidak masuk )
+- Reconciliation ( jika terjadi minus antara kas kantong )
+
+# Testing Checklist — Koperasi App
+**Tanggal:** 18 Agustus 2026
+Summary hasil meeting dengan koperasi 15 Agustus 2026
+- [x] Update alur sistem arus kas koperasi
+- [x] Rekonstruksi Pondasi Data Limit baru, 2 Kantong Kas (Pinjaman dan dana sosial), Cabang Jakarta, Perluasan Akses
+- [x] Pembuatan Modul Pengeluaran
+- [x] Pembuatan Fitur Limit Khusus (pengajuan) *ui nya di portal dashboard belum ada
+- [x] Sentralisasi Pengelolaan Arus Kas Koperasi dan Pembatasan Perubahan Data Arus Kas
+
 # Testing Checklist — Koperasi App
 **Tanggal:** 19 Agustus 2026
 Summary hasil meeting dengan koperasi 15 Agustus 2026
-- [ ] Perancangan ulang sistem kas koperasi
-- [ ] Rekonstruksi Pondasi Data Limit baru, 2 Kantong Kas (Pinjaman dan dana sosial), Cabang Jakarta, Perluasan Akses
-- [ ] Pembuatan Modul Pengeluaran
-- [ ] Pembuatan Fitur Limit Khusus (pengajuan)
-- [ ] centralize cash flow koperasi dan lock update cash flow
-
-# Testing Checklist — Koperasi App
-**Tanggal:** 20 Agustus 2026
-Summary hasil meeting dengan koperasi 15 Agustus 2026
-- [ ] Perbaikan race condition pada data konfirmasi angsuran dan simpanan
+- [x] Perbaikan race condition pada data konfirmasi angsuran dan simpanan
 - [ ] Menambah idempotency key jika terjadi double klik action crud
 - [ ] Perancangan audit trail dari sisi keuangan
 - [ ] Menambah reconciliation otomatis
