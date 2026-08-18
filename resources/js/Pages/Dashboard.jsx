@@ -35,12 +35,51 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
 
             <PageHeader title="Dashboard" subtitle="Ringkasan aktivitas koperasi hari ini" />
 
-            {/* Widget Utama */}
-<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-        {widgets.map((w) => (
-            <StatWidget compact key={w.label} label={w.label} value={w.value} icon={w.icon} tone={w.tone} />
-        ))}
-    </div>
+            {/* Hero: Grafik Tren (full width, tanpa Card) + Stat Widget overlap */}
+            <div className="relative mb-6">
+                <div className="flex items-center justify-between mb-2">
+                    <p className="text-base font-bold text-slate-700">Tren Simpanan &amp; Pinjaman (6 Bulan Terakhir)</p>
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-brand-green" />
+                            <span className="text-xs text-slate-500">Simpanan</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-brand-navy" />
+                            <span className="text-xs text-slate-500">Pinjaman Cair</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="pb-20">
+                    <ResponsiveContainer width="100%" height={300}>
+                        <AreaChart data={grafikTren} margin={{ left: -10, bottom: 24 }}>
+                            <defs>
+                                <linearGradient id="colorSimpanan" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#1FA24C" stopOpacity={0.25} />
+                                    <stop offset="95%" stopColor="#1FA24C" stopOpacity={0} />
+                                </linearGradient>
+                                <linearGradient id="colorPinjaman" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#0F1E36" stopOpacity={0.25} />
+                                    <stop offset="95%" stopColor="#0F1E36" stopOpacity={0} />
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                            <XAxis dataKey="bulan" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                            <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={formatRupiahSingkat} />
+                            <Tooltip formatter={(value) => formatRupiah(value)} contentStyle={{ borderRadius: 12, border: '1px solid #f1f5f9', fontSize: 13 }} />
+                            <Area type="monotone" dataKey="simpanan" name="Simpanan" stroke="#1FA24C" fillOpacity={1} fill="url(#colorSimpanan)" strokeWidth={2} />
+                            <Area type="monotone" dataKey="pinjaman" name="Pinjaman Cair" stroke="#0F1E36" fillOpacity={1} fill="url(#colorPinjaman)" strokeWidth={2} />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 -mt-16 lg:-mt-24 relative z-10">
+                    {widgets.map((w) => (
+                        <StatWidget compact key={w.label} label={w.label} value={w.value} icon={w.icon} tone={w.tone} />
+                    ))}
+                </div>
+            </div>
 
             {/* Perlu Ditindaklanjuti */}
             <div className="mb-6">
@@ -60,7 +99,7 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                             >
                                 <div className="flex items-center justify-between mb-1.5">
                                     <Icon size={16} className={item.urgent ? 'text-amber-600' : 'text-slate-400'} />
-                                    <span className={`text-xl font-bold ${item.urgent ? 'text-amber-700' : 'text-slate-700'}`}>
+                                        <span className={`text-3xl font-bold ${item.urgent ? 'text-amber-700' : 'text-slate-700'}`}>
                                         {item.value}
                                     </span>
                                 </div>
@@ -72,43 +111,8 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-                {/* Grafik Tren */}
-                <Card className="lg:col-span-2 sm:p-6">
-                    <p className="text-base font-bold text-slate-700 mb-4">Tren Simpanan &amp; Pinjaman (6 Bulan Terakhir)</p>
-                    <ResponsiveContainer width="100%" height={260}>
-                        <AreaChart data={grafikTren} margin={{ left: -10 }}>
-                            <defs>
-                                <linearGradient id="colorSimpanan" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#1FA24C" stopOpacity={0.25} />
-                                    <stop offset="95%" stopColor="#1FA24C" stopOpacity={0} />
-                                </linearGradient>
-                                <linearGradient id="colorPinjaman" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#0F1E36" stopOpacity={0.25} />
-                                    <stop offset="95%" stopColor="#0F1E36" stopOpacity={0} />
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                            <XAxis dataKey="bulan" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                            <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={formatRupiahSingkat} />
-                            <Tooltip formatter={(value) => formatRupiah(value)} contentStyle={{ borderRadius: 12, border: '1px solid #f1f5f9', fontSize: 13 }} />
-                            <Area type="monotone" dataKey="simpanan" name="Simpanan" stroke="#1FA24C" fillOpacity={1} fill="url(#colorSimpanan)" strokeWidth={2} />
-                            <Area type="monotone" dataKey="pinjaman" name="Pinjaman Cair" stroke="#0F1E36" fillOpacity={1} fill="url(#colorPinjaman)" strokeWidth={2} />
-                        </AreaChart>
-                    </ResponsiveContainer>
-                    <div className="flex items-center gap-5 mt-2 justify-center">
-                        <div className="flex items-center gap-1.5">
-                            <span className="w-2.5 h-2.5 rounded-full bg-brand-green" />
-                            <span className="text-xs text-slate-500">Simpanan</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                            <span className="w-2.5 h-2.5 rounded-full bg-brand-navy" />
-                            <span className="text-xs text-slate-500">Pinjaman Cair</span>
-                        </div>
-                    </div>
-                </Card>
-
                 {/* Aktivitas Terbaru */}
-                <Card className="sm:p-6">
+                <Card className="lg:col-span-1 sm:p-6">
                     <p className="text-base font-bold text-slate-700 mb-4">Aktivitas Terbaru</p>
 
                     {aktivitasTerbaru.length === 0 ? (
@@ -133,10 +137,9 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                         </div>
                     )}
                 </Card>
-            </div>
 
-            {/* Mutasi Kas */}
-            <Card className="mt-5 sm:p-6">
+                {/* Mutasi Kas */}
+                <Card className="lg:col-span-2 sm:p-6">
                 <p className="text-base font-bold text-slate-700 mb-4">Mutasi Kas Koperasi (6 Bulan Terakhir)</p>
                 <ResponsiveContainer width="100%" height={280}>
                     <BarChart data={grafikKas} margin={{ left: -10 }} barCategoryGap="25%">
@@ -173,6 +176,7 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                     </div>
                 </div>
             </Card>
+            </div>
         </AppLayout>
     );
 }

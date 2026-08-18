@@ -8,12 +8,12 @@ export default function StatWidget({ label, value, icon: Icon, tone = 'navy', co
     if (compact) {
         return (
             <div className="bg-white rounded-xl border border-slate-100 shadow-sm px-4 py-3 flex items-center gap-3">
-                <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${tones[tone]}`}>
-                    <Icon size={18} />
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${tones[tone]}`}>
+                    <Icon size={20} />
                 </div>
                 <div className="min-w-0">
-                    <p className="text-xs text-slate-500 truncate">{label}</p>
-                    <p className="text-base font-bold text-slate-800 mt-0.5 truncate">{value}</p>
+                    <p className="text-sm text-slate-500 truncate">{label}</p>
+                    <p className="text-2xl font-bold text-slate-800 mt-0.5 truncate leading-tight">{value}</p>
                 </div>
             </div>
         );
