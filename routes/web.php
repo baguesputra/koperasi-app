@@ -24,6 +24,9 @@ use App\Http\Controllers\Auth\SsoController;
 use App\Http\Controllers\PengeluaranController;
 use App\Http\Controllers\Portal\PengajuanLimitController as PortalPengajuanLimitController;
 use App\Http\Controllers\Ketua\PengajuanLimitController as KetuaPengajuanLimitController;
+use App\Http\Controllers\Portal\PercepatanController as PortalPercepatanController;
+use App\Http\Controllers\Bendahara\PercepatanController as BendaharaPercepatanController;
+use App\Http\Controllers\Ketua\PercepatanController as KetuaPercepatanController;
 
 
 //--------------------- Portal SSO -------------------------
@@ -76,6 +79,10 @@ Route::middleware(['auth', 'permission:portal.akses'])->prefix('portal')->name('
     //------------ Pengajuan Limit ----------------
     Route::get('/pengajuan-limit', [PortalPengajuanLimitController::class, 'create'])->name('pengajuan-limit.create');
     Route::post('/pengajuan-limit', [PortalPengajuanLimitController::class, 'store'])->name('pengajuan-limit.store');
+
+    //------------ Perubahan Tenor ----------------
+    Route::get('/percepatan', [PortalPercepatanController::class, 'create'])->name('percepatan.create');
+    Route::post('/percepatan', [PortalPercepatanController::class, 'store'])->name('percepatan.store');
 });
 
 // ==========================================
@@ -153,6 +160,10 @@ Route::middleware(['auth', 'permission:pinjaman.tinjau-bendahara'])->prefix('ben
     Route::post('/pinjaman/{pinjaman}/approve', [BendaharaPinjamanController::class, 'approve'])->name('pinjaman.approve');
     Route::post('/pinjaman/{pinjaman}/reject', [BendaharaPinjamanController::class, 'reject'])->name('pinjaman.reject');
     Route::post('/pinjaman/{pinjaman}/cair', [BendaharaPinjamanController::class, 'cair'])->name('pinjaman.cair');
+    Route::get('/percepatan', [BendaharaPercepatanController::class, 'index'])->name('percepatan.index');
+    Route::get('/percepatan/{percepatan}', [BendaharaPercepatanController::class, 'show'])->name('percepatan.show');
+    Route::post('/percepatan/{percepatan}/approve', [BendaharaPercepatanController::class, 'approve'])->name('percepatan.approve');
+    Route::post('/percepatan/{percepatan}/reject', [BendaharaPercepatanController::class, 'reject'])->name('percepatan.reject');
 });
 
 Route::middleware(['auth', 'permission:angsuran.konfirmasi'])->prefix('bendahara')->name('bendahara.')->group(function () {
@@ -177,6 +188,10 @@ Route::middleware(['auth', 'permission:pinjaman.approve-ketua'])->prefix('ketua'
     Route::get('/pengajuan-limit/{pengajuanLimit}', [KetuaPengajuanLimitController::class, 'show'])->name('pengajuan-limit.show');
     Route::post('/pengajuan-limit/{pengajuanLimit}/approve', [KetuaPengajuanLimitController::class, 'approve'])->name('pengajuan-limit.approve');
     Route::post('/pengajuan-limit/{pengajuanLimit}/reject', [KetuaPengajuanLimitController::class, 'reject'])->name('pengajuan-limit.reject');
+    Route::get('/percepatan', [KetuaPercepatanController::class, 'index'])->name('percepatan.index');
+    Route::get('/percepatan/{percepatan}', [KetuaPercepatanController::class, 'show'])->name('percepatan.show');
+    Route::post('/percepatan/{percepatan}/approve', [KetuaPercepatanController::class, 'approve'])->name('percepatan.approve');
+    Route::post('/percepatan/{percepatan}/reject', [KetuaPercepatanController::class, 'reject'])->name('percepatan.reject');
 });
 
 // ==========================================

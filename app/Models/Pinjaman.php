@@ -30,6 +30,7 @@ class Pinjaman extends Model
         'tanggal_pencairan',
         'catatan_bendahara',
         'catatan_ketua',
+        'sudah_pakai_percepatan',
     ];
 
     protected $casts = [
@@ -39,6 +40,7 @@ class Pinjaman extends Model
         'sudah_pakai_privilege_reloan' => 'boolean',
         'tanggal_pengajuan' => 'date',
         'tanggal_pencairan' => 'date',
+        'sudah_pakai_percepatan' => 'boolean',
     ];
 
     public function anggota(): BelongsTo
@@ -64,5 +66,32 @@ class Pinjaman extends Model
     public function sisaAngsuran(): int
     {
         return $this->angsuranBelumBayar()->count();
+    }
+
+    public function pengajuanPercepatan()
+    {
+        return $this->hasMany(PengajuanPercepatan::class);
+    }
+
+    /**
+     * Jadwal angsuran yang AKTIF sekarang - gabungan dari angsuran asli (yang belum digantikan)
+     * dan angsuran_percepatan dari pengajuan yang sudah aktif (kalau ada).
+     */
+    public function angsuranAktif()
+    {
+        $pengajuanAktif = $this->pengajuanPercepatan()->where('status', 'aktif')->latest()->first();
+
+        if (! $pengajuanAktif) {
+            return $this->angsuran()->orderBy('cicilan_ke')->get();
+        }
+
+        $angsuranLamaTersisa = $this->angsuran()
+            ->where('status', '!=', 'digantikan')
+            ->orderBy('cicilan_ke')
+            ->get();
+
+        $angsuranBaru = $pengajuanAktif->angsuranBaru()->orderBy('cicilan_ke')->get();
+
+        return $angsuranLamaTersisa->concat($angsuranBaru);
     }
 }

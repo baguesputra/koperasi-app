@@ -183,15 +183,15 @@ Summary hasil meeting dengan koperasi 15 Agustus 2026
 # Testing Checklist — Koperasi App
 **Tanggal:** 19 Agustus 2026
 Summary hasil meeting dengan koperasi 15 Agustus 2026
-- [x] Perbaikan race condition pada data konfirmasi angsuran dan simpanan\
+- [x] Perbaikan race condition pada data konfirmasi angsuran dan simpanan
 - [x] Perbaikan Navigasi dan user interface Master Simpanan
 - [x] Penambahan statistik pinjaman pada master pinjaman
-- [ ] Menambah idempotency key jika terjadi double klik action crud
-- [ ] Perancangan audit trail dari sisi keuangan
-- [x] Menambah reconciliation otomatis
-- [ ] Fitur percepatan, penamabahan bulan dan pelunasan langsung yang berjalan
+- [x] Perancangan Backend percepatan, penambahan bulan dan pelunasan langsung angsuran berjalan
 
 # Testing Checklist — Koperasi App
 **Tanggal:** 20 Agustus 2026
 Summary hasil meeting dengan koperasi 15 Agustus 2026
 - [ ] Gabung jadi 1 halaman approval bendahara dan ketua
+- [ ] Menambah idempotency key jika terjadi double klik action crud
+- [ ] Perancangan audit trail dari sisi keuangan
+- [ ] Menambah reconciliation otomatis
