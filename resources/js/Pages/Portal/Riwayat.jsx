@@ -158,9 +158,9 @@ function RiwayatPinjaman({ pinjaman, autoPercepatan }) {
     }, []);
 
     useEffect(() => {
-        if (formPinjaman) {
-            fetchPreview();
-        }
+        if (!formPinjaman) return;
+        const timeout = setTimeout(() => fetchPreview(), 500);
+        return () => clearTimeout(timeout);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [formPinjaman, tipe, tenorBaru]);
 
@@ -187,8 +187,12 @@ function RiwayatPinjaman({ pinjaman, autoPercepatan }) {
             {pinjaman.map((p) => {
                 const isExpanded = expandedId === p.id;
                 const StatusIcon = statusIcon[p.status] ?? Clock;
-                const progress = p.angsuran.length > 0
-                    ? Math.round((p.angsuran.filter((a) => a.status === 'lunas').length / p.angsuran.length) * 100)
+                const percepatanAktif = p.percepatan?.find((pp) => pp.status === 'aktif');
+                const jadwal = percepatanAktif
+                    ? percepatanAktif.angsuran_baru
+                    : p.angsuran.filter((a) => a.status !== 'digantikan');
+                const progress = jadwal.length > 0
+                    ? Math.round((jadwal.filter((a) => a.status === 'lunas').length / jadwal.length) * 100)
                     : 0;
 
                 return (
@@ -207,6 +211,12 @@ function RiwayatPinjaman({ pinjaman, autoPercepatan }) {
                                     <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${statusStyle[p.status]}`}>
                                         {statusLabel[p.status]}
                                     </span>
+                                    {percepatanAktif && (
+                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-brand-green-light text-brand-green-dark">
+                                            <FastForward size={11} />
+                                            {percepatanAktif.tipe === 'lunas_total' ? 'Lunas Sekarang' : `Ubah Tenor ${percepatanAktif.tenor_lama}→${percepatanAktif.tenor_baru}`}
+                                        </span>
+                                    )}
                                 </div>
                                 <p className="text-sm text-slate-400 mt-0.5">
                                     {p.tenor_bulan} bulan &bull; Diajukan {p.tanggal_pengajuan}
@@ -358,8 +368,37 @@ function RiwayatPinjaman({ pinjaman, autoPercepatan }) {
                                     </form>
                                 )}
 
+                                {p.percepatan && p.percepatan.length > 0 && (() => {
+                                    const pp = p.percepatan[0];
+                                    const catatan = pp.catatan_ketua || pp.catatan_bendahara;
+                                    const pesanStatus = {
+                                        diajukan: 'Menunggu tinjauan Bendahara.',
+                                        approved_bendahara: 'Menunggu persetujuan Ketua.',
+                                        aktif: 'Jadwal angsuran di bawah sudah mengikuti percepatan ini.',
+                                        ditolak: 'Pengajuan percepatan ditolak.',
+                                    }[pp.status];
+
+                                    return (
+                                        <div className="p-4 bg-slate-50 border-b border-slate-100">
+                                            <div className="flex items-center justify-between gap-2 mb-1">
+                                                <p className="text-sm font-semibold text-slate-700">
+                                                    {pp.tipe === 'lunas_total' ? 'Percepatan · Lunas Sekarang' : `Percepatan · Ubah Tenor ${pp.tenor_lama} → ${pp.tenor_baru}`}
+                                                </p>
+                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusStyle[pp.status]}`}>{statusLabel[pp.status]}</span>
+                                            </div>
+                                            {pp.tipe === 'lunas_total' && pp.nominal_final > 0 && (
+                                                <p className="text-xs text-slate-500 mb-0.5">Nominal final: {formatRupiah(pp.nominal_final)}</p>
+                                            )}
+                                            {pesanStatus && <p className="text-xs text-slate-500">{pesanStatus}</p>}
+                                            {pp.status === 'ditolak' && catatan && (
+                                                <p className="text-xs text-red-600 mt-0.5">{catatan}</p>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
+
                                 {p.keperluan && (
-                                    <div className="p-4 bg-slate-50 border-b border-slate-100">
+                                    <div className="p-4 border-b border-slate-100">
                                         <p className="text-xs text-slate-400 mb-0.5">Keperluan</p>
                                         <p className="text-sm text-slate-700">{p.keperluan}</p>
                                     </div>
@@ -374,71 +413,45 @@ function RiwayatPinjaman({ pinjaman, autoPercepatan }) {
 
                                 {p.status === 'ditolak' && (p.catatan_bendahara || p.catatan_ketua) && (
                                     <div className="p-4 bg-red-50 border-b border-slate-100">
-                                        <p className="text-sm font-semibold text-red-700 mb-0.5">Alasan Penolakan</p>
+                                        <p className="text-sm font-semibold text-red-700 mb-0.5">Alasan Penolakan Pinjaman</p>
                                         <p className="text-sm text-red-600">{p.catatan_ketua || p.catatan_bendahara}</p>
                                     </div>
                                 )}
 
-                                {p.angsuran.filter((a) => a.status !== 'digantikan').length === 0 ? (
-                                    <p className="p-5 text-sm text-slate-400">
-                                        Jadwal angsuran belum tersedia (pinjaman belum aktif).
+                                <div className="p-4 border-b border-slate-100">
+                                    <p className="text-xs font-semibold text-slate-500 mb-2">
+                                        {percepatanAktif ? 'Jadwal Angsuran (Percepatan)' : 'Jadwal Angsuran'}
                                     </p>
-                                ) : (
-                                    <div className="divide-y divide-slate-50">
-                                        {p.angsuran.filter((a) => a.status !== 'digantikan').map((a) => (
-                                            <div key={a.cicilan_ke} className="flex items-center justify-between px-5 py-3">
-                                                <div className="flex items-center gap-3">
-                                                    {a.status === 'lunas' ? (
-                                                        <CheckCircle2 size={18} className="text-brand-green shrink-0" />
-                                                    ) : (
-                                                        <Clock size={18} className="text-slate-300 shrink-0" />
-                                                    )}
-                                                    <div>
-                                                        <p className="text-sm font-semibold text-slate-700">
-                                                            Cicilan ke-{a.cicilan_ke}
-                                                        </p>
-                                                        <p className="text-xs text-slate-400">
-                                                            Jatuh tempo {a.tanggal_jatuh_tempo}
-                                                            {a.tanggal_konfirmasi_bayar && ` \u00b7 Dibayar ${a.tanggal_konfirmasi_bayar}`}
-                                                        </p>
+                                    {jadwal.length === 0 ? (
+                                        <p className="text-sm text-slate-400">Jadwal angsuran belum tersedia.</p>
+                                    ) : (
+                                        <div className="divide-y divide-slate-50">
+                                            {jadwal.map((a) => (
+                                                <div key={a.cicilan_ke} className="flex items-center justify-between py-2.5">
+                                                    <div className="flex items-center gap-3">
+                                                        {a.status === 'lunas' ? (
+                                                            <CheckCircle2 size={18} className="text-brand-green shrink-0" />
+                                                        ) : (
+                                                            <Clock size={18} className="text-slate-300 shrink-0" />
+                                                        )}
+                                                        <div>
+                                                            <p className="text-sm font-semibold text-slate-700">
+                                                                Cicilan ke-{a.cicilan_ke}
+                                                            </p>
+                                                            <p className="text-xs text-slate-400">
+                                                                Jatuh tempo {a.tanggal_jatuh_tempo}
+                                                                {a.tanggal_konfirmasi_bayar && ` \u00b7 Dibayar ${a.tanggal_konfirmasi_bayar}`}
+                                                            </p>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                <p className="text-sm font-bold text-slate-800">
-                                                    {formatRupiah(a.total_bayar)}
-                                                </p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-
-                                {p.percepatan && p.percepatan.length > 0 && (
-                                    <div className="p-4 border-b border-slate-100">
-                                        <p className="text-xs font-semibold text-slate-500 mb-2">Riwayat Perubahan Tenor</p>
-                                        <div className="space-y-3">
-                                            {p.percepatan.map((pp) => (
-                                                <div key={pp.id} className="rounded-xl border border-slate-200 p-3">
-                                                    <div className="flex items-center justify-between mb-1">
-                                                        <p className="text-sm font-semibold text-slate-700">
-                                                            {pp.tipe === 'lunas_total' ? 'Lunas Sekarang' : `Ubah Tenor ${pp.tenor_lama} \u2192 ${pp.tenor_baru}`}
-                                                        </p>
-                                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusStyle[pp.status]}`}>{statusLabel[pp.status]}</span>
-                                                    </div>
-                                                    {pp.tipe === 'lunas_total' && (
-                                                        <p className="text-xs text-slate-400 mb-1">Nominal final: {formatRupiah(pp.nominal_final)}</p>
-                                                    )}
-                                                    <div className="space-y-1">
-                                                        {pp.angsuran_baru.map((a) => (
-                                                            <div key={a.cicilan_ke} className="flex items-center justify-between text-xs">
-                                                                <span className="text-slate-500">Cicilan ke-{a.cicilan_ke} \u00b7 {a.tanggal_jatuh_tempo}</span>
-                                                                <span className="font-semibold text-slate-700">{formatRupiah(a.total_bayar)}</span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
+                                                    <p className="text-sm font-bold text-slate-800">
+                                                        {formatRupiah(a.total_bayar)}
+                                                    </p>
                                                 </div>
                                             ))}
                                         </div>
-                                    </div>
-                                )}
+                                    )}
+                                </div>
                             </div>
                         )}
                     </div>

@@ -3,24 +3,18 @@
 namespace App\Http\Controllers\Portal;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\PreviewPengajuanPercepatanRequest;
 use App\Http\Requests\StorePengajuanPercepatanRequest;
 use App\Models\Pinjaman;
 use App\Services\Pinjaman\PengajuanPercepatanService;
-use Illuminate\Http\Request;
 use RuntimeException;
 
 class PengajuanPercepatanController extends Controller
 {
     public function __construct(private PengajuanPercepatanService $service) {}
 
-    public function preview(Request $request)
+    public function preview(PreviewPengajuanPercepatanRequest $request)
     {
-        $request->validate([
-            'pinjaman_id' => ['required', 'integer', 'exists:pinjaman,id'],
-            'tipe' => ['required', 'in:ubah_tenor,lunas_total'],
-            'tenor_baru' => ['nullable', 'integer', 'min:1', 'max:120'],
-        ]);
-
         $anggota = $request->user()->anggota;
         $pinjaman = Pinjaman::where('anggota_id', $anggota->id)
             ->where('status', 'aktif')

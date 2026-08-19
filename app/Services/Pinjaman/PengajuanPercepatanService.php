@@ -2,7 +2,6 @@
 
 namespace App\Services\Pinjaman;
 
-use App\Models\AngsuranPercepatan;
 use App\Models\PengajuanPercepatan;
 use App\Models\Pinjaman;
 use App\Services\Keuangan\JurnalKasService;
@@ -173,7 +172,7 @@ class PengajuanPercepatanService
             }
 
             // lunas_total: cukup buat 1 tagihan final (belum_bayar). Pinjaman baru menjadi
-            // 'lunas' SETELAH tagihan tersebut dikonfirmasi Bendahara (lihat konfirmasiAngsuranPercepatan).
+            // 'lunas' SETELAH tagihan tersebut dikonfirmasi Bendahara (lihat KonfirmasiAngsuranService::konfirmasiMassalPercepatan).
         });
     }
 
@@ -187,38 +186,6 @@ class PengajuanPercepatanService
             'status' => 'ditolak',
             'catatan_ketua' => $catatan,
         ]);
-    }
-
-    public function konfirmasiAngsuranPercepatan(AngsuranPercepatan $angsuran, int $userId): void
-    {
-        $angsuran = AngsuranPercepatan::with('pengajuanPercepatan.pinjaman.anggota')->whereKey($angsuran->id)->lockForUpdate()->firstOrFail();
-
-        if ($angsuran->status !== 'belum_bayar') {
-            return;
-        }
-
-        $angsuran->update([
-            'status' => 'lunas',
-            'tanggal_konfirmasi_bayar' => now(),
-            'confirmed_by' => $userId,
-        ]);
-
-        $pinjaman = $angsuran->pengajuanPercepatan->pinjaman;
-
-        $this->jurnalKas->catat(
-            tipe: 'masuk',
-            kategori: 'pembayaran_angsuran',
-            kantong: 'pinjaman',
-            jumlah: (float) $angsuran->total_bayar,
-            keterangan: "Angsuran percepatan ke-{$angsuran->cicilan_ke} - {$pinjaman->anggota->nama}",
-            referensiId: $angsuran->id,
-            tanggal: now()->format('Y-m-d'),
-            userId: $userId,
-        );
-
-        if (! $angsuran->pengajuanPercepatan->angsuranPercepatan()->where('status', 'belum_bayar')->exists()) {
-            $pinjaman->update(['status' => 'lunas']);
-        }
     }
 
     private function validasiTenorBaru(Pinjaman $pinjaman, ?int $tenorBaru): void
