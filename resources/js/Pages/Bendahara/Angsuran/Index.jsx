@@ -111,6 +111,11 @@ export default function Index({ bulan, daftarAngsuran, totalTagihanBulanIni, tot
                                     <p className="text-sm text-slate-400">
                                         {a.no_anggota} &bull; Cicilan ke-{a.cicilan_ke} &bull; Jatuh tempo {a.tanggal_jatuh_tempo}
                                         {a.terlambat && <span className="text-red-600 font-semibold"> &bull; Terlambat</span>}
+                                        {a.ada_pengajuan_percepatan && (
+                                            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700">
+                                                Ada pengajuan perubahan tenor
+                                            </span>
+                                        )}
                                     </p>
                                 </div>
                                 <div className="text-right">

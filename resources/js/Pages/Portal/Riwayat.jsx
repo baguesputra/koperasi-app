@@ -189,6 +189,28 @@ function RiwayatPinjaman({ pinjaman }) {
                                     </p>
                                 ) : (
                                     <div className="divide-y divide-slate-50">
+                                        {p.riwayatPerubahan?.length > 0 && (
+                                            <div className="p-4 bg-amber-50 border-b border-slate-100">
+                                                <p className="text-sm font-bold text-amber-800 mb-2">Riwayat Perubahan Tenor</p>
+                                                {p.riwayatPerubahan.map((r, i) => (
+                                                    <div key={i} className="text-sm text-amber-700 mb-2">
+                                                        <p>{r.tanggal} — {r.tipe} (tenor {r.tenor_lama} → {r.tenor_baru ?? '-'} bulan, berlaku {r.bulan_berlaku})</p>
+                                                        {r.jadwalLama.length > 0 && (
+                                                            <details className="mt-1">
+                                                                <summary className="cursor-pointer text-xs underline">Lihat jadwal lama yang digantikan</summary>
+                                                                <div className="mt-1.5 pl-3 space-y-1">
+                                                                    {r.jadwalLama.map((jl) => (
+                                                                        <p key={jl.cicilan_ke} className="text-xs text-amber-600">
+                                                                            Cicilan ke-{jl.cicilan_ke}: {formatRupiah(jl.total_bayar)} ({jl.status})
+                                                                        </p>
+                                                                    ))}
+                                                                </div>
+                                                            </details>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                         {p.angsuran.map((a) => (
                                             <div key={a.cicilan_ke} className="flex items-center justify-between px-5 py-3">
                                                 <div className="flex items-center gap-3">

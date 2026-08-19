@@ -38,6 +38,20 @@ class DashboardController extends Controller
             ->first();
 
         $angsuranBerikutnya = null;
+            if ($pinjamanAktif) {
+                $terdekat = $pinjamanAktif->jadwalAktif()
+                    ->where('status', 'belum_bayar')
+                    ->sortBy('tanggal_jatuh_tempo')
+                    ->first();
+
+                if ($terdekat) {
+                    $angsuranBerikutnya = [
+                        'cicilan_ke' => $terdekat->cicilan_ke,
+                        'total_bayar' => (float) $terdekat->total_bayar,
+                        'tanggal_jatuh_tempo' => $terdekat->tanggal_jatuh_tempo->format('d M Y'),
+                    ];
+                }
+            }
         $sisaTotalBayar = 0;
 
         if ($pinjamanAktif) {
@@ -108,9 +122,9 @@ class DashboardController extends Controller
                 'id' => $pinjamanAktif->id,
                 'nominal' => (float) $pinjamanAktif->nominal,
                 'tenor_bulan' => $pinjamanAktif->tenor_bulan,
-                'sisa_angsuran' => $pinjamanAktif->sisaAngsuran(),
-                'total_angsuran' => $pinjamanAktif->angsuran()->count(),
-                'sisa_total_bayar' => (float) $sisaTotalBayar,
+                'sisa_angsuran' => $pinjamanAktif->sisaCicilanAktif(),
+                'total_angsuran' => $pinjamanAktif->totalCicilanAktif(),
+                'sisa_total_bayar' => $pinjamanAktif->sisaTotalBayarAktif(),
             ] : null,
             'pengajuanBerjalan' => $pengajuanBerjalan ? [
                 'nominal' => (float) $pengajuanBerjalan->nominal,

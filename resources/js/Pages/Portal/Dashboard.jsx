@@ -47,6 +47,12 @@ export default function Dashboard({
                                         {progress}% lunas
                                     </span>
                                 </div>
+                                <Link
+                                    href={route('portal.percepatan.create')}
+                                    className="inline-block mt-4 text-sm font-semibold text-slate-300 hover:text-white underline underline-offset-2"
+                                >
+                                    Ajukan perubahan tenor / pelunasan dipercepat
+                                </Link>
                                 <p className="text-2xl font-bold mb-3">{formatRupiah(pinjamanAktif.nominal)}</p>
                                 <div className="w-full h-2 bg-white/15 rounded-full overflow-hidden mb-4">
                                     <div className="h-full bg-brand-green rounded-full transition-all" style={{ width: `${progress}%` }} />

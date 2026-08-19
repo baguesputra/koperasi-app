@@ -2,26 +2,20 @@
 
 namespace App\Services\Pinjaman;
 
-use App\Models\Angsuran;
 use App\Models\PengajuanPercepatan;
 use App\Models\Pinjaman;
-use App\Services\Keuangan\JurnalKasService;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 class PercepatanPinjamanService
 {
-    public function __construct(
-        private EligibilitasPinjamanService $eligibilitas,
-        private JurnalKasService $jurnalKas,
-    ) {}
+    public function __construct(private EligibilitasPinjamanService $eligibilitas) {}
 
     public function ajukan(Pinjaman $pinjaman, string $tipe, ?int $tenorBaru, string $keterangan): PengajuanPercepatan
     {
         if ($pinjaman->status !== 'aktif') {
             throw new RuntimeException('Hanya pinjaman aktif yang bisa diajukan perubahan.');
         }
-
         if ($pinjaman->sudah_pakai_percepatan) {
             throw new RuntimeException('Pinjaman ini sudah pernah menggunakan hak perubahan tenor/pelunasan dipercepat.');
         }
@@ -29,15 +23,12 @@ class PercepatanPinjamanService
         $adaPengajuanMenunggu = PengajuanPercepatan::where('pinjaman_id', $pinjaman->id)
             ->whereIn('status', ['diajukan', 'approved_bendahara'])
             ->exists();
-
         if ($adaPengajuanMenunggu) {
             throw new RuntimeException('Sudah ada pengajuan yang masih diproses untuk pinjaman ini.');
         }
 
         if ($tipe === 'perpanjang') {
-            $nominalPinjaman = (float) $pinjaman->nominal;
-            $tenorMaksimal = $this->eligibilitas->tenorMaksimal($nominalPinjaman);
-
+            $tenorMaksimal = $this->eligibilitas->tenorMaksimal((float) $pinjaman->nominal);
             if (! $tenorMaksimal || $tenorBaru > $tenorMaksimal) {
                 throw new RuntimeException("Tenor maksimal untuk nominal pinjaman ini adalah {$tenorMaksimal} bulan.");
             }
@@ -54,28 +45,52 @@ class PercepatanPinjamanService
         ]);
     }
 
-    public function approveBendahara(PengajuanPercepatan $pengajuan, string $catatan): void
+    /**
+     * Preview simulasi jadwal/nominal SEBELUM disubmit, dipakai di form pengajuan.
+     */
+    public function preview(Pinjaman $pinjaman, string $tipe, ?int $tenorBaru): array
     {
-        $pengajuan->update([
-            'status' => 'approved_bendahara',
-            'catatan_bendahara' => $catatan,
-        ]);
+        $sisaPokok = (float) $pinjaman->angsuranBelumBayar()->sum('nominal_pokok');
+        $persentase = (float) $pinjaman->persentase_bunga / 100;
+
+        if ($tipe === 'lunas_total') {
+            $bunga = round($sisaPokok * $persentase, 2);
+            return [
+                'sisa_pokok' => $sisaPokok,
+                'bunga' => $bunga,
+                'total_bayar' => $sisaPokok + $bunga,
+            ];
+        }
+
+        $pokokPerBulan = round($sisaPokok / $tenorBaru, 2);
+        $sisa = $sisaPokok;
+        $jadwal = [];
+
+        for ($i = 1; $i <= $tenorBaru; $i++) {
+            $bunga = round($sisa * $persentase, 2);
+            $jadwal[] = [
+                'cicilan_ke' => $i,
+                'total_bayar' => $pokokPerBulan + $bunga,
+            ];
+            $sisa -= $pokokPerBulan;
+        }
+
+        return ['sisa_pokok' => $sisaPokok, 'jadwal' => $jadwal];
     }
 
-    public function rejectBendahara(PengajuanPercepatan $pengajuan, string $catatan): void
+    public function approveBendahara(PengajuanPercepatan $p, string $catatan): void
     {
-        $pengajuan->update([
-            'status' => 'ditolak',
-            'catatan_bendahara' => $catatan,
-        ]);
+        $p->update(['status' => 'approved_bendahara', 'catatan_bendahara' => $catatan]);
     }
 
-    public function rejectKetua(PengajuanPercepatan $pengajuan, string $catatan): void
+    public function rejectBendahara(PengajuanPercepatan $p, string $catatan): void
     {
-        $pengajuan->update([
-            'status' => 'ditolak',
-            'catatan_ketua' => $catatan,
-        ]);
+        $p->update(['status' => 'ditolak', 'catatan_bendahara' => $catatan]);
+    }
+
+    public function rejectKetua(PengajuanPercepatan $p, string $catatan): void
+    {
+        $p->update(['status' => 'ditolak', 'catatan_ketua' => $catatan]);
     }
 
     public function approveKetua(PengajuanPercepatan $pengajuan, string $catatan, string $bulanBerlaku): void
@@ -83,33 +98,31 @@ class PercepatanPinjamanService
         DB::transaction(function () use ($pengajuan, $catatan, $bulanBerlaku) {
             $pinjaman = $pengajuan->pinjaman;
 
-            $angsuranBelumBayar = $pinjaman->angsuran()
+            $semuaBelumBayar = $pinjaman->angsuran()
                 ->where('status', 'belum_bayar')
                 ->orderBy('cicilan_ke')
                 ->lockForUpdate()
                 ->get();
 
-            $cicilanBulanIni = null;
-            $angsuranDigantikan = $angsuranBelumBayar;
-
-            if ($bulanBerlaku === 'bulan_depan') {
+            // Lunas Total SELALU ganti semua sisa cicilan (tidak ada pengecualian bulan berjalan)
+            if ($pengajuan->tipe === 'lunas_total') {
+                $angsuranDigantikan = $semuaBelumBayar;
+            } elseif ($bulanBerlaku === 'bulan_depan') {
                 $akhirBulanIni = now()->endOfMonth()->toDateString();
-                $cicilanBulanIni = $angsuranBelumBayar->firstWhere('tanggal_jatuh_tempo', $akhirBulanIni)
-                    ?? $angsuranBelumBayar->first();
-
-                $angsuranDigantikan = $angsuranBelumBayar->reject(
-                    fn ($a) => $cicilanBulanIni && $a->id === $cicilanBulanIni->id
+                $cicilanBulanIni = $semuaBelumBayar->first(
+                    fn ($a) => $a->tanggal_jatuh_tempo->toDateString() === $akhirBulanIni
                 );
+                $angsuranDigantikan = $cicilanBulanIni
+                    ? $semuaBelumBayar->reject(fn ($a) => $a->id === $cicilanBulanIni->id)
+                    : $semuaBelumBayar;
+            } else {
+                $angsuranDigantikan = $semuaBelumBayar;
             }
 
             $sisaPokok = (float) $angsuranDigantikan->sum('nominal_pokok');
 
-            // Tandai angsuran lama sebagai digantikan
             foreach ($angsuranDigantikan as $angsuran) {
-                $angsuran->update([
-                    'status' => 'digantikan',
-                    'pengajuan_percepatan_id' => $pengajuan->id,
-                ]);
+                $angsuran->update(['status' => 'digantikan', 'pengajuan_percepatan_id' => $pengajuan->id]);
             }
 
             $pengajuan->update([
@@ -119,12 +132,10 @@ class PercepatanPinjamanService
                 'sisa_pokok_saat_approval' => $sisaPokok,
             ]);
 
-            $tanggalMulai = $bulanBerlaku === 'bulan_ini'
-                ? now()
-                : now()->addMonthNoOverflow();
+            $tanggalMulai = $bulanBerlaku === 'bulan_ini' ? now() : now()->addMonthNoOverflow();
+            $persentase = (float) $pinjaman->persentase_bunga / 100;
 
             if ($pengajuan->tipe === 'lunas_total') {
-                $persentase = (float) $pinjaman->persentase_bunga / 100;
                 $bunga = round($sisaPokok * $persentase, 2);
                 $totalBayar = $sisaPokok + $bunga;
 
@@ -141,7 +152,6 @@ class PercepatanPinjamanService
             } else {
                 $tenorBaru = $pengajuan->tenor_baru;
                 $pokokPerBulan = round($sisaPokok / $tenorBaru, 2);
-                $persentase = (float) $pinjaman->persentase_bunga / 100;
                 $sisa = $sisaPokok;
 
                 for ($i = 1; $i <= $tenorBaru; $i++) {
@@ -161,32 +171,6 @@ class PercepatanPinjamanService
             }
 
             $pinjaman->update(['sudah_pakai_percepatan' => true]);
-        });
-    }
-
-    public function konfirmasiLunasTotal(\App\Models\AngsuranPercepatan $angsuran, int $userId): void
-    {
-        DB::transaction(function () use ($angsuran, $userId) {
-            $angsuran->update([
-                'status' => 'lunas',
-                'tanggal_konfirmasi_bayar' => now(),
-                'confirmed_by' => $userId,
-            ]);
-
-            $pinjaman = $angsuran->pengajuan->pinjaman;
-
-            $this->jurnalKas->catat(
-                tipe: 'masuk',
-                kategori: 'pembayaran_angsuran',
-                kantong: 'pinjaman',
-                jumlah: (float) $angsuran->total_bayar,
-                keterangan: "Pelunasan dipercepat - {$pinjaman->anggota->nama}",
-                referensiId: $angsuran->id,
-                tanggal: now()->format('Y-m-d'),
-                userId: $userId,
-            );
-
-            $pinjaman->update(['status' => 'lunas']);
         });
     }
 }

@@ -77,21 +77,32 @@ class Pinjaman extends Model
      * Jadwal angsuran yang AKTIF sekarang - gabungan dari angsuran asli (yang belum digantikan)
      * dan angsuran_percepatan dari pengajuan yang sudah aktif (kalau ada).
      */
-    public function angsuranAktif()
+    public function jadwalAktif()
+{
+    $pengajuanAktif = $this->pengajuanPercepatan()->where('status', 'aktif')->latest()->first();
+    $lama = $this->angsuran()->where('status', '!=', 'digantikan')->orderBy('cicilan_ke')->get();
+
+    if (! $pengajuanAktif) {
+        return $lama;
+    }
+
+    $baru = $pengajuanAktif->angsuranBaru()->orderBy('cicilan_ke')->get();
+
+    return $lama->concat($baru);
+    }
+
+    public function totalCicilanAktif(): int
     {
-        $pengajuanAktif = $this->pengajuanPercepatan()->where('status', 'aktif')->latest()->first();
+        return $this->jadwalAktif()->count();
+    }
 
-        if (! $pengajuanAktif) {
-            return $this->angsuran()->orderBy('cicilan_ke')->get();
-        }
+    public function sisaCicilanAktif(): int
+    {
+        return $this->jadwalAktif()->where('status', 'belum_bayar')->count();
+    }
 
-        $angsuranLamaTersisa = $this->angsuran()
-            ->where('status', '!=', 'digantikan')
-            ->orderBy('cicilan_ke')
-            ->get();
-
-        $angsuranBaru = $pengajuanAktif->angsuranBaru()->orderBy('cicilan_ke')->get();
-
-        return $angsuranLamaTersisa->concat($angsuranBaru);
+    public function sisaTotalBayarAktif(): float
+    {
+        return (float) $this->jadwalAktif()->where('status', 'belum_bayar')->sum('total_bayar');
     }
 }

@@ -51,4 +51,20 @@ class PercepatanController extends Controller
 
         return redirect()->route('portal.dashboard')->with('status', 'Pengajuan berhasil dikirim.');
     }
+
+    public function preview(Request $request)
+    {
+        $request->validate([
+            'tipe' => ['required', 'in:percepat,perpanjang,lunas_total'],
+            'tenor_baru' => ['required_if:tipe,percepat,perpanjang', 'nullable', 'integer', 'min:1'],
+        ]);
+
+        $pinjaman = auth()->user()->anggota->pinjamanAktif();
+
+        if (! $pinjaman) {
+            return response()->json(['message' => 'Tidak ada pinjaman aktif.'], 422);
+        }
+
+        return response()->json($this->service->preview($pinjaman, $request->tipe, $request->tenor_baru));
+    }
 }
