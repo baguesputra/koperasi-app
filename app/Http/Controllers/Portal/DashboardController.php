@@ -25,6 +25,12 @@ class DashboardController extends Controller
         $cekEligibilitas = $this->eligibilitas->cek($anggota);
         $limitMaksimal = $this->eligibilitas->limitMaksimal($anggota);
 
+        // Percepatan yang sedang aktif menggeser jadwal ke angsuran_percepatan,
+        // sehingga sisa/total harus dihitung dari sana (bukan dari angsuran induk).
+        $percepatanAktif = $pinjamanAktif
+            ? $pinjamanAktif->pengajuanPercepatanAktif()->with('angsuranPercepatan')->first()
+            : null;
+
         // Pengajuan yang sedang berjalan (belum aktif/lunas/ditolak)
         $pengajuanBerjalan = $anggota->pinjaman()
             ->whereIn('status', ['diajukan', 'approved_bendahara'])
@@ -39,10 +45,23 @@ class DashboardController extends Controller
 
         $angsuranBerikutnya = null;
         $sisaTotalBayar = 0;
+        $sisaAngsuran = 0;
+        $totalAngsuran = 0;
 
         if ($pinjamanAktif) {
-            $angsuranBelumBayar = $pinjamanAktif->angsuranBelumBayar()->orderBy('cicilan_ke')->get();
+            if ($percepatanAktif) {
+                $angsuranBelumBayar = $percepatanAktif->angsuranPercepatan()
+                    ->where('status', 'belum_bayar')
+                    ->orderBy('cicilan_ke')
+                    ->get();
+                $totalAngsuran = $percepatanAktif->angsuranPercepatan()->count();
+            } else {
+                $angsuranBelumBayar = $pinjamanAktif->angsuranBelumBayar()->orderBy('cicilan_ke')->get();
+                $totalAngsuran = $pinjamanAktif->angsuran()->count();
+            }
+
             $sisaTotalBayar = $angsuranBelumBayar->sum('total_bayar');
+            $sisaAngsuran = $angsuranBelumBayar->count();
 
             $terdekat = $angsuranBelumBayar->first();
             if ($terdekat) {
@@ -108,10 +127,15 @@ class DashboardController extends Controller
                 'id' => $pinjamanAktif->id,
                 'nominal' => (float) $pinjamanAktif->nominal,
                 'tenor_bulan' => $pinjamanAktif->tenor_bulan,
-                'sisa_angsuran' => $pinjamanAktif->sisaAngsuran(),
-                'total_angsuran' => $pinjamanAktif->angsuran()->count(),
+                'sisa_angsuran' => $sisaAngsuran,
+                'total_angsuran' => $totalAngsuran,
                 'sisa_total_bayar' => (float) $sisaTotalBayar,
                 'sudah_pernah_percepatan' => $pinjamanAktif->pengajuanPercepatan()->exists(),
+                'percepatan' => $percepatanAktif ? [
+                    'tipe' => $percepatanAktif->tipe,
+                    'tenor_lama' => $percepatanAktif->tenor_lama,
+                    'tenor_baru' => $percepatanAktif->tenor_baru,
+                ] : null,
             ] : null,
             'pengajuanBerjalan' => $pengajuanBerjalan ? [
                 'nominal' => (float) $pengajuanBerjalan->nominal,

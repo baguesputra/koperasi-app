@@ -59,15 +59,18 @@ class PengajuanPercepatanService
     {
         $sisaPokok = $this->sisaPokok($pinjaman);
         $tenorMaksimal = $this->eligibilitas->tenorMaksimal((float) $pinjaman->nominal);
+        $bulanBerlaku = $this->tentukanBulanBerlaku($pinjaman);
+        $mulai = $this->tanggalMulai($bulanBerlaku);
 
         if ($tipe === 'lunas_total') {
-            $jadwal = $this->buatJadwal($sisaPokok, 1, (float) $pinjaman->persentase_bunga, now()->endOfMonth());
+            $jadwal = $this->buatJadwal($sisaPokok, 1, (float) $pinjaman->persentase_bunga, $mulai);
 
             return [
                 'sisa_pokok' => $sisaPokok,
                 'tenor_maksimal' => $tenorMaksimal,
                 'nominal_final' => collect($jadwal)->sum('total_bayar'),
                 'jadwal' => $this->formatJadwal($jadwal),
+                'bulan_berlaku' => $bulanBerlaku,
                 'error' => null,
             ];
         }
@@ -80,17 +83,19 @@ class PengajuanPercepatanService
                 'tenor_maksimal' => $tenorMaksimal,
                 'nominal_final' => null,
                 'jadwal' => [],
+                'bulan_berlaku' => $bulanBerlaku,
                 'error' => $e->getMessage(),
             ];
         }
 
-        $jadwal = $this->buatJadwal($sisaPokok, $tenorBaru, (float) $pinjaman->persentase_bunga, now()->endOfMonth());
+        $jadwal = $this->buatJadwal($sisaPokok, $tenorBaru, (float) $pinjaman->persentase_bunga, $mulai);
 
         return [
             'sisa_pokok' => $sisaPokok,
             'tenor_maksimal' => $tenorMaksimal,
             'nominal_final' => null,
             'jadwal' => $this->formatJadwal($jadwal),
+            'bulan_berlaku' => $bulanBerlaku,
             'error' => null,
         ];
     }
@@ -130,9 +135,9 @@ class PengajuanPercepatanService
         ]);
     }
 
-    public function approveKetua(PengajuanPercepatan $pengajuan, string $catatan, string $bulanBerlaku, int $userId): void
+    public function approveKetua(PengajuanPercepatan $pengajuan, string $catatan, int $userId): void
     {
-        DB::transaction(function () use ($pengajuan, $catatan, $bulanBerlaku) {
+        DB::transaction(function () use ($pengajuan, $catatan) {
             $pengajuan = PengajuanPercepatan::with('pinjaman.anggota')->whereKey($pengajuan->id)->lockForUpdate()->firstOrFail();
 
             if ($pengajuan->status !== 'approved_bendahara') {
@@ -141,6 +146,7 @@ class PengajuanPercepatanService
 
             $pinjaman = Pinjaman::whereKey($pengajuan->pinjaman_id)->lockForUpdate()->firstOrFail();
             $sisaPokok = $this->sisaPokok($pinjaman);
+            $bulanBerlaku = $this->tentukanBulanBerlaku($pinjaman);
             $mulai = $this->tanggalMulai($bulanBerlaku);
             $tenor = $pengajuan->tipe === 'lunas_total' ? 1 : (int) $pengajuan->tenor_baru;
             $jadwal = $this->buatJadwal($sisaPokok, $tenor, (float) $pinjaman->persentase_bunga, $mulai);
@@ -275,5 +281,19 @@ class PengajuanPercepatanService
             'bulan_depan' => now()->addMonthNoOverflow()->endOfMonth(),
             default => throw new RuntimeException('Bulan berlaku tidak valid.'),
         };
+    }
+
+    private function tentukanBulanBerlaku(Pinjaman $pinjaman): string
+    {
+        $angsuranBulanIni = $pinjaman->angsuran()
+            ->whereYear('tanggal_jatuh_tempo', now()->year)
+            ->whereMonth('tanggal_jatuh_tempo', now()->month)
+            ->first();
+
+        if ($angsuranBulanIni && $angsuranBulanIni->status === 'lunas') {
+            return 'bulan_depan';
+        }
+
+        return 'bulan_ini';
     }
 }

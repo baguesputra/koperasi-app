@@ -47,6 +47,14 @@ export default function Dashboard({
                                         {progress}% lunas
                                     </span>
                                 </div>
+                                {pinjamanAktif.percepatan && (
+                                    <span className="inline-flex items-center gap-1 mb-2 text-[11px] font-semibold bg-white/15 text-brand-green px-2.5 py-1 rounded-full">
+                                        <FastForward size={12} />
+                                        {pinjamanAktif.percepatan.tipe === 'lunas_total'
+                                            ? 'Percepatan · Lunas Sekarang'
+                                            : `Percepatan · Ubah Tenor ${pinjamanAktif.percepatan.tenor_lama} → ${pinjamanAktif.percepatan.tenor_baru}`}
+                                    </span>
+                                )}
                                 <p className="text-2xl font-bold mb-3">{formatRupiah(pinjamanAktif.nominal)}</p>
                                 <div className="w-full h-2 bg-white/15 rounded-full overflow-hidden mb-4">
                                     <div className="h-full bg-brand-green rounded-full transition-all" style={{ width: `${progress}%` }} />

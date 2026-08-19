@@ -17,7 +17,6 @@ class KeputusanPengajuanPercepatanRequest extends FormRequest
         return [
             'aksi' => ['required', Rule::in(['setuju', 'tolak'])],
             'catatan' => ['nullable', 'string', 'max:1000'],
-            'bulan_berlaku' => ['nullable', Rule::in(['bulan_ini', 'bulan_depan'])],
         ];
     }
 }

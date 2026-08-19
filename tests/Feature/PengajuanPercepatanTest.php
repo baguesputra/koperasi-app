@@ -129,7 +129,7 @@ class PengajuanPercepatanTest extends TestCase
         $this->assertEquals('approved_bendahara', $pengajuan->status);
 
         $this->actingAs($ketua)
-            ->post(route('ketua.pengajuan-percepatan.keputusan', $pengajuan), ['aksi' => 'setuju', 'bulan_berlaku' => 'bulan_ini'])
+            ->post(route('ketua.pengajuan-percepatan.keputusan', $pengajuan), ['aksi' => 'setuju'])
             ->assertRedirect();
         $pengajuan->refresh();
 
@@ -139,6 +139,61 @@ class PengajuanPercepatanTest extends TestCase
 
         $digantikan = Angsuran::where('pinjaman_id', $pinjaman->id)->where('status', 'digantikan')->count();
         $this->assertEquals(10, $digantikan);
+    }
+
+    public function test_bulan_mulai_otomatis_bulan_ini_jika_angsuran_bulan_ini_belum_lunas(): void
+    {
+        $pinjaman = $this->buatAnggotaAktif();
+        $user = $this->testerUser;
+
+        $this->actingAs($user)->post(route('portal.pengajuan-percepatan.store'), [
+            'pinjaman_id' => $pinjaman->id,
+            'tipe' => 'lunas_total',
+            'keterangan' => 'Alasan pengajuan percepatan yang cukup panjang',
+        ]);
+
+        $pengajuan = PengajuanPercepatan::first();
+        $bendahara = User::where('no_karyawan', 'BEN-000001')->firstOrFail();
+        $ketua = User::where('no_karyawan', 'KET-000001')->firstOrFail();
+
+        $this->actingAs($bendahara)->post(route('bendahara.pengajuan-percepatan.keputusan', $pengajuan), ['aksi' => 'setuju'])->assertRedirect();
+        $this->actingAs($ketua)->post(route('ketua.pengajuan-percepatan.keputusan', $pengajuan), ['aksi' => 'setuju'])->assertRedirect();
+
+        // Angsuran bulan berjalan dalam skenario ini belum lunas -> jadwal percepatan mulai bulan ini
+        $pertama = $pengajuan->angsuranPercepatan()->orderBy('cicilan_ke')->first();
+        $this->assertEquals(now()->endOfMonth()->format('Y-m-d'), $pertama->tanggal_jatuh_tempo->format('Y-m-d'));
+        $this->assertEquals('bulan_ini', $pengajuan->fresh()->bulan_berlaku);
+    }
+
+    public function test_bulan_mulai_otomatis_bulan_depan_jika_angsuran_bulan_ini_sudah_lunas(): void
+    {
+        $pinjaman = $this->buatAnggotaAktif();
+        $user = $this->testerUser;
+
+        // Tandai angsuran bulan berjalan sebagai lunas
+        $angsuranBulanIni = Angsuran::where('pinjaman_id', $pinjaman->id)
+            ->whereYear('tanggal_jatuh_tempo', now()->year)
+            ->whereMonth('tanggal_jatuh_tempo', now()->month)
+            ->first();
+        $angsuranBulanIni->update(['status' => 'lunas', 'tanggal_konfirmasi_bayar' => now(), 'confirmed_by' => $user->id]);
+
+        $this->actingAs($user)->post(route('portal.pengajuan-percepatan.store'), [
+            'pinjaman_id' => $pinjaman->id,
+            'tipe' => 'lunas_total',
+            'keterangan' => 'Alasan pengajuan percepatan yang cukup panjang',
+        ]);
+
+        $pengajuan = PengajuanPercepatan::first();
+        $bendahara = User::where('no_karyawan', 'BEN-000001')->firstOrFail();
+        $ketua = User::where('no_karyawan', 'KET-000001')->firstOrFail();
+
+        $this->actingAs($bendahara)->post(route('bendahara.pengajuan-percepatan.keputusan', $pengajuan), ['aksi' => 'setuju'])->assertRedirect();
+        $this->actingAs($ketua)->post(route('ketua.pengajuan-percepatan.keputusan', $pengajuan), ['aksi' => 'setuju'])->assertRedirect();
+
+        // Angsuran bulan berjalan sudah lunas -> jadwal percepatan mulai bulan depan
+        $pertama = $pengajuan->angsuranPercepatan()->orderBy('cicilan_ke')->first();
+        $this->assertEquals(now()->addMonthNoOverflow()->endOfMonth()->format('Y-m-d'), $pertama->tanggal_jatuh_tempo->format('Y-m-d'));
+        $this->assertEquals('bulan_depan', $pengajuan->fresh()->bulan_berlaku);
     }
 
     public function test_lunas_total_menghasilkan_1_tagihan_dan_melunasi_pinjaman(): void
@@ -157,7 +212,7 @@ class PengajuanPercepatanTest extends TestCase
         $ketua = User::where('no_karyawan', 'KET-000001')->firstOrFail();
 
         $this->actingAs($bendahara)->post(route('bendahara.pengajuan-percepatan.keputusan', $pengajuan), ['aksi' => 'setuju'])->assertRedirect();
-        $this->actingAs($ketua)->post(route('ketua.pengajuan-percepatan.keputusan', $pengajuan), ['aksi' => 'setuju', 'bulan_berlaku' => 'bulan_ini'])->assertRedirect();
+        $this->actingAs($ketua)->post(route('ketua.pengajuan-percepatan.keputusan', $pengajuan), ['aksi' => 'setuju'])->assertRedirect();
 
         $pengajuan->refresh();
         $this->assertEquals('aktif', $pengajuan->status);

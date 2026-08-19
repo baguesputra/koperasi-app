@@ -29,7 +29,7 @@ class PengajuanPercepatanController extends Controller
     {
         try {
             if ($request->aksi === 'setuju') {
-                $this->service->approveKetua($pengajuanPercepatan, $request->input('catatan', ''), $request->string('bulan_berlaku')->value(), auth()->id());
+                $this->service->approveKetua($pengajuanPercepatan, $request->input('catatan', ''), auth()->id());
             } else {
                 $this->service->rejectKetua($pengajuanPercepatan, $request->input('catatan', ''));
             }

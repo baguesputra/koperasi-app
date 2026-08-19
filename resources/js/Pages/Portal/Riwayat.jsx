@@ -273,11 +273,16 @@ function RiwayatPinjaman({ pinjaman, autoPercepatan }) {
 
                                         {preview && !preview.error && preview.jadwal?.length > 0 && (
                                             <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
-                                                <div className="flex items-center gap-2 px-3 py-2.5 bg-brand-green-light/50 border-b border-slate-200">
-                                                    <FastForward size={16} className="text-brand-green-dark" />
-                                                    <p className="text-sm font-bold text-slate-800">
-                                                        {tipe === 'ubah_tenor' ? 'Simulasi Ubah Tenor' : 'Simulasi Lunas Sekarang'}
-                                                    </p>
+                                                <div className="flex items-center justify-between gap-2 px-3 py-2.5 bg-brand-green-light/50 border-b border-slate-200">
+                                                    <div className="flex items-center gap-2">
+                                                        <FastForward size={16} className="text-brand-green-dark" />
+                                                        <p className="text-sm font-bold text-slate-800">
+                                                            {tipe === 'ubah_tenor' ? 'Simulasi Ubah Tenor' : 'Simulasi Lunas Sekarang'}
+                                                        </p>
+                                                    </div>
+                                                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-white text-brand-green-dark border border-brand-green/20">
+                                                        Mulai: {preview.bulan_berlaku === 'bulan_depan' ? 'Bulan Depan' : 'Bulan Ini'}
+                                                    </span>
                                                 </div>
 
                                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-px bg-slate-100">

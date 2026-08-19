@@ -1,7 +1,7 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
-import { FastForward, ShieldCheck, XCircle, CalendarClock } from 'lucide-react';
+import { FastForward, ShieldCheck, XCircle, Info } from 'lucide-react';
 import Card from '@/Components/ui/Card';
 import Drawer from '@/Components/ui/Drawer';
 import Button from '@/Components/ui/Button';
@@ -67,14 +67,13 @@ export default function Index({ pengajuan }) {
 
 function Keputusan({ pengajuan, onClose }) {
     const [catatan, setCatatan] = useState('');
-    const [bulanBerlaku, setBulanBerlaku] = useState('bulan_ini');
     const [processing, setProcessing] = useState(false);
 
     function kirim(aksi) {
         setProcessing(true);
         router.post(
             route('ketua.pengajuan-percepatan.keputusan', pengajuan.id),
-            { aksi, catatan, bulan_berlaku: bulanBerlaku },
+            { aksi, catatan },
             { preserveScroll: true, onSuccess: () => onClose(), onFinish: () => setProcessing(false) }
         );
     }
@@ -98,22 +97,11 @@ function Keputusan({ pengajuan, onClose }) {
                 <p className="text-sm text-slate-700 mt-2">{pengajuan.keterangan}</p>
             </div>
 
-            <div className="mb-3">
-                <p className="text-sm font-semibold text-slate-700 mb-1">Waktu Berlaku</p>
-                <div className="flex gap-2">
-                    {[['bulan_ini', 'Berlaku Bulan Ini'], ['bulan_depan', 'Berlaku Bulan Depan']].map(([v, l]) => (
-                        <button
-                            key={v}
-                            type="button"
-                            onClick={() => setBulanBerlaku(v)}
-                            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-semibold rounded-xl border transition-colors ${
-                                bulanBerlaku === v ? 'border-brand-green bg-brand-green-light text-brand-green-dark' : 'border-slate-300 text-slate-600'
-                            }`}
-                        >
-                            <CalendarClock size={16} /> {l}
-                        </button>
-                    ))}
-                </div>
+            <div className="mb-3 flex items-start gap-2 bg-brand-green-light/50 border border-brand-green/20 rounded-xl p-3">
+                <Info size={16} className="text-brand-green-dark shrink-0 mt-0.5" />
+                <p className="text-xs text-slate-600">
+                    Waktu berlaku jadwal percepatan ditentukan otomatis: jika angsuran bulan berjalan belum lunas, jadwal dimulai bulan ini; jika sudah lunas, dimulai bulan depan.
+                </p>
             </div>
 
             <textarea
