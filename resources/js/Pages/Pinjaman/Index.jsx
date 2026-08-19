@@ -1,8 +1,9 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, Link, router } from '@inertiajs/react';
-import { Search } from 'lucide-react';
+import { CheckCircle2, Clock, FileText, Search, ShieldCheck, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import Card from '@/Components/ui/Card';
+import StatWidget from '@/Components/ui/StatWidget';
 import StatusBadge from '@/Components/ui/StatusBadge';
 import { formatRupiah } from '@/Utils/formatCurrency';
 
@@ -23,7 +24,7 @@ const statusMap = {
     ditolak: 'ditolak',
 };
 
-export default function Index({ pinjaman, filters }) {
+export default function Index({ pinjaman, filters, statistik }) {
     const [cari, setCari] = useState(filters.cari ?? '');
 
     function terapkanFilter(overrides = {}) {
@@ -37,6 +38,15 @@ export default function Index({ pinjaman, filters }) {
             <div className="mb-6">
                 <h1 className="text-2xl font-bold text-slate-800">Pinjaman</h1>
                 <p className="text-base text-slate-400 mt-1">{pinjaman.total} pengajuan pinjaman tercatat</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-4 mb-6">
+                <StatWidget compact label="Total Pinjaman" value={statistik.total} icon={FileText} tone="navy" />
+                <StatWidget compact label="Diajukan" value={statistik.diajukan} icon={Clock} tone="amber" />
+                <StatWidget compact label="Disetujui Bendahara" value={statistik.approved_bendahara} icon={ShieldCheck} tone="navy" />
+                <StatWidget compact label="Aktif" value={statistik.aktif} icon={CheckCircle2} tone="green" />
+                <StatWidget compact label="Lunas" value={statistik.lunas} icon={CheckCircle2} tone="green" />
+                <StatWidget compact label="Ditolak" value={statistik.ditolak} icon={XCircle} tone="red" />
             </div>
 
             <Card className="mb-5">

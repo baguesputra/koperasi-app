@@ -38,6 +38,14 @@ class PinjamanController extends Controller
         return Inertia::render('Pinjaman/Index', [
             'pinjaman' => $pinjaman,
             'filters' => $request->only(['cari', 'status']),
+            'statistik' => [
+                'total' => Pinjaman::count(),
+                'diajukan' => Pinjaman::where('status', 'diajukan')->count(),
+                'approved_bendahara' => Pinjaman::where('status', 'approved_bendahara')->count(),
+                'aktif' => Pinjaman::where('status', 'aktif')->count(),
+                'lunas' => Pinjaman::where('status', 'lunas')->count(),
+                'ditolak' => Pinjaman::where('status', 'ditolak')->count(),
+            ],
         ]);
     }
 }

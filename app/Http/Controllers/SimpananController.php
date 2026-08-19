@@ -12,15 +12,20 @@ class SimpananController extends Controller
 {
     public function index(Request $request): Response
     {
-        $query = Anggota::query()->withSum('simpanan as total_simpanan', 'jumlah');
+        $daftarCabang = ['Banjarmasin', 'Samarinda', 'Palangka', 'Jakarta'];
+        $cabangAktif = $request->string('cabang');
 
-        // Total simpanan seharusnya TIDAK termasuk dana sosial - hitung terpisah
         $query = Anggota::query()
+            ->with(['simpanan' => fn ($q) => $q->latest('tanggal_input')])
             ->withSum(['simpanan as total_pokok_wajib' => fn ($q) => $q->whereIn('jenis', ['pokok', 'wajib'])], 'jumlah');
 
         if ($request->filled('cari')) {
             $cari = $request->string('cari');
             $query->where('nama', 'like', "%{$cari}%");
+        }
+
+        if ($cabangAktif->isNotEmpty()) {
+            $query->where('cabang', $cabangAktif);
         }
 
         $anggota = $query->orderBy('nama')
@@ -32,16 +37,31 @@ class SimpananController extends Controller
                 'no_anggota' => $a->no_anggota,
                 'cabang' => $a->cabang,
                 'total_simpanan' => (float) ($a->total_pokok_wajib ?? 0),
+                'riwayat' => $a->simpanan->map(fn ($s) => [
+                    'jenis' => $s->jenis,
+                    'jumlah' => (float) $s->jumlah,
+                    'bulan_periode' => $s->bulan_periode,
+                    'tanggal_input' => $s->tanggal_input->format('d M Y'),
+                ]),
             ]);
 
         $totalDanaSosialTerkumpul = Simpanan::where('jenis', 'dana_sosial')->sum('jumlah');
         $totalSimpananSeluruhAnggota = Simpanan::whereIn('jenis', ['pokok', 'wajib'])->sum('jumlah');
 
+        $totalSimpananTampil = $cabangAktif->isEmpty()
+            ? $totalSimpananSeluruhAnggota
+            : Simpanan::whereIn('jenis', ['pokok', 'wajib'])
+                ->whereHas('anggota', fn ($q) => $q->where('cabang', $cabangAktif))
+                ->sum('jumlah');
+
         return Inertia::render('Simpanan/Index', [
             'anggota' => $anggota,
-            'filters' => $request->only('cari'),
+            'filters' => $request->only(['cari', 'cabang']),
+            'cabangAktif' => $cabangAktif->value(),
+            'daftarCabang' => $daftarCabang,
             'totalDanaSosialTerkumpul' => (float) $totalDanaSosialTerkumpul,
             'totalSimpananSeluruhAnggota' => (float) $totalSimpananSeluruhAnggota,
+            'totalSimpananTampil' => (float) $totalSimpananTampil,
         ]);
     }
 

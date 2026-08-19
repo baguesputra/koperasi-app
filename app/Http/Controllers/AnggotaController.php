@@ -2,15 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\AnggotaTemplateExport;
+use App\Http\Requests\StoreAnggotaRequest;
+use App\Http\Requests\UpdateAnggotaRequest;
+use App\Imports\AnggotaImport;
 use App\Models\Anggota;
+use App\Models\AuditLog;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
-use App\Http\Requests\StoreAnggotaRequest;
-use App\Http\Requests\UpdateAnggotaRequest;
-use App\Models\AuditLog;
-use App\Exports\AnggotaTemplateExport;
-use App\Imports\AnggotaImport;
 use Maatwebsite\Excel\Facades\Excel;
 
 class AnggotaController extends Controller
@@ -23,7 +23,7 @@ class AnggotaController extends Controller
             $cari = $request->string('cari');
             $query->where(function ($q) use ($cari) {
                 $q->where('nama', 'like', "%{$cari}%")
-                  ->orWhere('no_anggota', 'like', "%{$cari}%");
+                    ->orWhere('no_anggota', 'like', "%{$cari}%");
             });
         }
 
@@ -61,6 +61,7 @@ class AnggotaController extends Controller
                 'nonaktif' => Anggota::where('status', 'nonaktif')->count(),
             ],
             'filters' => $request->only(['cari', 'cabang', 'status']),
+            'noAnggotaBerikutnya' => Anggota::generateNoAnggota(),
             'daftarCabang' => ['Banjarmasin', 'Samarinda', 'Palangka', 'Jakarta'],
         ]);
     }
@@ -102,8 +103,8 @@ class AnggotaController extends Controller
         if ($limitCustomLama != $request->limit_custom) {
             AuditLog::catat(
                 'update_limit_custom_anggota',
-                "Limit khusus untuk {$anggota->nama} diubah menjadi " .
-                    ($request->limit_custom ? 'Rp ' . number_format($request->limit_custom, 0, ',', '.') : 'dihapus (kembali ke aturan umum)') .
+                "Limit khusus untuk {$anggota->nama} diubah menjadi ".
+                    ($request->limit_custom ? 'Rp '.number_format($request->limit_custom, 0, ',', '.') : 'dihapus (kembali ke aturan umum)').
                     ". Alasan: {$request->limit_custom_keterangan}",
                 ['limit_custom' => $limitCustomLama],
                 ['limit_custom' => $request->limit_custom, 'keterangan' => $request->limit_custom_keterangan]
@@ -134,7 +135,7 @@ class AnggotaController extends Controller
         ]);
     }
 
-    public function importIndex(): \Inertia\Response
+    public function importIndex(): Response
     {
         return Inertia::render('Anggota/Import');
     }

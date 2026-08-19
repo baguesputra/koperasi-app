@@ -10,6 +10,7 @@ import PageHeader from '@/Components/ui/PageHeader';
 import TextField from '@/Components/ui/TextField';
 import Select from '@/Components/ui/Select';
 import Drawer from '@/Components/ui/Drawer';
+import CreateDrawer from './Partials/CreateDrawer';
 import EditDrawer from './Partials/EditDrawer';
 
 const jabatanLabel = { staff: 'Staff', hod: 'HOD' };
@@ -22,10 +23,19 @@ function formatLamaAnggota(tahun) {
     return `${tahun} tahun`;
 }
 
-export default function Index({ anggota, statistik, filters, daftarCabang }) {
+export default function Index({ anggota, statistik, filters, noAnggotaBerikutnya, daftarCabang }) {
     const [cari, setCari] = useState(filters.cari ?? '');
+    const [createOpen, setCreateOpen] = useState(false);
     const [editAnggota, setEditAnggota] = useState(null);
     const [drawerOpen, setDrawerOpen] = useState(false);
+
+    function bukaCreate() {
+        setCreateOpen(true);
+    }
+
+    function tutupCreate() {
+        setCreateOpen(false);
+    }
 
     function bukaEdit(a) {
         setEditAnggota(a);
@@ -59,10 +69,13 @@ export default function Index({ anggota, statistik, filters, daftarCabang }) {
                         <Upload size={18} />
                         Import Excel
                     </ButtonLink>
-                    <ButtonLink href={route('anggota.create')}>
+                    <button
+                        onClick={bukaCreate}
+                        className="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl bg-brand-green text-white hover:bg-brand-green/90 transition-colors"
+                    >
                         <Plus size={18} />
                         Tambah Anggota
-                    </ButtonLink>
+                    </button>
                 </div>
             </PageHeader>
 
@@ -189,6 +202,15 @@ export default function Index({ anggota, statistik, filters, daftarCabang }) {
                     ))}
                 </div>
             )}
+
+            <Drawer show={createOpen} title="Tambah Anggota" onClose={tutupCreate}>
+                <CreateDrawer
+                    key={noAnggotaBerikutnya}
+                    noAnggotaBerikutnya={noAnggotaBerikutnya}
+                    daftarCabang={daftarCabang}
+                    onClose={tutupCreate}
+                />
+            </Drawer>
 
             <Drawer show={drawerOpen} title={`Edit ${editAnggota?.nama ?? 'Anggota'}`} onClose={tutupEdit}>
                 {editAnggota && (
