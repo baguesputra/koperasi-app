@@ -1,32 +1,32 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
-use Illuminate\Foundation\Application;
-use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
-use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AnggotaController;
-use App\Http\Controllers\PengaturanController;
-use App\Http\Controllers\Portal\DashboardController as PortalDashboardController;
-use App\Http\Controllers\Portal\RiwayatController;
-use App\Http\Controllers\Portal\PinjamanController as PortalPinjamanController;
-use App\Http\Controllers\Bendahara\PinjamanController as BendaharaPinjamanController;
-use App\Http\Controllers\Ketua\PinjamanController as KetuaPinjamanController;
-use App\Http\Controllers\PinjamanController;
-use App\Http\Controllers\KasKoperasiController;
-use App\Http\Controllers\Bendahara\AngsuranController;
-use App\Http\Controllers\SimpananController;
-use App\Http\Controllers\Bendahara\SimpananController as BendaharaSimpananController;
-use App\Http\Controllers\RoleController;
-use App\Http\Controllers\Portal\ProfilController;
 use App\Http\Controllers\Auth\GantiPasswordWajibController;
 use App\Http\Controllers\Auth\SsoController;
-use App\Http\Controllers\PengeluaranController;
-use App\Http\Controllers\Portal\PengajuanLimitController as PortalPengajuanLimitController;
+use App\Http\Controllers\Bendahara\AngsuranController;
+use App\Http\Controllers\Bendahara\PengajuanPercepatanController as BendaharaPengajuanPercepatanController;
+use App\Http\Controllers\Bendahara\PinjamanController as BendaharaPinjamanController;
+use App\Http\Controllers\Bendahara\SimpananController as BendaharaSimpananController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\KasKoperasiController;
 use App\Http\Controllers\Ketua\PengajuanLimitController as KetuaPengajuanLimitController;
+use App\Http\Controllers\Ketua\PengajuanPercepatanController as KetuaPengajuanPercepatanController;
+use App\Http\Controllers\Ketua\PinjamanController as KetuaPinjamanController;
+use App\Http\Controllers\PengaturanController;
+use App\Http\Controllers\PengeluaranController;
+use App\Http\Controllers\PinjamanController;
+use App\Http\Controllers\Portal\DashboardController as PortalDashboardController;
+use App\Http\Controllers\Portal\PengajuanLimitController as PortalPengajuanLimitController;
+use App\Http\Controllers\Portal\PengajuanPercepatanController as PortalPengajuanPercepatanController;
+use App\Http\Controllers\Portal\PinjamanController as PortalPinjamanController;
+use App\Http\Controllers\Portal\ProfilController;
+use App\Http\Controllers\Portal\RiwayatController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SimpananController;
+use Illuminate\Support\Facades\Route;
 
-
-//--------------------- Portal SSO -------------------------
+// --------------------- Portal SSO -------------------------
 Route::get('/auth/sso/redirect', [SsoController::class, 'redirect'])->name('sso.redirect');
 Route::get('/auth/sso/callback', [SsoController::class, 'callback'])->name('sso.callback');
 // Route::get('/auth/sso/logout', [SsoController::class, 'logout'])
@@ -51,31 +51,32 @@ Route::get('/', function () {
     return redirect()->route('sso.redirect');
 });
 
-
 // ==========================================
 // PORTAL ANGGOTA
 // ==========================================
 Route::middleware(['auth', 'permission:portal.akses'])->prefix('portal')->name('portal.')->group(function () {
-    //Menu Utama
+    // Menu Utama
     Route::get('/dashboard', [PortalDashboardController::class, 'index'])->name('dashboard');
     Route::get('/riwayat', [RiwayatController::class, 'index'])->name('riwayat');
 
-    //------------ Pinjaman -----------------
+    // ------------ Pinjaman -----------------
     Route::get('/pinjaman/ajukan', [PortalPinjamanController::class, 'create'])->name('pinjaman.create');
     Route::post('/pinjaman/cek-nominal', [PortalPinjamanController::class, 'cekNominal'])->name('pinjaman.cek-nominal');
     Route::post('/pinjaman/simulasi', [PortalPinjamanController::class, 'simulasi'])->name('pinjaman.simulasi');
     Route::post('/pinjaman', [PortalPinjamanController::class, 'store'])->name('pinjaman.store');
     Route::get('/pinjaman/berhasil', [PortalPinjamanController::class, 'berhasil'])->name('pinjaman.berhasil');
 
-    //------------ Profile ----------------
+    // ------------ Profile ----------------
     Route::get('/profil', [ProfilController::class, 'index'])->name('profil');
     Route::post('/profil/rekening', [ProfilController::class, 'storeRekening'])->name('profil.rekening.store');
     Route::put('/profil/rekening/{rekening}/default', [ProfilController::class, 'setDefaultRekening'])->name('profil.rekening.default');
     Route::delete('/profil/rekening/{rekening}', [ProfilController::class, 'destroyRekening'])->name('profil.rekening.destroy');
 
-    //------------ Pengajuan Limit ----------------
+    // ------------ Pengajuan Limit ----------------
     Route::get('/pengajuan-limit', [PortalPengajuanLimitController::class, 'create'])->name('pengajuan-limit.create');
     Route::post('/pengajuan-limit', [PortalPengajuanLimitController::class, 'store'])->name('pengajuan-limit.store');
+    Route::post('/pengajuan-percepatan', [PortalPengajuanPercepatanController::class, 'store'])->name('pengajuan-percepatan.store');
+    Route::post('/pengajuan-percepatan/preview', [PortalPengajuanPercepatanController::class, 'preview'])->name('pengajuan-percepatan.preview');
 });
 
 // ==========================================
@@ -136,7 +137,7 @@ Route::middleware(['auth', 'permission:pengaturan.kelola', 'password.confirm'])-
     Route::delete('/pengaturan/tenor/{tenor}', [PengaturanController::class, 'destroyTenor'])->name('pengaturan.tenor.destroy');
     Route::post('/pengaturan/bunga', [PengaturanController::class, 'updateBunga'])->name('pengaturan.bunga.update');
     Route::post('/pengaturan/simpanan/{setting}', [PengaturanController::class, 'updateSimpanan'])->name('pengaturan.simpanan.update');
-    //--------- Role ------------
+    // --------- Role ------------
     Route::get('/role', [RoleController::class, 'index'])->name('role.index');
     Route::post('/role', [RoleController::class, 'store'])->name('role.store');
     Route::get('/role/{role}/edit', [RoleController::class, 'edit'])->name('role.edit');
@@ -158,6 +159,12 @@ Route::middleware(['auth', 'permission:pinjaman.tinjau-bendahara'])->prefix('ben
 Route::middleware(['auth', 'permission:angsuran.konfirmasi'])->prefix('bendahara')->name('bendahara.')->group(function () {
     Route::get('/angsuran', [AngsuranController::class, 'index'])->name('angsuran.index');
     Route::post('/angsuran/konfirmasi', [AngsuranController::class, 'konfirmasi'])->name('angsuran.konfirmasi');
+    Route::post('/angsuran/percepatan/konfirmasi', [AngsuranController::class, 'konfirmasiPercepatan'])->name('angsuran.percepatan.konfirmasi');
+});
+
+Route::middleware(['auth', 'permission:percepatan.tinjau-bendahara'])->prefix('bendahara')->name('bendahara.')->group(function () {
+    Route::get('/pengajuan-percepatan', [BendaharaPengajuanPercepatanController::class, 'index'])->name('pengajuan-percepatan.index');
+    Route::post('/pengajuan-percepatan/{pengajuanPercepatan}/keputusan', [BendaharaPengajuanPercepatanController::class, 'keputusan'])->name('pengajuan-percepatan.keputusan');
 });
 
 Route::middleware(['auth', 'permission:simpanan.konfirmasi'])->prefix('bendahara')->name('bendahara.')->group(function () {
@@ -179,6 +186,11 @@ Route::middleware(['auth', 'permission:pinjaman.approve-ketua'])->prefix('ketua'
     Route::post('/pengajuan-limit/{pengajuanLimit}/reject', [KetuaPengajuanLimitController::class, 'reject'])->name('pengajuan-limit.reject');
 });
 
+Route::middleware(['auth', 'permission:percepatan.approve-ketua'])->prefix('ketua')->name('ketua.')->group(function () {
+    Route::get('/pengajuan-percepatan', [KetuaPengajuanPercepatanController::class, 'index'])->name('pengajuan-percepatan.index');
+    Route::post('/pengajuan-percepatan/{pengajuanPercepatan}/keputusan', [KetuaPengajuanPercepatanController::class, 'keputusan'])->name('pengajuan-percepatan.keputusan');
+});
+
 // ==========================================
 // PROFILE (semua user login)
 // ==========================================
@@ -189,7 +201,6 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
-
 
 Route::middleware(['auth', 'permission:kas.lihat'])->group(function () {
     Route::get('/pengeluaran', [PengeluaranController::class, 'index'])->name('pengeluaran.index');

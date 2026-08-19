@@ -61,4 +61,36 @@ class PersetujuanPinjamanService
             'catatan_ketua' => $catatan,
         ]);
     }
+
+    public function cairBendahara(Pinjaman $pinjaman, string $catatan): void
+    {
+        if ($pinjaman->status !== 'approved_bendahara') {
+            throw new RuntimeException('Pinjaman belum disetujui Bendahara.');
+        }
+
+        if ($pinjaman->tanggal_pencairan) {
+            throw new RuntimeException('Pinjaman sudah dicairkan.');
+        }
+
+        DB::transaction(function () use ($pinjaman, $catatan) {
+            $pinjaman->update([
+                'status' => 'aktif',
+                'catatan_bendahara' => $catatan ?: $pinjaman->catatan_bendahara,
+                'tanggal_pencairan' => now(),
+            ]);
+
+            $this->bunga->simpanJadwal($pinjaman);
+
+            $this->jurnalKas->catat(
+                tipe: 'keluar',
+                kategori: 'pencairan_pinjaman',
+                kantong: 'pinjaman',
+                jumlah: (float) $pinjaman->nominal,
+                keterangan: "Pencairan pinjaman - {$pinjaman->anggota->nama}",
+                referensiId: $pinjaman->id,
+                tanggal: now()->format('Y-m-d'),
+                userId: auth()->id(),
+            );
+        });
+    }
 }

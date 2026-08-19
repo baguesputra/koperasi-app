@@ -111,6 +111,7 @@ class DashboardController extends Controller
                 'sisa_angsuran' => $pinjamanAktif->sisaAngsuran(),
                 'total_angsuran' => $pinjamanAktif->angsuran()->count(),
                 'sisa_total_bayar' => (float) $sisaTotalBayar,
+                'sudah_pernah_percepatan' => $pinjamanAktif->pengajuanPercepatan()->exists(),
             ] : null,
             'pengajuanBerjalan' => $pengajuanBerjalan ? [
                 'nominal' => (float) $pengajuanBerjalan->nominal,

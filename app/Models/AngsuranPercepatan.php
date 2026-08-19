@@ -6,14 +6,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Angsuran extends Model
+class AngsuranPercepatan extends Model
 {
     use HasFactory;
 
-    protected $table = 'angsuran';
+    protected $table = 'angsuran_percepatan';
 
     protected $fillable = [
-        'pinjaman_id',
         'pengajuan_percepatan_id',
         'cicilan_ke',
         'nominal_pokok',
@@ -32,11 +31,6 @@ class Angsuran extends Model
         'tanggal_jatuh_tempo' => 'date',
         'tanggal_konfirmasi_bayar' => 'date',
     ];
-
-    public function pinjaman(): BelongsTo
-    {
-        return $this->belongsTo(Pinjaman::class);
-    }
 
     public function pengajuanPercepatan(): BelongsTo
     {

@@ -1,9 +1,9 @@
 import AnggotaLayout from '@/Layouts/AnggotaLayout';
-import { Head, router, Link } from '@inertiajs/react';
-import { useState } from 'react';
+import { Head, router, Link, useForm, usePage } from '@inertiajs/react';
+import { useState, useEffect } from 'react';
 import {
     ChevronDown, CheckCircle2, Clock, XCircle, ArrowLeft,
-    HandCoins, PiggyBank, TrendingUp,
+    HandCoins, PiggyBank, TrendingUp, FastForward, AlertCircle,
 } from 'lucide-react';
 import { formatRupiah } from '@/Utils/formatCurrency';
 
@@ -33,7 +33,7 @@ const statusIcon = {
 
 const jenisSimpananLabel = { pokok: 'Simpanan Pokok', wajib: 'Simpanan Wajib', dana_sosial: 'Dana Sosial' };
 
-export default function Riwayat({ pinjaman, simpanan, daftarBulanTersedia, bulanFilter, ringkasan }) {
+export default function Riwayat({ pinjaman, simpanan, daftarBulanTersedia, bulanFilter, ringkasan, autoPercepatan }) {
     const [tab, setTab] = useState('pinjaman');
 
     return (
@@ -95,7 +95,7 @@ export default function Riwayat({ pinjaman, simpanan, daftarBulanTersedia, bulan
                 </button>
             </div>
 
-            {tab === 'pinjaman' && <RiwayatPinjaman pinjaman={pinjaman} />}
+            {tab === 'pinjaman' && <RiwayatPinjaman pinjaman={pinjaman} autoPercepatan={autoPercepatan} />}
             {tab === 'simpanan' && (
                 <RiwayatSimpanan
                     simpanan={simpanan}
@@ -107,8 +107,72 @@ export default function Riwayat({ pinjaman, simpanan, daftarBulanTersedia, bulan
     );
 }
 
-function RiwayatPinjaman({ pinjaman }) {
+function RiwayatPinjaman({ pinjaman, autoPercepatan }) {
+    const { errors } = usePage().props;
     const [expandedId, setExpandedId] = useState(null);
+    const [formPinjaman, setFormPinjaman] = useState(null);
+    const [tipe, setTipe] = useState('ubah_tenor');
+    const [tenorBaru, setTenorBaru] = useState('');
+    const [keterangan, setKeterangan] = useState('');
+    const [preview, setPreview] = useState(null);
+
+    function bukaForm(p, tipeDipilih) {
+        setFormPinjaman(p);
+        setTipe(tipeDipilih);
+        setTenorBaru('');
+        setKeterangan('');
+        setPreview(null);
+    }
+
+    function fetchPreview() {
+        if (!formPinjaman) return;
+        setPreview(null);
+        fetch(route('portal.pengajuan-percepatan.preview'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'),
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify({
+                pinjaman_id: formPinjaman.id,
+                tipe,
+                tenor_baru: tipe === 'ubah_tenor' ? (tenorBaru ? parseInt(tenorBaru, 10) : null) : null,
+            }),
+        })
+            .then((r) => r.json())
+            .then((d) => setPreview(d))
+            .catch(() => setPreview(null));
+    }
+
+    // Auto-buka formulir percepatan bila diarahkan dari dashboard (?percepatan=1)
+    useEffect(() => {
+        if (!autoPercepatan) return;
+        const target = pinjaman.find((p) => p.status === 'aktif' && !p.sudah_pernah_percepatan);
+        if (target) {
+            setExpandedId(target.id);
+            bukaForm(target, 'ubah_tenor');
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    useEffect(() => {
+        if (formPinjaman) {
+            fetchPreview();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [formPinjaman, tipe, tenorBaru]);
+
+    function kirim(e) {
+        e.preventDefault();
+        router.post(route('portal.pengajuan-percepatan.store'), {
+            pinjaman_id: formPinjaman.id,
+            tipe,
+            tenor_baru: tenorBaru ? parseInt(tenorBaru, 10) : null,
+            keterangan,
+        }, { preserveScroll: true, onSuccess: () => setFormPinjaman(null) });
+    }
 
     if (pinjaman.length === 0) {
         return (
@@ -162,6 +226,133 @@ function RiwayatPinjaman({ pinjaman }) {
 
                         {isExpanded && (
                             <div className="border-t border-slate-100">
+                                {p.status === 'aktif' && !p.sudah_pernah_percepatan && (
+                                    <div className="p-4 bg-brand-green-light/40 border-b border-slate-100 flex flex-wrap items-center gap-3">
+                                        <FastForward size={18} className="text-brand-green-dark" />
+                                        <span className="text-sm font-semibold text-slate-700">Ajukan Percepatan</span>
+                                        <button onClick={() => bukaForm(p, 'ubah_tenor')} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50">Ubah Tenor</button>
+                                        <button onClick={() => bukaForm(p, 'lunas_total')} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50">Lunas Sekarang</button>
+                                    </div>
+                                )}
+
+                                {formPinjaman?.id === p.id && (
+                                    <form onSubmit={kirim} className="p-4 border-b border-slate-100 space-y-3 bg-slate-50">
+                                        <p className="text-sm font-semibold text-slate-700">
+                                            {tipe === 'ubah_tenor' ? 'Ubah Tenor' : 'Lunas Sekarang'}
+                                        </p>
+
+                                        {tipe === 'ubah_tenor' && (
+                                            <div>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    value={tenorBaru}
+                                                    onChange={(e) => setTenorBaru(e.target.value)}
+                                                    placeholder="Tenor baru (bulan)"
+                                                    className="w-full px-4 py-2.5 text-sm rounded-xl border border-slate-300 bg-white focus:border-brand-green outline-none"
+                                                />
+                                                {preview?.tenor_maksimal && (
+                                                    <p className="text-xs text-slate-400 mt-1">
+                                                        Maksimal tenor untuk nominal ini: {preview.tenor_maksimal} bulan
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        <textarea
+                                            value={keterangan}
+                                            onChange={(e) => setKeterangan(e.target.value)}
+                                            rows={3}
+                                            placeholder="Alasan pengajuan (min 10 karakter)"
+                                            className="w-full px-4 py-2.5 text-sm rounded-xl border border-slate-300 bg-white focus:border-brand-green outline-none"
+                                        />
+
+                                        {preview?.error && (
+                                            <p className="text-xs font-semibold text-red-600">{preview.error}</p>
+                                        )}
+
+                                        {preview && !preview.error && preview.jadwal?.length > 0 && (
+                                            <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+                                                <div className="flex items-center gap-2 px-3 py-2.5 bg-brand-green-light/50 border-b border-slate-200">
+                                                    <FastForward size={16} className="text-brand-green-dark" />
+                                                    <p className="text-sm font-bold text-slate-800">
+                                                        {tipe === 'ubah_tenor' ? 'Simulasi Ubah Tenor' : 'Simulasi Lunas Sekarang'}
+                                                    </p>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-px bg-slate-100">
+                                                    <div className="bg-slate-50 px-3 py-2.5">
+                                                        <p className="text-[11px] text-slate-400">Sisa Pokok</p>
+                                                        <p className="text-sm font-bold text-slate-800">{formatRupiah(preview.sisa_pokok)}</p>
+                                                    </div>
+                                                    {tipe === 'ubah_tenor' ? (
+                                                        <div className="bg-slate-50 px-3 py-2.5">
+                                                            <p className="text-[11px] text-slate-400">Tenor</p>
+                                                            <p className="text-sm font-bold text-slate-800">
+                                                                {formPinjaman.tenor_bulan} &rarr; {tenorBaru || '?'} bln
+                                                            </p>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="bg-slate-50 px-3 py-2.5">
+                                                            <p className="text-[11px] text-slate-400">Total Dibayar</p>
+                                                            <p className="text-sm font-bold text-slate-800">{formatRupiah(preview.nominal_final)}</p>
+                                                        </div>
+                                                    )}
+                                                    <div className="bg-slate-50 px-3 py-2.5 col-span-2 sm:col-span-1">
+                                                        <p className="text-[11px] text-slate-400">Estimasi Total</p>
+                                                        <p className="text-sm font-bold text-brand-navy">
+                                                            {formatRupiah(preview.jadwal.reduce((s, j) => s + j.total_bayar, 0))}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="px-3 pt-2.5">
+                                                    <p className="text-[11px] font-semibold text-slate-400 mb-1">Rincian cicilan per bulan</p>
+                                                </div>
+                                                <div className="max-h-48 overflow-y-auto border-t border-slate-100">
+                                                    <table className="w-full text-xs">
+                                                        <thead className="sticky top-0 bg-white">
+                                                            <tr className="text-slate-400 text-left">
+                                                                <th className="font-medium px-3 py-1.5">Cicilan</th>
+                                                                <th className="font-medium px-3 py-1.5">Jatuh Tempo</th>
+                                                                <th className="font-medium px-3 py-1.5 text-right">Pokok</th>
+                                                                <th className="font-medium px-3 py-1.5 text-right">Bunga</th>
+                                                                <th className="font-medium px-3 py-1.5 text-right">Total</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-slate-50">
+                                                            {preview.jadwal.map((j) => (
+                                                                <tr key={j.cicilan_ke} className="text-slate-600">
+                                                                    <td className="px-3 py-1.5 font-semibold text-slate-700">ke-{j.cicilan_ke}</td>
+                                                                    <td className="px-3 py-1.5 text-slate-400">{j.tanggal_jatuh_tempo}</td>
+                                                                    <td className="px-3 py-1.5 text-right text-brand-navy">{formatRupiah(j.nominal_pokok)}</td>
+                                                                    <td className="px-3 py-1.5 text-right text-amber-600">{formatRupiah(j.nominal_bunga)}</td>
+                                                                    <td className="px-3 py-1.5 text-right font-semibold text-slate-800">{formatRupiah(j.total_bayar)}</td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {errors?.percepatan && (
+                                            <p className="text-xs font-semibold text-red-600">{errors.percepatan}</p>
+                                        )}
+
+                                        <div className="flex gap-2">
+                                            <button
+                                                type="submit"
+                                                disabled={preview?.error || (tipe === 'ubah_tenor' && !tenorBaru)}
+                                                className="text-sm font-semibold px-4 py-2 rounded-lg bg-brand-green text-white hover:bg-brand-green/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                Kirim
+                                            </button>
+                                            <button type="button" onClick={() => setFormPinjaman(null)} className="text-sm font-semibold px-4 py-2 rounded-lg border border-slate-300 text-slate-600">Batal</button>
+                                        </div>
+                                    </form>
+                                )}
+
                                 {p.keperluan && (
                                     <div className="p-4 bg-slate-50 border-b border-slate-100">
                                         <p className="text-xs text-slate-400 mb-0.5">Keperluan</p>
@@ -183,13 +374,13 @@ function RiwayatPinjaman({ pinjaman }) {
                                     </div>
                                 )}
 
-                                {p.angsuran.length === 0 ? (
+                                {p.angsuran.filter((a) => a.status !== 'digantikan').length === 0 ? (
                                     <p className="p-5 text-sm text-slate-400">
                                         Jadwal angsuran belum tersedia (pinjaman belum aktif).
                                     </p>
                                 ) : (
                                     <div className="divide-y divide-slate-50">
-                                        {p.angsuran.map((a) => (
+                                        {p.angsuran.filter((a) => a.status !== 'digantikan').map((a) => (
                                             <div key={a.cicilan_ke} className="flex items-center justify-between px-5 py-3">
                                                 <div className="flex items-center gap-3">
                                                     {a.status === 'lunas' ? (
@@ -212,6 +403,35 @@ function RiwayatPinjaman({ pinjaman }) {
                                                 </p>
                                             </div>
                                         ))}
+                                    </div>
+                                )}
+
+                                {p.percepatan && p.percepatan.length > 0 && (
+                                    <div className="p-4 border-b border-slate-100">
+                                        <p className="text-xs font-semibold text-slate-500 mb-2">Riwayat Perubahan Tenor</p>
+                                        <div className="space-y-3">
+                                            {p.percepatan.map((pp) => (
+                                                <div key={pp.id} className="rounded-xl border border-slate-200 p-3">
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <p className="text-sm font-semibold text-slate-700">
+                                                            {pp.tipe === 'lunas_total' ? 'Lunas Sekarang' : `Ubah Tenor ${pp.tenor_lama} \u2192 ${pp.tenor_baru}`}
+                                                        </p>
+                                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusStyle[pp.status]}`}>{statusLabel[pp.status]}</span>
+                                                    </div>
+                                                    {pp.tipe === 'lunas_total' && (
+                                                        <p className="text-xs text-slate-400 mb-1">Nominal final: {formatRupiah(pp.nominal_final)}</p>
+                                                    )}
+                                                    <div className="space-y-1">
+                                                        {pp.angsuran_baru.map((a) => (
+                                                            <div key={a.cicilan_ke} className="flex items-center justify-between text-xs">
+                                                                <span className="text-slate-500">Cicilan ke-{a.cicilan_ke} \u00b7 {a.tanggal_jatuh_tempo}</span>
+                                                                <span className="font-semibold text-slate-700">{formatRupiah(a.total_bayar)}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
                             </div>

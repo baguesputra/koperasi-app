@@ -56,6 +56,16 @@ class Pinjaman extends Model
         return $this->hasMany(Angsuran::class);
     }
 
+    public function pengajuanPercepatan(): HasMany
+    {
+        return $this->hasMany(PengajuanPercepatan::class);
+    }
+
+    public function pengajuanPercepatanAktif()
+    {
+        return $this->hasOne(PengajuanPercepatan::class)->where('status', 'aktif');
+    }
+
     public function angsuranBelumBayar(): HasMany
     {
         return $this->angsuran()->where('status', 'belum_bayar');

@@ -14,6 +14,7 @@ class RoleSeeder extends Seeder
             'anggota.lihat', 'anggota.kelola',
             'simpanan.lihat',
             'pinjaman.lihat',
+            'percepatan.tinjau-bendahara', 'percepatan.approve-ketua',
             'kas.lihat',
             'laporan.lihat',
             'pengaturan.kelola',
@@ -23,7 +24,7 @@ class RoleSeeder extends Seeder
         $bendahara->syncPermissions([
             'anggota.lihat',
             'simpanan.lihat', 'simpanan.konfirmasi',
-            'pinjaman.lihat', 'pinjaman.tinjau-bendahara',
+            'pinjaman.lihat', 'pinjaman.tinjau-bendahara', 'percepatan.tinjau-bendahara',
             'angsuran.konfirmasi',
             'kas.lihat', 'kas.topup',
             'laporan.lihat',
@@ -34,7 +35,7 @@ class RoleSeeder extends Seeder
         $ketua->syncPermissions([
             'anggota.lihat',
             'simpanan.lihat',
-            'pinjaman.lihat', 'pinjaman.approve-ketua',
+            'pinjaman.lihat', 'pinjaman.approve-ketua', 'percepatan.approve-ketua',
             'kas.lihat',
             'laporan.lihat',
             'portal.akses',

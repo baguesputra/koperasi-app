@@ -3,7 +3,7 @@ import { Head, Link } from '@inertiajs/react';
 import {
     PiggyBank, Wallet, TrendingUp, ArrowRight, CheckCircle2,
     ArrowDownCircle, Clock, XCircle, Info, Calendar,
-    ShieldCheck, Percent,
+    ShieldCheck, Percent, FastForward,
 } from 'lucide-react';
 import { formatRupiah } from '@/Utils/formatCurrency';
 
@@ -150,6 +150,29 @@ export default function Dashboard({
                             <p className="text-sm text-slate-500">
                                 {pinjamanAktif.sisa_angsuran} dari {pinjamanAktif.total_angsuran} cicilan tersisa
                             </p>
+                        </div>
+                    )}
+
+                    {pinjamanAktif && !pinjamanAktif.sudah_pernah_percepatan && (
+                        <div className="bg-brand-green-light/50 border border-brand-green/20 rounded-2xl p-5 flex items-center justify-between flex-wrap gap-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-11 h-11 rounded-xl bg-brand-green text-white flex items-center justify-center shrink-0">
+                                    <FastForward size={20} />
+                                </div>
+                                <div>
+                                    <p className="text-base font-bold text-slate-800">Lunasi Lebih Cepat</p>
+                                    <p className="text-sm text-slate-500">
+                                        Ubah tenor cicilan atau lunasi sekaligus untuk mengurangi beban bunga.
+                                    </p>
+                                </div>
+                            </div>
+                            <Link
+                                href={route('portal.riwayat', { percepatan: 1 })}
+                                className="shrink-0 inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-bold rounded-xl bg-brand-green text-white hover:bg-brand-green-dark transition-colors"
+                            >
+                                Ajukan Percepatan
+                                <ArrowRight size={16} />
+                            </Link>
                         </div>
                     )}
 

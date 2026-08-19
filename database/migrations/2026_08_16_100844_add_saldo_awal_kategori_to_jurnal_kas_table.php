@@ -1,13 +1,15 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     public function up(): void
     {
+        if (DB::getDriverName() !== 'mysql') {
+            return;
+        }
+
         DB::statement("ALTER TABLE jurnal_kas MODIFY COLUMN kategori ENUM(
             'saldo_awal',
             'topup_bulanan',
@@ -21,6 +23,10 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (DB::getDriverName() !== 'mysql') {
+            return;
+        }
+
         DB::statement("ALTER TABLE jurnal_kas MODIFY COLUMN kategori ENUM(
             'topup_bulanan',
             'pencairan_pinjaman',
