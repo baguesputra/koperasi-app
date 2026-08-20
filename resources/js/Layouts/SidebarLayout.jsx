@@ -2,7 +2,7 @@ import Sidebar from './Partials/Sidebar';
 import { Link, usePage } from '@inertiajs/react';
 import { Settings, ChevronDown } from 'lucide-react';
 import Dropdown from '@/Components/Dropdown';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export default function SidebarLayout({ children }) {
     const { auth } = usePage().props;
@@ -13,17 +13,52 @@ export default function SidebarLayout({ children }) {
     const [collapsed, setCollapsed] = useState(
         () => typeof window !== 'undefined' && localStorage.getItem('sidebar-collapsed') === '1',
     );
+    const [hovered, setHovered] = useState(false);
+    const [menutup, setMenutup] = useState(false);
+    const timerMenutup = useRef(null);
+
+    const expanding = collapsed && hovered;
+    const elevating = collapsed && (hovered || menutup);
+
+    useEffect(() => () => clearTimeout(timerMenutup.current), []);
+
+    function sidebarMasuk() {
+        clearTimeout(timerMenutup.current);
+        if (collapsed) {
+            setHovered(true);
+            setMenutup(false);
+        }
+    }
+
+    function sidebarKeluar() {
+        setHovered(false);
+        if (!collapsed) {
+            return;
+        }
+        setMenutup(true);
+        timerMenutup.current = setTimeout(() => setMenutup(false), 320);
+    }
+
     const toggleSidebar = () =>
         setCollapsed((prev) => {
             const next = !prev;
             localStorage.setItem('sidebar-collapsed', next ? '1' : '0');
+            clearTimeout(timerMenutup.current);
+            setHovered(false);
+            setMenutup(false);
             return next;
         });
 
     return (
         <div className="flex min-h-screen bg-slate-50">
-            <div className="sticky top-0 h-screen shrink-0 p-3">
-                <Sidebar collapsed={collapsed} onToggle={toggleSidebar} />
+            <div
+                onMouseEnter={sidebarMasuk}
+                onMouseLeave={sidebarKeluar}
+                className={`sticky top-0 h-screen shrink-0 p-3 transition-[width] duration-300 ${
+                    collapsed ? 'w-[88px]' : 'w-[280px]'
+                } ${elevating ? 'z-50' : ''}`}
+            >
+                <Sidebar collapsed={collapsed} expanding={expanding} onToggle={toggleSidebar} />
             </div>
 
             <div className="flex-1 flex flex-col min-w-0">

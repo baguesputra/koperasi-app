@@ -195,20 +195,40 @@ Summary hasil meeting dengan koperasi 15 Agustus 2026
 - [x] Testing fitur perubahan tenor
 - [x] Data summary dashboad disamakan dengan menu kas koperasi agar tidak ada miss data
 - [x] fitur kelola user dan tambah anggota otomatis buat user
-- [ ] rule penambahan pinjaman dibuka dan bisa sekali saja penambahan
-- [ ] validasi untuk perubahan tenor hanya sekali belum ada, validasi pengajuan limit tambah belum ada
 - [x] Menu angsuran dibuat tab dibedakan tiap cabang termasuk konfirmasi simpanan
+- [x] tambah anggota otomatis buat user juga
+- [x] sidebar notifikasi menu perubahan tenor, pengajuan limit belum ada
+
+
+# Testing Checklist — Koperasi App
+**Tanggal:** 21 Agustus 2026
 - [ ] Pembuatan fitur anggota resign summary simpanan dan angsuran berjalan
-- [ ] import excel atau tambah anggota otomatis buat user juga
-- [ ] sidebar notifikasi menu perubahan tenor, pengajuan limit belum ada
-
-
+- [ ] validasi untuk perubahan tenor sudah pengajuan dan sesudah approve pengajuan belum ada, validasi pengajuan limit setelah approve  belum ada
 - [ ] Gabung jadi 1 halaman approval bendahara dan ketua
 - [ ] Menambah idempotency key jika terjadi double klik action crud
-- [ ] Perancangan audit trail dari sisi keuangan
-- [ ] Menambah reconciliation otomatis
 
+- [ ] Menambah reconciliation otomatis
+- [ ] rule penambahan pinjaman dibuka dan bisa sekali saja penambahan
+- [ ] import excel anggota otomatis buat user juga
+
+
+# Testing Checklist — Koperasi App
+**Tanggal:** 24 - 28 Agustus 2026
+- [ ] Perancangan audit trail dari sisi keuangan
+- [ ] Bukti invoice peminjaman yang bisa dicetak setelah di approve pengajuan peminjaman
 - [ ] notifikasi setelah pengajuan awal, setelah approve bendahara dan approve ketua
 - [ ] notifikasi angsuran dan simpanan sudah terbayarkan ke bendahara atau ketua
-- [ ] fitur edit ajuan pinjaman (tenor) dari pihak bendahara dan ketua
+- [ ] Pembuatan api untuk aplikasi mobile dan aplikasi core lain nya
 - [ ] multi tenant ( opsional )
+
+
+# Optimisasi — Koperasi App
+**Tanggal:** Dilakukan setelah fitur sesuai semua
+- [ ] Pembuatan indexing, procedure, dan function agar sistem tidak berat
+- [ ] pengecekan query agar tidak terjadi N+1
+- [ ] penggunaan redis
+- [ ] optimisasi laravel dengan 
+- [ ] penggunaan queue untuk proses pengiriman whatsapp, generate pdf
+- [ ] penggunaan lazy loading dan skeleton loading
+- [ ] plugin laravel octane (opsional)
+

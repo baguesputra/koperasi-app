@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\PengajuanLimit;
+use App\Models\PengajuanPercepatan;
 use App\Models\Pinjaman;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -58,12 +60,15 @@ class HandleInertiaRequests extends Middleware
 
                 if ($permissions->contains('pinjaman.tinjau-bendahara')) {
                     $notifications['menunggu_tinjauan_bendahara'] = Pinjaman::where('status', 'diajukan')->count();
+                    $notifications['menunggu_perubahan_tenor_bendahara'] = PengajuanPercepatan::where('status', 'diajukan')->count();
                 }
 
                 if ($permissions->contains('pinjaman.approve-ketua')) {
                     $notifications['menunggu_approval_ketua'] = Pinjaman::where('status', 'approved_bendahara')
                         ->where('cair_oleh_bendahara', false)
                         ->count();
+                    $notifications['menunggu_perubahan_tenor_ketua'] = PengajuanPercepatan::where('status', 'approved_bendahara')->count();
+                    $notifications['menunggu_pengajuan_limit'] = PengajuanLimit::where('status', 'diajukan')->count();
                 }
 
                 return $notifications;
