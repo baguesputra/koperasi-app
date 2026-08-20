@@ -1,8 +1,9 @@
 import AppLayout from '@/Layouts/AppLayout';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import {
-    Users, PiggyBank, HandCoins, Wallet, TrendingUp, HeartHandshake,
-    ClipboardCheck, ShieldCheck, AlertCircle, CalendarClock,
+    Users, PiggyBank, HandCoins, Wallet, TrendingUp, HeartHandshake, Landmark,
+    ClipboardCheck, ShieldCheck, AlertCircle, CalendarClock, FileClock, Gauge,
+    ChevronRight,
     HandCoins as PinjamanIcon, CheckCircle2,
 } from 'lucide-react';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -13,21 +14,28 @@ import { formatRupiah, formatRupiahSingkat } from '@/Utils/formatCurrency';
 import { statusStyle } from '@/Utils/status';
 
 export default function Dashboard({ stats, actionable, grafikTren, grafikKas, aktivitasTerbaru }) {
+    const { auth } = usePage().props;
+    const aksesBendahara = auth.user?.permissions?.includes('pinjaman.tinjau-bendahara');
+
     const widgets = [
         { label: 'Total Anggota Aktif', value: stats.total_anggota_aktif, icon: Users, tone: 'navy' },
         { label: 'Total Simpanan', value: formatRupiah(stats.total_simpanan), icon: PiggyBank, tone: 'green' },
         { label: 'Pinjaman Outstanding', value: formatRupiah(stats.pinjaman_outstanding), icon: HandCoins, tone: 'amber' },
-        { label: 'Saldo Kas Koperasi', value: formatRupiah(stats.saldo_kas), icon: Wallet, tone: 'navy' },
+        { label: 'Saldo Dana Pinjaman', value: formatRupiah(stats.saldo_dana_pinjaman), icon: Wallet, tone: 'navy' },
+        { label: 'Saldo Dana Sosial', value: formatRupiah(stats.saldo_dana_sosial), icon: HeartHandshake, tone: 'amber' },
         { label: 'Keuntungan Bulan Ini', value: formatRupiah(stats.keuntungan_bulan_ini), icon: TrendingUp, tone: 'green' },
-        { label: 'Dana Sosial Terkumpul', value: formatRupiah(stats.total_dana_sosial), icon: HeartHandshake, tone: 'amber' },
     ];
 
     const actionItems = [
         { label: 'Menunggu Tinjauan Bendahara', value: actionable.menunggu_tinjauan_bendahara, icon: ClipboardCheck, href: route('bendahara.pinjaman.index'), urgent: actionable.menunggu_tinjauan_bendahara > 0 },
         { label: 'Menunggu Approval Ketua', value: actionable.menunggu_approval_ketua, icon: ShieldCheck, href: route('ketua.pinjaman.index'), urgent: actionable.menunggu_approval_ketua > 0 },
+        { label: 'Approval Perubahan Tenor', value: actionable.perubahan_tenor, icon: FileClock, href: aksesBendahara ? route('bendahara.percepatan.index') : route('ketua.percepatan.index'), urgent: actionable.perubahan_tenor > 0 },
+        { label: 'Pengajuan Limit', value: actionable.pengajuan_limit, icon: Gauge, href: route('ketua.pengajuan-limit.index'), urgent: actionable.pengajuan_limit > 0 },
         { label: 'Anggota Belum Simpanan Bulan Ini', value: actionable.anggota_belum_simpanan, icon: AlertCircle, href: route('bendahara.simpanan.index'), urgent: actionable.anggota_belum_simpanan > 0 },
         { label: 'Angsuran Jatuh Tempo Bulan Ini', value: actionable.angsuran_jatuh_tempo, icon: CalendarClock, href: route('bendahara.angsuran.index'), urgent: actionable.angsuran_jatuh_tempo > 0 },
     ];
+
+    const jumlahMenunggu = actionItems.filter((item) => item.value > 0).length;
 
     return (
         <AppLayout>
@@ -74,36 +82,63 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                     </ResponsiveContainer>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 -mt-16 lg:-mt-24 relative z-10">
-                    {widgets.map((w) => (
-                        <StatWidget compact key={w.label} label={w.label} value={w.value} icon={w.icon} tone={w.tone} />
-                    ))}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 -mt-16 lg:-mt-24 relative z-10">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:col-span-2 lg:col-span-3">
+                        {widgets.map((w) => (
+                            <StatWidget compact key={w.label} label={w.label} value={w.value} icon={w.icon} tone={w.tone} />
+                        ))}
+                    </div>
+                    <div className="bg-brand-navy rounded-2xl p-5 text-white flex flex-col justify-between sm:col-span-2 lg:col-span-1 lg:min-h-full">
+                        <div>
+                            <div className="w-10 h-10 rounded-xl bg-white/10 text-brand-green flex items-center justify-center mb-3">
+                                <Landmark size={20} />
+                            </div>
+                            <p className="text-sm text-slate-300">Saldo Total</p>
+                            <p className="text-3xl font-bold mt-1 leading-tight">{formatRupiah(stats.total_keseluruhan)}</p>
+                        </div>
+                        <p className="text-xs text-slate-300 mt-4 leading-snug">Dana pinjaman + dana sosial + simpanan anggota</p>
+                    </div>
                 </div>
             </div>
 
             {/* Perlu Ditindaklanjuti */}
             <div className="mb-6">
-                <p className="text-base font-bold text-slate-700 mb-3">Perlu Ditindaklanjuti</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="flex items-center justify-between mb-3">
+                    <p className="text-base font-bold text-slate-700">Perlu Ditindaklanjuti</p>
+                    <p className="text-xs text-slate-400">
+                        {jumlahMenunggu > 0 ? `${jumlahMenunggu} menunggu aksi • klik untuk ke menu` : 'Semua beres'}
+                    </p>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                     {actionItems.map((item) => {
                         const Icon = item.icon;
                         return (
                             <Link
                                 key={item.label}
                                 href={item.href}
-                                className={`rounded-2xl border p-3.5 transition-colors ${
+                                title={item.label}
+                                className={`relative flex items-center gap-2.5 rounded-xl border px-3.5 py-3 transition-colors ${
                                     item.urgent
                                         ? 'bg-amber-50 border-amber-100 hover:bg-amber-100/70'
                                         : 'bg-white border-slate-100 hover:bg-slate-50'
                                 }`}
                             >
-                                <div className="flex items-center justify-between mb-1.5">
-                                    <Icon size={16} className={item.urgent ? 'text-amber-600' : 'text-slate-400'} />
-                                        <span className={`text-3xl font-bold ${item.urgent ? 'text-amber-700' : 'text-slate-700'}`}>
-                                        {item.value}
+                                {item.urgent && (
+                                    <span className="absolute top-2 right-2 flex h-1.5 w-1.5">
+                                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+                                        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-red-500" />
                                     </span>
+                                )}
+                                <Icon size={18} className={`shrink-0 ${item.urgent ? 'text-amber-600' : 'text-slate-300'}`} />
+                                <div className="min-w-0 flex-1">
+                                    <p className={`text-xl font-bold leading-none ${item.urgent ? 'text-amber-700' : 'text-slate-300'}`}>
+                                        {item.value}
+                                    </p>
+                                    <p className={`text-xs font-medium leading-tight mt-1 ${item.urgent ? 'text-slate-500' : 'text-slate-400'}`}>
+                                        {item.label}
+                                    </p>
                                 </div>
-                                <p className="text-sm font-medium text-slate-600">{item.label}</p>
+                                <ChevronRight size={16} className={`shrink-0 ${item.urgent ? 'text-amber-600/60' : 'text-slate-300'}`} />
                             </Link>
                         );
                     })}

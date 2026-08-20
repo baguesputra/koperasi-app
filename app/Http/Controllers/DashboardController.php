@@ -6,11 +6,13 @@ use App\Models\Anggota;
 use App\Models\Angsuran;
 use App\Models\JurnalKas;
 use App\Models\KasKoperasi;
+use App\Models\PengajuanLimit;
+use App\Models\PengajuanPercepatan;
 use App\Models\Pinjaman;
 use App\Models\Simpanan;
+use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
-use Illuminate\Http\RedirectResponse;
 
 class DashboardController extends Controller
 {
@@ -27,11 +29,21 @@ class DashboardController extends Controller
             ->whereMonth('tanggal_konfirmasi_bayar', now()->month)
             ->sum('nominal_bunga');
 
-        $totalDanaSosial = Simpanan::where('jenis', 'dana_sosial')->sum('jumlah');
+        $totalSimpananPokokWajib = Simpanan::whereIn('jenis', ['pokok', 'wajib'])->sum('jumlah');
+
+        $saldoDanaPinjaman = $kas->saldo_pinjaman;
+
+        $totalKeseluruhan = $saldoDanaPinjaman + $kas->saldo_dana_sosial + $totalSimpananPokokWajib;
+
+        $saldoDanaSosial = $kas->saldo_dana_sosial;
 
         // Actionable items - dipisah per tahap, bukan digabung
         $menungguTinjauanBendahara = Pinjaman::where('status', 'diajukan')->count();
         $menungguApprovalKetua = Pinjaman::where('status', 'approved_bendahara')->count();
+
+        $menungguPerubahanTenor = PengajuanPercepatan::whereIn('status', ['diajukan', 'approved_bendahara'])->count();
+
+        $menungguPengajuanLimit = PengajuanLimit::where('status', 'diajukan')->count();
 
         $anggotaBelumSimpananBulanIni = Anggota::where('status', 'aktif')
             ->whereDoesntHave('simpanan', fn ($q) => $q
@@ -114,7 +126,7 @@ class DashboardController extends Controller
             ->map(fn ($p) => [
                 'tipe' => 'pinjaman',
                 'nama' => $p->anggota->nama,
-                'keterangan' => 'Mengajukan pinjaman ' . number_format($p->nominal, 0, ',', '.'),
+                'keterangan' => 'Mengajukan pinjaman '.number_format($p->nominal, 0, ',', '.'),
                 'status' => $p->status,
                 'tanggal' => $p->tanggal_pengajuan,
             ]);
@@ -146,13 +158,16 @@ class DashboardController extends Controller
                 'total_anggota_aktif' => Anggota::where('status', 'aktif')->count(),
                 'total_simpanan' => (float) Simpanan::whereIn('jenis', ['pokok', 'wajib'])->sum('jumlah'),
                 'pinjaman_outstanding' => (float) Pinjaman::where('status', 'aktif')->sum('nominal'),
-                'saldo_kas' => (float) ($kas->saldo_saat_ini ?? 0),
+                'saldo_dana_pinjaman' => (float) $saldoDanaPinjaman,
+                'total_keseluruhan' => (float) $totalKeseluruhan,
                 'keuntungan_bulan_ini' => (float) $keuntunganBulanIni,
-                'total_dana_sosial' => (float) $totalDanaSosial,
+                'saldo_dana_sosial' => (float) $saldoDanaSosial,
             ],
             'actionable' => [
                 'menunggu_tinjauan_bendahara' => $menungguTinjauanBendahara,
                 'menunggu_approval_ketua' => $menungguApprovalKetua,
+                'perubahan_tenor' => $menungguPerubahanTenor,
+                'pengajuan_limit' => $menungguPengajuanLimit,
                 'anggota_belum_simpanan' => $anggotaBelumSimpananBulanIni,
                 'angsuran_jatuh_tempo' => $angsuranJatuhTempoBulanIni,
             ],
