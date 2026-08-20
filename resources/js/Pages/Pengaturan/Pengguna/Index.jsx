@@ -1,8 +1,8 @@
 import AppLayout from '@/Layouts/AppLayout';
-import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import {
-    Plus, Pencil, Trash2, KeyRound, Ban, CheckCircle2, ArrowLeft, Search, Lock,
+    Plus, Pencil, Trash2, KeyRound, Ban, CheckCircle2, Search, Lock,
 } from 'lucide-react';
 import Card from '@/Components/ui/Card';
 import Button from '@/Components/ui/Button';
@@ -10,6 +10,7 @@ import Drawer from '@/Components/ui/Drawer';
 import FormField from '@/Components/ui/FormField';
 import TextField from '@/Components/ui/TextField';
 import Select from '@/Components/ui/Select';
+import Breadcrumb from '@/Components/ui/Breadcrumb';
 
 const labelRole = { admin: 'Admin', bendahara: 'Bendahara', ketua_koperasi: 'Ketua', anggota: 'Anggota' };
 
@@ -90,10 +91,12 @@ export default function Index({ pengguna, daftarRole, filters }) {
         <AppLayout>
             <Head title="Kelola Pengguna" />
 
-            <Link href={route('pengaturan.index')} className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-brand-navy mb-4">
-                <ArrowLeft size={16} />
-                Kembali ke Pengaturan
-            </Link>
+            <Breadcrumb
+                items={[
+                    { label: 'Pengaturan', href: route('pengaturan.index') },
+                    { label: 'Kelola Pengguna' },
+                ]}
+            />
 
             <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
                 <div>

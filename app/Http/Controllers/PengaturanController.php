@@ -7,15 +7,90 @@ use App\Models\SettingBunga;
 use App\Models\SettingLimitPinjaman;
 use App\Models\SettingSimpanan;
 use App\Models\TabelTenor;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class PengaturanController extends Controller
 {
-    public function index(): Response
+    private const TAB_DIPERBOLEHKAN = ['bunga', 'limit', 'tenor', 'simpanan'];
+
+    private const PANEL_DIPERBOLEHKAN = ['kelola-pengguna', 'kelola-role'];
+
+    public function index(Request $request): Response
     {
+        $tabAktif = $request->input('tab', 'bunga');
+        if (! in_array($tabAktif, self::TAB_DIPERBOLEHKAN, true)) {
+            $tabAktif = 'bunga';
+        }
+
+        $panelAktif = $request->input('panel');
+        if (! in_array($panelAktif, self::PANEL_DIPERBOLEHKAN, true)) {
+            $panelAktif = null;
+        }
+
+        $roleList = Role::withCount('users')->with('permissions')->orderBy('name')->get()
+            ->map(fn ($role) => [
+                'id' => $role->id,
+                'name' => $role->name,
+                'jumlah_user' => $role->users_count,
+                'dilindungi' => in_array($role->name, ['admin', 'bendahara', 'ketua_koperasi', 'anggota']),
+                'permissions' => $role->permissions->pluck('name')->values(),
+            ]);
+
+        $daftarRole = $roleList->pluck('name');
+
+        $semuaPermission = Permission::orderBy('name')->get()
+            ->groupBy(fn ($p) => explode('.', $p->name)[0]);
+
+        $queryPengguna = User::query()->with('anggota');
+
+        if ($request->filled('cari')) {
+            $cari = $request->string('cari');
+            $queryPengguna->where(function ($q) use ($cari) {
+                $q->where('name', 'like', "%{$cari}%")
+                    ->orWhere('no_karyawan', 'like', "%{$cari}%")
+                    ->orWhere('email', 'like', "%{$cari}%");
+            });
+        }
+
+        if ($request->filled('role')) {
+            $queryPengguna->whereHas('roles', fn ($q) => $q->where('name', $request->string('role')));
+        }
+
+        if ($request->filled('status')) {
+            $queryPengguna->where('status', $request->string('status'));
+        }
+
+        $pengguna = $queryPengguna->orderBy('name')
+            ->paginate(15)
+            ->withQueryString()
+            ->through(fn ($user) => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'no_karyawan' => $user->no_karyawan,
+                'email' => $user->email,
+                'status' => $user->status,
+                'roles' => $user->getRoleNames()->values(),
+                'harus_ganti_password' => (bool) $user->harus_ganti_password,
+                'anggota' => $user->anggota ? [
+                    'no_anggota' => $user->anggota->no_anggota,
+                    'nama' => $user->anggota->nama,
+                ] : null,
+                'dilindungi' => $user->no_karyawan === 'ADM-000001',
+            ]);
+
         return Inertia::render('Pengaturan/Index', [
+            'tabAktif' => $tabAktif,
+            'panelAktif' => $panelAktif,
+            'pengguna' => $pengguna,
+            'filterPengguna' => $request->only(['cari', 'role', 'status']),
+            'daftarRole' => $daftarRole,
+            'roleList' => $roleList,
+            'semuaPermission' => $semuaPermission,
             'limitPinjaman' => SettingLimitPinjaman::orderBy('id')->get(),
             'tabelTenor' => TabelTenor::orderBy('nominal_min')->get(),
             'bungaSaatIni' => SettingBunga::orderByDesc('berlaku_dari_tanggal')->first(),
@@ -32,7 +107,7 @@ class PengaturanController extends Controller
 
         AuditLog::catat(
             'update_limit_pinjaman',
-            "Limit '{$limit->label}' diubah dari Rp " . number_format($nilaiLama, 0, ',', '.') . " menjadi Rp " . number_format($request->limit_maksimal, 0, ',', '.'),
+            "Limit '{$limit->label}' diubah dari Rp ".number_format($nilaiLama, 0, ',', '.').' menjadi Rp '.number_format($request->limit_maksimal, 0, ',', '.'),
             ['limit_maksimal' => $nilaiLama],
             ['limit_maksimal' => $request->limit_maksimal]
         );
@@ -52,7 +127,7 @@ class PengaturanController extends Controller
 
         AuditLog::catat(
             'tambah_tenor',
-            "Rentang tenor baru ditambahkan: Rp " . number_format($tenor->nominal_min, 0, ',', '.') . " - Rp " . number_format($tenor->nominal_max, 0, ',', '.') . " ({$tenor->tenor_maksimal_bulan} bulan)",
+            'Rentang tenor baru ditambahkan: Rp '.number_format($tenor->nominal_min, 0, ',', '.').' - Rp '.number_format($tenor->nominal_max, 0, ',', '.')." ({$tenor->tenor_maksimal_bulan} bulan)",
             null,
             $tenor->toArray()
         );
@@ -78,7 +153,7 @@ class PengaturanController extends Controller
 
     public function destroyTenor(TabelTenor $tenor)
     {
-        AuditLog::catat('hapus_tenor', "Rentang tenor dihapus: Rp " . number_format($tenor->nominal_min, 0, ',', '.') . " - Rp " . number_format($tenor->nominal_max, 0, ',', '.'), $tenor->toArray(), null);
+        AuditLog::catat('hapus_tenor', 'Rentang tenor dihapus: Rp '.number_format($tenor->nominal_min, 0, ',', '.').' - Rp '.number_format($tenor->nominal_max, 0, ',', '.'), $tenor->toArray(), null);
 
         $tenor->delete();
 
@@ -115,7 +190,7 @@ class PengaturanController extends Controller
 
         AuditLog::catat(
             'update_setting_simpanan',
-            "Nominal '{$setting->label}' diubah dari Rp " . number_format($nilaiLama, 0, ',', '.') . " menjadi Rp " . number_format($request->nominal, 0, ',', '.'),
+            "Nominal '{$setting->label}' diubah dari Rp ".number_format($nilaiLama, 0, ',', '.').' menjadi Rp '.number_format($request->nominal, 0, ',', '.'),
             ['nominal' => $nilaiLama],
             ['nominal' => $request->nominal]
         );

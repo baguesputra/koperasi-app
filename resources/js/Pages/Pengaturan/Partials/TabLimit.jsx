@@ -2,6 +2,7 @@ import { useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import { Pencil, Check, X } from 'lucide-react';
 import { formatRupiah } from '@/Utils/formatCurrency';
+import TextField from '@/Components/ui/TextField';
 
 export default function TabLimit({ limitPinjaman }) {
     const [editId, setEditId] = useState(null);
@@ -23,11 +24,12 @@ export default function TabLimit({ limitPinjaman }) {
                     <p className="text-base text-slate-700">{item.label}</p>
                     {editId === item.id ? (
                         <div className="flex items-center gap-2">
-                            <input
+                            <TextField
+                                size="sm"
                                 type="number"
                                 value={data.limit_maksimal}
                                 onChange={(e) => setData('limit_maksimal', e.target.value)}
-                                className="w-40 px-3 py-1.5 text-base rounded-lg border border-slate-300 text-right focus:border-brand-green outline-none"
+                                className="w-36 text-right"
                                 autoFocus
                             />
                             <button onClick={() => simpan(item.id)} disabled={processing} className="text-brand-green hover:text-brand-green-dark">

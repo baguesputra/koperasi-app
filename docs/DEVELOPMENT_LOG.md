@@ -232,3 +232,11 @@ Summary hasil meeting dengan koperasi 15 Agustus 2026
 - [ ] penggunaan lazy loading dan skeleton loading
 - [ ] plugin laravel octane (opsional)
 
+
+# Dokumentasi — Koperasi App
+- [ ] screen shoot tampilan aplikasi ( plugin playwright )
+- [ ] dokumentasi kode ( buat dokumen dan juga komen pada funtion atau fitur )
+- [ ] manual book
+- [ ] dokumentasi api
+- [ ] dokumentasi database ( erd )
+

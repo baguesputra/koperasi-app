@@ -1,8 +1,9 @@
 import AppLayout from '@/Layouts/AppLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft, Lock } from 'lucide-react';
+import { Head, useForm } from '@inertiajs/react';
+import { Lock } from 'lucide-react';
 import Card from '@/Components/ui/Card';
 import Button from '@/Components/ui/Button';
+import Breadcrumb from '@/Components/ui/Breadcrumb';
 
 const kelompokLabel = {
     anggota: 'Anggota',
@@ -53,10 +54,13 @@ export default function Edit({ role, permissionTerpilih, semuaPermission }) {
         <AppLayout>
             <Head title={`Akses Role - ${role.name}`} />
 
-            <Link href={route('role.index')} className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-brand-navy mb-4">
-                <ArrowLeft size={16} />
-                Kembali ke daftar role
-            </Link>
+            <Breadcrumb
+                items={[
+                    { label: 'Pengaturan', href: route('pengaturan.index') },
+                    { label: 'Kelola Role', href: route('role.index') },
+                    { label: role.name.replace('_', ' ') },
+                ]}
+            />
 
             <div className="mb-6">
                 <h1 className="text-2xl font-bold text-slate-800 capitalize flex items-center gap-2">

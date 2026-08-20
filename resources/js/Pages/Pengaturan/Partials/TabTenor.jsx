@@ -2,6 +2,7 @@ import { useForm, router } from '@inertiajs/react';
 import { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import Button from '@/Components/ui/Button';
+import TextField from '@/Components/ui/TextField';
 import { formatRupiah } from '@/Utils/formatCurrency';
 
 export default function TabTenor({ tabelTenor }) {
@@ -37,17 +38,17 @@ export default function TabTenor({ tabelTenor }) {
                 <form onSubmit={submit} className="mb-4 p-4 bg-slate-50 rounded-xl flex flex-wrap items-end gap-3">
                     <div>
                         <label className="block text-sm font-semibold text-slate-600 mb-1.5">Nominal Min</label>
-                        <input type="number" value={data.nominal_min} onChange={(e) => setData('nominal_min', e.target.value)} className="w-36 px-3 py-2 text-base rounded-lg border border-slate-300 focus:border-brand-green outline-none" />
+                        <TextField size="sm" type="number" value={data.nominal_min} onChange={(e) => setData('nominal_min', e.target.value)} className="w-36" />
                         {errors.nominal_min && <p className="text-xs text-red-600 mt-1">{errors.nominal_min}</p>}
                     </div>
                     <div>
                         <label className="block text-sm font-semibold text-slate-600 mb-1.5">Nominal Max</label>
-                        <input type="number" value={data.nominal_max} onChange={(e) => setData('nominal_max', e.target.value)} className="w-36 px-3 py-2 text-base rounded-lg border border-slate-300 focus:border-brand-green outline-none" />
+                        <TextField size="sm" type="number" value={data.nominal_max} onChange={(e) => setData('nominal_max', e.target.value)} className="w-36" />
                         {errors.nominal_max && <p className="text-xs text-red-600 mt-1">{errors.nominal_max}</p>}
                     </div>
                     <div>
                         <label className="block text-sm font-semibold text-slate-600 mb-1.5">Tenor Maks. (bulan)</label>
-                        <input type="number" value={data.tenor_maksimal_bulan} onChange={(e) => setData('tenor_maksimal_bulan', e.target.value)} className="w-32 px-3 py-2 text-base rounded-lg border border-slate-300 focus:border-brand-green outline-none" />
+                        <TextField size="sm" type="number" value={data.tenor_maksimal_bulan} onChange={(e) => setData('tenor_maksimal_bulan', e.target.value)} className="w-32" />
                         {errors.tenor_maksimal_bulan && <p className="text-xs text-red-600 mt-1">{errors.tenor_maksimal_bulan}</p>}
                     </div>
                     <Button type="submit" variant="primary" size="sm" disabled={processing}>Simpan</Button>

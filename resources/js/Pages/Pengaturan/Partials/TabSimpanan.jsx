@@ -2,6 +2,7 @@ import { useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import { Pencil, Check, X } from 'lucide-react';
 import { formatRupiah } from '@/Utils/formatCurrency';
+import TextField from '@/Components/ui/TextField';
 
 export default function TabSimpanan({ settingSimpanan }) {
     const [editId, setEditId] = useState(null);
@@ -26,14 +27,15 @@ export default function TabSimpanan({ settingSimpanan }) {
                     <div key={item.id} className="flex items-center justify-between py-3.5 first:pt-0 last:pb-0">
                         <p className="text-base text-slate-700">{item.label}</p>
                         {editId === item.id ? (
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="number"
-                                    value={data.nominal}
-                                    onChange={(e) => setData('nominal', e.target.value)}
-                                    className="w-40 px-3 py-1.5 text-base rounded-lg border border-slate-300 text-right focus:border-brand-green outline-none"
-                                    autoFocus
-                                />
+<div className="flex items-center gap-2">
+                            <TextField
+                                size="sm"
+                                type="number"
+                                value={data.nominal}
+                                onChange={(e) => setData('nominal', e.target.value)}
+                                className="w-36 text-right"
+                                autoFocus
+                            />
                                 <button onClick={() => simpan(item.id)} disabled={processing} className="text-brand-green hover:text-brand-green-dark">
                                     <Check size={20} />
                                 </button>

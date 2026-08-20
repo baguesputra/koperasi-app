@@ -1,9 +1,10 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
-import { Plus, Pencil, Trash2, Lock, ArrowLeft } from 'lucide-react';
+import { Plus, Pencil, Trash2, Lock } from 'lucide-react';
 import Card from '@/Components/ui/Card';
 import Button from '@/Components/ui/Button';
+import Breadcrumb from '@/Components/ui/Breadcrumb';
 
 export default function Index({ roles }) {
     const [showForm, setShowForm] = useState(false);
@@ -24,10 +25,12 @@ export default function Index({ roles }) {
         <AppLayout>
             <Head title="Kelola Role" />
 
-            <Link href={route('pengaturan.index')} className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-brand-navy mb-4">
-                <ArrowLeft size={16} />
-                Kembali ke Pengaturan
-            </Link>
+            <Breadcrumb
+                items={[
+                    { label: 'Pengaturan', href: route('pengaturan.index') },
+                    { label: 'Kelola Role' },
+                ]}
+            />
 
             <div className="flex items-center justify-between mb-6">
                 <div>
