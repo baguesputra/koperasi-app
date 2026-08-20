@@ -7,12 +7,16 @@ import StatWidget from '@/Components/ui/StatWidget';
 import Button from '@/Components/ui/Button';
 import { formatRupiah } from '@/Utils/formatCurrency';
 
-export default function Index({ bulan, belumSimpanan, totalDanaSosialTerkumpul }) {
+export default function Index({ bulan, belumSimpanan, cabangAktif, daftarCabang, ringkasanCabang, totalDanaSosialTerkumpul }) {
     const [terpilih, setTerpilih] = useState([]);
     const [processing, setProcessing] = useState(false);
 
     function ubahBulan(nilaiBaru) {
-        router.get(route('bendahara.simpanan.index'), { bulan: nilaiBaru }, { preserveState: true });
+        router.get(route('bendahara.simpanan.index'), { bulan: nilaiBaru, cabang: cabangAktif }, { preserveState: true });
+    }
+
+    function pindahTab(cabang) {
+        router.get(route('bendahara.simpanan.index'), { bulan, cabang }, { preserveState: true });
     }
 
     function toggleSatu(id) {
@@ -30,6 +34,17 @@ export default function Index({ bulan, belumSimpanan, totalDanaSosialTerkumpul }
             onFinish: () => setProcessing(false),
         });
     }
+
+    const totalBelumSemuaCabang = Object.values(ringkasanCabang ?? {}).reduce((total, r) => total + r.nominal, 0);
+
+    const tab = [
+        { key: '', label: 'Semua Cabang', nominal: totalBelumSemuaCabang },
+        ...daftarCabang.map((c) => ({
+            key: c,
+            label: c,
+            nominal: ringkasanCabang?.[c]?.nominal ?? 0,
+        })),
+    ];
 
     return (
         <AppLayout>
@@ -57,6 +72,23 @@ export default function Index({ bulan, belumSimpanan, totalDanaSosialTerkumpul }
                     icon={HeartHandshake}
                     tone="green"
                 />
+            </div>
+
+            <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl w-fit overflow-x-auto mb-6">
+                {tab.map((t) => (
+                    <button
+                        key={t.key}
+                        onClick={() => pindahTab(t.key)}
+                        className={`flex flex-col items-start px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors ${
+                            cabangAktif === t.key ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'
+                        }`}
+                    >
+                        <span>{t.label}</span>
+                        <span className={`text-xs font-normal ${cabangAktif === t.key ? 'text-brand-green' : 'text-slate-400'}`}>
+                            {formatRupiah(t.nominal)} belum dikonfirmasi
+                        </span>
+                    </button>
+                ))}
             </div>
 
             <Card padding="none">

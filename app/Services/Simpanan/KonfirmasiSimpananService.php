@@ -3,8 +3,8 @@
 namespace App\Services\Simpanan;
 
 use App\Models\Anggota;
-use App\Models\Simpanan;
 use App\Models\SettingSimpanan;
+use App\Models\Simpanan;
 use App\Services\Keuangan\JurnalKasService;
 use Illuminate\Support\Facades\DB;
 
@@ -12,9 +12,10 @@ class KonfirmasiSimpananService
 {
     public function __construct(private JurnalKasService $jurnalKas) {}
 
-    public function anggotaBelumSimpananWajib(string $bulanPeriode)
+    public function anggotaBelumSimpananWajib(string $bulanPeriode, ?string $cabang = null)
     {
         return Anggota::where('status', 'aktif')
+            ->when($cabang, fn ($q) => $q->where('cabang', $cabang))
             ->whereDoesntHave('simpanan', fn ($q) => $q
                 ->where('jenis', 'wajib')
                 ->where('bulan_periode', $bulanPeriode)

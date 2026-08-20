@@ -7,12 +7,16 @@ import StatWidget from '@/Components/ui/StatWidget';
 import Button from '@/Components/ui/Button';
 import { formatRupiah } from '@/Utils/formatCurrency';
 
-export default function Index({ bulan, daftarAngsuran, totalTagihanBulanIni, totalKeuntunganBulanIni, totalKeuntunganKeseluruhan }) {
+export default function Index({ bulan, daftarAngsuran, cabangAktif, daftarCabang, tagihanPerCabang, totalTagihanBulanIni, totalKeuntunganBulanIni, totalKeuntunganKeseluruhan }) {
     const [terpilih, setTerpilih] = useState([]);
     const [processing, setProcessing] = useState(false);
 
     function ubahBulan(nilaiBaru) {
-        router.get(route('bendahara.angsuran.index'), { bulan: nilaiBaru }, { preserveState: true });
+        router.get(route('bendahara.angsuran.index'), { bulan: nilaiBaru, cabang: cabangAktif }, { preserveState: true });
+    }
+
+    function pindahTab(cabang) {
+        router.get(route('bendahara.angsuran.index'), { bulan, cabang }, { preserveState: true });
     }
 
     function toggleSatu(id) {
@@ -52,6 +56,15 @@ export default function Index({ bulan, daftarAngsuran, totalTagihanBulanIni, tot
         },
     ];
 
+    const tab = [
+        { key: '', label: 'Semua Cabang', nominal: totalTagihanBulanIni },
+        ...daftarCabang.map((c) => ({
+            key: c,
+            label: c,
+            nominal: tagihanPerCabang[c] ?? 0,
+        })),
+    ];
+
     return (
         <AppLayout>
             <Head title="Konfirmasi Angsuran" />
@@ -74,6 +87,23 @@ export default function Index({ bulan, daftarAngsuran, totalTagihanBulanIni, tot
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                 {widgets.map((w) => (
                     <StatWidget key={w.label} label={w.label} value={w.value} icon={w.icon} tone={w.tone} />
+                ))}
+            </div>
+
+            <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl w-fit overflow-x-auto mb-6">
+                {tab.map((t) => (
+                    <button
+                        key={t.key}
+                        onClick={() => pindahTab(t.key)}
+                        className={`flex flex-col items-start px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors ${
+                            cabangAktif === t.key ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'
+                        }`}
+                    >
+                        <span>{t.label}</span>
+                        <span className={`text-xs font-normal ${cabangAktif === t.key ? 'text-brand-green' : 'text-slate-400'}`}>
+                            {formatRupiah(t.nominal)} belum dikonfirmasi
+                        </span>
+                    </button>
                 ))}
             </div>
 
@@ -109,7 +139,7 @@ export default function Index({ bulan, daftarAngsuran, totalTagihanBulanIni, tot
                                 <div className="flex-1">
                                     <p className="text-base font-semibold text-slate-800">{a.nama}</p>
                                     <p className="text-sm text-slate-400">
-                                        {a.no_anggota} &bull; Cicilan ke-{a.cicilan_ke} &bull; Jatuh tempo {a.tanggal_jatuh_tempo}
+                                        {a.no_anggota} &bull; {a.cabang} &bull; Cicilan ke-{a.cicilan_ke} &bull; Jatuh tempo {a.tanggal_jatuh_tempo}
                                         {a.terlambat && <span className="text-red-600 font-semibold"> &bull; Terlambat</span>}
                                         {a.ada_pengajuan_percepatan && (
                                             <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700">

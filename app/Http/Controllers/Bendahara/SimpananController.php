@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Bendahara;
 
 use App\Http\Controllers\Controller;
+use App\Models\Anggota;
+use App\Models\SettingSimpanan;
 use App\Models\Simpanan;
 use App\Services\Simpanan\KonfirmasiSimpananService;
 use Illuminate\Http\Request;
@@ -17,7 +19,9 @@ class SimpananController extends Controller
     {
         $bulan = $request->input('bulan', now()->format('Y-m'));
 
-        $belumSimpanan = $this->konfirmasi->anggotaBelumSimpananWajib($bulan)
+        $cabangAktif = $request->string('cabang');
+
+        $semuaBelumSimpanan = $this->konfirmasi->anggotaBelumSimpananWajib($bulan)
             ->map(fn ($a) => [
                 'id' => $a->id,
                 'nama' => $a->nama,
@@ -25,11 +29,31 @@ class SimpananController extends Controller
                 'cabang' => $a->cabang,
             ]);
 
+        $belumSimpanan = $cabangAktif->isNotEmpty()
+            ? $semuaBelumSimpanan->where('cabang', $cabangAktif)->values()
+            : $semuaBelumSimpanan;
+
+        $nominalWajib = (float) (SettingSimpanan::where('jenis', 'wajib')->value('nominal') ?? 0);
+        $nominalDanaSosial = (float) (SettingSimpanan::where('jenis', 'dana_sosial')->value('nominal') ?? 0);
+        $nominalPerAnggota = $nominalWajib + $nominalDanaSosial;
+
+        $ringkasanCabang = $semuaBelumSimpanan
+            ->groupBy('cabang')
+            ->map(fn ($anggota) => [
+                'jumlah_anggota' => $anggota->count(),
+                'nominal' => (float) ($anggota->count() * $nominalPerAnggota),
+            ]);
+
+        $daftarCabang = Anggota::query()->whereNotNull('cabang')->distinct()->orderBy('cabang')->pluck('cabang');
+
         $totalDanaSosialTerkumpul = Simpanan::where('jenis', 'dana_sosial')->sum('jumlah');
 
         return Inertia::render('Bendahara/Simpanan/Index', [
             'bulan' => $bulan,
             'belumSimpanan' => $belumSimpanan,
+            'cabangAktif' => $cabangAktif->value(),
+            'daftarCabang' => $daftarCabang,
+            'ringkasanCabang' => $ringkasanCabang,
             'totalDanaSosialTerkumpul' => (float) $totalDanaSosialTerkumpul,
         ]);
     }
