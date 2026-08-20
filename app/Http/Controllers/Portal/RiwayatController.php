@@ -53,7 +53,7 @@ class RiwayatController extends Controller
 
         $bulanFilter = $request->input('bulan');
 
-        $querySimpanan = $anggota->simpanan()->latest('tanggal_input');
+        $querySimpanan = $anggota->simpanan()->whereIn('jenis', ['wajib','pokok'])->latest('tanggal_input');
         if ($bulanFilter) {
             $querySimpanan->where('bulan_periode', $bulanFilter);
         }

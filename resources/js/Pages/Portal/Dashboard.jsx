@@ -3,7 +3,7 @@ import { Head, Link } from '@inertiajs/react';
 import {
     PiggyBank, Wallet, TrendingUp, ArrowRight, CheckCircle2,
     ArrowDownCircle, Clock, XCircle, Info, Calendar,
-    ShieldCheck, Percent,
+    ShieldCheck, Percent, Repeat,
 } from 'lucide-react';
 import { formatRupiah } from '@/Utils/formatCurrency';
 
@@ -29,7 +29,7 @@ export default function Dashboard({
                 {/* Kolom kiri - lebar, konten personal */}
                 <div className="lg:col-span-2 space-y-5">
                     {/* Hero */}
-                    <div className="bg-brand-navy rounded-3xl p-6 text-white">
+                    <div className="bg-brand-navy rounded-3xl p-6 text-white space-y-3">
                         <p className="text-slate-300 text-sm mb-1">Selamat datang,</p>
                         <h1 className="text-2xl font-bold mb-1">{anggota.nama.split(' ')[0]}</h1>
                         <p className="text-slate-400 text-sm mb-5">
@@ -37,36 +37,62 @@ export default function Dashboard({
                         </p>
 
                         {pinjamanAktif ? (
-                            <Link
-                                href={route('portal.riwayat')}
-                                className="block bg-white/10 rounded-2xl p-5 hover:bg-white/[0.15] transition-colors group"
-                            >
-                                <div className="flex items-center justify-between mb-3">
-                                    <p className="text-sm text-slate-300">Pinjaman Aktif</p>
-                                    <span className="text-xs font-semibold bg-brand-green text-white px-2.5 py-1 rounded-full">
-                                        {progress}% lunas
-                                    </span>
-                                </div>
+                            <>
+                                <Link
+                                    href={route('portal.riwayat')}
+                                    className="block bg-white/10 rounded-2xl p-5 hover:bg-white/15 transition-colors group"
+                                >
+                                    <div className="flex items-center justify-between mb-3">
+                                        <p className="text-sm text-slate-300">Pinjaman Aktif</p>
+                                        <span className="text-xs font-semibold bg-brand-green text-white px-2.5 py-1 rounded-full">
+                                            {progress}% lunas
+                                        </span>
+                                    </div>
+                                    <p className="text-2xl font-bold mb-3">{formatRupiah(pinjamanAktif.nominal)}</p>
+                                    <div className="w-full h-2 bg-white/15 rounded-full overflow-hidden mb-4">
+                                        <div className="h-full bg-brand-green rounded-full transition-all" style={{ width: `${progress}%` }} />
+                                    </div>
+                                    {angsuranBerikutnya && (
+                                        <div className="flex items-center justify-between text-sm text-slate-200 group-hover:text-white transition-colors">
+                                            <span className="flex items-center gap-2">
+                                                <Calendar size={16} />
+                                                Cicilan ke-{angsuranBerikutnya.cicilan_ke} &bull; {angsuranBerikutnya.tanggal_jatuh_tempo} &bull; {formatRupiah(angsuranBerikutnya.total_bayar)}
+                                            </span>
+                                            <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform shrink-0" />
+                                        </div>
+                                    )}
+                                </Link>
+
                                 <Link
                                     href={route('portal.percepatan.create')}
-                                    className="inline-block mt-4 text-sm font-semibold text-slate-300 hover:text-white underline underline-offset-2"
+                                    className="flex items-center justify-center gap-2 w-full px-5 py-3 text-sm font-bold rounded-xl bg-white/10 border border-white/20 text-white hover:bg-white/20 transition-colors"
                                 >
-                                    Ajukan perubahan tenor / pelunasan dipercepat
+                                    <Repeat size={16} />
+                                    Ajukan Perubahan Tenor / Pelunasan Dipercepat
                                 </Link>
-                                <p className="text-2xl font-bold mb-3">{formatRupiah(pinjamanAktif.nominal)}</p>
-                                <div className="w-full h-2 bg-white/15 rounded-full overflow-hidden mb-4">
-                                    <div className="h-full bg-brand-green rounded-full transition-all" style={{ width: `${progress}%` }} />
-                                </div>
-                                {angsuranBerikutnya && (
-                                    <div className="flex items-center justify-between text-sm text-slate-200 group-hover:text-white transition-colors">
-                                        <span className="flex items-center gap-2">
-                                            <Calendar size={16} />
-                                            Cicilan ke-{angsuranBerikutnya.cicilan_ke} &bull; {angsuranBerikutnya.tanggal_jatuh_tempo} &bull; {formatRupiah(angsuranBerikutnya.total_bayar)}
-                                        </span>
-                                        <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+
+                                {bisaAjukan ? (
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white/10 rounded-2xl p-5">
+                                        <div>
+                                            <p className="text-base font-semibold mb-1">Siap mengajukan pinjaman berikutnya</p>
+                                            <p className="text-sm text-slate-300">
+                                                Tersisa {pinjamanAktif.sisa_angsuran} dari {pinjamanAktif.total_angsuran} cicilan. Limit Anda: {formatRupiah(limitMaksimal)}
+                                            </p>
+                                        </div>
+                                        <Link
+                                            href={route('portal.pinjaman.create')}
+                                            className="shrink-0 inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-bold rounded-xl bg-brand-green text-white hover:bg-brand-green-dark transition-colors"
+                                        >
+                                            Ajukan Pinjaman Baru
+                                            <ArrowRight size={16} />
+                                        </Link>
+                                    </div>
+                                ) : (
+                                    <div className="bg-amber-500/15 border border-amber-400/30 rounded-2xl p-5">
+                                        <p className="text-sm text-amber-200">{alasanTidakBisa}</p>
                                     </div>
                                 )}
-                            </Link>
+                            </>
                         ) : pengajuanBerjalan ? (
                             <Link href={route('portal.riwayat')} className="block bg-white/10 rounded-2xl p-5 hover:bg-white/[0.15] transition-colors">
                                 <div className="flex items-center justify-between mb-3">

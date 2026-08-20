@@ -198,6 +198,7 @@ Summary hasil meeting dengan koperasi 15 Agustus 2026
 - [x] Menu angsuran dibuat tab dibedakan tiap cabang termasuk konfirmasi simpanan
 - [x] tambah anggota otomatis buat user juga
 - [x] sidebar notifikasi menu perubahan tenor, pengajuan limit belum ada
+- [x] dana sosial jangan dimunculkan pada riwayat anggota
 
 
 # Testing Checklist — Koperasi App
@@ -206,7 +207,6 @@ Summary hasil meeting dengan koperasi 15 Agustus 2026
 - [ ] validasi untuk perubahan tenor sudah pengajuan dan sesudah approve pengajuan belum ada, validasi pengajuan limit setelah approve  belum ada
 - [ ] Gabung jadi 1 halaman approval bendahara dan ketua
 - [ ] Menambah idempotency key jika terjadi double klik action crud
-
 - [ ] Menambah reconciliation otomatis
 - [ ] rule penambahan pinjaman dibuka dan bisa sekali saja penambahan
 - [ ] import excel anggota otomatis buat user juga

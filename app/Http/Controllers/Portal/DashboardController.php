@@ -69,6 +69,7 @@ class DashboardController extends Controller
         }
 
         $riwayatSimpanan = $anggota->simpanan()
+            ->whereIn('jenis',['wajib','pokok'])
             ->latest('tanggal_input')
             ->take(6)
             ->get()
