@@ -30,10 +30,10 @@ class PengajuanPinjamanService
             throw new RuntimeException($cekEligibilitas['alasan']);
         }
 
-        $limitMaksimal = $this->eligibilitas->limitMaksimal($anggota);
-        if ($nominal > $limitMaksimal) {
+        $limitTersedia = (float) $cekEligibilitas['limit_tersedia'];
+        if ($nominal > $limitTersedia) {
             throw new RuntimeException(
-                'Nominal pinjaman melebihi limit maksimal Anda: Rp '.number_format($limitMaksimal, 0, ',', '.')
+                'Nominal pinjaman melebihi limit tersedia Anda: Rp '.number_format($limitTersedia, 0, ',', '.')
             );
         }
 
@@ -48,12 +48,15 @@ class PengajuanPinjamanService
         // Tentukan status awal berdasar peran pengaju (pengajuan mandiri pengurus).
         [$statusAwal, $cairOlehBendahara, $catatanBendahara] = $this->statusAwalPengajuanMandiri($pengaju);
 
-        return DB::transaction(function () use ($pengaju, $anggota, $nominal, $tenorBulan, $keperluan, $rekening, $statusAwal, $cairOlehBendahara, $catatanBendahara) {
-            $pinjamanAktif = $anggota->pinjamanAktif();
-            $pakaiPrivilegeReloan = $pinjamanAktif && $pinjamanAktif->sisaAngsuran() <= 2;
+        // Tandai privilege reloan dipakai setiap ada angsuran berjalan (1x per siklus,
+        // tanpa peduli sisa berapa pun). Jika sudah ada pinjaman aktif lain, update flag-nya juga.
+        $pakaiPrivilegeReloan = $cekEligibilitas['sisa_angsuran'] > 0;
 
+        return DB::transaction(function () use ($pengaju, $anggota, $nominal, $tenorBulan, $keperluan, $rekening, $statusAwal, $cairOlehBendahara, $catatanBendahara, $pakaiPrivilegeReloan) {
             if ($pakaiPrivilegeReloan) {
-                $pinjamanAktif->update(['sudah_pakai_privilege_reloan' => true]);
+                Pinjaman::where('anggota_id', $anggota->id)
+                    ->where('status', 'aktif')
+                    ->update(['sudah_pakai_privilege_reloan' => true]);
             }
 
             $dataRekening = $this->siapkanRekening($anggota, $rekening);

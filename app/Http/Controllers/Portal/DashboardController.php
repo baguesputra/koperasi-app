@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Portal;
 
 use App\Http\Controllers\Controller;
+use App\Models\PengajuanPercepatan;
 use App\Models\SettingSimpanan;
 use App\Models\TabelTenor;
 use App\Services\Pinjaman\EligibilitasPinjamanService;
@@ -38,20 +39,20 @@ class DashboardController extends Controller
             ->first();
 
         $angsuranBerikutnya = null;
-            if ($pinjamanAktif) {
-                $terdekat = $pinjamanAktif->jadwalAktif()
-                    ->where('status', 'belum_bayar')
-                    ->sortBy('tanggal_jatuh_tempo')
-                    ->first();
+        if ($pinjamanAktif) {
+            $terdekat = $pinjamanAktif->jadwalAktif()
+                ->where('status', 'belum_bayar')
+                ->sortBy('tanggal_jatuh_tempo')
+                ->first();
 
-                if ($terdekat) {
-                    $angsuranBerikutnya = [
-                        'cicilan_ke' => $terdekat->cicilan_ke,
-                        'total_bayar' => (float) $terdekat->total_bayar,
-                        'tanggal_jatuh_tempo' => $terdekat->tanggal_jatuh_tempo->format('d M Y'),
-                    ];
-                }
+            if ($terdekat) {
+                $angsuranBerikutnya = [
+                    'cicilan_ke' => $terdekat->cicilan_ke,
+                    'total_bayar' => (float) $terdekat->total_bayar,
+                    'tanggal_jatuh_tempo' => $terdekat->tanggal_jatuh_tempo->format('d M Y'),
+                ];
             }
+        }
         $sisaTotalBayar = 0;
 
         if ($pinjamanAktif) {
@@ -69,7 +70,7 @@ class DashboardController extends Controller
         }
 
         $riwayatSimpanan = $anggota->simpanan()
-            ->whereIn('jenis',['wajib','pokok'])
+            ->whereIn('jenis', ['wajib', 'pokok'])
             ->latest('tanggal_input')
             ->take(6)
             ->get()
@@ -109,6 +110,38 @@ class DashboardController extends Controller
         $tabelTenor = TabelTenor::orderBy('nominal_min')->get(['nominal_min', 'nominal_max', 'tenor_maksimal_bulan']);
         $settingSimpanan = SettingSimpanan::orderBy('id')->get(['jenis', 'label', 'nominal']);
 
+        $pinjamanAktifList = $anggota->pinjamanAktifList()->map(fn ($p) => [
+            'id' => $p->id,
+            'nominal' => (float) $p->nominal,
+            'tenor_bulan' => $p->tenor_bulan,
+            'sisa_angsuran' => $p->sisaCicilanAktif(),
+            'total_angsuran' => $p->totalCicilanAktif(),
+            'sisa_total_bayar' => $p->sisaTotalBayarAktif(),
+            'sudah_pakai_percepatan' => (bool) $p->sudah_pakai_percepatan,
+        ]);
+
+        // Pengajuan perubahan tenor/pelunasan yang masih menunggu approval
+        // untuk SEMUA pinjaman aktif anggota.
+        $pinjamanAktifIds = $pinjamanAktifList->pluck('id');
+        $pengajuanPercepatanMenunggu = $pinjamanAktifIds->isEmpty()
+            ? collect()
+            : PengajuanPercepatan::whereIn('pinjaman_id', $pinjamanAktifIds)
+                ->whereIn('status', ['diajukan', 'approved_bendahara'])
+                ->with('pinjaman:id,nominal,tenor_bulan')
+                ->orderBy('tanggal_pengajuan')
+                ->get()
+                ->map(fn ($pp) => [
+                    'id' => $pp->id,
+                    'pinjaman_id' => $pp->pinjaman_id,
+                    'pinjaman_nominal' => (float) $pp->pinjaman->nominal,
+                    'pinjaman_tenor' => $pp->pinjaman->tenor_bulan,
+                    'tipe' => $pp->tipe,
+                    'tenor_lama' => $pp->tenor_lama,
+                    'tenor_baru' => $pp->tenor_baru,
+                    'status' => $pp->status,
+                    'tanggal_pengajuan' => $pp->tanggal_pengajuan->format('d M Y'),
+                ]);
+
         return Inertia::render('Portal/Dashboard', [
             'anggota' => [
                 'nama' => $anggota->nama,
@@ -119,6 +152,9 @@ class DashboardController extends Controller
             'simpananPokok' => (float) $simpananPokok,
             'simpananWajib' => (float) $simpananWajib,
             'limitMaksimal' => (float) $limitMaksimal,
+            'limitTersedia' => (float) $cekEligibilitas['limit_tersedia'],
+            'sisaAngsuranAktif' => (int) $cekEligibilitas['sisa_angsuran'],
+            'cicilanPokokAktif' => (float) $cekEligibilitas['cicilan_pokok'],
             'pinjamanAktif' => $pinjamanAktif ? [
                 'id' => $pinjamanAktif->id,
                 'nominal' => (float) $pinjamanAktif->nominal,
@@ -127,6 +163,9 @@ class DashboardController extends Controller
                 'total_angsuran' => $pinjamanAktif->totalCicilanAktif(),
                 'sisa_total_bayar' => $pinjamanAktif->sisaTotalBayarAktif(),
             ] : null,
+            'pinjamanAktifList' => $pinjamanAktifList,
+            'pinjamanAktifCount' => $pinjamanAktifList->count(),
+            'pengajuanPercepatanMenunggu' => $pengajuanPercepatanMenunggu,
             'pengajuanBerjalan' => $pengajuanBerjalan ? [
                 'nominal' => (float) $pengajuanBerjalan->nominal,
                 'status' => $pengajuanBerjalan->status,
@@ -151,9 +190,15 @@ class DashboardController extends Controller
         $tanggalSetelahTahun = $tanggalJadiAnggota->copy()->addYears($tahun);
         $bulan = (int) $tanggalSetelahTahun->diffInMonths($sekarang);
 
-        if ($tahun === 0 && $bulan === 0) return 'baru bergabung';
-        if ($tahun === 0) return "{$bulan} bulan";
-        if ($bulan === 0) return "{$tahun} tahun";
+        if ($tahun === 0 && $bulan === 0) {
+            return 'baru bergabung';
+        }
+        if ($tahun === 0) {
+            return "{$bulan} bulan";
+        }
+        if ($bulan === 0) {
+            return "{$tahun} tahun";
+        }
 
         return "{$tahun} tahun {$bulan} bulan";
     }

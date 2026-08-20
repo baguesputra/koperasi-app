@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { formatRupiah } from '@/Utils/formatCurrency';
 
-export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal, rekeningTersimpan }) {
+export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal, limitTersedia, sisaAngsuranAktif, cicilanPokokAktif, rekeningTersimpan }) {
     const [nominal, setNominal] = useState('');
     const [nominalValid, setNominalValid] = useState(false);
     const [tenorMaksimal, setTenorMaksimal] = useState(null);
@@ -134,9 +134,26 @@ export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal, rek
 
                     <div className="bg-white rounded-2xl border border-slate-100 p-6">
                         <p className="text-base font-bold text-slate-800 mb-1">Berapa nominal yang ingin dipinjam?</p>
-                        <p className="text-sm text-slate-400 mb-4">
-                            Limit maksimal Anda: <span className="font-semibold text-slate-600">{formatRupiah(limitMaksimal)}</span>
-                        </p>
+                        {sisaAngsuranAktif > 0 ? (
+                            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4">
+                                <p className="text-xs font-semibold text-amber-800 mb-1">Pengajuan Lebih Awal (Reloan)</p>
+                                <p className="text-xs text-amber-700 leading-relaxed">
+                                    Pinjaman aktif Anda masih berjalan ({sisaAngsuranAktif} cicilan × {formatRupiah(cicilanPokokAktif)} = {formatRupiah(sisaAngsuranAktif * cicilanPokokAktif)}).
+                                    Limit efektif dikurangi sisa cicilan pokok yang berjalan.
+                                </p>
+                                <div className="flex items-center justify-between mt-2 pt-2 border-t border-amber-200">
+                                    <span className="text-xs text-amber-700">Limit tersedia Anda:</span>
+                                    <span className="text-sm font-bold text-amber-900">{formatRupiah(limitTersedia)}</span>
+                                </div>
+                                <p className="text-xs text-amber-600 mt-1">
+                                    (Limit kategori: {formatRupiah(limitMaksimal)})
+                                </p>
+                            </div>
+                        ) : (
+                            <p className="text-sm text-slate-400 mb-4">
+                                Limit maksimal Anda: <span className="font-semibold text-slate-600">{formatRupiah(limitMaksimal)}</span>
+                            </p>
+                        )}
 
                         <div className="relative">
                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-semibold text-slate-400">Rp</span>
@@ -146,6 +163,7 @@ export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal, rek
                                 onChange={(e) => setNominal(e.target.value)}
                                 placeholder="0"
                                 autoFocus
+                                max={limitTersedia}
                                 className="w-full pl-12 pr-12 py-4 text-2xl font-bold rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
                             />
                             {loadingNominal && (
@@ -155,6 +173,7 @@ export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal, rek
                                 <Check className="absolute right-4 top-1/2 -translate-y-1/2 text-brand-green" size={22} />
                             )}
                         </div>
+                        <p className="text-xs text-slate-400 mt-2">Maksimal: {formatRupiah(limitTersedia)}</p>
                     </div>
 
                     {nominalValid && tenorMaksimal && (

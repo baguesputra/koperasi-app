@@ -26,6 +26,9 @@ class PinjamanController extends Controller
             'bisaAjukan' => $cek['boleh'],
             'alasanTidakBisa' => $cek['alasan'],
             'limitMaksimal' => $this->eligibilitas->limitMaksimal($anggota),
+            'limitTersedia' => (float) $cek['limit_tersedia'],
+            'sisaAngsuranAktif' => (int) $cek['sisa_angsuran'],
+            'cicilanPokokAktif' => (float) $cek['cicilan_pokok'],
             'rekeningTersimpan' => $anggota->rekening()->orderByDesc('is_default')->get([
                 'id', 'nama_bank', 'no_rekening', 'atas_nama', 'is_default',
             ]),
@@ -38,12 +41,12 @@ class PinjamanController extends Controller
 
         $anggota = auth()->user()->anggota;
         $nominal = (float) $request->nominal;
-        $limitMaksimal = $this->eligibilitas->limitMaksimal($anggota);
+        $limitTersedia = $this->eligibilitas->limitTersedia($anggota);
 
-        if ($nominal > $limitMaksimal) {
+        if ($nominal > $limitTersedia) {
             return response()->json([
                 'valid' => false,
-                'pesan' => 'Nominal melebihi limit maksimal Anda: Rp '.number_format($limitMaksimal, 0, ',', '.'),
+                'pesan' => 'Nominal melebihi limit tersedia Anda: Rp '.number_format($limitTersedia, 0, ',', '.'),
             ], 422);
         }
 

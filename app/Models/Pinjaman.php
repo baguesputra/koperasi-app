@@ -28,6 +28,10 @@ class Pinjaman extends Model
         'sudah_pakai_privilege_reloan',
         'tanggal_pengajuan',
         'tanggal_pencairan',
+        'disetujui_pada',
+        'versi_syarat',
+        'ip_address_setuju',
+        'user_agent_setuju',
         'catatan_bendahara',
         'catatan_ketua',
         'sudah_pakai_percepatan',
@@ -40,6 +44,7 @@ class Pinjaman extends Model
         'sudah_pakai_privilege_reloan' => 'boolean',
         'tanggal_pengajuan' => 'date',
         'tanggal_pencairan' => 'date',
+        'disetujui_pada' => 'datetime',
         'sudah_pakai_percepatan' => 'boolean',
     ];
 
@@ -68,6 +73,32 @@ class Pinjaman extends Model
         return $this->angsuranBelumBayar()->count();
     }
 
+    /**
+     * Rata-rata nominal pokok per angsuran yang masih belum dibayar.
+     * Hanya membaca tabel angsuran biasa (tidak termasuk angsuran_percepatan).
+     * Gunakan cicilanPokokAktif() untuk kalkulasi limit reloan yang konsisten dengan jadwalAktif().
+     */
+    public function cicilanPokok(): float
+    {
+        return (float) ($this->angsuran()
+            ->where('status', 'belum_bayar')
+            ->avg('nominal_pokok') ?? 0);
+    }
+
+    /**
+     * Angsuran-percepatan yang terkait langsung via pengajuan_percepatan.
+     * Dipakai untuk filter hanya angsuran_percepatan dari pengajuan yang aktif.
+     */
+    public function angsuranPercepatan()
+    {
+        return $this->hasManyThrough(
+            AngsuranPercepatan::class,
+            PengajuanPercepatan::class,
+            'pinjaman_id',
+            'pengajuan_percepatan_id'
+        );
+    }
+
     public function pengajuanPercepatan()
     {
         return $this->hasMany(PengajuanPercepatan::class);
@@ -78,17 +109,17 @@ class Pinjaman extends Model
      * dan angsuran_percepatan dari pengajuan yang sudah aktif (kalau ada).
      */
     public function jadwalAktif()
-{
-    $pengajuanAktif = $this->pengajuanPercepatan()->where('status', 'aktif')->latest()->first();
-    $lama = $this->angsuran()->where('status', '!=', 'digantikan')->orderBy('cicilan_ke')->get();
+    {
+        $pengajuanAktif = $this->pengajuanPercepatan()->where('status', 'aktif')->latest()->first();
+        $lama = $this->angsuran()->where('status', '!=', 'digantikan')->orderBy('cicilan_ke')->get();
 
-    if (! $pengajuanAktif) {
-        return $lama;
-    }
+        if (! $pengajuanAktif) {
+            return $lama;
+        }
 
-    $baru = $pengajuanAktif->angsuranBaru()->orderBy('cicilan_ke')->get();
+        $baru = $pengajuanAktif->angsuranBaru()->orderBy('cicilan_ke')->get();
 
-    return $lama->concat($baru);
+        return $lama->concat($baru);
     }
 
     public function totalCicilanAktif(): int
@@ -104,5 +135,16 @@ class Pinjaman extends Model
     public function sisaTotalBayarAktif(): float
     {
         return (float) $this->jadwalAktif()->where('status', 'belum_bayar')->sum('total_bayar');
+    }
+
+    /**
+     * Rata-rata nominal pokok per cicilan aktif (gabungan angsuran biasa yang belum digantikan
+     * + angsuran_percepatan dari pengajuan aktif). Konsisten dengan jadwalAktif() / sisaCicilanAktif().
+     */
+    public function cicilanPokokAktif(): float
+    {
+        return (float) ($this->jadwalAktif()
+            ->where('status', 'belum_bayar')
+            ->avg('nominal_pokok') ?? 0);
     }
 }

@@ -12,13 +12,25 @@ const statusPengajuanLabel = {
     approved_bendahara: { text: 'Menunggu persetujuan Ketua Koperasi', step: 2 },
 };
 
+const tipeLabel = {
+    perpanjang: 'Perubahan Tenor (Perpanjang)',
+    percepat: 'Perubahan Tenor (Percepat)',
+    lunas_total: 'Pelunasan Dipercepat (Total)',
+};
+
 export default function Dashboard({
     anggota, totalSimpanan, simpananPokok, simpananWajib, limitMaksimal,
-    pinjamanAktif, pengajuanBerjalan, pengajuanDitolak, angsuranBerikutnya,
+    limitTersedia, sisaAngsuranAktif, cicilanPokokAktif,
+    pinjamanAktif, pinjamanAktifList, pinjamanAktifCount, pengajuanPercepatanMenunggu,
+    pengajuanBerjalan, pengajuanDitolak, angsuranBerikutnya,
     bisaAjukan, alasanTidakBisa, riwayatGabungan, tabelTenor, settingSimpanan,
 }) {
-    const progress = pinjamanAktif
-        ? Math.round(((pinjamanAktif.total_angsuran - pinjamanAktif.sisa_angsuran) / pinjamanAktif.total_angsuran) * 100)
+    const aggregateTotalNominal = (pinjamanAktifList || []).reduce((sum, p) => sum + (p.nominal || 0), 0);
+    const aggregateTotalSisaAngsuran = (pinjamanAktifList || []).reduce((sum, p) => sum + (p.sisa_angsuran || 0), 0);
+    const aggregateTotalAngsuran = (pinjamanAktifList || []).reduce((sum, p) => sum + (p.total_angsuran || 0), 0);
+    const aggregateSisaTotalBayar = (pinjamanAktifList || []).reduce((sum, p) => sum + (p.sisa_total_bayar || 0), 0);
+    const progress = aggregateTotalAngsuran > 0
+        ? Math.round(((aggregateTotalAngsuran - aggregateTotalSisaAngsuran) / aggregateTotalAngsuran) * 100)
         : 0;
 
     return (
@@ -36,19 +48,21 @@ export default function Dashboard({
                             {anggota.no_anggota} &bull; Anggota sejak {anggota.lama_keanggotaan_label}
                         </p>
 
-                        {pinjamanAktif ? (
+                        {pinjamanAktifCount > 0 ? (
                             <>
                                 <Link
                                     href={route('portal.riwayat')}
                                     className="block bg-white/10 rounded-2xl p-5 hover:bg-white/15 transition-colors group"
                                 >
                                     <div className="flex items-center justify-between mb-3">
-                                        <p className="text-sm text-slate-300">Pinjaman Aktif</p>
+                                        <p className="text-sm text-slate-300">
+                                            {pinjamanAktifCount > 1 ? `${pinjamanAktifCount} Pinjaman Aktif` : 'Pinjaman Aktif'}
+                                        </p>
                                         <span className="text-xs font-semibold bg-brand-green text-white px-2.5 py-1 rounded-full">
                                             {progress}% lunas
                                         </span>
                                     </div>
-                                    <p className="text-2xl font-bold mb-3">{formatRupiah(pinjamanAktif.nominal)}</p>
+                                    <p className="text-2xl font-bold mb-3">{formatRupiah(aggregateTotalNominal)}</p>
                                     <div className="w-full h-2 bg-white/15 rounded-full overflow-hidden mb-4">
                                         <div className="h-full bg-brand-green rounded-full transition-all" style={{ width: `${progress}%` }} />
                                     </div>
@@ -61,23 +75,68 @@ export default function Dashboard({
                                             <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform shrink-0" />
                                         </div>
                                     )}
+                                    {pinjamanAktifCount > 1 && (
+                                        <p className="text-xs text-slate-400 mt-3">
+                                            Sisa total bayar (gabungan): {formatRupiah(aggregateSisaTotalBayar)}
+                                        </p>
+                                    )}
                                 </Link>
 
-                                <Link
-                                    href={route('portal.percepatan.create')}
-                                    className="flex items-center justify-center gap-2 w-full px-5 py-3 text-sm font-bold rounded-xl bg-white/10 border border-white/20 text-white hover:bg-white/20 transition-colors"
-                                >
-                                    <Repeat size={16} />
-                                    Ajukan Perubahan Tenor / Pelunasan Dipercepat
-                                </Link>
+                                {pengajuanPercepatanMenunggu.length > 0 ? (
+                                    <div className="bg-amber-500/15 border border-amber-400/30 rounded-2xl p-5">
+                                        <div className="flex items-start gap-3">
+                                            <Repeat className="text-amber-300 shrink-0 mt-0.5" size={18} />
+                                            <div className="flex-1">
+                                                <p className="text-sm font-semibold text-amber-100 mb-1">
+                                                    Pengajuan perubahan tenor/pelunasan sedang diproses
+                                                </p>
+                                                {pengajuanPercepatanMenunggu.map((pp) => (
+                                                    <p key={pp.id} className="text-xs text-amber-200/90">
+                                                        {'• '}{tipeLabel[pp.tipe]} - Pinjaman {formatRupiah(pp.pinjaman_nominal)}
+                                                        {' '}({pp.tenor_lama} → {pp.tenor_baru ?? 'lunas'} bulan)
+                                                        {' '}• Status: {statusPengajuanLabel[pp.status]?.text ?? pp.status}
+                                                    </p>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : pinjamanAktifList.some(p => p.sudah_pakai_percepatan) ? (
+                                    <div className="bg-slate-500/15 border border-slate-400/30 rounded-2xl p-5">
+                                        <p className="text-sm text-slate-200">
+                                            Pinjaman ini sudah pernah menggunakan hak perubahan tenor/pelunasan dipercepat.
+                                            {' '}Selesaikan pelunasan terlebih dahulu untuk menggunakan hak ini lagi.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <Link
+                                        href={route('portal.percepatan.create')}
+                                        className="flex items-center justify-center gap-2 w-full px-5 py-3 text-sm font-bold rounded-xl bg-white/10 border border-white/20 text-white hover:bg-white/20 transition-colors"
+                                    >
+                                        <Repeat size={16} />
+                                        Ajukan Perubahan Tenor / Pelunasan Dipercepat
+                                    </Link>
+                                )}
 
                                 {bisaAjukan ? (
                                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white/10 rounded-2xl p-5">
                                         <div>
                                             <p className="text-base font-semibold mb-1">Siap mengajukan pinjaman berikutnya</p>
                                             <p className="text-sm text-slate-300">
-                                                Tersisa {pinjamanAktif.sisa_angsuran} dari {pinjamanAktif.total_angsuran} cicilan. Limit Anda: {formatRupiah(limitMaksimal)}
+                                                Tersisa {aggregateTotalSisaAngsuran} dari {aggregateTotalAngsuran} cicilan
+                                                {pinjamanAktifCount > 1 && ` (gabungan ${pinjamanAktifCount} pinjaman)`}.
                                             </p>
+                                            {sisaAngsuranAktif > 0 && cicilanPokokAktif > 0 && (
+                                                <div className="mt-2 pt-2 border-t border-white/10">
+                                                    <p className="text-xs text-slate-300 mb-0.5">
+                                                        Sisa cicilan pokok: <span className="font-semibold text-white">{formatRupiah(sisaAngsuranAktif * cicilanPokokAktif)}</span>
+                                                        {' '}({sisaAngsuranAktif} × {formatRupiah(cicilanPokokAktif)})
+                                                    </p>
+                                                    <p className="text-xs text-slate-300">
+                                                        Limit tersedia: <span className="font-semibold text-white">{formatRupiah(limitTersedia)}</span>
+                                                        <span className="text-slate-400"> (dari limit {formatRupiah(limitMaksimal)})</span>
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
                                         <Link
                                             href={route('portal.pinjaman.create')}
@@ -173,14 +232,14 @@ export default function Dashboard({
                         </div>
                     </div>
 
-                    {pinjamanAktif && (
+                    {pinjamanAktifCount > 0 && (
                         <div className="bg-white rounded-2xl border border-slate-100 p-5 flex items-center justify-between flex-wrap gap-3">
                             <div>
                                 <p className="text-sm text-slate-400">Sisa Total yang Harus Dibayar</p>
-                                <p className="text-xl font-bold text-slate-800 mt-0.5">{formatRupiah(pinjamanAktif.sisa_total_bayar)}</p>
+                                <p className="text-xl font-bold text-slate-800 mt-0.5">{formatRupiah(aggregateSisaTotalBayar)}</p>
                             </div>
                             <p className="text-sm text-slate-500">
-                                {pinjamanAktif.sisa_angsuran} dari {pinjamanAktif.total_angsuran} cicilan tersisa
+                                {pinjamanAktifCount > 1 ? `${aggregateTotalSisaAngsuran} dari ${aggregateTotalAngsuran} cicilan (gabungan ${pinjamanAktifCount} pinjaman)` : `${pinjamanAktif.sisa_angsuran} dari {pinjamanAktif.total_angsuran} cicilan tersisa`}
                             </p>
                         </div>
                     )}
