@@ -80,6 +80,7 @@ Route::middleware(['auth', 'permission:portal.akses'])->prefix('portal')->name('
     // ------------ Perubahan Tenor ----------------
     Route::get('/percepatan', [PortalPercepatanController::class, 'create'])->name('percepatan.create');
     Route::post('/percepatan', [PortalPercepatanController::class, 'store'])->name('percepatan.store');
+    Route::post('/percepatan/preview', [PortalPercepatanController::class, 'preview'])->name('percepatan.preview');
 });
 
 // ==========================================
@@ -223,6 +224,6 @@ Route::middleware(['auth', 'permission:kas.topup'])->group(function () {
 });
 
 Route::post('/angsuran/konfirmasi-percepatan', [AngsuranController::class, 'konfirmasiPercepatan'])->name('angsuran.konfirmasi-percepatan');
-Route::post('/percepatan/preview', [PortalPercepatanController::class, 'preview'])->name('percepatan.preview');
+
 
 require __DIR__.'/auth.php';

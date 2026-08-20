@@ -21,29 +21,45 @@ export default function Create({ pinjaman }) {
         tipe: '', tenor_baru: '', keterangan: '',
     });
 
+    // Muat preview otomatis untuk Lunas Sekarang begitu tipe dipilih (tidak butuh tenor)
     useEffect(() => {
+        if (tipeDipilih === 'lunas_total') {
+            muatPreview('lunas_total', null);
+        } else {
+            setPreview(null);
+        }
+    }, [tipeDipilih]);
+
+    async function muatPreview(tipe, tenorBaru) {
+        setLoadingPreview(true);
+        try {
+            const res = await window.axios.post(route('portal.percepatan.preview'), {
+                tipe,
+                tenor_baru: tenorBaru,
+            });
+            setPreview(res.data);
+        } catch (e) {
+            setPreview(null);
+        } finally {
+            setLoadingPreview(false);
+        }
+    }
+
+    function pilihTipe(tipe) {
+        setTipeDipilih(tipe);
+        setData({ ...data, tipe, tenor_baru: '' });
         setPreview(null);
+    }
 
-        if (!data.tipe) return;
-        if ((data.tipe === 'percepat' || data.tipe === 'perpanjang') && !data.tenor_baru) return;
+    function pilihTenor(bulan) {
+        setData('tenor_baru', bulan);
+        muatPreview(tipeDipilih, bulan);
+    }
 
-        const timeout = setTimeout(async () => {
-            setLoadingPreview(true);
-            try {
-                const res = await window.axios.post(route('portal.percepatan.preview'), {
-                    tipe: data.tipe,
-                    tenor_baru: data.tenor_baru || null,
-                });
-                setPreview(res.data);
-            } catch (e) {
-                setPreview(null);
-            } finally {
-                setLoadingPreview(false);
-            }
-        }, 500);
-
-        return () => clearTimeout(timeout);
-    }, [data.tipe, data.tenor_baru]);
+    function submit(e) {
+        e.preventDefault();
+        post(route('portal.percepatan.store'));
+    }
 
     if (!pinjaman) {
         return (
@@ -77,15 +93,9 @@ export default function Create({ pinjaman }) {
         );
     }
 
-    function pilihTipe(tipe) {
-        setTipeDipilih(tipe);
-        setData({ ...data, tipe, tenor_baru: '' });
-    }
-
-    function submit(e) {
-        e.preventDefault();
-        post(route('portal.percepatan.store'));
-    }
+    // Rentang tombol tenor - untuk Percepat maksimal (tenor_bulan - 1), untuk Perpanjang mulai (tenor_bulan + 1) sampai 12
+    const opsiTenorPercepat = Array.from({ length: Math.max(pinjaman.tenor_bulan - 1, 0) }, (_, i) => i + 1);
+    const opsiTenorPerpanjang = Array.from({ length: 12 - pinjaman.tenor_bulan }, (_, i) => pinjaman.tenor_bulan + i + 1);
 
     return (
         <AnggotaLayout>
@@ -126,17 +136,50 @@ export default function Create({ pinjaman }) {
 
                 {tipeDipilih && (
                     <form onSubmit={submit} className="bg-white rounded-2xl border border-slate-100 p-6">
-                        {(tipeDipilih === 'percepat' || tipeDipilih === 'perpanjang') && (
+                        {tipeDipilih === 'percepat' && (
                             <div className="mb-5">
-                                <label className="block text-base font-semibold text-slate-700 mb-2">Tenor Baru (bulan)</label>
-                                <input
-                                    type="number"
-                                    value={data.tenor_baru}
-                                    onChange={(e) => setData('tenor_baru', e.target.value)}
-                                    placeholder={tipeDipilih === 'percepat' ? `Kurang dari ${pinjaman.tenor_bulan} bulan` : `Lebih dari ${pinjaman.tenor_bulan} bulan`}
-                                    className="w-full px-4 py-3 text-base rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
-                                    autoFocus
-                                />
+                                <label className="block text-base font-semibold text-slate-700 mb-2">Pilih Tenor Baru</label>
+                                <p className="text-sm text-slate-400 mb-3">Harus kurang dari tenor saat ini ({pinjaman.tenor_bulan} bulan)</p>
+                                <div className="grid grid-cols-4 sm:grid-cols-6 gap-2.5">
+                                    {opsiTenorPercepat.map((bulan) => (
+                                        <button
+                                            key={bulan}
+                                            type="button"
+                                            onClick={() => pilihTenor(bulan)}
+                                            className={`py-3 rounded-xl text-base font-bold border-2 transition-colors ${
+                                                data.tenor_baru === bulan
+                                                    ? 'border-brand-green bg-brand-green-light text-brand-green-dark'
+                                                    : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                                            }`}
+                                        >
+                                            {bulan}
+                                        </button>
+                                    ))}
+                                </div>
+                                {errors.tenor_baru && <p className="text-sm text-red-600 mt-1.5">{errors.tenor_baru}</p>}
+                            </div>
+                        )}
+
+                        {tipeDipilih === 'perpanjang' && (
+                            <div className="mb-5">
+                                <label className="block text-base font-semibold text-slate-700 mb-2">Pilih Tenor Baru</label>
+                                <p className="text-sm text-slate-400 mb-3">Harus lebih dari tenor saat ini ({pinjaman.tenor_bulan} bulan)</p>
+                                <div className="grid grid-cols-4 sm:grid-cols-6 gap-2.5">
+                                    {opsiTenorPerpanjang.map((bulan) => (
+                                        <button
+                                            key={bulan}
+                                            type="button"
+                                            onClick={() => pilihTenor(bulan)}
+                                            className={`py-3 rounded-xl text-base font-bold border-2 transition-colors ${
+                                                data.tenor_baru === bulan
+                                                    ? 'border-brand-green bg-brand-green-light text-brand-green-dark'
+                                                    : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                                            }`}
+                                        >
+                                            {bulan}
+                                        </button>
+                                    ))}
+                                </div>
                                 {errors.tenor_baru && <p className="text-sm text-red-600 mt-1.5">{errors.tenor_baru}</p>}
                             </div>
                         )}
