@@ -36,6 +36,7 @@ class PinjamanMandiriTest extends TestCase
             'nama_bank' => 'BCA',
             'no_rekening' => '1234567890',
             'atas_nama' => 'Pengurus Koperasi',
+            'persetujuan' => true,
         ], $override));
     }
 

@@ -32,6 +32,8 @@ class PinjamanController extends Controller
             'rekeningTersimpan' => $anggota->rekening()->orderByDesc('is_default')->get([
                 'id', 'nama_bank', 'no_rekening', 'atas_nama', 'is_default',
             ]),
+            'poinSyarat' => config('syarat_pinjaman.poin'),
+            'versiSyarat' => config('syarat_pinjaman.versi'),
         ]);
     }
 
@@ -88,6 +90,10 @@ class PinjamanController extends Controller
             'nama_bank' => ['required_if:rekening_mode,baru', 'nullable', 'string', 'max:100'],
             'no_rekening' => ['required_if:rekening_mode,baru', 'nullable', 'string', 'max:50'],
             'atas_nama' => ['required_if:rekening_mode,baru', 'nullable', 'string', 'max:100'],
+            'persetujuan' => ['required', 'accepted'],
+        ], [
+            'persetujuan.required' => 'Anda harus menyetujui seluruh syarat & ketentuan pinjaman terlebih dahulu.',
+            'persetujuan.accepted' => 'Anda harus menyetujui seluruh syarat & ketentuan pinjaman terlebih dahulu.',
         ]);
 
         try {
@@ -102,6 +108,11 @@ class PinjamanController extends Controller
                     'nama_bank' => $request->nama_bank,
                     'no_rekening' => $request->no_rekening,
                     'atas_nama' => $request->atas_nama,
+                ],
+                [
+                    'persetujuan' => true,
+                    'ip' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
                 ]
             );
         } catch (RuntimeException $e) {

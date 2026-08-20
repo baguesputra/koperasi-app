@@ -6,28 +6,43 @@
  */
 
 return [
-    'versi' => 'v1.0-2026-08-21',
+    'versi' => 'v1.1-2026-08-21',
 
     'poin' => [
         [
-            'judul' => 'Potong Gaji Bulanan',
-            'deskripsi' => 'Cicilan pinjaman akan dipotong langsung dari gaji bulanan anggota setiap akhir bulan melalui sistem payroll perusahaan.',
+            'judul' => 'Potongan Gaji Setiap Akhir Bulan',
+            'deskripsi' => 'Pinjaman yang disetujui akan dipotong dari gaji anggota setiap akhir bulan melalui mekanisme payroll perusahaan hingga lunas.',
+            'wajib_contreng' => true,
         ],
         [
-            'judul' => 'Pelunasan Saat Resign',
-            'deskripsi' => 'Apabila anggota mengajukan pengundurkan diri dari perusahaan, seluruh sisa pinjaman yang belum dilunasi wajib diselesaikan terlebih dahulu sebagai salah satu syarat proses resign.',
+            'judul' => 'Pelunasan Sebelum Resign',
+            'deskripsi' => 'Apabila anggota mengajukan pengunduran diri dari perusahaan, maka seluruh sisa pinjaman yang masih berjalan wajib dilunasi terlebih dahulu sebagai salah satu syarat diprosesnya resign.',
+            'wajib_contreng' => true,
         ],
         [
-            'judul' => 'Keringanan Perubahan Tenor (1x)',
-            'deskripsi' => 'Anggota berhak mengajukan keringanan berupa perubahan tenor (perpanjang atau percepat) atau pelunasan dipercepat sebanyak 1 (satu) kali selama masa pinjaman berlangsung, dengan persetujuan pengurus koperasi.',
+            'judul' => 'Keringanan Perubahan Tenor (1 Kali)',
+            'deskripsi' => 'Anggota berhak mendapatkan keringanan berupa perpanjangan/perubahan tenor atau pelunasan lebih awal sebanyak 1 (satu) kali selama masa pinjaman, dengan persetujuan pengurus koperasi.',
+            'wajib_contreng' => true,
         ],
         [
-            'judul' => 'Penggunaan Sesuai Keperluan',
-            'deskripsi' => 'Dana pinjaman wajib digunakan sesuai dengan keperluan yang telah diajukan dan tidak diperkenankan dialokasikan untuk keperluan yang bertentangan dengan peraturan perusahaan, AD/ART koperasi, serta hukum yang berlaku.',
+            'judul' => 'Penggunaan Dana Sesuai Keperluan',
+            'deskripsi' => 'Dana pinjaman wajib digunakan sesuai keperluan yang telah disampaikan saat pengajuan dan tidak boleh digunakan untuk kepentingan yang bertentangan dengan peraturan perusahaan, AD/ART koperasi, maupun ketentuan hukum yang berlaku.',
+            'wajib_contreng' => true,
         ],
         [
-            'judul' => 'Sanksi Pelanggaran',
-            'deskripsi' => 'Pelanggaran terhadap ketentuan ini akan dikenakan sanksi administratif sesuai Peraturan Perusahaan dan Anggaran Dasar/Anggaran Rumah Tangga (AD/ART) Koperasi yang berlaku, termasuk namun tidak terbatas pada pemutusan fasilitas pinjaman, penagihan paksa, hingga proses hukum.',
+            'judul' => 'Sanksi Atas Pelanggaran',
+            'deskripsi' => 'Pelanggaran terhadap ketentuan di atas akan dikenai sanksi sesuai Peraturan Perusahaan dan AD/ART Koperasi, mulai dari teguran, pemutusan fasilitas pinjaman, penagihan paksa, hingga proses hukum.',
+            'wajib_contreng' => true,
+        ],
+        [
+            'judul' => 'Pernyataan Bukan untuk Pihak Ketiga',
+            'deskripsi' => 'Saya menyatakan bahwa pinjaman ini digunakan untuk kepentingan pribadi saya sebagai anggota, bukan atas nama, untuk, atau dialihkan kepada pihak lain manapun. Apabila di kemudian hari terbukti sebaliknya, saya bersedia menanggung seluruh konsekuensi hukum sesuai peraturan yang berlaku.',
+            'wajib_contreng' => true,
+        ],
+        [
+            'judul' => 'Pernyataan Kebenaran Data',
+            'deskripsi' => 'Saya menyatakan bahwa seluruh data yang saya berikan dalam pengajuan ini adalah benar, lengkap, dan dapat dipertanggungjawabkan. Apabila di kemudian hari ditemukan adanya ketidakbenaran data, saya bersedia menerima sanksi berupa pembatalan pinjaman, pemutusan fasilitas koperasi, serta proses hukum sesuai peraturan yang berlaku.',
+            'wajib_contreng' => true,
         ],
     ],
 ];

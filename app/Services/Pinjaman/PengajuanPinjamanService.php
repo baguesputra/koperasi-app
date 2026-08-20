@@ -19,9 +19,14 @@ class PengajuanPinjamanService
     /**
      * @param  array  $rekening  ['mode' => 'tersimpan'|'baru', 'rekening_id' => ?int,
      *                           'nama_bank' => ?string, 'no_rekening' => ?string, 'atas_nama' => ?string]
+     * @param  array  $audit  ['ip' => ?string, 'user_agent' => ?string, 'persetujuan' => bool]
      */
-    public function ajukan(User $pengaju, float $nominal, int $tenorBulan, string $keperluan, array $rekening): Pinjaman
+    public function ajukan(User $pengaju, float $nominal, int $tenorBulan, string $keperluan, array $rekening, array $audit = []): Pinjaman
     {
+        if (empty($audit['persetujuan']) || $audit['persetujuan'] !== true) {
+            throw new RuntimeException('Anda harus menyetujui seluruh syarat & ketentuan pinjaman terlebih dahulu.');
+        }
+
         $anggota = $pengaju->anggota;
 
         $cekEligibilitas = $this->eligibilitas->cek($anggota);
@@ -52,7 +57,7 @@ class PengajuanPinjamanService
         // tanpa peduli sisa berapa pun). Jika sudah ada pinjaman aktif lain, update flag-nya juga.
         $pakaiPrivilegeReloan = $cekEligibilitas['sisa_angsuran'] > 0;
 
-        return DB::transaction(function () use ($pengaju, $anggota, $nominal, $tenorBulan, $keperluan, $rekening, $statusAwal, $cairOlehBendahara, $catatanBendahara, $pakaiPrivilegeReloan) {
+        return DB::transaction(function () use ($pengaju, $anggota, $nominal, $tenorBulan, $keperluan, $rekening, $statusAwal, $cairOlehBendahara, $catatanBendahara, $pakaiPrivilegeReloan, $audit) {
             if ($pakaiPrivilegeReloan) {
                 Pinjaman::where('anggota_id', $anggota->id)
                     ->where('status', 'aktif')
@@ -76,6 +81,10 @@ class PengajuanPinjamanService
                 'catatan_bendahara' => $catatanBendahara,
                 'sudah_pakai_privilege_reloan' => false,
                 'tanggal_pengajuan' => now(),
+                'disetujui_pada' => now(),
+                'versi_syarat' => config('syarat_pinjaman.versi'),
+                'ip_address_setuju' => $audit['ip'] ?? null,
+                'user_agent_setuju' => isset($audit['user_agent']) ? substr($audit['user_agent'], 0, 255) : null,
             ]);
         });
     }

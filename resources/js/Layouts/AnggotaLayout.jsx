@@ -1,6 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import { useState, useRef, useEffect } from 'react';
-import { User, LogOut, ChevronDown } from 'lucide-react';
+import { User, LogOut, ChevronDown, HelpCircle } from 'lucide-react';
+import Panduan from '@/Pages/Portal/Panduan';
 
 export default function AnggotaLayout({ children }) {
     const { auth } = usePage().props;
@@ -8,6 +9,7 @@ export default function AnggotaLayout({ children }) {
     const permissions = auth.user?.permissions ?? [];
     const bisaKembaliKeCoop = permissions.includes('portal.akses');
     const [dropdownOpen, setDropdownOpen] = useState(false);
+    const [showPanduan, setShowPanduan] = useState(false);
     const dropdownRef = useRef(null);
 
     useEffect(() => {
@@ -20,14 +22,35 @@ export default function AnggotaLayout({ children }) {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    useEffect(() => {
+        function handleEsc(e) {
+            if (e.key === 'Escape' && showPanduan) {
+                setShowPanduan(false);
+            }
+        }
+        document.addEventListener('keydown', handleEsc);
+        return () => document.removeEventListener('keydown', handleEsc);
+    }, [showPanduan]);
+
     return (
         <div className="min-h-screen bg-slate-50">
             <header className="sticky top-0 z-50 bg-white border-b-2 border-brand-navy">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-                    <Link href={route('portal.dashboard')} className="flex items-center gap-2.5">
-                        <img src="/images/logo.png" alt="Koperasi App" className="w-8 h-8" />
-                        <span className="font-bold text-base text-slate-800">Koperasi App</span>
-                    </Link>
+                    <div className="flex items-center gap-3 sm:gap-5">
+                        <Link href={route('portal.dashboard')} className="flex items-center gap-2.5">
+                            <img src="/images/logo.png" alt="Koperasi App" className="w-8 h-8" />
+                            <span className="font-bold text-base text-slate-800">Koperasi App</span>
+                        </Link>
+
+                        <button
+                            type="button"
+                            onClick={() => setShowPanduan(true)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-lg border border-slate-200 text-slate-600 hover:bg-brand-green-light hover:border-brand-green hover:text-brand-green-dark transition-colors"
+                        >
+                            <HelpCircle size={14} />
+                            <span className="hidden sm:inline">Tata Cara</span>
+                        </button>
+                    </div>
 
                     <div className="relative" ref={dropdownRef}>
                         <button
@@ -87,6 +110,8 @@ export default function AnggotaLayout({ children }) {
             <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
                 {children}
             </main>
+
+            {showPanduan && <Panduan onClose={() => setShowPanduan(false)} />}
         </div>
     );
 }

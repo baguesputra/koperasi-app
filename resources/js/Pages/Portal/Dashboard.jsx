@@ -151,6 +151,26 @@ export default function Dashboard({
                                         <p className="text-sm text-amber-200">{alasanTidakBisa}</p>
                                     </div>
                                 )}
+
+                                {bisaAjukan && limitTersedia < limitMaksimal && (
+                                    <Link
+                                        href={route('portal.pengajuan-limit.create')}
+                                        className="flex items-center justify-between gap-3 bg-white/5 border border-white/15 rounded-2xl p-4 hover:bg-white/10 transition-colors group"
+                                    >
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <div className="w-9 h-9 rounded-xl bg-brand-green/20 flex items-center justify-center shrink-0">
+                                                <TrendingUp size={18} className="text-brand-green" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-sm font-semibold text-white">Limit Anda kurang?</p>
+                                                <p className="text-xs text-slate-300 truncate">
+                                                    Saat ini {formatRupiah(limitTersedia)} dari {formatRupiah(limitMaksimal)}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <ArrowRight size={16} className="text-slate-300 group-hover:translate-x-0.5 transition-transform shrink-0" />
+                                    </Link>
+                                )}
                             </>
                         ) : pengajuanBerjalan ? (
                             <Link href={route('portal.riwayat')} className="block bg-white/10 rounded-2xl p-5 hover:bg-white/[0.15] transition-colors">
@@ -202,6 +222,26 @@ export default function Dashboard({
                                     <div className="bg-amber-500/15 border border-amber-400/30 rounded-2xl p-5">
                                         <p className="text-sm text-amber-200">{alasanTidakBisa}</p>
                                     </div>
+                                )}
+
+                                {bisaAjukan && limitTersedia < limitMaksimal && (
+                                    <Link
+                                        href={route('portal.pengajuan-limit.create')}
+                                        className="flex items-center justify-between gap-3 bg-white/5 border border-white/15 rounded-2xl p-4 hover:bg-white/10 transition-colors group"
+                                    >
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <div className="w-9 h-9 rounded-xl bg-brand-green/20 flex items-center justify-center shrink-0">
+                                                <TrendingUp size={18} className="text-brand-green" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-sm font-semibold text-white">Limit Anda kurang?</p>
+                                                <p className="text-xs text-slate-300 truncate">
+                                                    Saat ini {formatRupiah(limitTersedia)} dari {formatRupiah(limitMaksimal)}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <ArrowRight size={16} className="text-slate-300 group-hover:translate-x-0.5 transition-transform shrink-0" />
+                                    </Link>
                                 )}
                             </div>
                         )}
@@ -329,18 +369,6 @@ export default function Dashboard({
                                 </div>
                             ))}
                         </div>
-                        <Link
-                            href={route('portal.pengajuan-limit.create')}
-                            className="block bg-white rounded-2xl border border-slate-100 p-5 hover:border-brand-green transition-colors"
-                        >
-                            <div className="flex items-center gap-2 mb-2">
-                                <TrendingUp size={18} className="text-brand-green" />
-                                <p className="text-sm font-bold text-slate-700">Butuh Limit Lebih Besar?</p>
-                            </div>
-                            <p className="text-sm text-slate-500">
-                                Ajukan permohonan tambah limit pinjaman ke Ketua Koperasi.
-                            </p>
-                        </Link>
                     </div>
                 </div>
             </div>

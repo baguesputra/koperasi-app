@@ -3,11 +3,11 @@ import { Head, Link, router } from '@inertiajs/react';
 import { useState, useEffect, useRef } from 'react';
 import {
     ArrowLeft, AlertCircle, Check, ShieldCheck,
-    Phone, Clock, Wallet,
+    Phone, Clock, Wallet, X, FileText,
 } from 'lucide-react';
 import { formatRupiah } from '@/Utils/formatCurrency';
 
-export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal, limitTersedia, sisaAngsuranAktif, cicilanPokokAktif, rekeningTersimpan }) {
+export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal, limitTersedia, sisaAngsuranAktif, cicilanPokokAktif, rekeningTersimpan, poinSyarat = [], versiSyarat = '' }) {
     const [nominal, setNominal] = useState('');
     const [nominalValid, setNominalValid] = useState(false);
     const [tenorMaksimal, setTenorMaksimal] = useState(null);
@@ -24,6 +24,9 @@ export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal, lim
     const [namaBank, setNamaBank] = useState('');
     const [noRekening, setNoRekening] = useState('');
     const [atasNama, setAtasNama] = useState('');
+
+    const [showModalPersetujuan, setShowModalPersetujuan] = useState(false);
+    const [setujuSyarat, setSetujuSyarat] = useState(false);
 
     const tenorRef = useRef(null);
     const ringkasanRef = useRef(null);
@@ -90,6 +93,13 @@ export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal, lim
     }
 
     function submitPengajuan() {
+        setError('');
+        setShowModalPersetujuan(true);
+        setSetujuSyarat(false);
+    }
+
+    function kirimPengajuan() {
+        if (!setujuSyarat) return;
         setLoadingSubmit(true);
         router.post(
             route('portal.pinjaman.store'),
@@ -102,11 +112,14 @@ export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal, lim
                 nama_bank: namaBank,
                 no_rekening: noRekening,
                 atas_nama: atasNama,
+                persetujuan: true,
             },
             {
                 onError: (errors) => {
                     setError(Object.values(errors)[0] ?? 'Terjadi kesalahan, coba lagi.');
                     setLoadingSubmit(false);
+                    setShowModalPersetujuan(false);
+                    setSetujuSyarat(false);
                 },
             }
         );
@@ -273,6 +286,90 @@ export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal, lim
                     </div>
                 </div>
             </div>
+
+            {showModalPersetujuan && (
+                <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl w-full max-w-2xl my-8 shadow-2xl">
+                        <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-5 flex items-start justify-between gap-4 rounded-t-2xl">
+                            <div className="flex items-start gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-brand-green-light flex items-center justify-center shrink-0">
+                                    <FileText size={20} className="text-brand-green" />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-bold text-slate-800">Persetujuan Syarat & Ketentuan</h2>
+                                    <p className="text-xs text-slate-400 mt-0.5">Versi {versiSyarat} &bull; Berlaku efektif per {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowModalPersetujuan(false)}
+                                className="text-slate-400 hover:text-slate-600 transition-colors shrink-0"
+                                aria-label="Tutup"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="px-6 py-5 max-h-[55vh] overflow-y-auto">
+                            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 mb-4 flex items-start gap-2.5">
+                                <ShieldCheck size={18} className="text-amber-600 shrink-0 mt-0.5" />
+                                <p className="text-xs text-amber-800 leading-relaxed">
+                                    Bacalah seluruh poin di bawah ini dengan seksama. Dengan menekan tombol <span className="font-bold">"Konfirmasi & Kirim"</span>, Anda menyatakan telah membaca, memahami, dan menyetujui seluruh ketentuan yang berlaku.
+                                </p>
+                            </div>
+
+                            <div className="space-y-2.5">
+                                {poinSyarat.map((p, i) => (
+                                    <div key={i} className="border border-slate-100 rounded-xl p-4 hover:border-slate-200 transition-colors">
+                                        <div className="flex items-start gap-3">
+                                            <div className="w-7 h-7 rounded-lg bg-brand-navy text-white flex items-center justify-center text-sm font-bold shrink-0">
+                                                {i + 1}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-bold text-slate-800">{p.judul}</p>
+                                                <p className="text-sm text-slate-600 mt-1.5 leading-relaxed">{p.deskripsi}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="sticky bottom-0 bg-white border-t border-slate-100 px-6 py-5 space-y-4 rounded-b-2xl">
+                            <label className="flex items-start gap-3 cursor-pointer group">
+                                <input
+                                    type="checkbox"
+                                    checked={setujuSyarat}
+                                    onChange={(e) => setSetujuSyarat(e.target.checked)}
+                                    className="mt-0.5 w-5 h-5 rounded border-slate-300 text-brand-green focus:ring-2 focus:ring-brand-green/30 cursor-pointer shrink-0"
+                                />
+                                <span className="text-sm text-slate-700 leading-relaxed">
+                                    Saya telah <span className="font-semibold">membaca, memahami, dan menyetujui</span> seluruh syarat & ketentuan pinjaman di atas. Saya bersedia menanggung konsekuensi sesuai peraturan yang berlaku apabila terjadi pelanggaran.
+                                </span>
+                            </label>
+
+                            <div className="flex flex-col sm:flex-row gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowModalPersetujuan(false)}
+                                    disabled={loadingSubmit}
+                                    className="sm:flex-1 py-3.5 text-sm font-bold rounded-xl border-2 border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50"
+                                >
+                                    Kembali
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={kirimPengajuan}
+                                    disabled={!setujuSyarat || loadingSubmit}
+                                    className="sm:flex-[2] py-3.5 text-sm font-bold rounded-xl bg-brand-green text-white hover:bg-brand-green-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {loadingSubmit ? 'Mengirim...' : 'Konfirmasi & Kirim Pengajuan'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </AnggotaLayout>
     );
 }
