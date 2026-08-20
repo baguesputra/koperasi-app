@@ -191,7 +191,22 @@ Summary hasil meeting dengan koperasi 15 Agustus 2026
 # Testing Checklist — Koperasi App
 **Tanggal:** 20 Agustus 2026
 Summary hasil meeting dengan koperasi 15 Agustus 2026
+- [x] Pembuatan Ui percepatan, penambahan bulan dan pelunasan langsung angsuran berjalan
+- [x] Testing fitur perubahan tenor
+- [ ] rule penambahan pinjaman dibuka dan bisa sekali saja penambahan
+- [ ] validasi untuk perubahan tenor hanya sekali belum ada, validasi pengajuan limit tambah belum ada
+- [ ] Menu angsuran dibuat tab dibedakan tiap cabang termasuk konfirmasi simpanan
+- [ ] Pembuatan fitur anggota resign summary simpanan dan angsuran berjalan
+- [ ] import excel atau tambah anggota otomatis buat user juga
+- [ ] 
+
+
 - [ ] Gabung jadi 1 halaman approval bendahara dan ketua
 - [ ] Menambah idempotency key jika terjadi double klik action crud
 - [ ] Perancangan audit trail dari sisi keuangan
 - [ ] Menambah reconciliation otomatis
+
+- [ ] notifikasi setelah pengajuan awal, setelah approve bendahara dan approve ketua
+- [ ] notifikasi angsuran dan simpanan sudah terbayarkan ke bendahara atau ketua
+- [ ] fitur edit ajuan pinjaman (tenor) dari pihak bendahara dan ketua
+- [ ] multi tenant ( opsional )

@@ -1,6 +1,6 @@
 import AnggotaLayout from '@/Layouts/AnggotaLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, TrendingDown, TrendingUp, CheckCircle2, AlertCircle } from 'lucide-react';
 
 function formatRupiah(angka) {
@@ -15,22 +15,35 @@ const opsi = [
 
 export default function Create({ pinjaman }) {
     const [tipeDipilih, setTipeDipilih] = useState(null);
+    const [preview, setPreview] = useState(null);
+    const [loadingPreview, setLoadingPreview] = useState(false);
     const { data, setData, post, processing, errors } = useForm({
         tipe: '', tenor_baru: '', keterangan: '',
     });
 
-    const [preview, setPreview] = useState(null);
+    useEffect(() => {
+        setPreview(null);
 
-    async function muatPreview() {
         if (!data.tipe) return;
         if ((data.tipe === 'percepat' || data.tipe === 'perpanjang') && !data.tenor_baru) return;
 
-        const res = await window.axios.post(route('portal.percepatan.preview'), {
-            tipe: data.tipe,
-            tenor_baru: data.tenor_baru || null,
-        });
-        setPreview(res.data);
-    }
+        const timeout = setTimeout(async () => {
+            setLoadingPreview(true);
+            try {
+                const res = await window.axios.post(route('portal.percepatan.preview'), {
+                    tipe: data.tipe,
+                    tenor_baru: data.tenor_baru || null,
+                });
+                setPreview(res.data);
+            } catch (e) {
+                setPreview(null);
+            } finally {
+                setLoadingPreview(false);
+            }
+        }, 500);
+
+        return () => clearTimeout(timeout);
+    }, [data.tipe, data.tenor_baru]);
 
     if (!pinjaman) {
         return (
@@ -66,7 +79,7 @@ export default function Create({ pinjaman }) {
 
     function pilihTipe(tipe) {
         setTipeDipilih(tipe);
-        setData('tipe', tipe);
+        setData({ ...data, tipe, tenor_baru: '' });
     }
 
     function submit(e) {
@@ -122,8 +135,47 @@ export default function Create({ pinjaman }) {
                                     onChange={(e) => setData('tenor_baru', e.target.value)}
                                     placeholder={tipeDipilih === 'percepat' ? `Kurang dari ${pinjaman.tenor_bulan} bulan` : `Lebih dari ${pinjaman.tenor_bulan} bulan`}
                                     className="w-full px-4 py-3 text-base rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
+                                    autoFocus
                                 />
                                 {errors.tenor_baru && <p className="text-sm text-red-600 mt-1.5">{errors.tenor_baru}</p>}
+                            </div>
+                        )}
+
+                        {loadingPreview && (
+                            <div className="mb-5 flex items-center gap-2 text-sm text-slate-400">
+                                <div className="w-4 h-4 border-2 border-brand-green border-t-transparent rounded-full animate-spin" />
+                                Menghitung simulasi...
+                            </div>
+                        )}
+
+                        {preview && !loadingPreview && (
+                            <div className="mb-5 bg-slate-50 rounded-xl p-4">
+                                <p className="text-sm font-semibold text-slate-600 mb-2">Simulasi Perhitungan</p>
+                                <p className="text-sm text-slate-500 mb-3">
+                                    Sisa Pokok Saat Ini: <span className="font-semibold text-slate-700">{formatRupiah(preview.sisa_pokok)}</span>
+                                </p>
+
+                                {tipeDipilih === 'lunas_total' ? (
+                                    <div className="bg-white rounded-lg p-3 border border-slate-200">
+                                        <div className="flex justify-between text-sm mb-1">
+                                            <span className="text-slate-500">Bunga (1 bulan)</span>
+                                            <span className="font-semibold text-slate-700">{formatRupiah(preview.bunga)}</span>
+                                        </div>
+                                        <div className="flex justify-between pt-1.5 border-t border-slate-100">
+                                            <span className="text-sm font-semibold text-slate-700">Total Harus Dibayar</span>
+                                            <span className="text-lg font-bold text-brand-navy">{formatRupiah(preview.total_bayar)}</span>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="max-h-48 overflow-y-auto divide-y divide-slate-200 border border-slate-200 rounded-lg bg-white">
+                                        {preview.jadwal?.map((c) => (
+                                            <div key={c.cicilan_ke} className="flex justify-between px-3 py-2 text-sm">
+                                                <span className="text-slate-500">Cicilan ke-{c.cicilan_ke}</span>
+                                                <span className="font-semibold text-slate-700">{formatRupiah(c.total_bayar)}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         )}
 

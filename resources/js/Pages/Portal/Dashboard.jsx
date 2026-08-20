@@ -244,6 +244,18 @@ export default function Dashboard({
                                 </div>
                             ))}
                         </div>
+                        <Link
+                            href={route('portal.pengajuan-limit.create')}
+                            className="block bg-white rounded-2xl border border-slate-100 p-5 hover:border-brand-green transition-colors"
+                        >
+                            <div className="flex items-center gap-2 mb-2">
+                                <TrendingUp size={18} className="text-brand-green" />
+                                <p className="text-sm font-bold text-slate-700">Butuh Limit Lebih Besar?</p>
+                            </div>
+                            <p className="text-sm text-slate-500">
+                                Ajukan permohonan tambah limit pinjaman ke Ketua Koperasi.
+                            </p>
+                        </Link>
                     </div>
                 </div>
             </div>
