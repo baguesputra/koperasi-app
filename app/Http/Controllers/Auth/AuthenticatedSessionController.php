@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -31,6 +32,14 @@ class AuthenticatedSessionController extends Controller
     {
         $request->authenticate();
 
+        if (auth()->user()?->status === 'nonaktif') {
+            Auth::logout();
+
+            throw ValidationException::withMessages([
+                'no_karyawan' => __('Akun Anda dinonaktifkan. Silakan hubungi pengurus koperasi.'),
+            ]);
+        }
+
         $request->session()->regenerate();
 
         return redirect()->intended(route('dashboard', absolute: false));
@@ -50,19 +59,19 @@ class AuthenticatedSessionController extends Controller
     //     return redirect('/login');
     // }
 
-   public function destroy(Request $request): RedirectResponse
-{
-    Auth::guard('web')->logout();
+    public function destroy(Request $request): RedirectResponse
+    {
+        Auth::guard('web')->logout();
 
-    $request->session()->invalidate();
-    $request->session()->regenerateToken();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
-    if (config('auth.mode') === 'sso') {
-        return redirect()->away(
-            'https://gate.appdutamall.com/dashboard'
-        );
+        if (config('auth.mode') === 'sso') {
+            return redirect()->away(
+                'https://gate.appdutamall.com/dashboard'
+            );
+        }
+
+        return redirect()->route('login');
     }
-
-    return redirect()->route('login');
-}
 }

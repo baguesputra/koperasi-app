@@ -10,6 +10,8 @@ import TextField from '@/Components/ui/TextField';
 export default function Create({ noAnggotaBerikutnya, daftarCabang }) {
     const { data, setData, post, processing, errors } = useForm({
         nama: '',
+        no_karyawan: '',
+        email: '',
         cabang: '',
         unit_bisnis: '',
         jabatan: '',
@@ -45,6 +47,31 @@ export default function Create({ noAnggotaBerikutnya, daftarCabang }) {
                             autoFocus
                         />
                     </FormField>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+                        <FormField
+                            label="No Karyawan"
+                            error={errors.no_karyawan}
+                            hint="Dipakai sebagai akun login (password awal = no karyawan)"
+                        >
+                            <TextField
+                                size="sm"
+                                value={data.no_karyawan}
+                                onChange={(e) => setData('no_karyawan', e.target.value)}
+                                placeholder="Contoh: TOP-100099"
+                            />
+                        </FormField>
+
+                        <FormField label="Email (opsional)" error={errors.email}>
+                            <TextField
+                                size="sm"
+                                type="email"
+                                value={data.email}
+                                onChange={(e) => setData('email', e.target.value)}
+                                placeholder="Contoh: budi@koperasi.test"
+                            />
+                        </FormField>
+                    </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
                         <FormField label="Cabang" error={errors.cabang}>

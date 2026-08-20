@@ -29,8 +29,8 @@ class SsoController extends Controller
 
             $ssoId = $raw['sub'] ?? $raw['id'] ?? null;
             $email = $raw['email'] ?? null;
-            $nik   = $raw['nik'] ?? $raw['employee_id'] ?? null;
-            $name  = $raw['name'] ?? null;
+            $nik = $raw['nik'] ?? $raw['employee_id'] ?? null;
+            $name = $raw['name'] ?? null;
 
             // 1. Cari berdasarkan SSO ID
             $user = User::where('sso_id', $ssoId)->first();
@@ -69,7 +69,7 @@ class SsoController extends Controller
 
                 if (! $anggota->user_id) {
                     $anggota->update([
-                        'user_id' => $user->id
+                        'user_id' => $user->id,
                     ]);
                 }
             }
@@ -83,6 +83,11 @@ class SsoController extends Controller
             ]);
 
             // 6. Login ke aplikasi Koperasi
+            if ($user->status === 'nonaktif') {
+                return redirect()->route('login')
+                    ->with('error', 'Akun Anda dinonaktifkan. Silakan hubungi pengurus koperasi.');
+            }
+
             Auth::guard('web')->login($user);
 
             request()->session()->regenerate();
@@ -98,12 +103,12 @@ class SsoController extends Controller
     }
 
     public function logout()
-{
-    Auth::guard('web')->logout();
+    {
+        Auth::guard('web')->logout();
 
-    request()->session()->invalidate();
-    request()->session()->regenerateToken();
+        request()->session()->invalidate();
+        request()->session()->regenerateToken();
 
-    return redirect()->away('https://gate.appdutamall.com/dashboard');
-}
+        return redirect()->away('https://gate.appdutamall.com/dashboard');
+    }
 }

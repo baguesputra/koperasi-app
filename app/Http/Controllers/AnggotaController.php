@@ -8,7 +8,12 @@ use App\Http\Requests\UpdateAnggotaRequest;
 use App\Imports\AnggotaImport;
 use App\Models\Anggota;
 use App\Models\AuditLog;
+use App\Models\SettingSimpanan;
+use App\Models\Simpanan;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
 use Inertia\Response;
 use Maatwebsite\Excel\Facades\Excel;
@@ -76,14 +81,35 @@ class AnggotaController extends Controller
 
     public function store(StoreAnggotaRequest $request)
     {
-        Anggota::create([
-            ...$request->validated(),
-            'no_anggota' => Anggota::generateNoAnggota(),
-            'status' => 'aktif',
-        ]);
+        DB::transaction(function () use ($request) {
+            $user = User::create([
+                'name' => $request->nama,
+                'no_karyawan' => $request->no_karyawan,
+                'email' => $request->email,
+                'password' => Hash::make($request->no_karyawan),
+                'harus_ganti_password' => true,
+            ]);
+            $user->assignRole('anggota');
+
+            $anggota = Anggota::create([
+                ...$request->validated(),
+                'user_id' => $user->id,
+                'no_anggota' => Anggota::generateNoAnggota(),
+                'status' => 'aktif',
+            ]);
+
+            Simpanan::create([
+                'anggota_id' => $anggota->id,
+                'jenis' => 'pokok',
+                'jumlah' => SettingSimpanan::where('jenis', 'pokok')->value('nominal') ?? 50_000,
+                'bulan_periode' => now()->format('Y-m'),
+                'tanggal_input' => now(),
+                'input_by' => auth()->id(),
+            ]);
+        });
 
         return redirect()->route('anggota.index')
-            ->with('status', 'Anggota berhasil ditambahkan.');
+            ->with('status', 'Anggota berhasil ditambahkan beserta akun login (password awal = no karyawan).');
     }
 
     public function edit(Anggota $anggota): Response

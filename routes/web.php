@@ -1,35 +1,33 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
-use Illuminate\Foundation\Application;
-use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
-use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AnggotaController;
-use App\Http\Controllers\PengaturanController;
-use App\Http\Controllers\Portal\DashboardController as PortalDashboardController;
-use App\Http\Controllers\Portal\RiwayatController;
-use App\Http\Controllers\Portal\PinjamanController as PortalPinjamanController;
-use App\Http\Controllers\Bendahara\PinjamanController as BendaharaPinjamanController;
-use App\Http\Controllers\Ketua\PinjamanController as KetuaPinjamanController;
-use App\Http\Controllers\PinjamanController;
-use App\Http\Controllers\KasKoperasiController;
-use App\Http\Controllers\Bendahara\AngsuranController;
-use App\Http\Controllers\SimpananController;
-use App\Http\Controllers\Bendahara\SimpananController as BendaharaSimpananController;
-use App\Http\Controllers\RoleController;
-use App\Http\Controllers\Portal\ProfilController;
 use App\Http\Controllers\Auth\GantiPasswordWajibController;
 use App\Http\Controllers\Auth\SsoController;
-use App\Http\Controllers\PengeluaranController;
-use App\Http\Controllers\Portal\PengajuanLimitController as PortalPengajuanLimitController;
-use App\Http\Controllers\Ketua\PengajuanLimitController as KetuaPengajuanLimitController;
-use App\Http\Controllers\Portal\PercepatanController as PortalPercepatanController;
+use App\Http\Controllers\Bendahara\AngsuranController;
 use App\Http\Controllers\Bendahara\PercepatanController as BendaharaPercepatanController;
+use App\Http\Controllers\Bendahara\PinjamanController as BendaharaPinjamanController;
+use App\Http\Controllers\Bendahara\SimpananController as BendaharaSimpananController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\KasKoperasiController;
+use App\Http\Controllers\Ketua\PengajuanLimitController as KetuaPengajuanLimitController;
 use App\Http\Controllers\Ketua\PercepatanController as KetuaPercepatanController;
+use App\Http\Controllers\Ketua\PinjamanController as KetuaPinjamanController;
+use App\Http\Controllers\Pengaturan\PenggunaController;
+use App\Http\Controllers\PengaturanController;
+use App\Http\Controllers\PengeluaranController;
+use App\Http\Controllers\PinjamanController;
+use App\Http\Controllers\Portal\DashboardController as PortalDashboardController;
+use App\Http\Controllers\Portal\PengajuanLimitController as PortalPengajuanLimitController;
+use App\Http\Controllers\Portal\PercepatanController as PortalPercepatanController;
+use App\Http\Controllers\Portal\PinjamanController as PortalPinjamanController;
+use App\Http\Controllers\Portal\ProfilController;
+use App\Http\Controllers\Portal\RiwayatController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SimpananController;
+use Illuminate\Support\Facades\Route;
 
-
-//--------------------- Portal SSO -------------------------
+// --------------------- Portal SSO -------------------------
 Route::get('/auth/sso/redirect', [SsoController::class, 'redirect'])->name('sso.redirect');
 Route::get('/auth/sso/callback', [SsoController::class, 'callback'])->name('sso.callback');
 // Route::get('/auth/sso/logout', [SsoController::class, 'logout'])
@@ -54,33 +52,32 @@ Route::get('/', function () {
     return redirect()->route('sso.redirect');
 });
 
-
 // ==========================================
 // PORTAL ANGGOTA
 // ==========================================
 Route::middleware(['auth', 'permission:portal.akses'])->prefix('portal')->name('portal.')->group(function () {
-    //Menu Utama
+    // Menu Utama
     Route::get('/dashboard', [PortalDashboardController::class, 'index'])->name('dashboard');
     Route::get('/riwayat', [RiwayatController::class, 'index'])->name('riwayat');
 
-    //------------ Pinjaman -----------------
+    // ------------ Pinjaman -----------------
     Route::get('/pinjaman/ajukan', [PortalPinjamanController::class, 'create'])->name('pinjaman.create');
     Route::post('/pinjaman/cek-nominal', [PortalPinjamanController::class, 'cekNominal'])->name('pinjaman.cek-nominal');
     Route::post('/pinjaman/simulasi', [PortalPinjamanController::class, 'simulasi'])->name('pinjaman.simulasi');
     Route::post('/pinjaman', [PortalPinjamanController::class, 'store'])->name('pinjaman.store');
     Route::get('/pinjaman/berhasil', [PortalPinjamanController::class, 'berhasil'])->name('pinjaman.berhasil');
 
-    //------------ Profile ----------------
+    // ------------ Profile ----------------
     Route::get('/profil', [ProfilController::class, 'index'])->name('profil');
     Route::post('/profil/rekening', [ProfilController::class, 'storeRekening'])->name('profil.rekening.store');
     Route::put('/profil/rekening/{rekening}/default', [ProfilController::class, 'setDefaultRekening'])->name('profil.rekening.default');
     Route::delete('/profil/rekening/{rekening}', [ProfilController::class, 'destroyRekening'])->name('profil.rekening.destroy');
 
-    //------------ Pengajuan Limit ----------------
+    // ------------ Pengajuan Limit ----------------
     Route::get('/pengajuan-limit', [PortalPengajuanLimitController::class, 'create'])->name('pengajuan-limit.create');
     Route::post('/pengajuan-limit', [PortalPengajuanLimitController::class, 'store'])->name('pengajuan-limit.store');
 
-    //------------ Perubahan Tenor ----------------
+    // ------------ Perubahan Tenor ----------------
     Route::get('/percepatan', [PortalPercepatanController::class, 'create'])->name('percepatan.create');
     Route::post('/percepatan', [PortalPercepatanController::class, 'store'])->name('percepatan.store');
 });
@@ -143,12 +140,24 @@ Route::middleware(['auth', 'permission:pengaturan.kelola', 'password.confirm'])-
     Route::delete('/pengaturan/tenor/{tenor}', [PengaturanController::class, 'destroyTenor'])->name('pengaturan.tenor.destroy');
     Route::post('/pengaturan/bunga', [PengaturanController::class, 'updateBunga'])->name('pengaturan.bunga.update');
     Route::post('/pengaturan/simpanan/{setting}', [PengaturanController::class, 'updateSimpanan'])->name('pengaturan.simpanan.update');
-    //--------- Role ------------
+    // --------- Role ------------
     Route::get('/role', [RoleController::class, 'index'])->name('role.index');
     Route::post('/role', [RoleController::class, 'store'])->name('role.store');
     Route::get('/role/{role}/edit', [RoleController::class, 'edit'])->name('role.edit');
     Route::put('/role/{role}', [RoleController::class, 'update'])->name('role.update');
     Route::delete('/role/{role}', [RoleController::class, 'destroy'])->name('role.destroy');
+});
+
+// ==========================================
+// KELOLA PENGGUNA (khusus Admin, di dalam Pengaturan)
+// ==========================================
+Route::middleware(['auth', 'permission:user.kelola', 'password.confirm'])->prefix('pengaturan')->name('pengaturan.')->group(function () {
+    Route::get('/pengguna', [PenggunaController::class, 'index'])->name('pengguna.index');
+    Route::post('/pengguna', [PenggunaController::class, 'store'])->name('pengguna.store');
+    Route::put('/pengguna/{user}', [PenggunaController::class, 'update'])->name('pengguna.update');
+    Route::post('/pengguna/{user}/reset-password', [PenggunaController::class, 'resetPassword'])->name('pengguna.reset-password');
+    Route::post('/pengguna/{user}/toggle-status', [PenggunaController::class, 'toggleStatus'])->name('pengguna.toggle-status');
+    Route::delete('/pengguna/{user}', [PenggunaController::class, 'destroy'])->name('pengguna.destroy');
 });
 
 // ==========================================
@@ -204,7 +213,6 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
-
 
 Route::middleware(['auth', 'permission:kas.lihat'])->group(function () {
     Route::get('/pengeluaran', [PengeluaranController::class, 'index'])->name('pengeluaran.index');

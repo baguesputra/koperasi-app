@@ -16,7 +16,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, HasRoles;
+    use HasFactory, HasRoles, Notifiable;
 
     protected $fillable = [
         'name',
@@ -24,8 +24,9 @@ class User extends Authenticatable
         'no_karyawan',
         'password',
         'harus_ganti_password',
-         'sso_id',
-    'auth_provider',
+        'sso_id',
+        'auth_provider',
+        'status',
     ];
 
     protected $casts = [

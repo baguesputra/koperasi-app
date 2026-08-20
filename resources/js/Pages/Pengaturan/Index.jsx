@@ -1,7 +1,7 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, Link } from '@inertiajs/react';
 import { useState } from 'react';
-import { Percent, HandCoins, CalendarRange, PiggyBank, Shield } from 'lucide-react';
+import { Percent, HandCoins, CalendarRange, PiggyBank, Shield, UserCog } from 'lucide-react';
 import Card from '@/Components/ui/Card';
 import TabBunga from './Partials/TabBunga';
 import TabLimit from './Partials/TabLimit';
@@ -29,12 +29,20 @@ export default function Index({ limitPinjaman, tabelTenor, bungaSaatIni, setting
                         Kelola nominal dan ketentuan yang berlaku di sistem
                     </p>
                 </div>
-                <Link href={route('role.index')}>
-                    <button className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-brand-navy border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
-                        <Shield size={16} />
-                        Kelola Role
-                    </button>
-                </Link>
+                <div className="flex items-center gap-2 flex-wrap">
+                    <Link href={route('pengaturan.pengguna.index')}>
+                        <button className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-brand-navy border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
+                            <UserCog size={16} />
+                            Kelola Pengguna
+                        </button>
+                    </Link>
+                    <Link href={route('role.index')}>
+                        <button className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-brand-navy border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
+                            <Shield size={16} />
+                            Kelola Role
+                        </button>
+                    </Link>
+                </div>
             </div>
 
             {/* Tab horizontal */}

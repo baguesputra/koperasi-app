@@ -22,6 +22,7 @@ class PermissionSeeder extends Seeder
             'kas.topup',
             'laporan.lihat',
             'pengaturan.kelola',
+            'user.kelola',
             'portal.akses',
         ];
 

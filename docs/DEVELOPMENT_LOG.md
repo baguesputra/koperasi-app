@@ -194,6 +194,7 @@ Summary hasil meeting dengan koperasi 15 Agustus 2026
 - [x] Pembuatan Ui percepatan, penambahan bulan dan pelunasan langsung angsuran berjalan
 - [x] Testing fitur perubahan tenor
 - [x] Data summary dashboad disamakan dengan menu kas koperasi agar tidak ada miss data
+- [x] fitur kelola user dan tambah anggota otomatis buat user
 - [ ] rule penambahan pinjaman dibuka dan bisa sekali saja penambahan
 - [ ] validasi untuk perubahan tenor hanya sekali belum ada, validasi pengajuan limit tambah belum ada
 - [x] Menu angsuran dibuat tab dibedakan tiap cabang termasuk konfirmasi simpanan
