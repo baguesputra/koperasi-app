@@ -20,6 +20,13 @@ class JurnalKasService
     ];
 
     /**
+     * Kantong transit: diisi di awal proses & dikuras sampai 0.
+     * Saldo TIDAK divalidasi di jurnal individual karena validasi dilakukan
+     * di level proses (lihat ResignService::proses()).
+     */
+    public const KANTONG_TRANSIT = ['pengembalian_simpanan'];
+
+    /**
      * Label Indonesia untuk error message dan UI.
      */
     public const KANTONG_LABEL = [
@@ -57,7 +64,7 @@ class JurnalKasService
 
             $kolom = self::KANTONG_SALDO[$kantong];
 
-            if ($tipe === 'keluar' && (float) $kas->{$kolom} < $jumlah) {
+            if ($tipe === 'keluar' && !in_array($kantong, self::KANTONG_TRANSIT, true) && (float) $kas->{$kolom} < $jumlah) {
                 $labelKantong = self::KANTONG_LABEL[$kantong];
                 throw new RuntimeException(
                     "Saldo {$labelKantong} tidak mencukupi. Saldo saat ini: Rp ".number_format((float) $kas->{$kolom}, 0, ',', '.')

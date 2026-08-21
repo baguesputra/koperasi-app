@@ -2,9 +2,9 @@
 
 namespace App\Services\Anggota;
 
+use App\Models\Anggota;
 use App\Models\Angsuran;
 use App\Models\AngsuranPercepatan;
-use App\Models\Anggota;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Services\Keuangan\JurnalKasService;
@@ -85,7 +85,24 @@ class ResignService
                 'sisa_tagihan_pinjaman' => $totalTagihan,
             ];
 
-            // Step 4: Loop pelunasan angsuran (jurnal masuk ke kantong:pengembalian_simpanan).
+            // Step 4: Danai transit pengembalian_simpanan dengan total simpanan anggota,
+            // supaya jurnal keluar (pelunasan + return) di bawah tidak bikin saldo negatif.
+            $this->jurnalKas->catat(
+                tipe: 'masuk',
+                kategori: 'simpanan_resign_masuk',
+                kantong: 'pengembalian_simpanan',
+                jumlah: $totalSimpananKembali,
+                keterangan: "Simpanan anggota masuk (proses resign) - {$anggotaLocked->nama}",
+                referensiId: $anggotaLocked->id,
+                tanggal: $tanggalResign,
+                userId: $aktor->id,
+                subJudul: 'Simpanan anggota ditarik ke kantong pengembalian',
+            );
+
+            // Step 5: Loop pelunasan angsuran. Tiap cicilan lunas dicatat 2 jurnal:
+            //   (A) MASUK  ke kantong:pinjaman             -> saldo_pinjaman NAIK (pinjaman dilunasi).
+            //   (B) KELUAR dari kantong:pengembalian_simpanan -> simpanan bayar angsuran.
+            // saldo_pinjaman tetap TIDAK berkurang; cuma bertambah sebesar pelunasan.
             $totalPelunasan = 0.0;
             foreach ($pinjamanAktif as $pinjaman) {
                 $angsuranList = Angsuran::where('pinjaman_id', $pinjaman->id)
@@ -101,16 +118,13 @@ class ResignService
                         'confirmed_by' => $aktor->id,
                     ]);
 
-                    $this->jurnalKas->catat(
-                        tipe: 'masuk',
-                        kategori: 'pelunasan_resign_pinjaman',
-                        kantong: 'pengembalian_simpanan',
+                    $this->catatPelunasanResign(
                         jumlah: (float) $angsuran->total_bayar,
-                        keterangan: "Pelunasan resign angsuran ke-{$angsuran->cicilan_ke} - {$anggotaLocked->nama}",
+                        cicilan: $angsuran->cicilan_ke,
                         referensiId: $angsuran->id,
-                        tanggal: $tanggalResign,
-                        userId: $aktor->id,
-                        subJudul: 'Diambil dari simpanan anggota',
+                        tanggalResign: $tanggalResign,
+                        aktor: $aktor,
+                        anggota: $anggotaLocked,
                     );
 
                     $totalPelunasan += (float) $angsuran->total_bayar;
@@ -132,16 +146,14 @@ class ResignService
                             'confirmed_by' => $aktor->id,
                         ]);
 
-                        $this->jurnalKas->catat(
-                            tipe: 'masuk',
-                            kategori: 'pelunasan_resign_pinjaman',
-                            kantong: 'pengembalian_simpanan',
+                        $this->catatPelunasanResign(
                             jumlah: (float) $ap->total_bayar,
-                            keterangan: "Pelunasan resign angsuran (percepatan) ke-{$ap->cicilan_ke} - {$anggotaLocked->nama}",
+                            cicilan: $ap->cicilan_ke,
                             referensiId: $ap->id,
-                            tanggal: $tanggalResign,
-                            userId: $aktor->id,
-                            subJudul: 'Diambil dari simpanan anggota',
+                            tanggalResign: $tanggalResign,
+                            aktor: $aktor,
+                            anggota: $anggotaLocked,
+                            percepatan: true,
                         );
 
                         $totalPelunasan += (float) $ap->total_bayar;
@@ -159,22 +171,8 @@ class ResignService
                 }
             }
 
-            // Step 5: Transfer saldo dari pengembalian_simpanan ke pinjaman.
-            // Hanya transfer sebesar pelunasan (sisanya akan diretur).
-            if ($totalPelunasan > 0) {
-                $this->jurnalKas->transferAntarKantong(
-                    kantongAsal: 'pengembalian_simpanan',
-                    kantongTujuan: 'pinjaman',
-                    jumlah: $totalPelunasan,
-                    keterangan: "Pelunasan angsuran otomatis saat resign - {$anggotaLocked->nama}",
-                    referensiId: $anggotaLocked->id,
-                    tanggal: $tanggalResign,
-                    userId: $aktor->id,
-                    subJudul: 'Pelunasan angsuran otomatis saat resign',
-                );
-            }
-
-            // Step 6: Kembalikan sisa simpanan ke anggota (skip jika 0).
+            // Step 6: Kembalikan sisa simpanan ke anggota DARI kantong:pengembalian_simpanan
+            // (bukan pinjaman) supaya saldo_pinjaman tidak berkurang.
             $alokasiPokok = min($simpananPokok, $totalPelunasan);
             $alokasiWajib = max(0, $totalPelunasan - $simpananPokok);
             $kembaliPokok = max(0, $simpananPokok - $alokasiPokok);
@@ -184,7 +182,7 @@ class ResignService
                 $this->jurnalKas->catat(
                     tipe: 'keluar',
                     kategori: 'return_simpanan_pokok',
-                    kantong: 'pinjaman',
+                    kantong: 'pengembalian_simpanan',
                     jumlah: $kembaliPokok,
                     keterangan: "Pengembalian simpanan pokok resign - {$anggotaLocked->nama}",
                     referensiId: $anggotaLocked->id,
@@ -198,7 +196,7 @@ class ResignService
                 $this->jurnalKas->catat(
                     tipe: 'keluar',
                     kategori: 'return_simpanan_wajib',
-                    kantong: 'pinjaman',
+                    kantong: 'pengembalian_simpanan',
                     jumlah: $kembaliWajib,
                     keterangan: "Pengembalian simpanan wajib resign - {$anggotaLocked->nama}",
                     referensiId: $anggotaLocked->id,
@@ -239,9 +237,9 @@ class ResignService
             AuditLog::catat(
                 aksi: 'anggota_resign',
                 keterangan: "Resign anggota {$anggotaLocked->nama} ({$anggotaLocked->no_anggota}). ".
-                    "Pelunasan: Rp ".number_format($totalPelunasan, 0, ',', '.').
-                    ", pengembalian simpanan: Rp ".number_format($kembaliPokok + $kembaliWajib, 0, ',', '.').
-                    ", dana_sosial hangus: Rp ".number_format($danaSosial, 0, ',', '.').
+                    'Pelunasan: Rp '.number_format($totalPelunasan, 0, ',', '.').
+                    ', pengembalian simpanan: Rp '.number_format($kembaliPokok + $kembaliWajib, 0, ',', '.').
+                    ', dana_sosial hangus: Rp '.number_format($danaSosial, 0, ',', '.').
                     ". Alasan: {$alasan}",
                 dataLama: $dataLama,
                 dataBaru: [
@@ -253,5 +251,47 @@ class ResignService
                 ]
             );
         });
+    }
+
+    /**
+     * Catat 1 transaksi pelunasan angsuran saat resign sebagai 2 jurnal:
+     *   - MASUK  kantong:pinjaman            (saldo_pinjaman naik, sub: "Pelunasan dari uang simpanan anggota")
+     *   - KELUAR kantong:pengembalian_simpanan (sub: "Uang simpanan dibayarkan angsuran")
+     */
+    private function catatPelunasanResign(
+        float $jumlah,
+        int $cicilan,
+        int $referensiId,
+        string $tanggalResign,
+        User $aktor,
+        Anggota $anggota,
+        bool $percepatan = false,
+    ): void {
+        $jenis = $percepatan ? 'percepatan' : 'angsuran';
+        $keterangan = "Pelunasan resign {$jenis} ke-{$cicilan} - {$anggota->nama}";
+
+        $this->jurnalKas->catat(
+            tipe: 'masuk',
+            kategori: 'pelunasan_resign_pinjaman',
+            kantong: 'pinjaman',
+            jumlah: $jumlah,
+            keterangan: $keterangan,
+            referensiId: $referensiId,
+            tanggal: $tanggalResign,
+            userId: $aktor->id,
+            subJudul: 'Pelunasan dari uang simpanan anggota',
+        );
+
+        $this->jurnalKas->catat(
+            tipe: 'keluar',
+            kategori: 'pelunasan_resign_simpanan',
+            kantong: 'pengembalian_simpanan',
+            jumlah: $jumlah,
+            keterangan: $keterangan,
+            referensiId: $referensiId,
+            tanggal: $tanggalResign,
+            userId: $aktor->id,
+            subJudul: 'Uang simpanan dibayarkan angsuran',
+        );
     }
 }

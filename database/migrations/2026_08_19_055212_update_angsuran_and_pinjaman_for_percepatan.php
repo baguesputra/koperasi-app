@@ -8,7 +8,9 @@ return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement("ALTER TABLE angsuran MODIFY COLUMN status ENUM('belum_bayar', 'lunas', 'digantikan') DEFAULT 'belum_bayar'");
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE angsuran MODIFY COLUMN status ENUM('belum_bayar', 'lunas', 'digantikan') DEFAULT 'belum_bayar'");
+        }
 
         Schema::table('angsuran', function (Blueprint $table) {
             $table->foreignId('pengajuan_percepatan_id')->nullable()->after('status')->constrained('pengajuan_percepatan')->nullOnDelete();
@@ -29,6 +31,8 @@ return new class extends Migration
             $table->dropConstrainedForeignId('pengajuan_percepatan_id');
         });
 
-        DB::statement("ALTER TABLE angsuran MODIFY COLUMN status ENUM('belum_bayar', 'lunas') DEFAULT 'belum_bayar'");
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE angsuran MODIFY COLUMN status ENUM('belum_bayar', 'lunas') DEFAULT 'belum_bayar'");
+        }
     }
 };

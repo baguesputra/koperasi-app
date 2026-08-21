@@ -7,6 +7,7 @@ use App\Models\KasKoperasi;
 use App\Models\Simpanan;
 use App\Services\Keuangan\JurnalKasService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -22,15 +23,22 @@ class KasKoperasiController extends Controller
         $kantongAktif = $request->input('kantong', 'pinjaman');
         $bulanFilter = $request->input('bulan', now()->format('Y-m'));
 
-        // Kantong 'pengembalian_simpanan' adalah tab ringkasan: gabungan jurnal
-        // pelunasan (dari kantong pengembalian_simpanan) + jurnal return simpanan
-        // (dari kantong pinjaman, kategori return_simpanan_*).
-        $scopeKantong = $kantongAktif === 'pengembalian_simpanan'
-            ? [
+        // Scope jurnal per tab:
+        // - 'pengembalian_simpanan': jurnal kantong transit + cross-ref pelunasan_resign_pinjaman
+        //   dari kantong pinjaman (supaya user lihat pelunasan angsuran & return simpanan
+        //   di satu tempat terkait proses resign).
+        // - 'pinjaman': semua jurnal kantong pinjaman (termasuk pelunasan_resign_pinjaman).
+        // - 'dana_sosial': semua jurnal kantong dana_sosial.
+        $scopeKantong = match ($kantongAktif) {
+            'pengembalian_simpanan' => [
                 ['kantong' => 'pengembalian_simpanan'],
-                ['kantong' => 'pinjaman', 'kategori' => ['return_simpanan_pokok', 'return_simpanan_wajib']],
-            ]
-            : [['kantong' => $kantongAktif]];
+                ['kantong' => 'pinjaman', 'kategori' => ['pelunasan_resign_pinjaman']],
+            ],
+            'pinjaman' => [
+                ['kantong' => 'pinjaman'],
+            ],
+            default => [['kantong' => $kantongAktif]],
+        };
 
         $query = JurnalKas::query();
         $query->where(function ($q) use ($scopeKantong) {
@@ -99,10 +107,14 @@ class KasKoperasiController extends Controller
         $totalKeluar = (clone $ringkasanQuery)->where('tipe', 'keluar')->sum('jumlah');
 
         // Outstanding: simpanan anggota aktif saja (yang masih jadi tanggungan kas).
+        // Pakai JOIN eksplisit supaya unambiguous & tahan kalau scope/relasi berubah.
+        $totalSimpananOutstanding = (float) DB::table('simpanan')
+            ->join('anggota', 'anggota.id', '=', 'simpanan.anggota_id')
+            ->whereIn('simpanan.jenis', ['pokok', 'wajib'])
+            ->where('anggota.status', 'aktif')
+            ->sum('simpanan.jumlah');
+
         // Gross: akumulasi semua simpanan (termasuk anggota resign) untuk transparansi audit.
-        $totalSimpananOutstanding = (float) Simpanan::whereIn('jenis', ['pokok', 'wajib'])
-            ->whereHas('anggota', fn ($q) => $q->where('status', 'aktif'))
-            ->sum('jumlah');
         $totalAkumulasiSimpanan = (float) Simpanan::whereIn('jenis', ['pokok', 'wajib'])->sum('jumlah');
 
         // Total keseluruhan operasional = semua saldo kantong + simpanan outstanding.

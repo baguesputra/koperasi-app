@@ -18,6 +18,8 @@ const kategoriLabel = {
     pengeluaran_koperasi: 'Pengeluaran Koperasi',
     pengeluaran_dana_sosial: 'Pengeluaran Dana Sosial',
     pelunasan_resign_pinjaman: 'Pelunasan Resign Pinjaman',
+    pelunasan_resign_simpanan: 'Pelunasan Resign dari Simpanan',
+    simpanan_resign_masuk: 'Simpanan Anggota (Resign)',
     return_simpanan_pokok: 'Return Simpanan Pokok',
     return_simpanan_wajib: 'Return Simpanan Wajib',
     transfer_ke_dana_pinjaman: 'Transfer ke Dana Pinjaman',
@@ -226,9 +228,16 @@ export default function Index({
                                         <ArrowUpCircle size={22} className="text-red-500 shrink-0" />
                                     )}
                                     <div>
-                                        <p className="text-base font-semibold text-slate-700">
-                                            {kategoriLabel[r.kategori] ?? r.kategori}
-                                        </p>
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-base font-semibold text-slate-700">
+                                                {kategoriLabel[r.kategori] ?? r.kategori}
+                                            </p>
+                                            {r.kantong !== kantongAktif && (
+                                                <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">
+                                                    dari {kantongLabel[r.kantong] ?? r.kantong}
+                                                </span>
+                                            )}
+                                        </div>
                                         {r.sub_judul && (
                                             <p className="text-xs italic text-slate-500 mt-0.5">{r.sub_judul}</p>
                                         )}
