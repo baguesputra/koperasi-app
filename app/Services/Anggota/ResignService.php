@@ -37,7 +37,10 @@ class ResignService
      *   5. Setelah semua angsuran dilunasi, transfer saldo dari
      *      pengembalian_simpanan ke pinjaman via transferAntarKantong().
      *   6. Kembalikan sisa simpanan (jika ada) via jurnal KELUAR
-     *      dari kantong:pengembalian_simpanan (sub_judul: "Pengembalian ke anggota").
+     *      dari kantong:pinjaman (sub_judul: "Pengembalian ke anggota").
+     *      Alasan: simpanan anggota sudah "menjadi bagian" dari saldo_pinjaman
+     *      (via topup & pencairan), jadi return ditarik dari rekening pinjaman,
+     *      bukan dari rekening transit pengembalian_simpanan (yang saldo akhirnya 0).
      *   7. Update anggota: status=resign, snapshot JSON.
      *   8. Sinkron users.status=nonaktif.
      *   9. Audit log.
@@ -181,7 +184,7 @@ class ResignService
                 $this->jurnalKas->catat(
                     tipe: 'keluar',
                     kategori: 'return_simpanan_pokok',
-                    kantong: 'pengembalian_simpanan',
+                    kantong: 'pinjaman',
                     jumlah: $kembaliPokok,
                     keterangan: "Pengembalian simpanan pokok resign - {$anggotaLocked->nama}",
                     referensiId: $anggotaLocked->id,
@@ -195,7 +198,7 @@ class ResignService
                 $this->jurnalKas->catat(
                     tipe: 'keluar',
                     kategori: 'return_simpanan_wajib',
-                    kantong: 'pengembalian_simpanan',
+                    kantong: 'pinjaman',
                     jumlah: $kembaliWajib,
                     keterangan: "Pengembalian simpanan wajib resign - {$anggotaLocked->nama}",
                     referensiId: $anggotaLocked->id,

@@ -19,7 +19,7 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
 
     const widgets = [
         { label: 'Total Anggota Aktif', value: stats.total_anggota_aktif, icon: Users, tone: 'navy' },
-        { label: 'Total Simpanan', value: formatRupiah(stats.total_simpanan), icon: PiggyBank, tone: 'green' },
+        { label: 'Total Simpanan (Aktif)', value: formatRupiah(stats.total_simpanan_outstanding), icon: PiggyBank, tone: 'green' },
         { label: 'Pinjaman Outstanding', value: formatRupiah(stats.pinjaman_outstanding), icon: HandCoins, tone: 'amber' },
         { label: 'Saldo Dana Pinjaman', value: formatRupiah(stats.saldo_dana_pinjaman), icon: Wallet, tone: 'navy' },
         { label: 'Saldo Dana Sosial', value: formatRupiah(stats.saldo_dana_sosial), icon: HeartHandshake, tone: 'amber' },

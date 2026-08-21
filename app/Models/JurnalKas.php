@@ -19,6 +19,7 @@ class JurnalKas extends Model
         'jumlah',
         'saldo_setelah',
         'keterangan',
+        'sub_judul',
         'referensi_id',
         'tanggal',
         'created_by',

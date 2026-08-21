@@ -17,12 +17,24 @@ const kategoriLabel = {
     dana_sosial_bulanan: 'Dana Sosial Bulanan',
     pengeluaran_koperasi: 'Pengeluaran Koperasi',
     pengeluaran_dana_sosial: 'Pengeluaran Dana Sosial',
+    pelunasan_resign_pinjaman: 'Pelunasan Resign Pinjaman',
+    return_simpanan_pokok: 'Return Simpanan Pokok',
+    return_simpanan_wajib: 'Return Simpanan Wajib',
+    transfer_ke_dana_pinjaman: 'Transfer ke Dana Pinjaman',
+    terima_dari_pengembalian_simpanan: 'Terima dari Pengembalian Simpanan',
+};
+
+const kantongLabel = {
+    pinjaman: 'Dana Pinjaman',
+    dana_sosial: 'Dana Sosial',
+    pengembalian_simpanan: 'Pengembalian Simpanan',
 };
 
 export default function Index({
     saldoPinjaman,
     saldoDanaSosial,
-    totalSimpanan,
+    totalSimpananOutstanding,
+    totalAkumulasiSimpanan,
     totalKeseluruhan,
     kantongAktif,
     bulanFilter,
@@ -94,8 +106,12 @@ export default function Index({
                         <PiggyBank size={20} />
                     </div>
                     <p className="text-sm text-slate-400">Total Simpanan Anggota</p>
-                    <p className="text-xl font-bold text-slate-800 mt-0.5">{formatRupiah(totalSimpanan)}</p>
-                    <p className="text-xs text-slate-300 mt-1">Hak anggota, bukan dana operasional</p>
+                    <p className="text-xl font-bold text-slate-800 mt-0.5">{formatRupiah(totalSimpananOutstanding)}</p>
+                    <p className="text-xs text-slate-300 mt-1">
+                        Outstanding (anggota aktif): {formatRupiah(totalSimpananOutstanding)}
+                        <span className="mx-1.5 text-slate-200">|</span>
+                        Gross akumulasi (audit): {formatRupiah(totalAkumulasiSimpanan)}
+                    </p>
                 </div>
 
                 <div className="bg-brand-navy rounded-2xl p-5 text-white">
@@ -126,12 +142,20 @@ export default function Index({
                     >
                         Riwayat Dana Sosial
                     </button>
+                    <button
+                        onClick={() => pindahTab('pengembalian_simpanan')}
+                        className={`px-5 py-2 text-sm font-semibold rounded-lg transition-colors ${
+                            kantongAktif === 'pengembalian_simpanan' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'
+                        }`}
+                    >
+                        Riwayat Pengembalian Simpanan
+                    </button>
                 </div>
 
                 {bisaTopup && (
                     <Button variant="primary" onClick={bukaForm}>
                         <Plus size={18} />
-                        Topup {kantongAktif === 'pinjaman' ? 'Dana Pinjaman' : 'Dana Sosial'}
+                        Topup {kantongLabel[kantongAktif] ?? 'Kantong'}
                     </Button>
                 )}
             </div>
@@ -205,6 +229,9 @@ export default function Index({
                                         <p className="text-base font-semibold text-slate-700">
                                             {kategoriLabel[r.kategori] ?? r.kategori}
                                         </p>
+                                        {r.sub_judul && (
+                                            <p className="text-xs italic text-slate-500 mt-0.5">{r.sub_judul}</p>
+                                        )}
                                         <p className="text-sm text-slate-400">
                                             {r.tanggal}{r.keterangan ? ` \u2022 ${r.keterangan}` : ''}
                                         </p>

@@ -99,6 +99,7 @@ Route::middleware(['auth', 'permission:anggota.lihat'])->group(function () {
 
 Route::middleware(['auth', 'permission:pinjaman.lihat'])->group(function () {
     Route::get('/pinjaman', [PinjamanController::class, 'index'])->name('pinjaman.index');
+    Route::get('/pinjaman/{pinjaman}', [PinjamanController::class, 'show'])->name('pinjaman.show');
 });
 
 Route::middleware(['auth', 'permission:simpanan.lihat'])->group(function () {

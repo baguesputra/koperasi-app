@@ -1,6 +1,6 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, router } from '@inertiajs/react';
-import { Search, HeartHandshake, PiggyBank, Users } from 'lucide-react';
+import { Search, HeartHandshake, PiggyBank, Users, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import Card from '@/Components/ui/Card';
 import Drawer from '@/Components/ui/Drawer';
@@ -16,6 +16,7 @@ export default function Index({
     daftarCabang,
     totalDanaSosialTerkumpul,
     totalSimpananSeluruhAnggota,
+    totalSimpananOutstanding,
     totalSimpananTampil,
 }) {
     const [cari, setCari] = useState(filters.cari ?? '');
@@ -65,12 +66,19 @@ export default function Index({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                <StatWidget
-                    label={cabangAktif ? `Total Simpanan ${cabangAktif}` : 'Total Simpanan Seluruh Anggota'}
-                    value={formatRupiah(totalSimpananTampil)}
-                    icon={PiggyBank}
-                    tone="navy"
-                />
+                <div>
+                    <StatWidget
+                        label={cabangAktif ? `Total Simpanan ${cabangAktif}` : 'Total Simpanan Seluruh Anggota'}
+                        value={formatRupiah(totalSimpananTampil)}
+                        icon={PiggyBank}
+                        tone="navy"
+                    />
+                    <p className="text-xs text-slate-400 mt-1.5 px-1">
+                        Outstanding (anggota aktif): {formatRupiah(totalSimpananOutstanding)}
+                        <span className="mx-1.5 text-slate-300">|</span>
+                        Gross akumulasi (semua anggota, audit): {formatRupiah(totalSimpananSeluruhAnggota)}
+                    </p>
+                </div>
                 <StatWidget
                     label="Total Dana Sosial Terkumpul"
                     value={formatRupiah(totalDanaSosialTerkumpul)}
@@ -200,6 +208,39 @@ export default function Index({
                             <p className="text-sm text-slate-400">Total Simpanan</p>
                             <p className="text-3xl font-bold text-slate-800">{formatRupiah(detailAnggota.total_simpanan)}</p>
                         </Card>
+
+                        {detailAnggota.alokasi_pelunasan_resign > 0 && (
+                            <Card className="mb-5 border-l-4 border-l-rose-500">
+                                <div className="flex items-start gap-3">
+                                    <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+                                        <Wallet size={18} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-sm font-semibold text-rose-700">Dipakai untuk Pelunasan Pinjaman saat Resign</p>
+                                        <p className="text-xs italic text-slate-500 mt-0.5">
+                                            Sebagian simpanan dialokasikan untuk melunasi angsuran tersisa saat resign.
+                                        </p>
+                                        <div className="grid grid-cols-3 gap-3 mt-3">
+                                            <div>
+                                                <p className="text-xs text-slate-400">Dari Pokok</p>
+                                                <p className="text-sm font-bold text-slate-800">-{formatRupiah(detailAnggota.alokasi_dari_pokok)}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-slate-400">Dari Wajib</p>
+                                                <p className="text-sm font-bold text-slate-800">-{formatRupiah(detailAnggota.alokasi_dari_wajib)}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-slate-400">Total</p>
+                                                <p className="text-sm font-bold text-rose-600">-{formatRupiah(detailAnggota.alokasi_pelunasan_resign)}</p>
+                                            </div>
+                                        </div>
+                                        {detailAnggota.tanggal_resign && (
+                                            <p className="text-xs text-slate-400 mt-2">Tanggal proses: {detailAnggota.tanggal_resign}</p>
+                                        )}
+                                    </div>
+                                </div>
+                            </Card>
+                        )}
 
                         <Card padding="none">
                             <div className="p-5 border-b border-slate-100">

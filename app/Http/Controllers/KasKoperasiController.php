@@ -22,7 +22,35 @@ class KasKoperasiController extends Controller
         $kantongAktif = $request->input('kantong', 'pinjaman');
         $bulanFilter = $request->input('bulan', now()->format('Y-m'));
 
-        $query = JurnalKas::where('kantong', $kantongAktif);
+        // Kantong 'pengembalian_simpanan' adalah tab ringkasan: gabungan jurnal
+        // pelunasan (dari kantong pengembalian_simpanan) + jurnal return simpanan
+        // (dari kantong pinjaman, kategori return_simpanan_*).
+        $scopeKantong = $kantongAktif === 'pengembalian_simpanan'
+            ? [
+                ['kantong' => 'pengembalian_simpanan'],
+                ['kantong' => 'pinjaman', 'kategori' => ['return_simpanan_pokok', 'return_simpanan_wajib']],
+            ]
+            : [['kantong' => $kantongAktif]];
+
+        $query = JurnalKas::query();
+        $query->where(function ($q) use ($scopeKantong) {
+            foreach ($scopeKantong as $i => $scope) {
+                $sub = $q;
+                if ($i > 0) {
+                    $sub = $q->orWhere(function ($qq) use ($scope) {
+                        $qq->where('kantong', $scope['kantong']);
+                        if (isset($scope['kategori'])) {
+                            $qq->whereIn('kategori', $scope['kategori']);
+                        }
+                    });
+                } else {
+                    $sub->where('kantong', $scope['kantong']);
+                    if (isset($scope['kategori'])) {
+                        $sub->whereIn('kategori', $scope['kategori']);
+                    }
+                }
+            }
+        });
 
         if ($bulanFilter) {
             [$tahun, $bulan] = explode('-', $bulanFilter);
@@ -44,8 +72,25 @@ class KasKoperasiController extends Controller
                 'tanggal' => $j->tanggal->format('d M Y'),
             ]);
 
-        // Ringkasan arus kas untuk periode yang difilter
-        $ringkasanQuery = JurnalKas::where('kantong', $kantongAktif);
+        // Ringkasan arus kas untuk periode yang difilter (ikut scope gabungan).
+        $ringkasanQuery = JurnalKas::query();
+        $ringkasanQuery->where(function ($q) use ($scopeKantong) {
+            foreach ($scopeKantong as $i => $scope) {
+                if ($i > 0) {
+                    $q->orWhere(function ($qq) use ($scope) {
+                        $qq->where('kantong', $scope['kantong']);
+                        if (isset($scope['kategori'])) {
+                            $qq->whereIn('kategori', $scope['kategori']);
+                        }
+                    });
+                } else {
+                    $q->where('kantong', $scope['kantong']);
+                    if (isset($scope['kategori'])) {
+                        $q->whereIn('kategori', $scope['kategori']);
+                    }
+                }
+            }
+        });
         if ($bulanFilter) {
             [$tahun, $bulan] = explode('-', $bulanFilter);
             $ringkasanQuery->whereYear('tanggal', $tahun)->whereMonth('tanggal', $bulan);

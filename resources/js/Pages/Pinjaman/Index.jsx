@@ -1,6 +1,6 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, Link, router } from '@inertiajs/react';
-import { CheckCircle2, Clock, FileText, Search, ShieldCheck, XCircle } from 'lucide-react';
+import { CheckCircle2, Clock, FileText, Search, ShieldCheck, XCircle, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import Card from '@/Components/ui/Card';
 import StatWidget from '@/Components/ui/StatWidget';
@@ -93,8 +93,23 @@ export default function Index({ pinjaman, filters, statistik }) {
                                 pinjaman.data.map((p) => (
                                     <tr key={p.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
                                         <td className="px-5 py-3.5">
-                                            <p className="text-base font-semibold text-slate-800">{p.nama}</p>
-                                            <p className="text-sm text-slate-400">{p.no_anggota}</p>
+                                            <div className="flex items-center gap-2">
+                                                <div className="min-w-0">
+                                                    <Link
+                                                        href={route('pinjaman.show', p.id)}
+                                                        className="block text-base font-semibold text-slate-800 hover:text-brand-green"
+                                                    >
+                                                        {p.nama}
+                                                    </Link>
+                                                    <p className="text-sm text-slate-400">{p.no_anggota}</p>
+                                                </div>
+                                            </div>
+                                            {p.pelunasan_resign_total > 0 && (
+                                                <div className="mt-1 flex items-center gap-1.5 text-xs text-rose-600">
+                                                    <Wallet size={12} />
+                                                    <span className="italic">Dilunasi dari simpanan: -{formatRupiah(p.pelunasan_resign_total)}</span>
+                                                </div>
+                                            )}
                                         </td>
                                         <td className="px-5 py-3.5 text-base text-slate-700">{formatRupiah(p.nominal)}</td>
                                         <td className="px-5 py-3.5 text-base text-slate-600">{p.tenor_bulan} bulan</td>
