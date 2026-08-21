@@ -36,9 +36,11 @@ class KasKoperasiController extends Controller
                 'id' => $j->id,
                 'tipe' => $j->tipe,
                 'kategori' => $j->kategori,
+                'kantong' => $j->kantong,
                 'jumlah' => (float) $j->jumlah,
                 'saldo_setelah' => (float) $j->saldo_setelah,
                 'keterangan' => $j->keterangan,
+                'sub_judul' => $j->sub_judul,
                 'tanggal' => $j->tanggal->format('d M Y'),
             ]);
 
@@ -51,13 +53,24 @@ class KasKoperasiController extends Controller
         $totalMasuk = (clone $ringkasanQuery)->where('tipe', 'masuk')->sum('jumlah');
         $totalKeluar = (clone $ringkasanQuery)->where('tipe', 'keluar')->sum('jumlah');
 
-        $totalSimpanan = Simpanan::whereIn('jenis', ['pokok', 'wajib'])->sum('jumlah');
-        $totalKeseluruhan = $kas->saldo_pinjaman + $kas->saldo_dana_sosial + $totalSimpanan;
+        // Outstanding: simpanan anggota aktif saja (yang masih jadi tanggungan kas).
+        // Gross: akumulasi semua simpanan (termasuk anggota resign) untuk transparansi audit.
+        $totalSimpananOutstanding = (float) Simpanan::whereIn('jenis', ['pokok', 'wajib'])
+            ->whereHas('anggota', fn ($q) => $q->where('status', 'aktif'))
+            ->sum('jumlah');
+        $totalAkumulasiSimpanan = (float) Simpanan::whereIn('jenis', ['pokok', 'wajib'])->sum('jumlah');
+
+        // Total keseluruhan operasional = semua saldo kantong + simpanan outstanding.
+        // saldo_pengembalian_simpanan sengaja tidak dimasukkan: itu cuma "dalam proses",
+        // akan kembali ke 0 setelah transfer & return selesai. Masuk ke saldo_pinjaman via transfer.
+        $totalKeseluruhan = $kas->saldo_pinjaman + $kas->saldo_dana_sosial + $totalSimpananOutstanding;
 
         return Inertia::render('KasKoperasi/Index', [
             'saldoPinjaman' => (float) $kas->saldo_pinjaman,
             'saldoDanaSosial' => (float) $kas->saldo_dana_sosial,
-            'totalSimpanan' => (float) $totalSimpanan,
+            'saldoPengembalianSimpanan' => (float) $kas->saldo_pengembalian_simpanan,
+            'totalSimpananOutstanding' => $totalSimpananOutstanding,
+            'totalAkumulasiSimpanan' => $totalAkumulasiSimpanan,
             'totalKeseluruhan' => (float) $totalKeseluruhan,
             'kantongAktif' => $kantongAktif,
             'bulanFilter' => $bulanFilter,
@@ -72,7 +85,7 @@ class KasKoperasiController extends Controller
     public function topup(Request $request)
     {
         $request->validate([
-            'kantong' => ['required', 'in:pinjaman,dana_sosial'],
+            'kantong' => ['required', 'in:pinjaman,dana_sosial,pengembalian_simpanan'],
             'jumlah' => ['required', 'numeric', 'min:1'],
             'keterangan' => ['nullable', 'string', 'max:255'],
         ]);

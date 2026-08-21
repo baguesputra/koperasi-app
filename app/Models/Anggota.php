@@ -29,6 +29,11 @@ class Anggota extends Model
         'tanggal_mulai_kerja',
         'tanggal_jadi_anggota',
         'status',
+        'tanggal_resign',
+        'alasan_resign',
+        'resigned_by',
+        'resigned_settlement_json',
+        'reaktivasi_history_json',
         'limit_custom',
         'limit_custom_keterangan',
     ];
@@ -36,6 +41,9 @@ class Anggota extends Model
     protected $casts = [
         'tanggal_mulai_kerja' => 'date',
         'tanggal_jadi_anggota' => 'date',
+        'tanggal_resign' => 'date',
+        'resigned_settlement_json' => 'array',
+        'reaktivasi_history_json' => 'array',
         'limit_custom' => 'decimal:2',
     ];
 
@@ -161,6 +169,64 @@ class Anggota extends Model
             'pinjaman_aktif_list' => $pinjamanAktifs,
             'sisa_total' => $sisaTotal,
             'cicilan_pokok_weighted_avg' => (float) $cicilanPokokWeightedAvg,
+        ];
+    }
+
+    /**
+     * Ringkasan data yang dibutuhkan saat proses resign:
+     *   - Total simpanan per jenis (pokok, wajib, dana_sosial)
+     *   - Sisa pinjaman aktif (semua pinjaman berstatus 'aktif')
+     *   - Total tagihan pelunasan (gabungan angsuran biasa + angsuran_percepatan aktif)
+     *   - Estimasi pengembalian neto (simpanan_pokok+wajib - tagihan, min 0)
+     *
+     * Read-only: tidak mengubah data apapun. Dipakai oleh ResignService::ringkasan()
+     * untuk preview di modal konfirmasi sebelum admin submit.
+     */
+    public function ringkasanResign(): array
+    {
+        $simpananPokok = (float) $this->simpanan()->where('jenis', 'pokok')->sum('jumlah');
+        $simpananWajib = (float) $this->simpanan()->where('jenis', 'wajib')->sum('jumlah');
+        $danaSosial = (float) $this->simpanan()->where('jenis', 'dana_sosial')->sum('jumlah');
+        $totalSimpananKembali = $simpananPokok + $simpananWajib;
+
+        $pinjamanAktif = $this->pinjaman()->where('status', 'aktif')->get();
+        $totalSisaPinjaman = 0.0;
+        foreach ($pinjamanAktif as $p) {
+            $totalSisaPinjaman += $p->sisaTotalBayarAktif();
+        }
+
+        $kembalianNeto = max(0, $totalSimpananKembali - $totalSisaPinjaman);
+        $alokasiDariPokok = min($simpananPokok, max(0, $totalSisaPinjaman));
+        $sisaPokokSetelahPelunasan = $simpananPokok - $alokasiDariPokok;
+        $sisaWajibSetelahPelunasan = max(0, $simpananWajib - max(0, $totalSisaPinjaman - $simpananPokok));
+
+        return [
+            'simpanan' => [
+                'pokok' => $simpananPokok,
+                'wajib' => $simpananWajib,
+                'dana_sosial' => $danaSosial,
+                'total_pokok_wajib' => $totalSimpananKembali,
+            ],
+            'pinjaman' => [
+                'jumlah_pinjaman_aktif' => $pinjamanAktif->count(),
+                'sisa_tagihan' => $totalSisaPinjaman,
+                'detail' => $pinjamanAktif->map(fn ($p) => [
+                    'id' => $p->id,
+                    'nominal_awal' => (float) $p->nominal,
+                    'sisa_tagihan' => (float) $p->sisaTotalBayarAktif(),
+                    'sisa_cicilan' => $p->sisaCicilanAktif(),
+                ])->values()->all(),
+            ],
+            'estimasi_pengembalian' => [
+                'tagihan_pelunasan' => $totalSisaPinjaman,
+                'simpanan_total' => $totalSimpananKembali,
+                'alokasi_dari_pokok' => $alokasiDariPokok,
+                'kembali_pokok' => $sisaPokokSetelahPelunasan,
+                'kembali_wajib' => $sisaWajibSetelahPelunasan,
+                'total_dikembalikan' => $kembalianNeto,
+                'dana_sosial_hangus' => $danaSosial,
+                'cukup_untuk_pelunasan' => $totalSimpananKembali >= $totalSisaPinjaman,
+            ],
         ];
     }
 

@@ -1,6 +1,6 @@
 import AppLayout from '@/Layouts/AppLayout';
-import { Head, router } from '@inertiajs/react';
-import { Search, Plus, Upload, Pencil, Users, UserCheck, UserX } from 'lucide-react';
+import { Head, router, usePage } from '@inertiajs/react';
+import { Search, Plus, Upload, Pencil, Users, UserCheck, UserX, UserMinus, RotateCcw, FileText, MoreVertical } from 'lucide-react';
 import { useState } from 'react';
 import ButtonLink from '@/Components/ui/ButtonLink';
 import Card from '@/Components/ui/Card';
@@ -12,6 +12,8 @@ import Select from '@/Components/ui/Select';
 import Drawer from '@/Components/ui/Drawer';
 import CreateDrawer from './Partials/CreateDrawer';
 import EditDrawer from './Partials/EditDrawer';
+import ResignDrawer from './Partials/ResignDrawer';
+import AktifkanKembaliDialog from './Partials/AktifkanKembaliDialog';
 
 const jabatanLabel = { staff: 'Staff', hod: 'HOD' };
 
@@ -24,10 +26,18 @@ function formatLamaAnggota(tahun) {
 }
 
 export default function Index({ anggota, statistik, filters, noAnggotaBerikutnya, daftarCabang }) {
+    const { props } = usePage();
+    const permissions = props.auth?.user?.permissions ?? [];
+
     const [cari, setCari] = useState(filters.cari ?? '');
     const [createOpen, setCreateOpen] = useState(false);
     const [editAnggota, setEditAnggota] = useState(null);
     const [drawerOpen, setDrawerOpen] = useState(false);
+    const [resignAnggota, setResignAnggota] = useState(null);
+    const [resignDrawerOpen, setResignDrawerOpen] = useState(false);
+    const [reaktivasiAnggota, setReaktivasiAnggota] = useState(null);
+
+    const canResign = permissions.includes('anggota.resign');
 
     function bukaCreate() {
         setCreateOpen(true);
@@ -44,6 +54,28 @@ export default function Index({ anggota, statistik, filters, noAnggotaBerikutnya
 
     function tutupEdit() {
         setDrawerOpen(false);
+    }
+
+    function bukaResign(a) {
+        setResignAnggota(a);
+        setResignDrawerOpen(true);
+    }
+
+    function tutupResign() {
+        setResignDrawerOpen(false);
+        setResignAnggota(null);
+    }
+
+    function bukaReaktivasi(a) {
+        setReaktivasiAnggota(a);
+    }
+
+    function tutupReaktivasi() {
+        setReaktivasiAnggota(null);
+    }
+
+    function bukaSlip(a) {
+        window.open(route('anggota.slip-resign', a.id), '_blank');
     }
 
     function terapkanFilter(overrides = {}) {
@@ -79,10 +111,11 @@ export default function Index({ anggota, statistik, filters, noAnggotaBerikutnya
                 </div>
             </PageHeader>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
                 <StatWidget compact label="Total Anggota" value={statistik.total} icon={Users} tone="navy" />
                 <StatWidget compact label="Anggota Aktif" value={statistik.aktif} icon={UserCheck} tone="green" />
                 <StatWidget compact label="Anggota Nonaktif" value={statistik.nonaktif} icon={UserX} tone="amber" />
+                <StatWidget compact label="Anggota Resign" value={statistik.resign} icon={UserMinus} tone="rose" />
             </div>
 
             <Card className="mb-5">
@@ -120,6 +153,7 @@ export default function Index({ anggota, statistik, filters, noAnggotaBerikutnya
                         <option value="">Semua Status</option>
                         <option value="aktif">Aktif</option>
                         <option value="nonaktif">Nonaktif</option>
+                        <option value="resign">Resign</option>
                     </Select>
                 </div>
             </Card>
@@ -167,13 +201,42 @@ export default function Index({ anggota, statistik, filters, noAnggotaBerikutnya
                                             <StatusBadge status={a.status} />
                                         </td>
                                         <td className="px-5 py-3.5 text-right">
-                                            <button
-                                                onClick={() => bukaEdit(a)}
-                                                className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-slate-400 hover:text-brand-green hover:bg-slate-100 transition-colors"
-                                                title="Edit anggota"
-                                            >
-                                                <Pencil size={16} />
-                                            </button>
+                                            <div className="inline-flex items-center gap-1 justify-end">
+                                                <button
+                                                    onClick={() => bukaEdit(a)}
+                                                    className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-slate-400 hover:text-brand-green hover:bg-slate-100 transition-colors"
+                                                    title="Edit anggota"
+                                                >
+                                                    <Pencil size={16} />
+                                                </button>
+                                                {canResign && a.status === 'aktif' && (
+                                                    <button
+                                                        onClick={() => bukaResign(a)}
+                                                        className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                                                        title="Resign anggota"
+                                                    >
+                                                        <UserMinus size={16} />
+                                                    </button>
+                                                )}
+                                                {canResign && a.status === 'resign' && (
+                                                    <>
+                                                        <button
+                                                            onClick={() => bukaReaktivasi(a)}
+                                                            className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-slate-400 hover:text-brand-green hover:bg-slate-100 transition-colors"
+                                                            title="Aktifkan kembali"
+                                                        >
+                                                            <RotateCcw size={16} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => bukaSlip(a)}
+                                                            className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                                                            title="Lihat slip resign"
+                                                        >
+                                                            <FileText size={16} />
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
@@ -222,6 +285,24 @@ export default function Index({ anggota, statistik, filters, noAnggotaBerikutnya
                     />
                 )}
             </Drawer>
+
+            <Drawer show={resignDrawerOpen} title={`Resign ${resignAnggota?.nama ?? ''}`} onClose={tutupResign} maxWidth="2xl">
+                {resignAnggota && (
+                    <ResignDrawer
+                        key={resignAnggota.id}
+                        anggota={resignAnggota}
+                        onClose={tutupResign}
+                    />
+                )}
+            </Drawer>
+
+            {reaktivasiAnggota && (
+                <AktifkanKembaliDialog
+                    key={reaktivasiAnggota.id}
+                    anggota={reaktivasiAnggota}
+                    onClose={tutupReaktivasi}
+                />
+            )}
         </AppLayout>
     );
 }

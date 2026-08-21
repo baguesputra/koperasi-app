@@ -9,6 +9,7 @@ const statusConfig = {
     diajukan: { label: 'Diajukan', color: 'bg-amber-50 text-amber-700', icon: Clock },
     approved_bendahara: { label: 'Disetujui Bendahara', color: 'bg-blue-50 text-blue-700', icon: Clock },
     nonaktif: { label: 'Nonaktif', color: 'bg-slate-100 text-slate-600', icon: XCircle },
+    resign: { label: 'Resign', color: 'bg-rose-50 text-rose-700', icon: XCircle },
 };
 
 export default function StatusBadge({ status }) {

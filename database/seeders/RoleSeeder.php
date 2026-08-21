@@ -11,7 +11,7 @@ class RoleSeeder extends Seeder
     {
         $admin = Role::firstOrCreate(['name' => 'admin']);
         $admin->syncPermissions([
-            'anggota.lihat', 'anggota.kelola',
+            'anggota.lihat', 'anggota.kelola', 'anggota.resign',
             'simpanan.lihat', 'simpanan.konfirmasi',
             'angsuran.konfirmasi',
             'pinjaman.lihat', 'pinjaman.tinjau-bendahara', 'pinjaman.approve-ketua',

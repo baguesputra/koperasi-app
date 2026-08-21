@@ -12,6 +12,7 @@ class PermissionSeeder extends Seeder
         $permissions = [
             'anggota.lihat',
             'anggota.kelola',
+            'anggota.resign',
             'simpanan.lihat',
             'simpanan.konfirmasi',
             'pinjaman.lihat',

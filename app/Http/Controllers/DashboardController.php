@@ -29,11 +29,16 @@ class DashboardController extends Controller
             ->whereMonth('tanggal_konfirmasi_bayar', now()->month)
             ->sum('nominal_bunga');
 
-        $totalSimpananPokokWajib = Simpanan::whereIn('jenis', ['pokok', 'wajib'])->sum('jumlah');
+        // Outstanding: simpanan anggota aktif saja. Gross: akumulasi semua.
+        $totalSimpananOutstanding = (float) Simpanan::whereIn('jenis', ['pokok', 'wajib'])
+            ->whereHas('anggota', fn ($q) => $q->where('status', 'aktif'))
+            ->sum('jumlah');
+        $totalAkumulasiSimpanan = (float) Simpanan::whereIn('jenis', ['pokok', 'wajib'])->sum('jumlah');
 
         $saldoDanaPinjaman = $kas->saldo_pinjaman;
 
-        $totalKeseluruhan = $saldoDanaPinjaman + $kas->saldo_dana_sosial + $totalSimpananPokokWajib;
+        // saldo_pengembalian_simpanan tidak dimasukkan di total karena hanya "dalam proses"
+        $totalKeseluruhan = $saldoDanaPinjaman + $kas->saldo_dana_sosial + $totalSimpananOutstanding;
 
         $saldoDanaSosial = $kas->saldo_dana_sosial;
 
@@ -156,9 +161,11 @@ class DashboardController extends Controller
         return Inertia::render('Dashboard', [
             'stats' => [
                 'total_anggota_aktif' => Anggota::where('status', 'aktif')->count(),
-                'total_simpanan' => (float) Simpanan::whereIn('jenis', ['pokok', 'wajib'])->sum('jumlah'),
+                'total_simpanan_outstanding' => $totalSimpananOutstanding,
+                'total_simpanan_akumulasi' => $totalAkumulasiSimpanan,
                 'pinjaman_outstanding' => (float) Pinjaman::where('status', 'aktif')->sum('nominal'),
                 'saldo_dana_pinjaman' => (float) $saldoDanaPinjaman,
+                'saldo_pengembalian_simpanan' => (float) $kas->saldo_pengembalian_simpanan,
                 'total_keseluruhan' => (float) $totalKeseluruhan,
                 'keuntungan_bulan_ini' => (float) $keuntunganBulanIni,
                 'saldo_dana_sosial' => (float) $saldoDanaSosial,

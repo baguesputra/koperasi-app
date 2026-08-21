@@ -46,12 +46,17 @@ class SimpananController extends Controller
             ]);
 
         $totalDanaSosialTerkumpul = Simpanan::where('jenis', 'dana_sosial')->sum('jumlah');
+        // Gross: akumulasi semua simpanan (untuk transparansi audit)
         $totalSimpananSeluruhAnggota = Simpanan::whereIn('jenis', ['pokok', 'wajib'])->sum('jumlah');
+        // Outstanding: hanya anggota aktif (simpanan yang masih ditanggung koperasi)
+        $totalSimpananOutstanding = (float) Simpanan::whereIn('jenis', ['pokok', 'wajib'])
+            ->whereHas('anggota', fn ($q) => $q->where('status', 'aktif'))
+            ->sum('jumlah');
 
         $totalSimpananTampil = $cabangAktif->isEmpty()
-            ? $totalSimpananSeluruhAnggota
+            ? $totalSimpananOutstanding
             : Simpanan::whereIn('jenis', ['pokok', 'wajib'])
-                ->whereHas('anggota', fn ($q) => $q->where('cabang', $cabangAktif))
+                ->whereHas('anggota', fn ($q) => $q->where('status', 'aktif')->where('cabang', $cabangAktif))
                 ->sum('jumlah');
 
         return Inertia::render('Simpanan/Index', [
@@ -61,6 +66,7 @@ class SimpananController extends Controller
             'daftarCabang' => $daftarCabang,
             'totalDanaSosialTerkumpul' => (float) $totalDanaSosialTerkumpul,
             'totalSimpananSeluruhAnggota' => (float) $totalSimpananSeluruhAnggota,
+            'totalSimpananOutstanding' => $totalSimpananOutstanding,
             'totalSimpananTampil' => (float) $totalSimpananTampil,
         ]);
     }

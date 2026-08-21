@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Exports\AnggotaTemplateExport;
+use App\Http\Requests\ReaktivasiAnggotaRequest;
+use App\Http\Requests\ResignAnggotaRequest;
 use App\Http\Requests\StoreAnggotaRequest;
 use App\Http\Requests\UpdateAnggotaRequest;
 use App\Imports\AnggotaImport;
@@ -11,6 +13,8 @@ use App\Models\AuditLog;
 use App\Models\SettingSimpanan;
 use App\Models\Simpanan;
 use App\Models\User;
+use App\Services\Anggota\ReaktivasiService;
+use App\Services\Anggota\ResignService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -64,6 +68,7 @@ class AnggotaController extends Controller
                 'total' => Anggota::count(),
                 'aktif' => Anggota::where('status', 'aktif')->count(),
                 'nonaktif' => Anggota::where('status', 'nonaktif')->count(),
+                'resign' => Anggota::where('status', 'resign')->count(),
             ],
             'filters' => $request->only(['cari', 'cabang', 'status']),
             'noAnggotaBerikutnya' => Anggota::generateNoAnggota(),
@@ -139,6 +144,74 @@ class AnggotaController extends Controller
 
         return redirect()->route('anggota.index')
             ->with('status', 'Data anggota berhasil diperbarui.');
+    }
+
+    public function ringkasanResign(Anggota $anggota, ResignService $resignService)
+    {
+        return response()->json([
+            'anggota' => [
+                'id' => $anggota->id,
+                'no_anggota' => $anggota->no_anggota,
+                'nama' => $anggota->nama,
+                'cabang' => $anggota->cabang,
+                'status' => $anggota->status,
+            ],
+            'ringkasan' => $resignService->ringkasan($anggota),
+        ]);
+    }
+
+    public function resign(ResignAnggotaRequest $request, Anggota $anggota, ResignService $resignService)
+    {
+        try {
+            $resignService->proses(
+                $anggota,
+                $request->string('alasan_resign')->toString(),
+                $request->date('tanggal_resign')->format('Y-m-d'),
+                $request->user()
+            );
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['alasan_resign' => $e->getMessage()]);
+        }
+
+        return redirect()->route('anggota.index')
+            ->with('status', "Anggota {$anggota->nama} berhasil di-resign. Slip pengembalian tersedia di detail.");
+    }
+
+    public function aktifkanKembali(ReaktivasiAnggotaRequest $request, Anggota $anggota, ReaktivasiService $service)
+    {
+        try {
+            $service->proses(
+                $anggota,
+                $request->string('alasan_reaktivasi')->toString(),
+                $request->user()
+            );
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['alasan_reaktivasi' => $e->getMessage()]);
+        }
+
+        return redirect()->route('anggota.index')
+            ->with('status', "Anggota {$anggota->nama} berhasil diaktifkan kembali.");
+    }
+
+    public function slipResign(Anggota $anggota): Response
+    {
+        abort_unless($anggota->status === 'resign', 404, 'Slip hanya tersedia untuk anggota yang sudah resign.');
+
+        return Inertia::render('Anggota/SlipResign', [
+            'anggota' => [
+                'id' => $anggota->id,
+                'no_anggota' => $anggota->no_anggota,
+                'no_karyawan' => $anggota->no_karyawan,
+                'nama' => $anggota->nama,
+                'cabang' => $anggota->cabang,
+                'unit_bisnis' => $anggota->unit_bisnis,
+                'jabatan' => $anggota->jabatan,
+                'tanggal_jadi_anggota' => $anggota->tanggal_jadi_anggota?->format('Y-m-d'),
+                'tanggal_resign' => $anggota->tanggal_resign?->format('Y-m-d'),
+                'alasan_resign' => $anggota->alasan_resign,
+            ],
+            'settlement' => $anggota->resigned_settlement_json ?? [],
+        ]);
     }
 
     public function downloadTemplate()

@@ -3,6 +3,7 @@ export default function StatWidget({ label, value, icon: Icon, tone = 'navy', co
         navy: 'bg-brand-navy/5 text-brand-navy',
         green: 'bg-brand-green-light text-brand-green-dark',
         amber: 'bg-amber-50 text-amber-700',
+        rose: 'bg-rose-50 text-rose-700',
     };
 
     if (compact) {

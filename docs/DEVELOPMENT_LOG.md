@@ -203,15 +203,16 @@ Summary hasil meeting dengan koperasi 15 Agustus 2026
 
 # Testing Checklist — Koperasi App
 **Tanggal:** 21 Agustus 2026
-- [ ] Pembuatan fitur anggota resign summary simpanan dan angsuran berjalan
+- [x] Pembuatan fitur anggota resign summary simpanan dan angsuran berjalan
 - [x] validasi untuk perubahan tenor sudah pengajuan dan sesudah approve pengajuan belum ada, validasi pengajuan limit setelah approve  belum ada
 - [x] pengajuan baru jika ada angsuran berjalan limit dikurang sisa angsuran
-- [ ] Gabung jadi 1 halaman approval bendahara dan ketua
-- [ ] Menambah idempotency key jika terjadi double klik action crud
-- [ ] Menambah reconciliation otomatis
-- [ ] rule penambahan pinjaman dibuka dan bisa sekali saja penambahan
-- [ ] import excel anggota otomatis buat user juga
+- [x] rule penambahan pinjaman dibuka dan bisa sekali saja penambahan
 
+[✓] Update SimpananController: tampilkan outstanding + gross
+[•] Frontend KasKoperasi/Index.jsx: tab ke-3 + sub_judul render
+[ ] Frontend Simpanan/Index.jsx: display outstanding vs gross
+[ ] Verifikasi end-to-end via tinker + migrate:fresh --seed
+[ ] Lint pint + Vite build
 
 # Testing Checklist — Koperasi App
 **Tanggal:** 24 - 28 Agustus 2026
@@ -220,8 +221,14 @@ Summary hasil meeting dengan koperasi 15 Agustus 2026
 - [ ] notifikasi setelah pengajuan awal, setelah approve bendahara dan approve ketua
 - [ ] notifikasi angsuran dan simpanan sudah terbayarkan ke bendahara atau ketua
 - [ ] Pembuatan api untuk aplikasi mobile dan aplikasi core lain nya
+- [ ] Gabung jadi 1 halaman approval bendahara dan ketua
+- [ ] Menambah idempotency key jika terjadi double klik action crud
+- [ ] Menambah reconciliation otomatis
+- [ ] import excel anggota otomatis buat user juga
 - [ ] multi tenant ( opsional )
 
+
+//-------------------------------- Production Approve ---------------------------------------------------
 
 # Optimisasi — Koperasi App
 **Tanggal:** Dilakukan setelah fitur sesuai semua

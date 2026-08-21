@@ -26,6 +26,17 @@ class EligibilitasPinjamanService
      */
     public function cek(Anggota $anggota): array
     {
+        // Anggota nonaktif atau sudah resign tidak boleh mengajukan pinjaman.
+        if ($anggota->status !== 'aktif') {
+            return [
+                'boleh' => false,
+                'alasan' => "Anggota berstatus '{$anggota->status}', tidak dapat mengajukan pinjaman.",
+                'limit_tersedia' => 0.0,
+                'sisa_angsuran' => 0,
+                'cicilan_pokok' => 0.0,
+            ];
+        }
+
         $agg = $anggota->pinjamanAktifDenganAgregat();
 
         // Belum punya pinjaman aktif sama sekali -> pasti boleh

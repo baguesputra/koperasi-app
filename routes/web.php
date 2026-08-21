@@ -130,6 +130,13 @@ Route::middleware(['auth', 'permission:anggota.kelola'])->group(function () {
     Route::post('/anggota/import', [AnggotaController::class, 'import'])->name('anggota.import');
 });
 
+Route::middleware(['auth', 'permission:anggota.resign'])->group(function () {
+    Route::get('/anggota/{anggota}/ringkasan-resign', [AnggotaController::class, 'ringkasanResign'])->name('anggota.ringkasan-resign');
+    Route::post('/anggota/{anggota}/resign', [AnggotaController::class, 'resign'])->name('anggota.resign');
+    Route::post('/anggota/{anggota}/aktifkan-kembali', [AnggotaController::class, 'aktifkanKembali'])->name('anggota.aktifkan-kembali');
+    Route::get('/anggota/{anggota}/slip-resign', [AnggotaController::class, 'slipResign'])->name('anggota.slip-resign');
+});
+
 // ==========================================
 // PENGATURAN (khusus Admin)
 // ==========================================
