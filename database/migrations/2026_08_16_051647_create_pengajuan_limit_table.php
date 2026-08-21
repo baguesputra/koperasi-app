@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     public function up(): void
-    {   
+    {
         Schema::create('pengajuan_limit', function (Blueprint $table) {
             $table->id();
             $table->foreignId('anggota_id')->constrained('anggota')->cascadeOnDelete();

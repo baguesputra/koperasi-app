@@ -18,6 +18,6 @@ class KasKoperasiSeeder extends Seeder
 
         $adminId = User::where('no_karyawan', 'ADM-000001')->value('id') ?? 1;
 
-        (new JurnalKasService())->catatSaldoAwal('pinjaman', 100_000_000, $adminId);
+        (new JurnalKasService)->catatSaldoAwal('pinjaman', 100_000_000, $adminId);
     }
 }

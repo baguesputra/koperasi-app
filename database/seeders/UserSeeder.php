@@ -70,7 +70,7 @@ class UserSeeder extends Seeder
             $noKaryawan = sprintf('TOP-%06d', 100005 + $i);
             $anggota[] = [
                 'no_karyawan' => $noKaryawan,
-                'email' => 'anggota.' . strtolower(str_replace(' ', '', $nama)) . '@koperasi.test',
+                'email' => 'anggota.'.strtolower(str_replace(' ', '', $nama)).'@koperasi.test',
                 'name' => $nama,
             ];
         }

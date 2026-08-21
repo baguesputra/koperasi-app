@@ -24,7 +24,7 @@ class PengajuanLimitService
         $limitSaatIni = $this->eligibilitas->limitMaksimal($anggota);
 
         if ($limitDiminta <= $limitSaatIni) {
-            throw new RuntimeException('Limit yang diajukan harus lebih besar dari limit Anda saat ini: Rp ' . number_format($limitSaatIni, 0, ',', '.'));
+            throw new RuntimeException('Limit yang diajukan harus lebih besar dari limit Anda saat ini: Rp '.number_format($limitSaatIni, 0, ',', '.'));
         }
 
         return PengajuanLimit::create([
@@ -48,7 +48,7 @@ class PengajuanLimitService
 
         AuditLog::catat(
             'setujui_pengajuan_limit',
-            "Limit khusus {$pengajuan->anggota->nama} disetujui menjadi Rp " . number_format($pengajuan->limit_diminta, 0, ',', '.'),
+            "Limit khusus {$pengajuan->anggota->nama} disetujui menjadi Rp ".number_format($pengajuan->limit_diminta, 0, ',', '.'),
             ['limit_custom' => $pengajuan->anggota->limit_custom],
             ['limit_custom' => $pengajuan->limit_diminta]
         );

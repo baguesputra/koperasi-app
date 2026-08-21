@@ -19,7 +19,7 @@ class KasKoperasi extends Model
     protected $casts = [
         'saldo_saat_ini' => 'decimal:2',
         'saldo_pinjaman' => 'decimal:2',
-    'saldo_dana_sosial' => 'decimal:2',
+        'saldo_dana_sosial' => 'decimal:2',
     ];
 
     public function jurnal(): HasMany

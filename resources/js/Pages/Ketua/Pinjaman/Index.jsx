@@ -140,7 +140,7 @@ export default function Index({ menungguApproval, riwayat }) {
                 </div>
             </Card>
 
-            <Drawer show={drawerOpen} title={`Approval Final - ${detailPinjaman?.anggota?.nama ?? 'Anggota'}`} onClose={tutupDetail}>
+            <Drawer show={drawerOpen} title={`Approval Final - ${detailPinjaman?.anggota?.nama ?? 'Anggota'}`} onClose={tutupDetail} className="max-w-3xl">
                 {detailPinjaman && (
                     <KeputusanDrawer
                         key={detailPinjaman.id}

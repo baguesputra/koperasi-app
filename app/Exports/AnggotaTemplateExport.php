@@ -3,11 +3,11 @@
 namespace App\Exports;
 
 use Maatwebsite\Excel\Concerns\FromArray;
-use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+use Maatwebsite\Excel\Concerns\WithHeadings;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 
-class AnggotaTemplateExport implements FromArray, WithHeadings, WithColumnFormatting
+class AnggotaTemplateExport implements FromArray, WithColumnFormatting, WithHeadings
 {
     public function array(): array
     {

@@ -32,7 +32,7 @@ class JurnalKasService
             if ($tipe === 'keluar' && $kas->{$kolom} < $jumlah) {
                 $labelKantong = $kantong === 'pinjaman' ? 'Dana Pinjaman' : 'Dana Sosial';
                 throw new RuntimeException(
-                    "Saldo {$labelKantong} tidak mencukupi. Saldo saat ini: Rp " . number_format($kas->{$kolom}, 0, ',', '.')
+                    "Saldo {$labelKantong} tidak mencukupi. Saldo saat ini: Rp ".number_format($kas->{$kolom}, 0, ',', '.')
                 );
             }
 

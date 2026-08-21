@@ -2,10 +2,9 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\Facades\Vite;
+use App\Services\SSO\PerusahaanProvider;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Socialite\Facades\Socialite;
-use App\Services\SSO\PerusahaanProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -22,8 +21,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-            Socialite::extend('perusahaan', function ($app) {
+        Socialite::extend('perusahaan', function ($app) {
             $config = $app['config']['services.sso'];
+
             return Socialite::buildProvider(PerusahaanProvider::class, $config);
         });
     }

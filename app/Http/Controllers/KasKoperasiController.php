@@ -5,11 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\JurnalKas;
 use App\Models\KasKoperasi;
 use App\Models\Simpanan;
-use App\Models\Pinjaman;
+use App\Services\Keuangan\JurnalKasService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
-use App\Services\Keuangan\JurnalKasService;
 
 class KasKoperasiController extends Controller
 {
@@ -71,24 +70,24 @@ class KasKoperasiController extends Controller
     }
 
     public function topup(Request $request)
-{
-    $request->validate([
-        'kantong' => ['required', 'in:pinjaman,dana_sosial'],
-        'jumlah' => ['required', 'numeric', 'min:1'],
-        'keterangan' => ['nullable', 'string', 'max:255'],
-    ]);
+    {
+        $request->validate([
+            'kantong' => ['required', 'in:pinjaman,dana_sosial'],
+            'jumlah' => ['required', 'numeric', 'min:1'],
+            'keterangan' => ['nullable', 'string', 'max:255'],
+        ]);
 
-    $this->jurnalKas->catat(
-        tipe: 'masuk',
-        kategori: 'topup_bulanan',
-        kantong: $request->kantong,
-        jumlah: $request->jumlah,
-        keterangan: $request->keterangan ?: 'Topup saldo koperasi',
-        referensiId: null,
-        tanggal: now()->format('Y-m-d'),
-        userId: auth()->id(),
-    );
+        $this->jurnalKas->catat(
+            tipe: 'masuk',
+            kategori: 'topup_bulanan',
+            kantong: $request->kantong,
+            jumlah: $request->jumlah,
+            keterangan: $request->keterangan ?: 'Topup saldo koperasi',
+            referensiId: null,
+            tanggal: now()->format('Y-m-d'),
+            userId: auth()->id(),
+        );
 
-    return back()->with('status', 'Saldo berhasil ditambahkan.');
-}
+        return back()->with('status', 'Saldo berhasil ditambahkan.');
+    }
 }

@@ -3,17 +3,19 @@
 namespace App\Imports;
 
 use App\Models\Anggota;
-use App\Models\Simpanan;
 use App\Models\SettingSimpanan;
+use App\Models\Simpanan;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
+use PhpOffice\PhpSpreadsheet\Shared\Date;
 
 class AnggotaImport implements ToCollection, WithHeadingRow
 {
     public array $berhasil = [];
+
     public array $gagal = [];
 
     public function collection($rows)
@@ -27,6 +29,7 @@ class AnggotaImport implements ToCollection, WithHeadingRow
             $validasi = $this->validasiBaris($row, $baris);
             if ($validasi !== true) {
                 $this->gagal[] = $validasi;
+
                 continue;
             }
 
@@ -104,12 +107,12 @@ class AnggotaImport implements ToCollection, WithHeadingRow
         try {
             if (is_numeric($value)) {
                 // Excel serial date
-                return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($value)->format('Y-m-d');
+                return Date::excelToDateTimeObject($value)->format('Y-m-d');
             }
 
-            return \Carbon\Carbon::parse($value)->format('Y-m-d');
+            return Carbon::parse($value)->format('Y-m-d');
         } catch (\Exception $e) {
             return null;
         }
     }
-} 
+}

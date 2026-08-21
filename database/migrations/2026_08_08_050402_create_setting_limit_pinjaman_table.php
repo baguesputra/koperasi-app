@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-            Schema::create('setting_limit_pinjaman', function (Blueprint $table) {
+        Schema::create('setting_limit_pinjaman', function (Blueprint $table) {
             $table->id();
             $table->string('kategori'); // 'anggota_baru', 'staff', 'hod', 'anggota_lama'
             $table->string('label'); // teks yang ditampilkan di UI, misal "Anggota < 1 Tahun"

@@ -12,7 +12,7 @@ class KonfirmasiAngsuranService
     public function __construct(private JurnalKasService $jurnalKas) {}
 
     /**
-     * @param array $items string dengan prefix "n-{id}" (normal) atau "p-{id}" (hasil percepatan)
+     * @param  array  $items  string dengan prefix "n-{id}" (normal) atau "p-{id}" (hasil percepatan)
      */
     public function konfirmasiMassal(array $items, int $confirmedByUserId): int
     {
@@ -76,7 +76,9 @@ class KonfirmasiAngsuranService
     private function tandaiLunasJikaSelesai($pinjaman): void
     {
         $pinjaman->refresh();
-        if ($pinjaman->status !== 'aktif') return;
+        if ($pinjaman->status !== 'aktif') {
+            return;
+        }
 
         $sisaLama = $pinjaman->angsuran()->where('status', 'belum_bayar')->count();
         $pengajuanAktif = $pinjaman->pengajuanPercepatan()->where('status', 'aktif')->latest()->first();

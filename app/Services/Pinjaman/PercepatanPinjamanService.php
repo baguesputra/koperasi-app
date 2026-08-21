@@ -55,6 +55,7 @@ class PercepatanPinjamanService
 
         if ($tipe === 'lunas_total') {
             $bunga = round($sisaPokok * $persentase, 2);
+
             return [
                 'sisa_pokok' => $sisaPokok,
                 'bunga' => $bunga,

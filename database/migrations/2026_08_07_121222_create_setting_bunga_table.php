@@ -7,14 +7,14 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     public function up(): void
-{
-    Schema::create('setting_bunga', function (Blueprint $table) {
-        $table->id();
-        $table->decimal('persentase', 5, 2); // contoh: 1.00 untuk 1%
-        $table->date('berlaku_dari_tanggal');
-        $table->timestamps();
-    });
-}
+    {
+        Schema::create('setting_bunga', function (Blueprint $table) {
+            $table->id();
+            $table->decimal('persentase', 5, 2); // contoh: 1.00 untuk 1%
+            $table->date('berlaku_dari_tanggal');
+            $table->timestamps();
+        });
+    }
 
     public function down(): void
     {

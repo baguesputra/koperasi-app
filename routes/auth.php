@@ -21,12 +21,12 @@ Route::middleware('guest')->group(function () {
     //     ->name('login');
 
     Route::get('login', function () {
-    if (config('auth.mode') === 'sso') {
-        return redirect()->route('sso.redirect');
-    }
+        if (config('auth.mode') === 'sso') {
+            return redirect()->route('sso.redirect');
+        }
 
-    return app(AuthenticatedSessionController::class)->create();
-})->middleware('guest')->name('login');
+        return app(AuthenticatedSessionController::class)->create();
+    })->middleware('guest')->name('login');
 
     Route::post('login', [AuthenticatedSessionController::class, 'store']);
 

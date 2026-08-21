@@ -204,8 +204,8 @@ Summary hasil meeting dengan koperasi 15 Agustus 2026
 # Testing Checklist — Koperasi App
 **Tanggal:** 21 Agustus 2026
 - [ ] Pembuatan fitur anggota resign summary simpanan dan angsuran berjalan
-- [ ] validasi untuk perubahan tenor sudah pengajuan dan sesudah approve pengajuan belum ada, validasi pengajuan limit setelah approve  belum ada
-- [ ] pengajuan baru jika ada angsuran berjalan limit dikurang sisa angsuran
+- [x] validasi untuk perubahan tenor sudah pengajuan dan sesudah approve pengajuan belum ada, validasi pengajuan limit setelah approve  belum ada
+- [x] pengajuan baru jika ada angsuran berjalan limit dikurang sisa angsuran
 - [ ] Gabung jadi 1 halaman approval bendahara dan ketua
 - [ ] Menambah idempotency key jika terjadi double klik action crud
 - [ ] Menambah reconciliation otomatis

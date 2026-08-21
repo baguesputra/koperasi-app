@@ -225,7 +225,7 @@ export default function Index({ menungguTinjauan, menungguPencairan, riwayat }) 
                 </div>
             </Card>
 
-            <Drawer show={drawerOpen} title={`Tinjau Pinjaman - ${detailPinjaman?.anggota?.nama ?? 'Anggota'}`} onClose={tutupDetail}>
+            <Drawer show={drawerOpen} title={`Tinjau Pinjaman - ${detailPinjaman?.anggota?.nama ?? 'Anggota'}`} onClose={tutupDetail} className="max-w-3xl">
                 {detailPinjaman && (
                     <KeputusanDrawer
                         key={detailPinjaman.id}

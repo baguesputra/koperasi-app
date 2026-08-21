@@ -225,5 +225,4 @@ Route::middleware(['auth', 'permission:kas.topup'])->group(function () {
 
 Route::post('/angsuran/konfirmasi-percepatan', [AngsuranController::class, 'konfirmasiPercepatan'])->name('angsuran.konfirmasi-percepatan');
 
-
 require __DIR__.'/auth.php';
