@@ -208,11 +208,12 @@ Summary hasil meeting dengan koperasi 15 Agustus 2026
 - [x] pengajuan baru jika ada angsuran berjalan limit dikurang sisa angsuran
 - [x] rule penambahan pinjaman dibuka dan bisa sekali saja penambahan
 
-[✓] Update SimpananController: tampilkan outstanding + gross
-[•] Frontend KasKoperasi/Index.jsx: tab ke-3 + sub_judul render
-[ ] Frontend Simpanan/Index.jsx: display outstanding vs gross
-[ ] Verifikasi end-to-end via tinker + migrate:fresh --seed
-[ ] Lint pint + Vite build
+# Testing Checklist — Koperasi App
+**Tanggal:** 22 Agustus 2026
+- [x] Deploy Koperasi app ke server untuk demo
+- [x] Testing full fitur koperasi
+- [x] Rapat lanjutan dengan koperasi pembahasan aplikasi 
+
 
 # Testing Checklist — Koperasi App
 **Tanggal:** 24 - 28 Agustus 2026
