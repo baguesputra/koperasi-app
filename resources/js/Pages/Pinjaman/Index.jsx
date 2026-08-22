@@ -1,10 +1,12 @@
 import AppLayout from '@/Layouts/AppLayout';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { CheckCircle2, Clock, FileText, Search, ShieldCheck, XCircle, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import Card from '@/Components/ui/Card';
 import StatWidget from '@/Components/ui/StatWidget';
 import StatusBadge from '@/Components/ui/StatusBadge';
+import Drawer from '@/Components/ui/Drawer';
+import DetailDrawer from './Partials/DetailDrawer';
 import { formatRupiah } from '@/Utils/formatCurrency';
 
 const statusOptions = [
@@ -24,11 +26,44 @@ const statusMap = {
     ditolak: 'ditolak',
 };
 
-export default function Index({ pinjaman, filters, statistik }) {
+export default function Index({ pinjaman, filters, statistik, cabangAktif, daftarCabang }) {
     const [cari, setCari] = useState(filters.cari ?? '');
+    const [detailPinjaman, setDetailPinjaman] = useState(null);
+    const [drawerOpen, setDrawerOpen] = useState(false);
+
+    const tab = [
+        { key: '', label: 'Semua Cabang' },
+        ...daftarCabang.map((c) => ({ key: c, label: c })),
+    ];
+
+    function pindahTab(cabang) {
+        router.get(
+            route('pinjaman.index'),
+            { cari: filters.cari ?? '', status: filters.status ?? '', cabang },
+            { preserveState: true, replace: true }
+        );
+    }
 
     function terapkanFilter(overrides = {}) {
-        router.get(route('pinjaman.index'), { cari, status: filters.status, ...overrides }, { preserveState: true, replace: true });
+        router.get(
+            route('pinjaman.index'),
+            { cari, status: filters.status ?? '', cabang: cabangAktif ?? '', ...overrides },
+            { preserveState: true, replace: true }
+        );
+    }
+
+    function bukaDetail(p) {
+        setDetailPinjaman(p);
+        setDrawerOpen(true);
+    }
+
+    function tutupDetail() {
+        setDrawerOpen(false);
+    }
+
+    function bukaCetak(e, p) {
+        e.stopPropagation();
+        window.open(route('pinjaman.cetak-bukti', p.id), '_blank');
     }
 
     return (
@@ -47,6 +82,22 @@ export default function Index({ pinjaman, filters, statistik }) {
                 <StatWidget compact label="Aktif" value={statistik.aktif} icon={CheckCircle2} tone="green" />
                 <StatWidget compact label="Lunas" value={statistik.lunas} icon={CheckCircle2} tone="green" />
                 <StatWidget compact label="Ditolak" value={statistik.ditolak} icon={XCircle} tone="red" />
+            </div>
+
+            <div className="flex items-center justify-between flex-wrap gap-4 mb-5">
+                <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl w-fit overflow-x-auto">
+                    {tab.map((t) => (
+                        <button
+                            key={t.key}
+                            onClick={() => pindahTab(t.key)}
+                            className={`px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors ${
+                                (cabangAktif ?? '') === t.key ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'
+                            }`}
+                        >
+                            {t.label}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             <Card className="mb-5">
@@ -84,24 +135,32 @@ export default function Index({ pinjaman, filters, statistik }) {
                                 <th className="px-5 py-3.5 text-sm font-semibold text-slate-500">Tenor</th>
                                 <th className="px-5 py-3.5 text-sm font-semibold text-slate-500">Tanggal</th>
                                 <th className="px-5 py-3.5 text-sm font-semibold text-slate-500">Status</th>
+                                <th className="px-5 py-3.5 text-sm font-semibold text-slate-500 text-right">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
                             {pinjaman.data.length === 0 ? (
-                                <tr><td colSpan={5} className="px-5 py-10 text-center text-base text-slate-400">Tidak ada data ditemukan.</td></tr>
+                                <tr><td colSpan={6} className="px-5 py-10 text-center text-base text-slate-400">Tidak ada data ditemukan.</td></tr>
                             ) : (
                                 pinjaman.data.map((p) => (
                                     <tr key={p.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
                                         <td className="px-5 py-3.5">
                                             <div className="flex items-center gap-2">
                                                 <div className="min-w-0">
-                                                    <Link
-                                                        href={route('pinjaman.show', p.id)}
-                                                        className="block text-base font-semibold text-slate-800 hover:text-brand-green"
+                                                    <button
+                                                        onClick={() => bukaDetail(p)}
+                                                        className="block text-left text-base font-semibold text-slate-800 hover:text-brand-green transition-colors"
                                                     >
                                                         {p.nama}
-                                                    </Link>
-                                                    <p className="text-sm text-slate-400">{p.no_anggota}</p>
+                                                    </button>
+                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                        <p className="text-sm text-slate-400">{p.no_anggota}</p>
+                                                        {p.cabang && (
+                                                            <span className="inline-block px-2 py-0.5 text-[10px] font-semibold rounded-full bg-slate-100 text-slate-600">
+                                                                {p.cabang}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                             {p.pelunasan_resign_total > 0 && (
@@ -115,6 +174,18 @@ export default function Index({ pinjaman, filters, statistik }) {
                                         <td className="px-5 py-3.5 text-base text-slate-600">{p.tenor_bulan} bulan</td>
                                         <td className="px-5 py-3.5 text-base text-slate-600">{p.tanggal_pengajuan}</td>
                                         <td className="px-5 py-3.5"><StatusBadge status={statusMap[p.status] ?? 'pending'} /></td>
+                                        <td className="px-5 py-3.5 text-right">
+                                            {p.status === 'aktif' && (
+                                                <button
+                                                    onClick={(e) => bukaCetak(e, p)}
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-lg bg-brand-green text-white hover:bg-brand-green/90 transition-colors"
+                                                    title="Cetak bukti peminjaman"
+                                                >
+                                                    <FileText size={14} />
+                                                    Cetak
+                                                </button>
+                                            )}
+                                        </td>
                                     </tr>
                                 ))
                             )}
@@ -138,6 +209,18 @@ export default function Index({ pinjaman, filters, statistik }) {
                     ))}
                 </div>
             )}
+
+            <Drawer show={drawerOpen} title={detailPinjaman ? `Pinjaman #${detailPinjaman.id} - ${detailPinjaman.nama}` : 'Detail Pinjaman'} onClose={tutupDetail} maxWidth="3xl">
+                {detailPinjaman && (
+                    <DetailDrawer
+                        key={detailPinjaman.id}
+                        pinjaman={detailPinjaman}
+                        angsuran={detailPinjaman.angsuran ?? []}
+                        pelunasan_resign={detailPinjaman.pelunasan_resign ?? { total: 0, tanggal: null }}
+                        jurnal_pelunasan={detailPinjaman.jurnal_pelunasan ?? []}
+                    />
+                )}
+            </Drawer>
         </AppLayout>
     );
 }
