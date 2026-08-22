@@ -16,6 +16,7 @@ use App\Models\User;
 use App\Services\Anggota\ReaktivasiService;
 use App\Services\Anggota\ResignService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
@@ -62,17 +63,26 @@ class AnggotaController extends Controller
                 'limit_custom_keterangan' => $a->limit_custom_keterangan,
             ]);
 
+        $statistik = Anggota::query()
+            ->selectRaw('
+                COUNT(*) as total,
+                SUM(CASE WHEN status = "aktif" THEN 1 ELSE 0 END) as aktif,
+                SUM(CASE WHEN status = "nonaktif" THEN 1 ELSE 0 END) as nonaktif,
+                SUM(CASE WHEN status = "resign" THEN 1 ELSE 0 END) as resign
+            ')
+            ->first();
+
         return Inertia::render('Anggota/Index', [
             'anggota' => $anggota,
             'statistik' => [
-                'total' => Anggota::count(),
-                'aktif' => Anggota::where('status', 'aktif')->count(),
-                'nonaktif' => Anggota::where('status', 'nonaktif')->count(),
-                'resign' => Anggota::where('status', 'resign')->count(),
+                'total' => (int) $statistik->total,
+                'aktif' => (int) $statistik->aktif,
+                'nonaktif' => (int) $statistik->nonaktif,
+                'resign' => (int) $statistik->resign,
             ],
             'filters' => $request->only(['cari', 'cabang', 'status']),
             'noAnggotaBerikutnya' => Anggota::generateNoAnggota(),
-            'daftarCabang' => ['Banjarmasin', 'Samarinda', 'Palangka', 'Jakarta'],
+            'daftarCabang' => Config::get('cabang'),
         ]);
     }
 
@@ -80,7 +90,7 @@ class AnggotaController extends Controller
     {
         return Inertia::render('Anggota/Create', [
             'noAnggotaBerikutnya' => Anggota::generateNoAnggota(),
-            'daftarCabang' => ['Banjarmasin', 'Samarinda', 'Palangka', 'Jakarta'],
+            'daftarCabang' => Config::get('cabang'),
         ]);
     }
 
@@ -121,7 +131,7 @@ class AnggotaController extends Controller
     {
         return Inertia::render('Anggota/Edit', [
             'anggota' => $anggota,
-            'daftarCabang' => ['Banjarmasin', 'Samarinda', 'Palangka', 'Jakarta'],
+            'daftarCabang' => Config::get('cabang'),
         ]);
     }
 

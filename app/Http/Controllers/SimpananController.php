@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Anggota;
 use App\Models\Simpanan;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Config;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -12,7 +13,7 @@ class SimpananController extends Controller
 {
     public function index(Request $request): Response
     {
-        $daftarCabang = ['Banjarmasin', 'Samarinda', 'Palangka', 'Jakarta'];
+        $daftarCabang = Config::get('cabang');
         $cabangAktif = $request->string('cabang');
 
         $query = Anggota::query()
