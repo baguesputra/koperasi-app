@@ -18,9 +18,17 @@ class DashboardController extends Controller
     {
         $anggota = auth()->user()->anggota;
 
-        $totalSimpanan = $anggota->simpanan()->whereIn('jenis', ['pokok', 'wajib'])->sum('jumlah');
-        $simpananPokok = $anggota->simpanan()->where('jenis', 'pokok')->sum('jumlah');
-        $simpananWajib = $anggota->simpanan()->where('jenis', 'wajib')->sum('jumlah');
+        $simpananAgg = $anggota->simpanan()
+            ->selectRaw('
+                SUM(CASE WHEN jenis IN ("pokok","wajib") THEN jumlah ELSE 0 END) as total,
+                SUM(CASE WHEN jenis = "pokok" THEN jumlah ELSE 0 END) as pokok,
+                SUM(CASE WHEN jenis = "wajib" THEN jumlah ELSE 0 END) as wajib
+            ')
+            ->first();
+
+        $totalSimpanan = (float) ($simpananAgg->total ?? 0);
+        $simpananPokok = (float) ($simpananAgg->pokok ?? 0);
+        $simpananWajib = (float) ($simpananAgg->wajib ?? 0);
 
         $pinjamanAktif = $anggota->pinjamanAktif();
         $cekEligibilitas = $this->eligibilitas->cek($anggota);

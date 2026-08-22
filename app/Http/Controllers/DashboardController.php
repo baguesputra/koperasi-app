@@ -10,7 +10,9 @@ use App\Models\PengajuanLimit;
 use App\Models\PengajuanPercepatan;
 use App\Models\Pinjaman;
 use App\Models\Simpanan;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -61,67 +63,88 @@ class DashboardController extends Controller
             ->whereMonth('tanggal_jatuh_tempo', now()->month)
             ->count();
 
-        // Grafik - tren 6 bulan terakhir
+        // Grafik - tren 6 bulan terakhir: 2 query (simpanan + pinjaman) GROUP BY year, month
+        $awalPeriode = now()->subMonths(5)->startOfMonth();
+
+        $simpananPerBulan = Simpanan::selectRaw('YEAR(tanggal_input) as tahun, MONTH(tanggal_input) as bulan, SUM(jumlah) as total')
+            ->where('tanggal_input', '>=', $awalPeriode)
+            ->groupBy('tahun', 'bulan')
+            ->orderBy('tahun')
+            ->orderBy('bulan')
+            ->get()
+            ->keyBy(fn ($r) => sprintf('%04d-%02d', $r->tahun, $r->bulan));
+
+        $pinjamanPerBulan = Pinjaman::selectRaw('YEAR(tanggal_pencairan) as tahun, MONTH(tanggal_pencairan) as bulan, SUM(nominal) as total')
+            ->where('tanggal_pencairan', '>=', $awalPeriode)
+            ->groupBy('tahun', 'bulan')
+            ->orderBy('tahun')
+            ->orderBy('bulan')
+            ->get()
+            ->keyBy(fn ($r) => sprintf('%04d-%02d', $r->tahun, $r->bulan));
+
         $labelBulan = [];
-        $dataSimpanan = [];
-        $dataPinjaman = [];
+        $grafikTren = [];
 
         for ($i = 5; $i >= 0; $i--) {
             $bulan = now()->subMonths($i);
+            $key = $bulan->format('Y-m');
             $labelBulan[] = $bulan->translatedFormat('M Y');
 
-            $dataSimpanan[] = (float) Simpanan::whereYear('tanggal_input', $bulan->year)
-                ->whereMonth('tanggal_input', $bulan->month)
-                ->sum('jumlah');
-
-            $dataPinjaman[] = (float) Pinjaman::whereYear('tanggal_pencairan', $bulan->year)
-                ->whereMonth('tanggal_pencairan', $bulan->month)
-                ->sum('nominal');
+            $grafikTren[] = [
+                'bulan' => $labelBulan[5 - $i],
+                'simpanan' => (float) ($simpananPerBulan[$key]->total ?? 0),
+                'pinjaman' => (float) ($pinjamanPerBulan[$key]->total ?? 0),
+            ];
         }
 
-        $grafikTren = collect($labelBulan)->map(fn ($label, $i) => [
-            'bulan' => $label,
-            'simpanan' => $dataSimpanan[$i],
-            'pinjaman' => $dataPinjaman[$i],
-        ]);
+        // Mutasi kas - per kategori (jurnal) & dana sosial (simpanan), 6 bulan terakhir: 1 query JurnalKas + 1 query Simpanan
+        $kasPerBulan = JurnalKas::selectRaw('YEAR(tanggal) as tahun, MONTH(tanggal) as bulan, kategori, tipe, SUM(jumlah) as total')
+            ->where('tanggal', '>=', $awalPeriode)
+            ->whereIn('kategori', ['topup_bulanan', 'pembayaran_angsuran', 'pencairan_pinjaman'])
+            ->groupBy('tahun', 'bulan', 'kategori', 'tipe')
+            ->get()
+            ->groupBy(fn ($r) => sprintf('%04d-%02d', $r->tahun, $r->bulan));
 
-        // Mutasi kas - per kategori (jurnal) & dana sosial (simpanan), 6 bulan terakhir
-        $dataTopup = [];
-        $dataAngsuran = [];
-        $dataPencairan = [];
-        $dataDanaSosial = [];
+        $danaSosialPerBulan = Simpanan::selectRaw('YEAR(tanggal_input) as tahun, MONTH(tanggal_input) as bulan, SUM(jumlah) as total')
+            ->where('jenis', 'dana_sosial')
+            ->where('tanggal_input', '>=', $awalPeriode)
+            ->groupBy('tahun', 'bulan')
+            ->orderBy('tahun')
+            ->orderBy('bulan')
+            ->get()
+            ->keyBy(fn ($r) => sprintf('%04d-%02d', $r->tahun, $r->bulan));
+
+        $grafikKas = [];
 
         for ($i = 5; $i >= 0; $i--) {
             $bulan = now()->subMonths($i);
+            $key = $bulan->format('Y-m');
 
-            $dataTopup[] = (float) JurnalKas::where('kategori', 'topup_bulanan')
-                ->whereYear('tanggal', $bulan->year)
-                ->whereMonth('tanggal', $bulan->month)
-                ->sum('jumlah');
+            $topup = 0.0;
+            $angsuran = 0.0;
+            $pencairan = 0.0;
 
-            $dataAngsuran[] = (float) JurnalKas::where('kategori', 'pembayaran_angsuran')
-                ->whereYear('tanggal', $bulan->year)
-                ->whereMonth('tanggal', $bulan->month)
-                ->sum('jumlah');
+            if (isset($kasPerBulan[$key])) {
+                foreach ($kasPerBulan[$key] as $row) {
+                    $jumlah = (float) $row->total;
+                    if ($row->kategori === 'topup_bulanan' && $row->tipe === 'masuk') {
+                        $topup += $jumlah;
+                    } elseif ($row->kategori === 'pembayaran_angsuran' && $row->tipe === 'masuk') {
+                        $angsuran += $jumlah;
+                    } elseif ($row->kategori === 'pencairan_pinjaman' && $row->tipe === 'keluar') {
+                        $pencairan += $jumlah;
+                    }
+                }
+            }
 
-            $dataPencairan[] = (float) JurnalKas::where('kategori', 'pencairan_pinjaman')
-                ->whereYear('tanggal', $bulan->year)
-                ->whereMonth('tanggal', $bulan->month)
-                ->sum('jumlah');
-
-            $dataDanaSosial[] = (float) Simpanan::where('jenis', 'dana_sosial')
-                ->whereYear('tanggal_input', $bulan->year)
-                ->whereMonth('tanggal_input', $bulan->month)
-                ->sum('jumlah');
+            $grafikKas[] = [
+                'bulan' => $bulan->translatedFormat('M Y'),
+                'topup' => $topup,
+                'angsuran' => $angsuran,
+                'pencairan' => $pencairan,
+                'dana_sosial' => (float) ($danaSosialPerBulan[$key]->total ?? 0),
+            ];
         }
-
-        $grafikKas = collect($labelBulan)->map(fn ($label, $i) => [
-            'bulan' => $label,
-            'topup' => $dataTopup[$i],
-            'angsuran' => $dataAngsuran[$i],
-            'pencairan' => $dataPencairan[$i],
-            'dana_sosial' => $dataDanaSosial[$i],
-        ]);
 
         // Aktivitas terbaru gabungan
         $aktivitasPinjaman = Pinjaman::with('anggota')
@@ -131,7 +154,7 @@ class DashboardController extends Controller
             ->map(fn ($p) => [
                 'tipe' => 'pinjaman',
                 'nama' => $p->anggota->nama,
-                'keterangan' => 'Mengajukan pinjaman '.number_format($p->nominal, 0, ',', '.'),
+                'keterangan' => 'Mengajukan pinjaman ' . number_format($p->nominal, 0, ',', '.'),
                 'status' => $p->status,
                 'tanggal' => $p->tanggal_pengajuan,
             ]);
@@ -157,6 +180,8 @@ class DashboardController extends Controller
                 ...collect($item)->except('tanggal')->toArray(),
                 'tanggal_format' => $item['tanggal']->format('d M Y'),
             ]);
+
+        // Stats: total_anggota_aktif, pinjaman_outstanding - bisa dioptimasi nanti kalau perlu
 
         return Inertia::render('Dashboard', [
             'stats' => [
