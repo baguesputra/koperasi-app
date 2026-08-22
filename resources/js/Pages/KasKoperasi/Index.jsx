@@ -4,6 +4,7 @@ import { Wallet, HeartHandshake, PiggyBank, Landmark, ArrowDownCircle, ArrowUpCi
 import { useState } from 'react';
 import Card from '@/Components/ui/Card';
 import Button from '@/Components/ui/Button';
+import Pagination from '@/Components/ui/Pagination';
 
 function formatRupiah(angka) {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
@@ -274,25 +275,7 @@ export default function Index({
                 )}
             </Card>
 
-            {riwayat.links && riwayat.links.length > 3 && (
-                <div className="flex items-center justify-center gap-1.5 mt-5">
-                    {riwayat.links.map((link, i) => (
-                        <button
-                            key={i}
-                            disabled={!link.url}
-                            onClick={() => link.url && router.get(link.url, {}, { preserveState: true })}
-                            className={`px-3.5 py-2 text-sm font-semibold rounded-lg transition-colors ${
-                                link.active
-                                    ? 'bg-brand-green text-white'
-                                    : link.url
-                                    ? 'text-slate-600 hover:bg-slate-100'
-                                    : 'text-slate-300 cursor-not-allowed'
-                            }`}
-                            dangerouslySetInnerHTML={{ __html: link.label }}
-                        />
-                    ))}
-                </div>
-            )}
+            <Pagination links={riwayat.links} />
         </AppLayout>
     );
 }

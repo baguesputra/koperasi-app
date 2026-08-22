@@ -6,6 +6,7 @@ import Card from '@/Components/ui/Card';
 import Drawer from '@/Components/ui/Drawer';
 import StatWidget from '@/Components/ui/StatWidget';
 import { formatRupiah } from '@/Utils/formatCurrency';
+import Pagination from '@/Components/ui/Pagination';
 
 const jenisLabel = { pokok: 'Simpanan Pokok', wajib: 'Simpanan Wajib', dana_sosial: 'Dana Sosial' };
 
@@ -176,25 +177,7 @@ export default function Index({
                 </div>
             </Card>
 
-            {anggota.links.length > 3 && (
-                <div className="flex items-center justify-center gap-1.5 mt-5">
-                    {anggota.links.map((link, i) => (
-                        <button
-                            key={i}
-                            disabled={!link.url}
-                            onClick={() => link.url && router.get(link.url, {}, { preserveState: true })}
-                            className={`px-3.5 py-2 text-sm font-semibold rounded-lg transition-colors ${
-                                link.active
-                                    ? 'bg-brand-green text-white'
-                                    : link.url
-                                    ? 'text-slate-600 hover:bg-slate-100'
-                                    : 'text-slate-300 cursor-not-allowed'
-                            }`}
-                            dangerouslySetInnerHTML={{ __html: link.label }}
-                        />
-                    ))}
-                </div>
-            )}
+            <Pagination links={anggota.links} />
 
             <Drawer show={drawerOpen} title={`Simpanan - ${detailAnggota?.nama ?? 'Anggota'}`} onClose={tutupDetail}>
                 {detailAnggota && (

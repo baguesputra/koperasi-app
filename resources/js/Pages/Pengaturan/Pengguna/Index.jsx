@@ -11,6 +11,7 @@ import FormField from '@/Components/ui/FormField';
 import TextField from '@/Components/ui/TextField';
 import Select from '@/Components/ui/Select';
 import Breadcrumb from '@/Components/ui/Breadcrumb';
+import Pagination from '@/Components/ui/Pagination';
 
 const labelRole = { admin: 'Admin', bendahara: 'Bendahara', ketua_koperasi: 'Ketua', anggota: 'Anggota' };
 
@@ -239,25 +240,7 @@ export default function Index({ pengguna, daftarRole, filters }) {
                 )}
             </Card>
 
-            {pengguna.links.length > 3 && (
-                <div className="flex items-center justify-center gap-1.5 mt-5">
-                    {pengguna.links.map((link, i) => (
-                        <button
-                            key={i}
-                            disabled={!link.url}
-                            onClick={() => link.url && router.get(link.url, {}, { preserveState: true })}
-                            className={`px-3.5 py-2 text-sm font-semibold rounded-lg transition-colors ${
-                                link.active
-                                    ? 'bg-brand-green text-white'
-                                    : link.url
-                                        ? 'text-slate-600 hover:bg-slate-100'
-                                        : 'text-slate-300 cursor-not-allowed'
-                            }`}
-                            dangerouslySetInnerHTML={{ __html: link.label }}
-                        />
-                    ))}
-                </div>
-            )}
+            <Pagination links={pengguna.links} />
 
             <Drawer show={showTambah} title="Tambah Pengguna" onClose={() => setShowTambah(false)}>
                 <form onSubmit={submitTambah}>
