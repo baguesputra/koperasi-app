@@ -83,6 +83,19 @@ class KonfirmasiSimpananService
                     userId: $inputByUserId,
                 );
 
+                // Jurnal simpanan wajib masuk (kantong simpanan)
+                $this->jurnalKas->catat(
+                    tipe: 'masuk',
+                    kategori: 'simpanan_wajib_masuk',
+                    kantong: 'simpanan',
+                    jumlah: $nominalWajib,
+                    keterangan: "Simpanan wajib bulan {$bulanPeriode}",
+                    referensiId: $anggotaId,
+                    tanggal: now()->format('Y-m-d'),
+                    userId: $inputByUserId,
+                    subJudul: 'Simpanan wajib masuk',
+                );
+
                 $jumlahDiproses++;
             }
 

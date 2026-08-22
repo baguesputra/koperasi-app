@@ -18,10 +18,12 @@ const kategoriLabel = {
     pengeluaran_koperasi: 'Pengeluaran Koperasi',
     pengeluaran_dana_sosial: 'Pengeluaran Dana Sosial',
     pelunasan_resign_pinjaman: 'Pelunasan Resign Pinjaman',
-    pelunasan_resign_simpanan: 'Pelunasan Resign dari Simpanan',
+    pelunasan_resign_simpanan: 'Pelunasan Pinjaman dari Simpanan',
     simpanan_resign_masuk: 'Simpanan Anggota (Resign)',
     return_simpanan_pokok: 'Return Simpanan Pokok',
     return_simpanan_wajib: 'Return Simpanan Wajib',
+    simpanan_pokok_masuk: 'Simpanan Pokok Masuk',
+    simpanan_wajib_masuk: 'Simpanan Wajib Masuk',
     transfer_ke_dana_pinjaman: 'Transfer ke Dana Pinjaman',
     terima_dari_pengembalian_simpanan: 'Terima dari Pengembalian Simpanan',
 };
@@ -30,6 +32,7 @@ const kantongLabel = {
     pinjaman: 'Dana Pinjaman',
     dana_sosial: 'Dana Sosial',
     pengembalian_simpanan: 'Pengembalian Simpanan',
+    simpanan: 'Simpanan Anggota',
 };
 
 export default function Index({
@@ -109,11 +112,19 @@ export default function Index({
                     </div>
                     <p className="text-sm text-slate-400">Total Simpanan Anggota</p>
                     <p className="text-xl font-bold text-slate-800 mt-0.5">{formatRupiah(totalSimpananOutstanding)}</p>
-                    <p className="text-xs text-slate-300 mt-1">
-                        Outstanding (anggota aktif): {formatRupiah(totalSimpananOutstanding)}
-                        <span className="mx-1.5 text-slate-200">|</span>
-                        Gross akumulasi (audit): {formatRupiah(totalAkumulasiSimpanan)}
-                    </p>
+                    <div className="mt-2 space-y-1 text-xs">
+                        <div className="flex items-center gap-2 text-slate-500">
+                            <span className="w-28 font-medium">Outstanding real-time:</span>
+                            <span className="font-mono text-brand-green font-semibold">{formatRupiah(totalSimpananOutstanding)}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-500">
+                            <span className="w-28 font-medium">Gross akumulasi:</span>
+                            <span className="font-mono text-slate-400">{formatRupiah(totalAkumulasiSimpanan)}</span>
+                        </div>
+                        <p className="text-[10px] text-slate-400">
+                            Riwayat tab: per periode filter (saldo awal = sebelum bulan)
+                        </p>
+                    </div>
                 </div>
 
                 <div className="bg-brand-navy rounded-2xl p-5 text-white">
@@ -148,13 +159,18 @@ export default function Index({
                         onClick={() => pindahTab('pengembalian_simpanan')}
                         className={`px-5 py-2 text-sm font-semibold rounded-lg transition-colors ${
                             kantongAktif === 'pengembalian_simpanan' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'
-                        }`}
+                        } flex items-center gap-2`}
                     >
                         Riwayat Pengembalian Simpanan
+                        {kantongAktif === 'pengembalian_simpanan' && (
+                            <span className="px-2 py-0.5 text-[10px] font-medium bg-brand-green/10 text-brand-green rounded-full whitespace-nowrap">
+                                Real-time: {formatRupiah(totalSimpananOutstanding)}
+                            </span>
+                        )}
                     </button>
                 </div>
 
-                {bisaTopup && (
+                {bisaTopup && kantongAktif !== 'pengembalian_simpanan' && (
                     <Button variant="primary" onClick={bukaForm}>
                         <Plus size={18} />
                         Topup {kantongLabel[kantongAktif] ?? 'Kantong'}

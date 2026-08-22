@@ -17,6 +17,7 @@ class JurnalKasService
         'pinjaman' => 'saldo_pinjaman',
         'dana_sosial' => 'saldo_dana_sosial',
         'pengembalian_simpanan' => 'saldo_pengembalian_simpanan',
+        'simpanan' => 'saldo_simpanan',
     ];
 
     /**
@@ -33,6 +34,7 @@ class JurnalKasService
         'pinjaman' => 'Dana Pinjaman',
         'dana_sosial' => 'Dana Sosial',
         'pengembalian_simpanan' => 'Pengembalian Simpanan',
+        'simpanan' => 'Simpanan Anggota',
     ];
 
     /**
@@ -41,7 +43,7 @@ class JurnalKasService
      *
      * @param  string  $kantong  salah satu dari self::KANTONG_SALDO
      * @param  string|null  $subJudul  catatan tambahan untuk transparansi
-     *                                              (mis. "Diambil dari simpanan anggota")
+     *                                 (mis. "Diambil dari simpanan anggota")
      */
     public function catat(
         string $tipe,
@@ -64,7 +66,7 @@ class JurnalKasService
 
             $kolom = self::KANTONG_SALDO[$kantong];
 
-            if ($tipe === 'keluar' && !in_array($kantong, self::KANTONG_TRANSIT, true) && (float) $kas->{$kolom} < $jumlah) {
+            if ($tipe === 'keluar' && ! in_array($kantong, self::KANTONG_TRANSIT, true) && (float) $kas->{$kolom} < $jumlah) {
                 $labelKantong = self::KANTONG_LABEL[$kantong];
                 throw new RuntimeException(
                     "Saldo {$labelKantong} tidak mencukupi. Saldo saat ini: Rp ".number_format((float) $kas->{$kolom}, 0, ',', '.')
