@@ -8,7 +8,7 @@ export default function StatWidget({ label, value, icon: Icon, tone = 'navy', co
 
     if (compact) {
         return (
-            <div className="bg-white rounded-xl border border-slate-100 shadow-sm px-4 py-3 flex items-center gap-3">
+            <div className="bg-white rounded-xl border border-slate-100 shadow-sm px-4 py-3 flex items-center gap-3 min-h-[48px]">
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${tones[tone]}`}>
                     <Icon size={20} />
                 </div>

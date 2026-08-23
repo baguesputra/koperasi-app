@@ -161,7 +161,7 @@ export default function Index({ anggota, statistik, filters, noAnggotaBerikutnya
 
             <Card padding="none">
                 <div className="overflow-x-auto">
-                    <table className="w-full">
+                    <table className="w-full table-sticky-first">
                         <thead>
                             <tr className="border-b border-slate-100 text-left">
                                 <th className="px-5 py-3.5 text-sm font-semibold text-slate-500">Anggota</th>

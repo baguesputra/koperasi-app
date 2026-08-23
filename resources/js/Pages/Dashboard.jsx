@@ -59,7 +59,7 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                     </div>
                 </div>
 
-                <div className="pb-20">
+                <div className="pb-20 min-h-[300px]">
                     <ResponsiveContainer width="100%" height={300}>
                         <AreaChart data={grafikTren} margin={{ left: -10, bottom: 24 }}>
                             <defs>
@@ -176,7 +176,8 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                 {/* Mutasi Kas */}
                 <Card className="lg:col-span-2 sm:p-6">
                 <p className="text-base font-bold text-slate-700 mb-4">Mutasi Kas Koperasi (6 Bulan Terakhir)</p>
-                <ResponsiveContainer width="100%" height={280}>
+                <div className="min-h-[280px]">
+                    <ResponsiveContainer width="100%" height={280}>
                     <BarChart data={grafikKas} margin={{ left: -10 }} barCategoryGap="25%">
                         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                         <XAxis dataKey="bulan" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
@@ -192,6 +193,7 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                         <Bar stackId="keluar" dataKey="pencairan" name="Pencairan Pinjaman" fill="#EF4444" radius={[4, 4, 0, 0]} />
                     </BarChart>
                 </ResponsiveContainer>
+                </div>
                 <div className="flex items-center gap-5 mt-2 justify-center flex-wrap">
                     <div className="flex items-center gap-1.5">
                         <span className="w-2.5 h-2.5 rounded-sm bg-green-300" />

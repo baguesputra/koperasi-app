@@ -86,7 +86,7 @@ export default function Index({ menungguTinjauan, menungguPencairan, riwayat }) 
                 {/* Tabel dalam kartu yang sama */}
                 <div className="overflow-x-auto">
                     {tab === 'baru' ? (
-                        <table className="w-full">
+                        <table className="w-full table-sticky-first">
                             <thead>
                                 <tr className="text-left">
                                     <th className="px-5 py-3 text-sm font-semibold text-slate-500">Anggota</th>
@@ -137,7 +137,7 @@ export default function Index({ menungguTinjauan, menungguPencairan, riwayat }) 
                             </tbody>
                         </table>
                     ) : tab === 'pencairan' ? (
-                        <table className="w-full">
+                        <table className="w-full table-sticky-first">
                             <thead>
                                 <tr className="text-left">
                                     <th className="px-5 py-3 text-sm font-semibold text-slate-500">Anggota</th>
@@ -188,7 +188,7 @@ export default function Index({ menungguTinjauan, menungguPencairan, riwayat }) 
                             </tbody>
                         </table>
                     ) : (
-                        <table className="w-full">
+                        <table className="w-full table-sticky-first">
                             <thead>
                                 <tr className="text-left">
                                     <th className="px-5 py-3 text-sm font-semibold text-slate-500">Anggota</th>

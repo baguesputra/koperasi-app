@@ -52,7 +52,7 @@ export default function Index({ menungguApproval, riwayat }) {
                 {/* Tabel dalam kartu yang sama */}
                 <div className="overflow-x-auto">
                     {tab === 'baru' ? (
-                        <table className="w-full">
+                        <table className="w-full table-sticky-first">
                             <thead>
                                 <tr className="text-left">
                                     <th className="px-5 py-3 text-sm font-semibold text-slate-500">Anggota</th>
@@ -103,7 +103,7 @@ export default function Index({ menungguApproval, riwayat }) {
                             </tbody>
                         </table>
                     ) : (
-                        <table className="w-full">
+                        <table className="w-full table-sticky-first">
                             <thead>
                                 <tr className="text-left">
                                     <th className="px-5 py-3 text-sm font-semibold text-slate-500">Anggota</th>
