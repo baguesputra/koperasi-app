@@ -1,58 +1,219 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Koperasi App — Sistem Manajemen Koperasi Karyawan
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?logo=php&logoColor=white)
+![Laravel](https://img.shields.io/badge/Laravel-13-FF2D20?logo=laravel&logoColor=white)
+![Tests](https://img.shields.io/badge/Tests-Pest%2FPHPUnit-25A162?logo=phpunit&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-yellow)
 
-## About Laravel
+Aplikasi manajemen koperasi karyawan dengan alur pinjaman bertingkat, manajemen simpanan multi-jenis, kas 2 kantong, dan portal anggota (SSO-ready).
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 📋 Fitur Utama
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Autentikasi & Akses
+- Login via **NIP/NIK karyawan + password** (bukan email)
+- SSO perusahaan (custom Socialite provider `perusahaan`)
+- Password wajib ganti saat login pertama (`harus_ganti_password`)
+- Role-based: **Admin**, **Bendahara**, **Ketua**, **Anggota**
+- Permission berbasis Spatie (13 permission ter-seed)
 
-## Learning Laravel
+### Manajemen Anggota
+- CRUD anggota + auto-generate No. Anggota (`ANG-2026-XXXX`)
+- Simpanan pokok otomatis saat registrasi
+- Import/Export Excel dengan template
+- Limit pinjaman kustom per anggota (audit trail via `AuditLog`)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### Simpanan (3 Jenis)
+| Jenis | Frekuensi | Konfirmasi |
+|-------|-----------|------------|
+| Pokok | Sekali (saat daftar) | Auto |
+| Wajib | Bulanan | Bendahara |
+| Dana Sosial | Bulanan (bersama Wajib) | Bendahara |
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Pinjaman — Alur Lengkap
+1. **Anggota ajukan** (wizard 3 step: nominal → tenor → simulasi cicilan)
+2. **Bendahara tinjau** (approve/reject + catatan wajib)
+3. **Ketua approve final** (lihat catatan Bendahara)
+4. **Bendahara cair** (generate jadwal angsuran, potong saldo kas pinjaman)
+5. **Angsuran bulanan** (bunga menurun 1% dari sisa pokok)
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+### Aturan Bisnis Kunci
+| Aturan | Detail |
+|--------|--------|
+| **Limit pinjaman** | 4 kategori: <1th=1jt, 1–3th=5jt, 3–5th=7jt, >5th=10jt. Override via `limit_custom` |
+| **Reloan** | Anggota non-<1th dgn sisa ≤2 angsuran → 1x privilege (`sudah_pakai_privilege_reloan`) |
+| **Approval berjenjang** | Bendahara (tahap 1) → Ketua (final) → Bendahara cair |
+| **Bunga menurun** | 1% dari sisa pokok bulan berjalan; di-snapshot saat pinjaman dibuat |
+| **2 Kantong Kas** | `saldo_pinjaman` & `saldo_dana_sosial` (atomic via `lockForUpdate`) |
+| **Simpanan wajib** | Diinput manual Bendahara per bulan (tidak auto-generate) |
 
-## Agentic Development
+### Portal Anggota (Inertia + React)
+- Dashboard: ringkasan pinjaman aktif, pengajuan berjalan, tenor & simpanan dinamis
+- Riwayat pinjaman & simpanan (filter periode)
+- Profil + manajemen rekening bank (tambah, set default, hapus)
+- Ajukan pinjaman, limit khusus, percepatan tenor
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+### Pengaturan & Admin
+- Bunga, Limit Pinjaman (4 kategori), Tenor (rentang + maksimal), Simpanan
+- Role & Permission management (buat/edit/hapus role, atur permission via checklist)
+- Audit Log pada semua perubahan sensitif
+
+---
+
+## 🛠 Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Backend | Laravel 13, PHP 8.3+ |
+| Frontend | Inertia v2, React 18, Tailwind 3, Vite |
+| Database | MySQL (migrations DB-agnostic, test di SQLite `:memory:`) |
+| Auth & ACL | Spatie Laravel Permission |
+| Export/Import | Maatwebsite Excel |
+| Charts | Recharts |
+| Icons | Lucide React |
+
+---
+
+## 🚀 Quick Start
 
 ```bash
-composer require laravel/boost --dev
+# Clone & install dependencies
+composer install
+npm install
 
-php artisan boost:install
+# Environment & key
+cp .env.example .env
+php artisan key:generate
+
+# Database (migrasi + seeder)
+php artisan migrate --seed
+
+# Build assets
+npm run build
+
+# Development server (perlu 2 terminal)
+# Terminal 1:
+php artisan serve
+# Terminal 2:
+npm run dev
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+**Default login (dari seeder):**
+| Role | Username | Password |
+|------|----------|----------|
+| Admin | `admin` | `password` |
+| Bendahara | `bendahara` | `password` |
+| Ketua | `ketua` | `password` |
+| Anggota | `anggota` | `password` |
 
-## Contributing
+> **SSO**: Butuh env `SSO_CLIENT_ID`, `SSO_CLIENT_SECRET`, `SSO_REDIRECT_URI` — kosongkan untuk dev lokal.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+---
 
-## Code of Conduct
+## 📁 Struktur Project (Highlight)
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```
+app/
+├── Http/Controllers/
+│   ├── Portal/          # Anggota: dashboard, pinjaman, profil, limit, percepatan
+│   ├── Bendahara/       # Konfirmasi simpanan/angsuran, tinjau pinjaman, cair dana
+│   ├── Ketua/           # Approval final pinjaman, limit khusus, percepatan
+│   └── Pengaturan/      # Admin: user, role, setting sistem
+├── Models/              # 17 models (Anggota, Pinjaman, Simpanan, KasKoperasi, dll)
+├── Services/
+│   ├── Pinjaman/        # 7 service: eligibility, perhitungan bunga, approval, dll
+│   ├── Keuangan/        # JurnalKas, Pengeluaran
+│   ├── Anggota/         # Resign, Reaktivasi
+│   └── Simpanan/        # Konfirmasi
+└── Imports/Exports/     # Anggota Excel (Maatwebsite)
+```
 
-## Security Vulnerabilities
+---
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## 📚 Dokumentasi
 
-## License
+- [`docs/PRD-Koperasi-App.md`](docs/PRD-Koperasi-App.md) — Product Requirements (fitur realized + planned)
+- [`docs/Manual-Book-Koperasi-App.md`](docs/Manual-Book-Koperasi-App.md) — Panduan pengguna
+- [`docs/ERD-Koperasi-App.md`](docs/ERD-Koperasi-App.md) — Diagram ERD
+- [`docs/DEVELOPMENT_LOG.md`](docs/DEVELOPMENT_LOG.md) — Changelog teknis
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+---
+
+## 🧪 Testing
+
+```bash
+# Jalankan semua test
+php artisan test
+
+# Filter spesifik
+php artisan test --filter=Pinjaman
+php artisan test --filter=Simpanan
+php artisan test --filter=ResignService
+```
+
+---
+
+## 🗺 Roadmap (Meeting 15 Agustus 2026)
+
+| Tahap | Fitur | Status |
+|-------|-------|--------|
+| 1 | Fondasi: 4 kategori limit, 2 kantong kas, cabang Jakarta, SSO, import | ✅ Realized |
+| 2 | Modul Pengeluaran (koperasi & dana sosial) | ✅ Realized |
+| 3 | Limit Khusus via Pengajuan (anggota ajukan → ketua setujui) | ✅ Realized |
+| 4 | Percepatan (pelunasan langsung & penambahan tenor) | 🔄 Planned |
+| 5 | Modul Resign (pelunasan/penutupan anggota) | 🔄 Planned |
+| 6 | Tutup Buku (proses periode) | 🔄 Planned |
+| 7 | UI Polish (tab per cabang, cetak slip, TTD digital) | 🔄 Planned |
+
+---
+
+## 🐳 Deployment (Docker)
+
+### Dockerfile (sudah tersedia)
+```dockerfile
+# Multi-stage build: composer → npm build → production image
+FROM php:8.3-fpm-alpine AS base
+# ... (lihat Dockerfile untuk detail)
+```
+
+### Build & Run
+```bash
+# Build image
+docker build -t koperasi-app .
+
+# Run container (perlu database & env terpisah)
+docker run -d \
+  --name koperasi-app \
+  -p 8000:8000 \
+  --env-file .env.production \
+  koperasi-app
+```
+
+### Production Checklist
+- [ ] `APP_ENV=production` & `APP_DEBUG=false`
+- [ ] `APP_KEY` sudah di-generate (`php artisan key:generate --force`)
+- [ ] Database MySQL terpisah (tidak SQLite)
+- [ ] `SESSION_DRIVER=database` atau `redis`
+- [ ] `QUEUE_CONNECTION=database` atau `redis` + worker berjalan
+- [ ] `MAIL_*` konfigurasi untuk notifikasi
+- [ ] `SSO_*` konfigurasi jika menggunakan SSO perusahaan
+- [ ] `FILESYSTEM_DISK=s3` atau cloud storage lain untuk upload
+- [ ] HTTPS/SSL terminated di reverse proxy (Nginx/Traefik)
+- [ ] Backup database terjadwal
+
+### Queue Worker (wajib untuk background jobs)
+```bash
+# Supervisor config contoh
+[program:koperasi-worker]
+command=php artisan queue:work --sleep=3 --tries=3 --timeout=90
+autostart=true
+autorestart=true
+numprocs=2
+```
+
+---
+
+## 📄 Lisensi
+
+MIT License — project internal untuk Koperasi Karyawan.

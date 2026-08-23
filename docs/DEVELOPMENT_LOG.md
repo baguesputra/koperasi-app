@@ -218,7 +218,7 @@ Summary hasil meeting dengan koperasi 15 Agustus 2026
 # Testing Checklist — Koperasi App
 **Tanggal:** 24 - 28 Agustus 2026
 - [ ] Perancangan audit trail dari sisi keuangan
-- [ ] Bukti invoice peminjaman yang bisa dicetak setelah di approve pengajuan peminjaman
+- [x] Bukti invoice peminjaman yang bisa dicetak setelah di approve pengajuan peminjaman
 - [ ] notifikasi setelah pengajuan awal, setelah approve bendahara dan approve ketua
 - [ ] notifikasi angsuran dan simpanan sudah terbayarkan ke bendahara atau ketua
 - [ ] Pembuatan api untuk aplikasi mobile dan aplikasi core lain nya
