@@ -2,6 +2,7 @@
 
 namespace App\Services\Pinjaman;
 
+use App\Events\PinjamanCreated;
 use App\Models\Anggota;
 use App\Models\Pinjaman;
 use App\Models\RekeningAnggota;
@@ -66,7 +67,7 @@ class PengajuanPinjamanService
 
             $dataRekening = $this->siapkanRekening($anggota, $rekening);
 
-            return Pinjaman::create([
+            $pinjaman = Pinjaman::create([
                 'anggota_id' => $anggota->id,
                 'pengaju_user_id' => $pengaju->id,
                 'nominal' => $nominal,
@@ -86,6 +87,10 @@ class PengajuanPinjamanService
                 'ip_address_setuju' => $audit['ip'] ?? null,
                 'user_agent_setuju' => isset($audit['user_agent']) ? substr($audit['user_agent'], 0, 255) : null,
             ]);
+
+            PinjamanCreated::dispatch($pinjaman);
+
+            return $pinjaman;
         });
     }
 

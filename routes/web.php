@@ -150,6 +150,15 @@ Route::middleware(['auth', 'permission:pengaturan.kelola', 'password.confirm'])-
     Route::delete('/pengaturan/tenor/{tenor}', [PengaturanController::class, 'destroyTenor'])->name('pengaturan.tenor.destroy');
     Route::post('/pengaturan/bunga', [PengaturanController::class, 'updateBunga'])->name('pengaturan.bunga.update');
     Route::post('/pengaturan/simpanan/{setting}', [PengaturanController::class, 'updateSimpanan'])->name('pengaturan.simpanan.update');
+    // --------- WhatsApp ------------
+    Route::get('/pengaturan/whatsapp', [PengaturanController::class, 'whatsapp'])->name('pengaturan.whatsapp');
+    Route::get('/pengaturan/whatsapp/qr', [PengaturanController::class, 'whatsappQr'])->name('pengaturan.whatsapp.qr');
+    Route::get('/pengaturan/whatsapp/status', [PengaturanController::class, 'whatsappStatus'])->name('pengaturan.whatsapp.status');
+    Route::post('/pengaturan/whatsapp/disconnect', [PengaturanController::class, 'whatsappDisconnect'])->name('pengaturan.whatsapp.disconnect');
+    Route::post('/pengaturan/whatsapp/session', [PengaturanController::class, 'whatsappCreateSession'])->name('pengaturan.whatsapp.session.store');
+    Route::put('/pengaturan/whatsapp/session/{session}', [PengaturanController::class, 'whatsappUpdateSession'])->name('pengaturan.whatsapp.session.update');
+    Route::delete('/pengaturan/whatsapp/session/{session}', [PengaturanController::class, 'whatsappDeleteSession'])->name('pengaturan.whatsapp.session.destroy');
+    Route::post('/pengaturan/whatsapp/test-send', [PengaturanController::class, 'whatsappTestSend'])->name('pengaturan.whatsapp.test-send');
     // --------- Role ------------
     Route::get('/role', [RoleController::class, 'index'])->name('role.index');
     Route::post('/role', [RoleController::class, 'store'])->name('role.store');

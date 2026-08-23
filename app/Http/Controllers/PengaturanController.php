@@ -8,7 +8,10 @@ use App\Models\SettingLimitPinjaman;
 use App\Models\SettingSimpanan;
 use App\Models\TabelTenor;
 use App\Models\User;
+use App\Models\WhatsappLog;
+use App\Models\WhatsappSession;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Permission\Models\Permission;
@@ -196,5 +199,276 @@ class PengaturanController extends Controller
         );
 
         return back()->with('status', 'Nominal simpanan berhasil diperbarui.');
+    }
+
+    public function whatsapp(Request $request): Response
+    {
+        $sessions = WhatsappSession::orderBy('is_default', 'desc')->orderBy('name')->get()
+            ->map(fn ($s) => $this->formatSession($s));
+
+        $logsQuery = WhatsappLog::query()->with('session:id,session_id,name')
+            ->orderByDesc('created_at');
+
+        if ($request->filled('session_id')) {
+            $logsQuery->where('session_id', $request->string('session_id'));
+        }
+
+        if ($request->filled('status')) {
+            $logsQuery->where('status', $request->string('status'));
+        }
+
+        if ($request->filled('date_from')) {
+            $logsQuery->whereDate('created_at', '>=', $request->date('date_from'));
+        }
+
+        if ($request->filled('date_to')) {
+            $logsQuery->whereDate('created_at', '<=', $request->date('date_to'));
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->string('search');
+            $logsQuery->where(function ($q) use ($search) {
+                $q->where('to', 'like', "%{$search}%")
+                    ->orWhere('message', 'like', "%{$search}%");
+            });
+        }
+
+        $logs = $logsQuery->paginate(20)->withQueryString()
+            ->through(fn ($log) => [
+                'id' => $log->id,
+                'session_id' => $log->session_id,
+                'session_name' => $log->session?->name ?? $log->session_id,
+                'to' => $log->to,
+                'message' => $log->message,
+                'status' => $log->status,
+                'reference_type' => $log->reference_type,
+                'reference_id' => $log->reference_id,
+                'error' => $log->error,
+                'created_at' => $log->created_at->format('d M Y H:i:s'),
+            ]);
+
+        return Inertia::render('Pengaturan/WhatsApp', [
+            'sessions' => $sessions,
+            'logs' => $logs,
+            'filters' => $request->only(['session_id', 'status', 'date_from', 'date_to', 'search']),
+            'statusOptions' => ['pending', 'sent', 'failed'],
+        ]);
+    }
+
+    public function whatsappQr(Request $request)
+    {
+        $sessionId = $request->query('session_id', 'main');
+        $url = config('services.baileys.url');
+        $token = config('services.baileys.token');
+
+        if (! $url || ! $token) {
+            return response()->json(['error' => 'Baileys not configured'], 500);
+        }
+
+        try {
+            $response = Http::timeout(10)
+                ->withToken($token)
+                ->get("{$url}/api/qr", ['sessionId' => $sessionId]);
+
+            return response()->json($response->json(), $response->status());
+        } catch (\Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function whatsappStatus(Request $request)
+    {
+        $sessionId = $request->query('session_id');
+        $url = config('services.baileys.url');
+        $token = config('services.baileys.token');
+
+        if (! $url || ! $token) {
+            return response()->json(['error' => 'Baileys not configured'], 500);
+        }
+
+        try {
+            $query = $sessionId ? ['sessionId' => $sessionId] : [];
+            $response = Http::timeout(10)
+                ->withToken($token)
+                ->get("{$url}/api/health", $query);
+
+            if ($response->successful()) {
+                $data = $response->json();
+
+                if ($sessionId && ($data['connected'] ?? false)) {
+                    WhatsappSession::where('session_id', $sessionId)
+                        ->update([
+                            'phone_number' => $data['user']['id'] ?? null,
+                            'phone_name' => $data['user']['name'] ?? null,
+                            'last_connected_at' => now(),
+                        ]);
+                }
+
+                return response()->json($data);
+            }
+
+            return response()->json($response->json(), $response->status());
+        } catch (\Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function whatsappDisconnect(Request $request)
+    {
+        $request->validate(['session_id' => ['required', 'string']]);
+        $sessionId = $request->session_id;
+        $url = config('services.baileys.url');
+        $token = config('services.baileys.token');
+
+        if (! $url || ! $token) {
+            return response()->json(['error' => 'Baileys not configured'], 500);
+        }
+
+        try {
+            $response = Http::timeout(10)
+                ->withToken($token)
+                ->post("{$url}/api/health/disconnect", ['sessionId' => $sessionId]);
+
+            if ($response->successful()) {
+                WhatsappSession::where('session_id', $sessionId)
+                    ->update([
+                        'phone_number' => null,
+                        'phone_name' => null,
+                        'last_connected_at' => null,
+                    ]);
+            }
+
+            return response()->json($response->json(), $response->status());
+        } catch (\Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function whatsappCreateSession(Request $request)
+    {
+        $request->validate([
+            'session_id' => ['required', 'string', 'max:50', 'regex:/^[a-z0-9_-]+$/'],
+            'name' => ['required', 'string', 'max:100'],
+            'description' => ['nullable', 'string', 'max:500'],
+            'is_default' => ['boolean'],
+        ]);
+
+        $existing = WhatsappSession::where('session_id', $request->session_id)->first();
+        if ($existing) {
+            return back()->withErrors(['session_id' => 'Session ID sudah digunakan.']);
+        }
+
+        if ($request->boolean('is_default')) {
+            WhatsappSession::where('is_default', true)->update(['is_default' => false]);
+        }
+
+        $session = WhatsappSession::create([
+            'session_id' => $request->session_id,
+            'name' => $request->name,
+            'description' => $request->description,
+            'is_default' => $request->boolean('is_default'),
+            'is_active' => true,
+        ]);
+
+        AuditLog::catat('create_whatsapp_session', "Sesi WhatsApp '{$session->name}' dibuat.", null, $session->toArray());
+
+        return back()->with('status', 'Sesi WhatsApp berhasil dibuat. Buka halaman QR untuk memindai.');
+    }
+
+    public function whatsappUpdateSession(Request $request, WhatsappSession $session)
+    {
+        $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'description' => ['nullable', 'string', 'max:500'],
+            'is_default' => ['boolean'],
+            'is_active' => ['boolean'],
+        ]);
+
+        if ($request->boolean('is_default') && ! $session->is_default) {
+            WhatsappSession::where('is_default', true)->update(['is_default' => false]);
+        }
+
+        $dataLama = $session->toArray();
+        $session->update($request->only('name', 'description', 'is_default', 'is_active'));
+
+        AuditLog::catat('update_whatsapp_session', "Sesi WhatsApp '{$session->name}' diperbarui.", $dataLama, $session->fresh()->toArray());
+
+        return back()->with('status', 'Sesi WhatsApp berhasil diperbarui.');
+    }
+
+    public function whatsappDeleteSession(WhatsappSession $session)
+    {
+        if ($session->is_default) {
+            return back()->withErrors(['session_id' => 'Tidak bisa menghapus sesi default.']);
+        }
+
+        $sessionId = $session->session_id;
+        $sessionName = $session->name;
+
+        $url = config('services.baileys.url');
+        $token = config('services.baileys.token');
+
+        if ($url && $token) {
+            try {
+                Http::timeout(10)
+                    ->withToken($token)
+                    ->post("{$url}/api/health/disconnect", ['sessionId' => $sessionId]);
+            } catch (\Throwable) {
+                // Ignore disconnect errors
+            }
+        }
+
+        WhatsappLog::where('session_id', $sessionId)->delete();
+        $session->delete();
+
+        AuditLog::catat('delete_whatsapp_session', "Sesi WhatsApp '{$sessionName}' dihapus.", ['session_id' => $sessionId], null);
+
+        return back()->with('status', 'Sesi WhatsApp berhasil dihapus.');
+    }
+
+    public function whatsappTestSend(Request $request)
+    {
+        $request->validate([
+            'session_id' => ['required', 'string'],
+            'to' => ['required', 'string', 'regex:/^(\+62|0)8\d{8,11}$/'],
+            'message' => ['required', 'string', 'max:4096'],
+        ]);
+
+        $url = config('services.baileys.url');
+        $token = config('services.baileys.token');
+
+        if (! $url || ! $token) {
+            return response()->json(['error' => 'Baileys not configured'], 500);
+        }
+
+        try {
+            $response = Http::timeout(15)
+                ->withToken($token)
+                ->post("{$url}/api/send", [
+                    'to' => $request->to,
+                    'message' => $request->message,
+                    'sessionId' => $request->session_id,
+                ]);
+
+            return response()->json($response->json(), $response->status());
+        } catch (\Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    private function formatSession(WhatsappSession $session): array
+    {
+        return [
+            'id' => $session->id,
+            'session_id' => $session->session_id,
+            'name' => $session->name,
+            'description' => $session->description,
+            'is_default' => $session->is_default,
+            'is_active' => $session->is_active,
+            'phone_number' => $session->phone_number,
+            'phone_name' => $session->phone_name,
+            'last_connected_at' => $session->last_connected_at?->format('d M Y H:i:s'),
+            'created_at' => $session->created_at->format('d M Y H:i:s'),
+        ];
     }
 }

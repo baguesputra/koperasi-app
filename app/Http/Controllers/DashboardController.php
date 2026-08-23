@@ -10,9 +10,7 @@ use App\Models\PengajuanLimit;
 use App\Models\PengajuanPercepatan;
 use App\Models\Pinjaman;
 use App\Models\Simpanan;
-use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -154,7 +152,7 @@ class DashboardController extends Controller
             ->map(fn ($p) => [
                 'tipe' => 'pinjaman',
                 'nama' => $p->anggota->nama,
-                'keterangan' => 'Mengajukan pinjaman ' . number_format($p->nominal, 0, ',', '.'),
+                'keterangan' => 'Mengajukan pinjaman '.number_format($p->nominal, 0, ',', '.'),
                 'status' => $p->status,
                 'tanggal' => $p->tanggal_pengajuan,
             ]);

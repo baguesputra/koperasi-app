@@ -43,10 +43,38 @@ services:
     networks:
       - koperasi_network
 
+  baileys:
+    build:
+      context: ./baileys-service
+      dockerfile: Dockerfile
+    container_name: koperasi_baileys
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ./baileys-service/src:/app/src
+      - baileys_sessions:/app/auth_info
+    environment:
+      - BAILEYS_PORT=3000
+      - BAILEYS_SESSION_ID=main
+      - LOG_LEVEL=info
+      - MYSQL_HOST=mysql
+      - MYSQL_DATABASE=koperasi_db
+      - MYSQL_USER=koperasi_user
+      - MYSQL_PASSWORD=koperasi_pass
+      - INTERNAL_TOKEN=change-me-in-production
+    ports:
+      - "3000:3000"
+    networks:
+      - koperasi_network
+    depends_on:
+      - mysql
+
 networks:
   koperasi_network:
     driver: bridge
 
 volumes:
   koperasi_mysql_data:
+    driver: local
+  baileys_sessions:
     driver: local

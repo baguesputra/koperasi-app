@@ -10,7 +10,6 @@ use App\Models\Pinjaman;
 use App\Services\Pinjaman\PerhitunganBungaService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -19,6 +18,7 @@ class PinjamanController extends Controller
     public function __construct(
         private PerhitunganBungaService $bunga,
     ) {}
+
     public function index(Request $request): Response
     {
         $query = Pinjaman::with(['anggota', 'angsuran' => fn ($q) => $q->orderBy('cicilan_ke')]);
@@ -107,7 +107,7 @@ class PinjamanController extends Controller
                     ->whereIn('referensi_id', $angsuranIds)
                     ->orderBy('tanggal')
                     ->get()
-                    ->groupBy(function ($j) use ($pinjamanIds) {
+                    ->groupBy(function ($j) {
                         // Cari pinjaman_id dari angsuran_id
                         return $j->referensi_id;
                     });
@@ -134,6 +134,7 @@ class PinjamanController extends Controller
         // Assign jurnal_pelunasan ke setiap pinjaman
         $pinjaman->getCollection()->transform(function ($p) use ($jurnalMap) {
             $p['jurnal_pelunasan'] = $jurnalMap[$p['id']] ?? [];
+
             return $p;
         });
 
@@ -221,7 +222,7 @@ class PinjamanController extends Controller
 
         return [
             'total' => (float) ($row->total ?? 0),
-            'tanggal' => $row->tanggal ? \Carbon\Carbon::parse($row->tanggal)->format('d M Y') : null,
+            'tanggal' => $row->tanggal ? Carbon::parse($row->tanggal)->format('d M Y') : null,
         ];
     }
 

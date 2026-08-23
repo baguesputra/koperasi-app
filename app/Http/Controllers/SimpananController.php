@@ -34,6 +34,7 @@ class SimpananController extends Controller
             ->withQueryString()
             ->through(function ($a) {
                 $settlement = $a->resigned_settlement_json ?? [];
+
                 return [
                     'id' => $a->id,
                     'nama' => $a->nama,
