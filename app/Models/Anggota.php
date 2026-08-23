@@ -36,6 +36,8 @@ class Anggota extends Model
         'reaktivasi_history_json',
         'limit_custom',
         'limit_custom_keterangan',
+        'no_hp',
+        'alamat',
     ];
 
     protected $casts = [
