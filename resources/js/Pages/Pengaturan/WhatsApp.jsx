@@ -16,7 +16,9 @@ export default function WhatsAppSettings() {
     const [qrCodeData, setQrCodeData] = useState(null);
     const [qrLoading, setQrLoading] = useState(false);
     const [qrSessionId, setQrSessionId] = useState(null);
-    const qrRefreshInterval = useRef(null);
+    const pageRefreshInterval = useRef(null);
+    const qrPollInterval = useRef(null);
+    const prevPhoneNumbers = useRef({});
 
     const createForm = useForm({
         session_id: '',
@@ -41,15 +43,33 @@ export default function WhatsAppSettings() {
     });
 
     useEffect(() => {
-        if (activeTab === 'sessions' && autoRefresh) {
-            qrRefreshInterval.current = setInterval(() => {
-                if (sessions.some(s => !s.phone_number && s.is_active)) {
-                    window.location.reload();
-                }
+        if (activeTab === 'sessions' && autoRefresh && !showQrModal) {
+            pageRefreshInterval.current = setInterval(() => {
+                sessions.forEach(s => {
+                    const prev = prevPhoneNumbers.current[s.id];
+                    const curr = s.phone_number;
+                    
+                    // Only reload if phone_number actually changed (connected/disconnected)
+                    if (prev !== undefined && prev !== curr) {
+                        prevPhoneNumbers.current[s.id] = curr;
+                        window.location.reload();
+                        return;
+                    }
+                    
+                    // Initialize tracking
+                    if (prev === undefined) {
+                        prevPhoneNumbers.current[s.id] = curr;
+                    }
+                });
             }, 10000);
         }
-        return () => clearInterval(qrRefreshInterval.current);
-    }, [activeTab, autoRefresh, sessions]);
+        return () => clearInterval(pageRefreshInterval.current);
+    }, [activeTab, autoRefresh, showQrModal, sessions]);
+
+    // Cleanup QR poll interval on unmount
+    useEffect(() => {
+        return () => clearInterval(qrPollInterval.current);
+    }, []);
 
     useEffect(() => {
         if (editingSession) {
@@ -75,13 +95,13 @@ export default function WhatsAppSettings() {
             if (data.qr) {
                 setQrCodeData(data.qr);
                 setShowQrModal(true);
-                qrRefreshInterval.current = setInterval(async () => {
+                qrPollInterval.current = setInterval(async () => {
                     const resp = await fetch(route('pengaturan.whatsapp.qr', { session_id: sessionId }));
                     const d = await resp.json();
                     if (d.qr) {
                         setQrCodeData(d.qr);
                     } else if (d.connected) {
-                        clearInterval(qrRefreshInterval.current);
+                        clearInterval(qrPollInterval.current);
                         setShowQrModal(false);
                         window.location.reload();
                     }
@@ -99,7 +119,7 @@ export default function WhatsAppSettings() {
     };
 
     const closeQrModal = () => {
-        clearInterval(qrRefreshInterval.current);
+        clearInterval(qrPollInterval.current);
         setShowQrModal(false);
         setQrCodeData(null);
         setQrSessionId(null);
