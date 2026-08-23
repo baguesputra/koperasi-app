@@ -45,7 +45,8 @@ class AnggotaController extends Controller
             $query->where('status', $request->string('status'));
         }
 
-        $anggota = $query->orderBy('nama')
+        $anggota = $query->with('user')
+            ->orderBy('nama')
             ->paginate(15)
             ->withQueryString()
             ->through(fn ($a) => [
@@ -61,6 +62,14 @@ class AnggotaController extends Controller
                 'tanggal_jadi_anggota' => $a->tanggal_jadi_anggota?->format('Y-m-d'),
                 'limit_custom' => $a->limit_custom,
                 'limit_custom_keterangan' => $a->limit_custom_keterangan,
+                'no_karyawan' => $a->no_karyawan,
+                'department' => $a->department,
+                'no_hp' => $a->no_hp,
+                'alamat' => $a->alamat,
+                'user' => $a->user ? [
+                    'id' => $a->user->id,
+                    'email' => $a->user->email,
+                ] : null,
             ]);
 
         $statistik = Anggota::query()
