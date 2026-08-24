@@ -229,7 +229,7 @@ Summary hasil meeting dengan koperasi 15 Agustus 2026
 - [x] notifikasi whatsapp untuk proses bisnis koperasi
 - [x] pembuatan testing unit fitur
 - [x] pembuatan halaman laporan export excel dan pdf
-- [ ] Menambah idempotency key jika terjadi double klik action crud
+- [x] Menambah idempotency key jika terjadi double klik action crud
 
 # Testing Checklist — Koperasi App
 **Tanggal:** 24 - 28 Agustus 2026

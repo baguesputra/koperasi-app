@@ -55,6 +55,8 @@ return [
 ### Middleware Logic (`IdempotencyMiddleware`)
 
 ```php
+use Symfony\Component\HttpFoundation\Response; // ✅ Base class for all responses
+
 public function handle(Request $request, Closure $next): Response
 {
     if (! config('idempotency.enabled')) {
@@ -110,7 +112,7 @@ public function handle(Request $request, Closure $next): Response
 
 **Utility**: `resources/js/Utils/idempotency.js`
 ```js
-export function generateIdempotencyKey(): string {
+export function generateIdempotencyKey() {
     return crypto.randomUUID();
 }
 
@@ -128,6 +130,7 @@ export function withIdempotencyKey(config = {}) {
     };
 }
 ```
+> ⚠️ **Note**: No TypeScript type annotations in `.js` files (Vite/Oxc parses as plain JS)
 
 **Usage Pattern** (Inertia router):
 ```js
@@ -205,3 +208,23 @@ Deletes expired keys (`expires_at < now()`). Schedule daily in `app/Console/Kern
 | `IDEMPOTENCY_ENABLED` | `true` | Master switch |
 | `IDEMPOTENCY_TTL` | `24` | Hours to keep keys |
 | `IDEMPOTENCY_HEADER_NAME` | `Idempotency-Key` | Header to read |
+
+## Fixes Applied During Implementation
+
+| Issue | File | Fix |
+|-------|------|-----|
+| **Return type mismatch** | `app/Http/Middleware/IdempotencyMiddleware.php:14` | Changed return type from `Illuminate\Http\Response` to `Symfony\Component\HttpFoundation\Response` (base class covering `RedirectResponse`, `JsonResponse`, etc.) |
+| **Vite/Oxc parse error** | `resources/js/Utils/idempotency.js:1` | Removed TypeScript return type annotation `: string` — Oxc parses `.js` as plain JavaScript |
+| **Stray syntax** | `resources/js/Pages/Portal/Pinjaman/Create.jsx:134` | Removed duplicate `});` after `kirimPengajuan()` function |
+
+## Verification Checklist
+
+- [x] Migration created & migrated (`idempotency_keys` table with composite PK `key` + `user_id`)
+- [x] Config file created (`config/idempotency.php`)
+- [x] Middleware created & registered in `bootstrap/app.php` (alias `idempotent`)
+- [x] 14 routes wrapped with `idempotent` middleware in `routes/web.php`
+- [x] Frontend utility created (`resources/js/Utils/idempotency.js`)
+- [x] 7 frontend components updated with `withIdempotencyKey`
+- [x] `npm run build` — **passes**
+- [x] `php artisan test --filter=Auth` — **21/21 pass**
+- [x] `php artisan test --filter=SsoRedirectTest` — **3/3 pass**
