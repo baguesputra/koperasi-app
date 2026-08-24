@@ -2,6 +2,7 @@ import { useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import Button from '@/Components/ui/Button';
+import StatusBadge from '@/Components/ui/StatusBadge';
 import { formatRupiah } from '@/Utils/formatCurrency';
 
 const jabatanLabel = { staff: 'Staff', hod: 'HOD' };
@@ -17,6 +18,8 @@ export default function KeputusanDrawer({ pinjaman, onClose }) {
     const [aksi, setAksi] = useState(null);
     const [showTable, setShowTable] = useState(true);
     const { data, setData, post, processing, errors } = useForm({ catatan: '' });
+
+    const bisaDiproses = pinjaman.status === 'approved_bendahara';
 
     function submit(e) {
         e.preventDefault();
@@ -191,43 +194,51 @@ export default function KeputusanDrawer({ pinjaman, onClose }) {
                     </div>
                 )}
 
-                {!aksi ? (
-                    <div className="flex items-center gap-3">
-                        <Button variant="primary" onClick={() => setAksi('approve')}>
-                            Setujui
-                        </Button>
-                        <Button variant="danger" onClick={() => setAksi('reject')}>
-                            Tolak
-                        </Button>
-                    </div>
-                ) : (
-                    <form onSubmit={submit}>
-                        <label className="block text-sm font-semibold text-slate-600 mb-2">
-                            Catatan {aksi === 'approve' ? 'Persetujuan' : 'Penolakan'}
-                        </label>
-                        <textarea
-                            value={data.catatan}
-                            onChange={(e) => setData('catatan', e.target.value)}
-                            rows={3}
-                            placeholder={aksi === 'approve' ? 'Contoh: Layak dicairkan, saldo mencukupi.' : 'Contoh: Belum memenuhi ketentuan.'}
-                            className="w-full px-4 py-2.5 text-base rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
-                            autoFocus
-                        />
-                        {errors.catatan && <p className="text-sm text-red-600 mt-1.5">{errors.catatan}</p>}
+                {bisaDiproses ? (
+                    <>
+                        {!aksi ? (
+                            <div className="flex items-center gap-3">
+                                <Button variant="primary" onClick={() => setAksi('approve')}>
+                                    Setujui
+                                </Button>
+                                <Button variant="danger" onClick={() => setAksi('reject')}>
+                                    Tolak
+                                </Button>
+                            </div>
+                        ) : (
+                            <form onSubmit={submit}>
+                                <label className="block text-sm font-semibold text-slate-600 mb-2">
+                                    Catatan {aksi === 'approve' ? 'Persetujuan' : 'Penolakan'}
+                                </label>
+                                <textarea
+                                    value={data.catatan}
+                                    onChange={(e) => setData('catatan', e.target.value)}
+                                    rows={3}
+                                    placeholder={aksi === 'approve' ? 'Contoh: Layak dicairkan, saldo mencukupi.' : 'Contoh: Belum memenuhi ketentuan.'}
+                                    className="w-full px-4 py-2.5 text-base rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
+                                    autoFocus
+                                />
+                                {errors.catatan && <p className="text-sm text-red-600 mt-1.5">{errors.catatan}</p>}
 
-                        <div className="flex items-center gap-3 mt-4">
-                            <Button
-                                type="submit"
-                                variant={aksi === 'approve' ? 'primary' : 'danger'}
-                                disabled={processing}
-                            >
-                                {processing ? 'Memproses...' : `Konfirmasi ${aksi === 'approve' ? 'Setujui' : 'Tolak'}`}
-                            </Button>
-                            <Button type="button" variant="ghost" onClick={() => setAksi(null)}>
-                                Batal
-                            </Button>
-                        </div>
-                    </form>
+                                <div className="flex items-center gap-3 mt-4">
+                                    <Button
+                                        type="submit"
+                                        variant={aksi === 'approve' ? 'primary' : 'danger'}
+                                        disabled={processing}
+                                    >
+                                        {processing ? 'Memproses...' : `Konfirmasi ${aksi === 'approve' ? 'Setujui' : 'Tolak'}`}
+                                    </Button>
+                                    <Button type="button" variant="ghost" onClick={() => setAksi(null)}>
+                                        Batal
+                                    </Button>
+                                </div>
+                            </form>
+                        )}
+                    </>
+                ) : (
+                    <div className="flex items-center gap-3">
+                        <StatusBadge status={pinjaman.status} />
+                    </div>
                 )}
             </div>
         </div>

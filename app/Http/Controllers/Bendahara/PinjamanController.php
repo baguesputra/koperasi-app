@@ -42,7 +42,7 @@ class PinjamanController extends Controller
             ->latest('updated_at')
             ->take(20)
             ->get()
-            ->map($this->formatRingkas());
+            ->map($this->formatLengkap());
 
         return Inertia::render('Bendahara/Pinjaman/Index', [
             'menungguTinjauan' => $menungguTinjauan,
@@ -86,19 +86,6 @@ class PinjamanController extends Controller
 
         return redirect()->route('bendahara.pinjaman.index')
             ->with('status', 'Pinjaman disetujui dan dana telah dicairkan.');
-    }
-
-    private function formatRingkas(): \Closure
-    {
-        return fn ($p) => [
-            'id' => $p->id,
-            'nama' => $p->anggota->nama,
-            'no_anggota' => $p->anggota->no_anggota,
-            'nominal' => (float) $p->nominal,
-            'tenor_bulan' => $p->tenor_bulan,
-            'status' => $p->status,
-            'tanggal_pengajuan' => $p->tanggal_pengajuan->format('d M Y'),
-        ];
     }
 
     private function formatLengkap(): \Closure

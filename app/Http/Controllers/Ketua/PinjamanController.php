@@ -34,7 +34,7 @@ class PinjamanController extends Controller
             ->latest('updated_at')
             ->take(20)
             ->get()
-            ->map($this->formatRingkas());
+            ->map($this->formatLengkap());
 
         return Inertia::render('Ketua/Pinjaman/Index', [
             'menungguApproval' => $menungguApproval,
@@ -69,19 +69,6 @@ class PinjamanController extends Controller
 
         return redirect()->route('ketua.pinjaman.index')
             ->with('status', 'Pengajuan pinjaman ditolak.');
-    }
-
-    private function formatRingkas(): \Closure
-    {
-        return fn ($p) => [
-            'id' => $p->id,
-            'nama' => $p->anggota->nama,
-            'no_anggota' => $p->anggota->no_anggota,
-            'nominal' => (float) $p->nominal,
-            'tenor_bulan' => $p->tenor_bulan,
-            'status' => $p->status,
-            'tanggal_pengajuan' => $p->tanggal_pengajuan->format('d M Y'),
-        ];
     }
 
     private function formatLengkap(): \Closure

@@ -122,10 +122,10 @@ export default function Index({ menungguApproval, riwayat }) {
                                     </tr>
                                 ) : (
                                     riwayat.map((p) => (
-                                        <tr key={p.id} className="border-t border-slate-50">
+                                        <tr key={p.id} onClick={() => bukaDetail(p)} className="border-t border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer">
                                             <td className="px-5 py-3">
-                                                <p className="text-sm font-semibold text-slate-800 truncate">{p.nama}</p>
-                                                <p className="text-xs text-slate-400">{p.no_anggota}</p>
+                                                <p className="text-sm font-semibold text-slate-800 truncate">{p.anggota.nama}</p>
+                                                <p className="text-xs text-slate-400">{p.anggota.no_anggota}</p>
                                             </td>
                                             <td className="px-5 py-3 text-sm text-slate-700">{formatRupiah(p.nominal)}</td>
                                             <td className="px-5 py-3 text-sm text-slate-600">{p.tenor_bulan} bulan</td>
@@ -140,7 +140,7 @@ export default function Index({ menungguApproval, riwayat }) {
                 </div>
             </Card>
 
-            <Drawer show={drawerOpen} title={`Approval Final - ${detailPinjaman?.anggota?.nama ?? 'Anggota'}`} onClose={tutupDetail} className="max-w-3xl">
+            <Drawer show={drawerOpen} title={`Approval Final - ${detailPinjaman?.anggota?.nama ?? 'Anggota'}`} onClose={tutupDetail} maxWidth="3xl">
                 {detailPinjaman && (
                     <KeputusanDrawer
                         key={detailPinjaman.id}

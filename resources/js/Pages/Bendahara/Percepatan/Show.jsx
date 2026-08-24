@@ -36,7 +36,7 @@ export default function Show({ pengajuan }) {
                 <div className="lg:col-span-2 space-y-5">
                     <Card>
                         <p className="text-sm font-semibold text-slate-400 mb-1">Jenis Pengajuan</p>
-                        <p className="text-xl font-bold text-slate-800 mb-4">{pengajuan.tipe}</p>
+                        <p className="text-xl font-bold text-slate-800 mb-4">{pengajuan.tipe_label ?? pengajuan.tipe}</p>
 
                         <div className="grid grid-cols-2 gap-4 mb-4">
                             <div>

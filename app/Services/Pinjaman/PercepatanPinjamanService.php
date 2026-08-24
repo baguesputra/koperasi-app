@@ -71,6 +71,8 @@ class PercepatanPinjamanService
             $bunga = round($sisa * $persentase, 2);
             $jadwal[] = [
                 'cicilan_ke' => $i,
+                'nominal_pokok' => $pokokPerBulan,
+                'nominal_bunga' => $bunga,
                 'total_bayar' => $pokokPerBulan + $bunga,
             ];
             $sisa -= $pokokPerBulan;
