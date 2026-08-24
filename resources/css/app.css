@@ -24,6 +24,10 @@ body {
     background: white;
 }
 
+.table-sticky-first tbody tr:hover td:first-child {
+    background: #f8fafc; /* slate-50, sinkron dengan hover:bg-slate-50 */
+}
+
 .table-sticky-first th:first-child {
     z-index: 20;
 }

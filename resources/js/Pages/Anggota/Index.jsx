@@ -1,6 +1,6 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, router, usePage } from '@inertiajs/react';
-import { Search, Plus, Upload, Pencil, Users, UserCheck, UserX, UserMinus, RotateCcw, FileText, MoreVertical } from 'lucide-react';
+import { Search, Plus, Upload, Users, UserCheck, UserX, UserMinus, RotateCcw, FileText, MoreVertical } from 'lucide-react';
 import { useState } from 'react';
 import ButtonLink from '@/Components/ui/ButtonLink';
 import Card from '@/Components/ui/Card';
@@ -180,67 +180,58 @@ export default function Index({ anggota, statistik, filters, noAnggotaBerikutnya
                                     </td>
                                 </tr>
                             ) : (
-                                anggota.data.map((a) => (
-                                    <tr key={a.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                                        <td className="px-5 py-3.5">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full bg-brand-green text-white flex items-center justify-center text-sm font-bold shrink-0">
-                                                    {a.nama.charAt(0).toUpperCase()}
+anggota.data.map((a) => (
+                                        <tr key={a.id} onClick={() => bukaEdit(a)} className="border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer">
+                                            <td className="px-5 py-3.5">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-full bg-brand-green text-white flex items-center justify-center text-sm font-bold shrink-0">
+                                                        {a.nama.charAt(0).toUpperCase()}
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className="text-base font-semibold text-slate-800 truncate">{a.nama}</p>
+                                                        <p className="text-sm text-slate-400">{a.no_anggota}</p>
+                                                    </div>
                                                 </div>
-                                                <div className="min-w-0">
-                                                    <button onClick={() => bukaEdit(a)} className="block text-left text-base font-semibold text-slate-800 hover:text-brand-green truncate">
-                                                        {a.nama}
-                                                    </button>
-                                                    <p className="text-sm text-slate-400">{a.no_anggota}</p>
+                                            </td>
+                                            <td className="px-5 py-3.5 text-base text-slate-600">{a.cabang}</td>
+                                            <td className="px-5 py-3.5 text-base text-slate-600">{jabatanLabel[a.jabatan]}</td>
+                                            <td className="px-5 py-3.5 text-base text-slate-600">{formatLamaAnggota(a.lama_keanggotaan_tahun)}</td>
+                                            <td className="px-5 py-3.5">
+                                                <StatusBadge status={a.status} />
+                                            </td>
+                                            <td className="px-5 py-3.5 text-right">
+                                                <div className="inline-flex items-center gap-1 justify-end">
+                                                    {canResign && a.status === 'aktif' && (
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); bukaResign(a); }}
+                                                            className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                                                            title="Resign anggota"
+                                                        >
+                                                            <UserMinus size={16} />
+                                                        </button>
+                                                    )}
+                                                    {canResign && a.status === 'resign' && (
+                                                        <>
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); bukaReaktivasi(a); }}
+                                                                className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-slate-400 hover:text-brand-green hover:bg-slate-100 transition-colors"
+                                                                title="Aktifkan kembali"
+                                                            >
+                                                                <RotateCcw size={16} />
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); bukaSlip(a); }}
+                                                                className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                                                                title="Lihat slip resign"
+                                                            >
+                                                                <FileText size={16} />
+                                                            </button>
+                                                        </>
+                                                    )}
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-5 py-3.5 text-base text-slate-600">{a.cabang}</td>
-                                        <td className="px-5 py-3.5 text-base text-slate-600">{jabatanLabel[a.jabatan]}</td>
-                                        <td className="px-5 py-3.5 text-base text-slate-600">{formatLamaAnggota(a.lama_keanggotaan_tahun)}</td>
-                                        <td className="px-5 py-3.5">
-                                            <StatusBadge status={a.status} />
-                                        </td>
-                                        <td className="px-5 py-3.5 text-right">
-                                            <div className="inline-flex items-center gap-1 justify-end">
-                                                <button
-                                                    onClick={() => bukaEdit(a)}
-                                                    className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-slate-400 hover:text-brand-green hover:bg-slate-100 transition-colors"
-                                                    title="Edit anggota"
-                                                >
-                                                    <Pencil size={16} />
-                                                </button>
-                                                {canResign && a.status === 'aktif' && (
-                                                    <button
-                                                        onClick={() => bukaResign(a)}
-                                                        className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                                                        title="Resign anggota"
-                                                    >
-                                                        <UserMinus size={16} />
-                                                    </button>
-                                                )}
-                                                {canResign && a.status === 'resign' && (
-                                                    <>
-                                                        <button
-                                                            onClick={() => bukaReaktivasi(a)}
-                                                            className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-slate-400 hover:text-brand-green hover:bg-slate-100 transition-colors"
-                                                            title="Aktifkan kembali"
-                                                        >
-                                                            <RotateCcw size={16} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => bukaSlip(a)}
-                                                            className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                                                            title="Lihat slip resign"
-                                                        >
-                                                            <FileText size={16} />
-                                                        </button>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
+                                            </td>
+                                        </tr>
+                                    ))
                             )}
                         </tbody>
                     </table>
