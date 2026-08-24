@@ -1,6 +1,7 @@
 import { CheckCircle2, Clock, XCircle, AlertCircle } from 'lucide-react';
 
 const statusConfig = {
+    disetujui: { label: 'Disetujui', color: 'bg-brand-green-light text-brand-green-dark', icon: CheckCircle2 },
     lunas: { label: 'Lunas', color: 'bg-brand-green-light text-brand-green-dark', icon: CheckCircle2 },
     aktif: { label: 'Aktif', color: 'bg-blue-50 text-blue-700', icon: Clock },
     pending: { label: 'Menunggu', color: 'bg-amber-50 text-amber-700', icon: AlertCircle },
