@@ -229,12 +229,12 @@ Summary hasil meeting dengan koperasi 15 Agustus 2026
 - [x] notifikasi whatsapp untuk proses bisnis koperasi
 - [x] pembuatan testing unit fitur
 - [x] pembuatan halaman laporan export excel dan pdf
+- [ ] Menambah idempotency key jika terjadi double klik action crud
 
 # Testing Checklist — Koperasi App
 **Tanggal:** 24 - 28 Agustus 2026
 - [ ] Pembuatan api untuk aplikasi mobile dan aplikasi core lain nya
 - [ ] Gabung jadi 1 halaman approval bendahara dan ketua
-- [ ] Menambah idempotency key jika terjadi double klik action crud
 - [ ] Menambah reconciliation otomatis
 - [ ] import excel anggota otomatis buat user juga
 - [ ] multi tenant ( opsional )
@@ -249,8 +249,8 @@ Summary hasil meeting dengan koperasi 15 Agustus 2026
 - [x] Pembuatan indexing, procedure, dan function agar sistem tidak berat
 - [x] pengecekan query agar tidak terjadi N+1
 - [ ] penggunaan redis
-- [ ] optimisasi laravel dengan 
-- [ ] penggunaan queue untuk proses pengiriman whatsapp, generate pdf
+- [x] optimisasi laravel dengan 
+- [x] penggunaan queue untuk proses pengiriman whatsapp, generate pdf
 - [x] penggunaan lazy loading dan skeleton loading
 - [ ] plugin laravel octane (opsional)
 

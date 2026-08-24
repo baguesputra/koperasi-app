@@ -7,6 +7,7 @@ import StatWidget from '@/Components/ui/StatWidget';
 import Button from '@/Components/ui/Button';
 import PageHeader from '@/Components/ui/PageHeader';
 import { formatRupiah } from '@/Utils/formatCurrency';
+import { withIdempotencyKey } from '@/Utils/idempotency';
 
 const fokusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/40';
 
@@ -64,11 +65,15 @@ export default function Index({ bulan, daftarAngsuran, cabangAktif, daftarCabang
 
     function konfirmasi() {
         setProcessing(true);
-        router.post(route('bendahara.angsuran.konfirmasi'), { angsuran_ids: terpilih }, {
-            preserveScroll: true,
-            onSuccess: () => setTerpilih([]),
-            onFinish: () => setProcessing(false),
-        });
+        router.post(
+            route('bendahara.angsuran.konfirmasi'),
+            { angsuran_ids: terpilih },
+            withIdempotencyKey({
+                preserveScroll: true,
+                onSuccess: () => setTerpilih([]),
+                onFinish: () => setProcessing(false),
+            })
+        );
     }
 
     const totalTerpilih = daftarAngsuran

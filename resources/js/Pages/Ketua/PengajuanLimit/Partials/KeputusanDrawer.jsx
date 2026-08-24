@@ -4,6 +4,7 @@ import { AlertCircle, CheckCircle2, ArrowUpRight, Minus, CreditCard, Calendar } 
 import Button from '@/Components/ui/Button';
 import StatusBadge from '@/Components/ui/StatusBadge';
 import { formatRupiah } from '@/Utils/formatCurrency';
+import { withIdempotencyKey } from '@/Utils/idempotency';
 
 function calculateDueDate(tanggalPengajuan, cicilanKe) {
     const date = new Date(tanggalPengajuan);
@@ -25,10 +26,10 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
         const url = aksi === 'approve'
             ? route('ketua.pengajuan-limit.approve', pengajuan.id)
             : route('ketua.pengajuan-limit.reject', pengajuan.id);
-        post(url, {
+        post(url, withIdempotencyKey({
             preserveScroll: true,
             onSuccess: () => onClose(),
-        });
+        }));
     }
 
     function formatAngsuranDate(tanggalPengajuan, cicilanKe) {

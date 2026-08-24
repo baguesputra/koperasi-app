@@ -7,6 +7,7 @@ import StatWidget from '@/Components/ui/StatWidget';
 import Button from '@/Components/ui/Button';
 import PageHeader from '@/Components/ui/PageHeader';
 import { formatRupiah } from '@/Utils/formatCurrency';
+import { withIdempotencyKey } from '@/Utils/idempotency';
 
 const fokusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/40';
 
@@ -64,11 +65,15 @@ export default function Index({ bulan, belumSimpanan, cabangAktif, daftarCabang,
 
     function konfirmasi() {
         setProcessing(true);
-        router.post(route('bendahara.simpanan.konfirmasi'), { anggota_ids: terpilih, bulan_periode: bulan }, {
-            preserveScroll: true,
-            onSuccess: () => setTerpilih([]),
-            onFinish: () => setProcessing(false),
-        });
+        router.post(
+            route('bendahara.simpanan.konfirmasi'),
+            { anggota_ids: terpilih, bulan_periode: bulan },
+            withIdempotencyKey({
+                preserveScroll: true,
+                onSuccess: () => setTerpilih([]),
+                onFinish: () => setProcessing(false),
+            })
+        );
     }
 
     const totalBelumSemuaCabang = Object.values(ringkasanCabang ?? {}).reduce((total, r) => total + r.nominal, 0);

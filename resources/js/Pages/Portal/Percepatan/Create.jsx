@@ -5,6 +5,7 @@ import {
     ArrowLeft, TrendingDown, TrendingUp, CheckCircle2, AlertCircle,
     Check, RotateCcw,
 } from 'lucide-react';
+import { withIdempotencyKey } from '@/Utils/idempotency';
 
 const focusRing =
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2';
@@ -77,7 +78,7 @@ export default function Create({ pinjaman }) {
 
     function submit(e) {
         e.preventDefault();
-        post(route('portal.percepatan.store'));
+        post(route('portal.percepatan.store'), withIdempotencyKey());
     }
 
     if (!pinjaman) {

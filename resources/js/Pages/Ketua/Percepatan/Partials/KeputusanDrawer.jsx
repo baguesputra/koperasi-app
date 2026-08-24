@@ -2,6 +2,7 @@ import { useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import Button from '@/Components/ui/Button';
 import { formatRupiah } from '@/Utils/formatCurrency';
+import { withIdempotencyKey } from '@/Utils/idempotency';
 
 const tipeLabel = {
     percepat: 'Percepat Pelunasan',
@@ -19,10 +20,10 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
         const url = aksi === 'approve'
             ? route('ketua.percepatan.approve', pengajuan.id)
             : route('ketua.percepatan.reject', pengajuan.id);
-        post(url, {
+        post(url, withIdempotencyKey({
             preserveScroll: true,
             onSuccess: () => onClose(),
-        });
+        }));
     }
 
     const bisaDiproses = pengajuan.status === 'approved_bendahara';

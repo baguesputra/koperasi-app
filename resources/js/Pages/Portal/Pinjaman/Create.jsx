@@ -6,6 +6,7 @@ import {
     Phone, Clock, Wallet, X, FileText,
 } from 'lucide-react';
 import { formatRupiah } from '@/Utils/formatCurrency';
+import { withIdempotencyKey } from '@/Utils/idempotency';
 
 const focusRing =
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2';
@@ -101,7 +102,7 @@ export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal, lim
         setSetujuSyarat(false);
     }
 
-    function kirimPengajuan() {
+function kirimPengajuan() {
         if (!setujuSyarat) return;
         setLoadingSubmit(true);
         router.post(
@@ -117,14 +118,17 @@ export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal, lim
                 atas_nama: atasNama,
                 persetujuan: true,
             },
-            {
+            withIdempotencyKey({
                 onError: (errors) => {
                     setError(Object.values(errors)[0] ?? 'Terjadi kesalahan, coba lagi.');
                     setLoadingSubmit(false);
                     setShowModalPersetujuan(false);
                     setSetujuSyarat(false);
                 },
-            }
+                onFinish: () => {
+                    setLoadingSubmit(false);
+                },
+            })
         );
     }
 

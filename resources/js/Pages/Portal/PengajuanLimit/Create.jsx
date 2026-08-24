@@ -1,6 +1,7 @@
 import AnggotaLayout from '@/Layouts/AnggotaLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { ArrowLeft, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { withIdempotencyKey } from '@/Utils/idempotency';
 
 function formatRupiah(angka) {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
@@ -27,7 +28,7 @@ export default function Create({ limitSaatIni, riwayat }) {
 
     function submit(e) {
         e.preventDefault();
-        post(route('portal.pengajuan-limit.store'), { onSuccess: () => reset() });
+        post(route('portal.pengajuan-limit.store'), withIdempotencyKey({ onSuccess: () => reset() }));
     }
 
     return (

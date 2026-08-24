@@ -53,7 +53,7 @@ Route::middleware(['auth', 'permission:portal.akses'])->prefix('portal')->name('
     Route::get('/pinjaman/ajukan', [PortalPinjamanController::class, 'create'])->name('pinjaman.create');
     Route::post('/pinjaman/cek-nominal', [PortalPinjamanController::class, 'cekNominal'])->name('pinjaman.cek-nominal');
     Route::post('/pinjaman/simulasi', [PortalPinjamanController::class, 'simulasi'])->name('pinjaman.simulasi');
-    Route::post('/pinjaman', [PortalPinjamanController::class, 'store'])->name('pinjaman.store');
+    Route::post('/pinjaman', [PortalPinjamanController::class, 'store'])->name('pinjaman.store')->middleware('idempotent');
 
     // ------------ Profile ----------------
     Route::get('/profil', [ProfilController::class, 'index'])->name('profil');
@@ -63,11 +63,11 @@ Route::middleware(['auth', 'permission:portal.akses'])->prefix('portal')->name('
 
     // ------------ Pengajuan Limit ----------------
     Route::get('/pengajuan-limit', [PortalPengajuanLimitController::class, 'create'])->name('pengajuan-limit.create');
-    Route::post('/pengajuan-limit', [PortalPengajuanLimitController::class, 'store'])->name('pengajuan-limit.store');
+    Route::post('/pengajuan-limit', [PortalPengajuanLimitController::class, 'store'])->name('pengajuan-limit.store')->middleware('idempotent');
 
     // ------------ Perubahan Tenor ----------------
     Route::get('/percepatan', [PortalPercepatanController::class, 'create'])->name('percepatan.create');
-    Route::post('/percepatan', [PortalPercepatanController::class, 'store'])->name('percepatan.store');
+    Route::post('/percepatan', [PortalPercepatanController::class, 'store'])->name('percepatan.store')->middleware('idempotent');
     Route::post('/percepatan/preview', [PortalPercepatanController::class, 'preview'])->name('percepatan.preview');
 });
 
@@ -177,23 +177,23 @@ Route::middleware(['auth', 'permission:user.kelola', 'password.confirm'])->prefi
 Route::middleware(['auth', 'permission:pinjaman.tinjau-bendahara'])->prefix('bendahara')->name('bendahara.')->group(function () {
     Route::get('/pinjaman', [BendaharaPinjamanController::class, 'index'])->name('pinjaman.index');
     Route::get('/pinjaman/{pinjaman}', [BendaharaPinjamanController::class, 'show'])->name('pinjaman.show');
-    Route::post('/pinjaman/{pinjaman}/approve', [BendaharaPinjamanController::class, 'approve'])->name('pinjaman.approve');
-    Route::post('/pinjaman/{pinjaman}/reject', [BendaharaPinjamanController::class, 'reject'])->name('pinjaman.reject');
-    Route::post('/pinjaman/{pinjaman}/cair', [BendaharaPinjamanController::class, 'cair'])->name('pinjaman.cair');
+    Route::post('/pinjaman/{pinjaman}/approve', [BendaharaPinjamanController::class, 'approve'])->name('pinjaman.approve')->middleware('idempotent');
+    Route::post('/pinjaman/{pinjaman}/reject', [BendaharaPinjamanController::class, 'reject'])->name('pinjaman.reject')->middleware('idempotent');
+    Route::post('/pinjaman/{pinjaman}/cair', [BendaharaPinjamanController::class, 'cair'])->name('pinjaman.cair')->middleware('idempotent');
     Route::get('/percepatan', [BendaharaPercepatanController::class, 'index'])->name('percepatan.index');
     Route::get('/percepatan/{percepatan}', [BendaharaPercepatanController::class, 'show'])->name('percepatan.show');
-    Route::post('/percepatan/{percepatan}/approve', [BendaharaPercepatanController::class, 'approve'])->name('percepatan.approve');
-    Route::post('/percepatan/{percepatan}/reject', [BendaharaPercepatanController::class, 'reject'])->name('percepatan.reject');
+    Route::post('/percepatan/{percepatan}/approve', [BendaharaPercepatanController::class, 'approve'])->name('percepatan.approve')->middleware('idempotent');
+    Route::post('/percepatan/{percepatan}/reject', [BendaharaPercepatanController::class, 'reject'])->name('percepatan.reject')->middleware('idempotent');
 });
 
 Route::middleware(['auth', 'permission:angsuran.konfirmasi'])->prefix('bendahara')->name('bendahara.')->group(function () {
     Route::get('/angsuran', [AngsuranController::class, 'index'])->name('angsuran.index');
-    Route::post('/angsuran/konfirmasi', [AngsuranController::class, 'konfirmasi'])->name('angsuran.konfirmasi');
+    Route::post('/angsuran/konfirmasi', [AngsuranController::class, 'konfirmasi'])->name('angsuran.konfirmasi')->middleware('idempotent');
 });
 
 Route::middleware(['auth', 'permission:simpanan.konfirmasi'])->prefix('bendahara')->name('bendahara.')->group(function () {
     Route::get('/simpanan', [BendaharaSimpananController::class, 'index'])->name('simpanan.index');
-    Route::post('/simpanan/konfirmasi', [BendaharaSimpananController::class, 'konfirmasi'])->name('simpanan.konfirmasi');
+    Route::post('/simpanan/konfirmasi', [BendaharaSimpananController::class, 'konfirmasi'])->name('simpanan.konfirmasi')->middleware('idempotent');
 });
 
 // ==========================================
@@ -202,16 +202,16 @@ Route::middleware(['auth', 'permission:simpanan.konfirmasi'])->prefix('bendahara
 Route::middleware(['auth', 'permission:pinjaman.approve-ketua'])->prefix('ketua')->name('ketua.')->group(function () {
     Route::get('/pinjaman', [KetuaPinjamanController::class, 'index'])->name('pinjaman.index');
     Route::get('/pinjaman/{pinjaman}', [KetuaPinjamanController::class, 'show'])->name('pinjaman.show');
-    Route::post('/pinjaman/{pinjaman}/approve', [KetuaPinjamanController::class, 'approve'])->name('pinjaman.approve');
-    Route::post('/pinjaman/{pinjaman}/reject', [KetuaPinjamanController::class, 'reject'])->name('pinjaman.reject');
+    Route::post('/pinjaman/{pinjaman}/approve', [KetuaPinjamanController::class, 'approve'])->name('pinjaman.approve')->middleware('idempotent');
+    Route::post('/pinjaman/{pinjaman}/reject', [KetuaPinjamanController::class, 'reject'])->name('pinjaman.reject')->middleware('idempotent');
     Route::get('/pengajuan-limit', [KetuaPengajuanLimitController::class, 'index'])->name('pengajuan-limit.index');
     Route::get('/pengajuan-limit/{pengajuanLimit}', [KetuaPengajuanLimitController::class, 'show'])->name('pengajuan-limit.show');
-    Route::post('/pengajuan-limit/{pengajuanLimit}/approve', [KetuaPengajuanLimitController::class, 'approve'])->name('pengajuan-limit.approve');
-    Route::post('/pengajuan-limit/{pengajuanLimit}/reject', [KetuaPengajuanLimitController::class, 'reject'])->name('pengajuan-limit.reject');
+    Route::post('/pengajuan-limit/{pengajuanLimit}/approve', [KetuaPengajuanLimitController::class, 'approve'])->name('pengajuan-limit.approve')->middleware('idempotent');
+    Route::post('/pengajuan-limit/{pengajuanLimit}/reject', [KetuaPengajuanLimitController::class, 'reject'])->name('pengajuan-limit.reject')->middleware('idempotent');
     Route::get('/percepatan', [KetuaPercepatanController::class, 'index'])->name('percepatan.index');
     Route::get('/percepatan/{percepatan}', [KetuaPercepatanController::class, 'show'])->name('percepatan.show');
-    Route::post('/percepatan/{percepatan}/approve', [KetuaPercepatanController::class, 'approve'])->name('percepatan.approve');
-    Route::post('/percepatan/{percepatan}/reject', [KetuaPercepatanController::class, 'reject'])->name('percepatan.reject');
+    Route::post('/percepatan/{percepatan}/approve', [KetuaPercepatanController::class, 'approve'])->name('percepatan.approve')->middleware('idempotent');
+    Route::post('/percepatan/{percepatan}/reject', [KetuaPercepatanController::class, 'reject'])->name('percepatan.reject')->middleware('idempotent');
 });
 
 // ==========================================
@@ -230,10 +230,10 @@ Route::middleware(['auth', 'permission:kas.lihat'])->group(function () {
 });
 
 Route::middleware(['auth', 'permission:kas.topup'])->group(function () {
-    Route::post('/pengeluaran', [PengeluaranController::class, 'store'])->name('pengeluaran.store');
+    Route::post('/pengeluaran', [PengeluaranController::class, 'store'])->name('pengeluaran.store')->middleware('idempotent');
 });
 
-Route::post('/angsuran/konfirmasi-percepatan', [AngsuranController::class, 'konfirmasiPercepatan'])->name('angsuran.konfirmasi-percepatan');
+Route::post('/angsuran/konfirmasi-percepatan', [AngsuranController::class, 'konfirmasiPercepatan'])->name('angsuran.konfirmasi-percepatan')->middleware('idempotent');
 
 // SSO logout - must be before auth.php to take precedence
 Route::get('logout', function () {

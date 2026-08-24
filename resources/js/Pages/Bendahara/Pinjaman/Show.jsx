@@ -5,6 +5,7 @@ import { useState } from 'react';
 import Card from '@/Components/ui/Card';
 import Button from '@/Components/ui/Button';
 import { formatRupiah } from '@/Utils/formatCurrency';
+import { withIdempotencyKey } from '@/Utils/idempotency';
 
 const jabatanLabel = { staff: 'Staff', hod: 'HOD' };
 
@@ -17,7 +18,7 @@ export default function Show({ pinjaman }) {
         const url = aksi === 'approve'
             ? route('bendahara.pinjaman.approve', pinjaman.id)
             : route('bendahara.pinjaman.reject', pinjaman.id);
-        post(url);
+        post(url, withIdempotencyKey());
     }
 
     const bisaDiproses = pinjaman.status === 'diajukan';
