@@ -213,14 +213,25 @@ Summary hasil meeting dengan koperasi 15 Agustus 2026
 - [x] Deploy Koperasi app ke server untuk demo
 - [x] Testing full fitur koperasi
 - [x] Rapat lanjutan dengan koperasi pembahasan aplikasi 
+- [x] Bukti invoice peminjaman yang bisa dicetak setelah di approve pengajuan peminjaman
 
 
 # Testing Checklist — Koperasi App
-**Tanggal:** 24 - 28 Agustus 2026
+**Tanggal:** 24 Agustus 2026
+- [x] Pembuatan indexing, procedure, dan function agar sistem tidak berat
+- [x] pengecekan query agar tidak terjadi N+1
+- [x] penambahan detail form data anggota
+- [x] perbaikan ui/ux responsive semua device dan mudah dinavigasi user
+- [x] optimisasi kode agar mudah dimaintenance dan dibaca
+
+# Testing Checklist — Koperasi App
+**Tanggal:** 25 Agustus 2026
 - [ ] Perancangan audit trail dari sisi keuangan
-- [x] Bukti invoice peminjaman yang bisa dicetak setelah di approve pengajuan peminjaman
 - [ ] notifikasi setelah pengajuan awal, setelah approve bendahara dan approve ketua
 - [ ] notifikasi angsuran dan simpanan sudah terbayarkan ke bendahara atau ketua
+
+# Testing Checklist — Koperasi App
+**Tanggal:** 24 - 28 Agustus 2026
 - [ ] Pembuatan api untuk aplikasi mobile dan aplikasi core lain nya
 - [ ] Gabung jadi 1 halaman approval bendahara dan ketua
 - [ ] Menambah idempotency key jika terjadi double klik action crud
@@ -229,16 +240,17 @@ Summary hasil meeting dengan koperasi 15 Agustus 2026
 - [ ] multi tenant ( opsional )
 
 
+
 //-------------------------------- Production Approve ---------------------------------------------------
 
 # Optimisasi — Koperasi App
 **Tanggal:** Dilakukan setelah fitur sesuai semua
-- [ ] Pembuatan indexing, procedure, dan function agar sistem tidak berat
-- [ ] pengecekan query agar tidak terjadi N+1
+- [x] Pembuatan indexing, procedure, dan function agar sistem tidak berat
+- [x] pengecekan query agar tidak terjadi N+1
 - [ ] penggunaan redis
 - [ ] optimisasi laravel dengan 
 - [ ] penggunaan queue untuk proses pengiriman whatsapp, generate pdf
-- [ ] penggunaan lazy loading dan skeleton loading
+- [x] penggunaan lazy loading dan skeleton loading
 - [ ] plugin laravel octane (opsional)
 
 
