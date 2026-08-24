@@ -3,14 +3,14 @@ import { Head, Link } from '@inertiajs/react';
 import {
     PiggyBank,
     Wallet,
-    TrendingUp,
+    Gauge,
     ArrowRight,
     CheckCircle2,
     ArrowDownCircle,
     Clock,
     XCircle,
     Info,
-    Calendar,
+    CalendarDays,
     ShieldCheck,
     Percent,
     Repeat,
@@ -33,6 +33,57 @@ const tipeLabel = {
     percepat: 'Perubahan Tenor (Percepat)',
     lunas_total: 'Pelunasan Dipercepat',
 };
+
+const focusRing =
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2';
+
+function StatCard({ icon: Icon, tone, label, value, caption }) {
+    const tones = {
+        navy: 'bg-brand-navy/5 text-brand-navy',
+        green: 'bg-brand-green-light text-brand-green-dark',
+        blue: 'bg-blue-50 text-blue-600',
+    };
+
+    return (
+        <div className="bg-white rounded-xl border border-slate-100 p-4">
+            <div className="flex items-center gap-3">
+                <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${tones[tone]}`}>
+                    <Icon size={18} />
+                </div>
+
+                <div className="min-w-0">
+                    <p className="text-xs text-slate-500">{label}</p>
+
+                    <p className="text-lg font-bold text-slate-800 leading-tight truncate">
+                        {value}
+                    </p>
+                </div>
+            </div>
+
+            {caption && (
+                <p className="mt-2.5 text-xs text-slate-400">{caption}</p>
+            )}
+        </div>
+    );
+}
+
+function StatusStrip({ dark = false, children }) {
+    return (
+        <div
+            className={`flex items-center gap-2 w-full px-3.5 py-2.5 rounded-lg border ${
+                dark
+                    ? 'bg-amber-400/15 border-amber-300/30'
+                    : 'bg-amber-50 border-amber-200'
+            }`}
+        >
+            <Clock size={14} className={dark ? 'text-amber-300' : 'text-amber-600'} />
+
+            <span className={`text-xs font-semibold ${dark ? 'text-amber-200' : 'text-amber-800'}`}>
+                {children}
+            </span>
+        </div>
+    );
+}
 
 export default function Dashboard({
     anggota,
@@ -77,6 +128,11 @@ export default function Dashboard({
         0
     );
 
+    const cicilanPerBulan =
+        aggregateTotalSisaAngsuran > 0
+            ? Math.round(aggregateSisaTotalBayar / aggregateTotalSisaAngsuran)
+            : 0;
+
     const progress =
         aggregateTotalAngsuran > 0
             ? Math.round(
@@ -86,6 +142,8 @@ export default function Dashboard({
                       100
               )
             : 0;
+
+    const bisaAjukanLimit = bisaAjukan && !pengajuanLimitBerjalan && limitTersedia > 0;
 
     return (
         <AnggotaLayout>
@@ -98,7 +156,7 @@ export default function Dashboard({
                 ====================================================== */}
                 <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
                     <div>
-                        <p className="text-sm text-slate-400">
+                        <p className="text-sm text-slate-500">
                             Selamat datang,
                         </p>
 
@@ -112,7 +170,7 @@ export default function Dashboard({
                             {anggota.no_anggota}
                         </p>
 
-                        <p className="text-xs text-slate-400">
+                        <p className="text-xs text-slate-500">
                             Anggota sejak {anggota.lama_keanggotaan_label}
                         </p>
                     </div>
@@ -121,144 +179,95 @@ export default function Dashboard({
                 {/* =====================================================
                     RINGKASAN KEUANGAN
                 ====================================================== */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
 
-                    {/* Total Simpanan */}
-                    <div className="bg-white rounded-xl border border-slate-100 p-4">
-                        <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-lg bg-brand-green-light text-brand-green-dark flex items-center justify-center shrink-0">
-                                <PiggyBank size={18} />
-                            </div>
+                    <StatCard
+                        icon={PiggyBank}
+                        tone="green"
+                        label="Total Simpanan"
+                        value={formatRupiah(totalSimpanan)}
+                    />
 
-                            <div className="min-w-0">
-                                <p className="text-xs text-slate-400">
-                                    Total Simpanan
-                                </p>
+                    <StatCard
+                        icon={Wallet}
+                        tone="navy"
+                        label="Pinjaman Aktif"
+                        value={
+                            pinjamanAktifCount > 0
+                                ? formatRupiah(aggregateTotalNominal)
+                                : 'Rp0'
+                        }
+                        caption={
+                            pinjamanAktifCount > 0
+                                ? `${pinjamanAktifCount} pinjaman sedang berjalan`
+                                : 'Belum ada pinjaman aktif'
+                        }
+                    />
 
-                                <p className="text-base sm:text-lg font-bold text-slate-800 truncate">
-                                    {formatRupiah(totalSimpanan)}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                            <span className="text-slate-400">
-                                Simpanan Pokok
-                            </span>
-
-                            <span className="font-semibold text-slate-600">
-                                {formatRupiah(simpananPokok)}
-                            </span>
-                        </div>
-                    </div>
-
-                    {/* Pinjaman */}
-                    <div className="bg-white rounded-xl border border-slate-100 p-4">
-                        <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-lg bg-brand-navy/5 text-brand-navy flex items-center justify-center shrink-0">
-                                <Wallet size={18} />
-                            </div>
-
-                            <div className="min-w-0">
-                                <p className="text-xs text-slate-400">
-                                    Pinjaman Aktif
-                                </p>
-
-                                <p className="text-base sm:text-lg font-bold text-slate-800 truncate">
-                                    {pinjamanAktifCount > 0
-                                        ? formatRupiah(
-                                              aggregateTotalNominal
-                                          )
-                                        : 'Rp0'}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="mt-3 pt-3 border-t border-slate-100">
-                            <p className="text-[11px] text-slate-400">
-                                {pinjamanAktifCount > 0
-                                    ? `${pinjamanAktifCount} pinjaman aktif`
-                                    : 'Tidak terdapat pinjaman aktif'}
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Sisa Pembayaran */}
-                    <div className="bg-white rounded-xl border border-slate-100 p-4">
-                        <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
-                                <TrendingUp size={18} />
-                            </div>
-
-                            <div className="min-w-0">
-                                <p className="text-xs text-slate-400">
-                                    Sisa Pembayaran
-                                </p>
-
-                                <p className="text-base sm:text-lg font-bold text-slate-800 truncate">
-                                    {pinjamanAktifCount > 0
-                                        ? formatRupiah(
-                                              aggregateSisaTotalBayar
-                                          )
-                                        : 'Rp0'}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="mt-3 pt-3 border-t border-slate-100">
-                            <p className="text-[11px] text-slate-400">
-                                {pinjamanAktifCount > 0
-                                    ? `${aggregateTotalSisaAngsuran} dari ${aggregateTotalAngsuran} angsuran`
-                                    : 'Tidak terdapat angsuran aktif'}
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Limit */}
-                    <div className="bg-white rounded-xl border border-slate-100 p-4">
-                        <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                                <TrendingUp size={18} />
-                            </div>
-
-                            <div className="min-w-0">
-                                <p className="text-xs text-slate-400">
-                                    Limit Tersedia
-                                </p>
-
-                                <p className="text-base sm:text-lg font-bold text-slate-800 truncate">
-                                    {formatRupiah(limitTersedia)}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="mt-3 pt-3 border-t border-slate-100">
-                            <p className="text-[11px] text-slate-400">
-                                dari limit{' '}
-                                {formatRupiah(limitMaksimal)}
-                            </p>
-
-                            {pengajuanLimitBerjalan ? (
-                                <div className="mt-3 flex items-center gap-2 w-full px-3 py-2 rounded-lg bg-amber-50 border border-amber-200">
-                                    <Clock size={13} className="text-amber-600" />
-                                    <span className="text-[11px] font-semibold text-amber-800">
-                                        Proses Pengajuan: Menunggu persetujuan Ketua Koperasi
-                                    </span>
-                                </div>
-                            ) : bisaAjukan && limitTersedia > 0 && (
-                                <Link
-                                    href={route(
-                                        'portal.pengajuan-limit.create'
-                                    )}
-                                    className="mt-3 flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-lg bg-brand-green text-white text-[11px] font-bold hover:bg-brand-green-dark transition-colors"
-                                >
-                                    Ajukan Penambahan Limit
-                                    <ArrowRight size={13} />
-                                </Link>
-                            )}
-                        </div>
-                    </div>
+                    <StatCard
+                        icon={Gauge}
+                        tone="blue"
+                        label="Limit Tersedia"
+                        value={formatRupiah(limitTersedia)}
+                        caption={
+                            pengajuanLimitBerjalan ? (
+                                <span className="inline-flex items-center gap-1.5 text-amber-700 font-medium">
+                                    <Clock size={12} />
+                                    Pengajuan limit sedang diproses
+                                </span>
+                            ) : (
+                                `dari limit ${formatRupiah(limitMaksimal)}`
+                            )
+                        }
+                    />
                 </div>
+
+                {/* =====================================================
+                    ANGSURAN BERIKUTNYA (signature)
+                ====================================================== */}
+                {pinjamanAktifCount > 0 && angsuranBerikutnya && (
+                    <Link
+                        href={route('portal.riwayat')}
+                        className={`relative flex items-stretch bg-brand-green-light rounded-xl group ${focusRing}`}
+                    >
+                        {/* Lubang tiket kiri-kanan */}
+                        <span aria-hidden="true" className="absolute -left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-slate-50" />
+                        <span aria-hidden="true" className="absolute -right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-slate-50" />
+
+                        <div className="flex items-center gap-3.5 flex-1 min-w-0 p-4">
+                            <div className="w-10 h-10 rounded-lg bg-white text-brand-green-dark flex items-center justify-center shrink-0 shadow-sm">
+                                <CalendarDays size={19} />
+                            </div>
+
+                            <div className="min-w-0">
+                                <p className="text-xs font-bold uppercase tracking-wide text-brand-green-dark">
+                                    Angsuran berikutnya
+                                </p>
+
+                                <p className="text-sm font-semibold text-slate-800 truncate mt-0.5">
+                                    Angsuran ke-{angsuranBerikutnya.cicilan_ke}
+                                    {' \u2022 '}
+                                    jatuh tempo {angsuranBerikutnya.tanggal_jatuh_tempo}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 shrink-0 border-l-2 border-dashed border-brand-green/25 bg-white/70 px-4 py-3 my-2 mr-3 rounded-lg sm:my-0 sm:mr-0 sm:py-4 sm:rounded-l-none sm:rounded-r-xl">
+                            <div>
+                                <p className="text-xs text-slate-500">Total bayar</p>
+
+                                <p className="text-base font-bold text-slate-800 leading-tight whitespace-nowrap">
+                                    {formatRupiah(angsuranBerikutnya.total_bayar)}
+                                </p>
+                            </div>
+
+                            <ArrowRight
+                                size={17}
+                                className="text-brand-green-dark shrink-0 group-hover:translate-x-0.5 transition-transform motion-reduce:transition-none"
+                            />
+                        </div>
+                    </Link>
+                )}
 
                 {/* =====================================================
                     KONTEN UTAMA
@@ -279,16 +288,19 @@ export default function Dashboard({
                                 {/* Header */}
                                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                                     <div>
-                                        <p className="text-xs text-slate-400 mb-1">
+                                        <p className="text-xs text-slate-300 mb-1">
+                                            Sisa pinjaman
                                             {pinjamanAktifCount > 1
-                                                ? `${pinjamanAktifCount} Pinjaman Aktif`
-                                                : 'Pinjaman Aktif'}
+                                                ? ` (${pinjamanAktifCount} pinjaman aktif)`
+                                                : ''}
                                         </p>
 
                                         <p className="text-2xl font-bold">
-                                            {formatRupiah(
-                                                aggregateTotalNominal
-                                            )}
+                                            {formatRupiah(aggregateSisaTotalBayar)}
+                                        </p>
+
+                                        <p className="text-xs text-slate-400 mt-1">
+                                            dari total {formatRupiah(aggregateTotalNominal)}
                                         </p>
                                     </div>
 
@@ -301,14 +313,14 @@ export default function Dashboard({
                                 <div className="mt-4">
                                     <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
                                         <div
-                                            className="h-full bg-brand-green rounded-full transition-all"
+                                            className="h-full bg-brand-green rounded-full"
                                             style={{
                                                 width: `${progress}%`,
                                             }}
                                         />
                                     </div>
 
-                                    <div className="flex items-center justify-between mt-2 text-[11px] text-slate-400">
+                                    <div className="flex items-center justify-between mt-2 text-xs text-slate-300">
                                         <span>
                                             {aggregateTotalAngsuran -
                                                 aggregateTotalSisaAngsuran}{' '}
@@ -316,154 +328,100 @@ export default function Dashboard({
                                         </span>
 
                                         <span>
-                                            {aggregateTotalSisaAngsuran}{' '}
-                                            tersisa
+                                            sisa {aggregateTotalSisaAngsuran}{' '}angsuran
                                         </span>
                                     </div>
                                 </div>
 
-                                {/* Angsuran Berikutnya */}
-                                {angsuranBerikutnya && (
-                                    <Link
-                                        href={route('portal.riwayat')}
-                                        className="mt-4 flex items-center justify-between gap-4 bg-white/10 hover:bg-white/15 rounded-xl p-3.5 transition-colors group"
-                                    >
-                                        <div className="flex items-center gap-3 min-w-0">
-                                            <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
-                                                <Calendar size={17} />
-                                            </div>
-
-                                            <div className="min-w-0">
-                                                <p className="text-[11px] text-slate-400">
-                                                    Angsuran berikutnya
-                                                </p>
-
-                                                <p className="text-sm font-semibold text-white truncate">
-                                                    Angsuran ke-
-                                                    {
-                                                        angsuranBerikutnya.cicilan_ke
-                                                    }{' '}
-                                                    •{' '}
-                                                    {
-                                                        angsuranBerikutnya.tanggal_jatuh_tempo
-                                                    }
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <div className="text-right shrink-0">
-                                            <p className="text-sm font-bold">
-                                                {formatRupiah(
-                                                    angsuranBerikutnya.total_bayar
-                                                )}
-                                            </p>
-
-                                            <ArrowRight
-                                                size={14}
-                                                className="ml-auto mt-1 text-slate-400 group-hover:translate-x-0.5 transition-transform"
-                                            />
-                                        </div>
-                                    </Link>
-                                )}
-
                                 {/* Ringkasan Pembayaran */}
                                 <div className="mt-4 grid grid-cols-2 gap-3">
                                     <div className="bg-white/5 rounded-xl p-3">
-                                        <p className="text-[10px] text-slate-400">
-                                            Sisa Angsuran
+                                        <p className="text-xs text-slate-300">
+                                            Cicilan per bulan
                                         </p>
 
                                         <p className="text-sm font-semibold mt-0.5">
-                                            {aggregateTotalSisaAngsuran}{' '}
-                                            angsuran
+                                            {formatRupiah(cicilanPerBulan)}
                                         </p>
                                     </div>
 
                                     <div className="bg-white/5 rounded-xl p-3">
-                                        <p className="text-[10px] text-slate-400">
-                                            Sisa Total Pembayaran
+                                        <p className="text-xs text-slate-300">
+                                            Sisa total pembayaran
                                         </p>
 
                                         <p className="text-sm font-semibold mt-0.5">
-                                            {formatRupiah(
-                                                aggregateSisaTotalBayar
-                                            )}
+                                            {formatRupiah(aggregateSisaTotalBayar)}
                                         </p>
                                     </div>
                                 </div>
 
-                                {/* =================================================
-                                    SATU-SATUNYA TOMBOL AJUKAN PINJAMAN
-                                ================================================== */}
-                                {pengajuanBerjalan ? (
-                                    <div className="mt-4 pt-4 border-t border-white/10">
-                                        <div className="flex items-center gap-2 w-full px-4 py-2.5 rounded-lg bg-amber-50 border border-amber-200">
-                                            <Clock size={14} className="text-amber-600" />
-                                            <span className="text-xs font-semibold text-amber-800">
-                                                Proses Pengajuan: {statusPengajuanLabel[pengajuanBerjalan.status]?.text ?? 'Menunggu pemeriksaan'}
-                                            </span>
-                                        </div>
-                                    </div>
-                                ) : bisaAjukan && (
-                                    <div className="mt-4 pt-4 border-t border-white/10">
-                                        <Link
-                                            href={route(
-                                                'portal.pinjaman.create'
+                                {/* Aksi */}
+                                <div className="mt-4 pt-4 border-t border-white/10">
+                                    {pengajuanBerjalan ? (
+                                        <StatusStrip dark>
+                                            Proses pengajuan:{' '}
+                                            {statusPengajuanLabel[pengajuanBerjalan.status]?.text ?? 'Menunggu pemeriksaan'}
+                                        </StatusStrip>
+                                    ) : bisaAjukan ? (
+                                        <div className="flex flex-col sm:flex-row gap-2.5">
+                                            <Link
+                                                href={route('portal.pinjaman.create')}
+                                                className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-brand-green text-white text-sm font-bold hover:bg-brand-green-dark transition-colors ${focusRing}`}
+                                            >
+                                                Ajukan Pinjaman
+                                                <ArrowRight size={15} />
+                                            </Link>
+
+                                            {bisaAjukanLimit && (
+                                                <Link
+                                                    href={route('portal.pengajuan-limit.create')}
+                                                    className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-white/25 text-white text-sm font-semibold hover:bg-white/10 transition-colors ${focusRing}`}
+                                                >
+                                                    Ajukan Penambahan Limit
+                                                </Link>
                                             )}
-                                            className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-brand-green text-white text-xs font-bold hover:bg-brand-green-dark transition-colors"
-                                        >
-                                            Ajukan Pinjaman
-                                            <ArrowRight size={14} />
-                                        </Link>
-                                    </div>
-                                )}
+                                        </div>
+                                    ) : (
+                                        <StatusStrip dark>{alasanTidakBisa}</StatusStrip>
+                                    )}
+                                </div>
                             </div>
                         ) : pengajuanBerjalan ? (
                             <Link
                                 href={route('portal.riwayat')}
-                                className="block bg-brand-navy rounded-2xl p-5 text-white hover:bg-brand-navy/95 transition-colors"
+                                className={`block bg-brand-navy rounded-2xl p-5 text-white hover:bg-brand-navy-light transition-colors ${focusRing}`}
                             >
                                 <div className="flex items-center justify-between gap-3">
                                     <div>
-                                        <p className="text-xs text-slate-400 mb-1">
+                                        <p className="text-xs text-slate-300 mb-1">
                                             Pengajuan Pinjaman
                                         </p>
 
                                         <p className="text-2xl font-bold">
-                                            {formatRupiah(
-                                                pengajuanBerjalan.nominal
-                                            )}
+                                            {formatRupiah(pengajuanBerjalan.nominal)}
                                         </p>
                                     </div>
 
-                                    <Clock
-                                        size={20}
-                                        className="text-amber-400"
-                                    />
+                                    <Clock size={20} className="text-amber-300" />
                                 </div>
 
-                                <div className="flex items-center gap-1.5 mt-4 mb-2">
+                                <div className="flex items-center gap-1.5 mt-4 mb-2.5">
                                     {[1, 2].map((s) => (
                                         <div
                                             key={s}
                                             className={`h-1.5 flex-1 rounded-full ${
                                                 s <=
-                                                statusPengajuanLabel[
-                                                    pengajuanBerjalan.status
-                                                ].step
-                                                    ? 'bg-amber-400'
+                                                statusPengajuanLabel[pengajuanBerjalan.status].step
+                                                    ? 'bg-amber-300'
                                                     : 'bg-white/10'
                                             }`}
                                         />
                                     ))}
                                 </div>
 
-                                <p className="text-xs text-slate-300">
-                                    {
-                                        statusPengajuanLabel[
-                                            pengajuanBerjalan.status
-                                        ].text
-                                    }
+                                <p className="text-sm text-slate-300">
+                                    {statusPengajuanLabel[pengajuanBerjalan.status].text}
                                 </p>
                             </Link>
                         ) : (
@@ -471,18 +429,11 @@ export default function Dashboard({
 
                                 {pengajuanDitolak && (
                                     <div className="flex items-start gap-3 bg-red-500/15 border border-red-400/20 rounded-xl p-3.5 mb-4">
-                                        <XCircle
-                                            className="text-red-300 shrink-0 mt-0.5"
-                                            size={17}
-                                        />
+                                        <XCircle className="text-red-300 shrink-0 mt-0.5" size={17} />
 
                                         <div>
-                                            <p className="text-xs font-semibold text-red-200">
-                                                Pengajuan{' '}
-                                                {formatRupiah(
-                                                    pengajuanDitolak.nominal
-                                                )}{' '}
-                                                ditolak
+                                            <p className="text-sm font-semibold text-red-200">
+                                                Pengajuan {formatRupiah(pengajuanDitolak.nominal)} ditolak
                                             </p>
 
                                             {pengajuanDitolak.catatan && (
@@ -497,35 +448,36 @@ export default function Dashboard({
                                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                                     <div>
                                         <p className="text-lg font-bold">
-                                            Tidak terdapat pinjaman aktif
+                                            Belum ada pinjaman aktif
                                         </p>
 
-                                        <p className="text-xs text-slate-400 mt-1">
-                                            Limit pengajuan saat ini{' '}
-                                            {formatRupiah(limitMaksimal)}
+                                        <p className="text-sm text-slate-400 mt-1">
+                                            Limit pengajuan Anda {formatRupiah(limitMaksimal)}
                                         </p>
                                     </div>
 
-                                    {pengajuanBerjalan ? (
-                                        <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-amber-50 border border-amber-200 shrink-0">
-                                            <Clock size={14} className="text-amber-600" />
-                                            <span className="text-xs font-semibold text-amber-800">
-                                                Proses Pengajuan: {statusPengajuanLabel[pengajuanBerjalan.status]?.text ?? 'Menunggu pemeriksaan'}
-                                            </span>
-                                        </div>
-                                    ) : bisaAjukan ? (
-                                        <Link
-                                            href={route(
-                                                'portal.pinjaman.create'
+                                    {bisaAjukan ? (
+                                        <div className="flex flex-col sm:flex-row gap-2.5 shrink-0">
+                                            <Link
+                                                href={route('portal.pinjaman.create')}
+                                                className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-brand-green text-white text-sm font-bold hover:bg-brand-green-dark transition-colors ${focusRing}`}
+                                            >
+                                                Ajukan Pinjaman
+                                                <ArrowRight size={15} />
+                                            </Link>
+
+                                            {bisaAjukanLimit && (
+                                                <Link
+                                                    href={route('portal.pengajuan-limit.create')}
+                                                    className={`inline-flex items-center justify-center px-4 py-2.5 rounded-lg border border-white/25 text-white text-sm font-semibold hover:bg-white/10 transition-colors ${focusRing}`}
+                                                >
+                                                    Ajukan Penambahan Limit
+                                                </Link>
                                             )}
-                                            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-brand-green text-white text-xs font-bold hover:bg-brand-green-dark transition-colors shrink-0"
-                                        >
-                                            Ajukan Pinjaman
-                                            <ArrowRight size={14} />
-                                        </Link>
+                                        </div>
                                     ) : (
-                                        <div className="bg-amber-500/10 border border-amber-400/20 rounded-lg px-3 py-2">
-                                            <p className="text-xs text-amber-200">
+                                        <div className="bg-white/5 border border-white/10 rounded-lg px-3.5 py-2.5">
+                                            <p className="text-xs text-slate-300 leading-relaxed">
                                                 {alasanTidakBisa}
                                             </p>
                                         </div>
@@ -539,39 +491,23 @@ export default function Dashboard({
                         ================================================== */}
                         {pinjamanAktifCount > 0 &&
                             pengajuanPercepatanMenunggu.length > 0 && (
-                                <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-                                    <Repeat
-                                        className="text-amber-600 shrink-0 mt-0.5"
-                                        size={17}
-                                    />
+                                <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3.5">
+                                    <Repeat className="text-amber-600 shrink-0 mt-0.5" size={17} />
 
                                     <div className="min-w-0">
-                                        <p className="text-xs font-semibold text-amber-800">
-                                            Pengajuan perubahan tenor /
-                                            pelunasan dalam proses
+                                        <p className="text-sm font-semibold text-amber-800">
+                                            Pengajuan perubahan tenor / pelunasan dalam proses
                                         </p>
 
-                                        <div className="mt-1 space-y-0.5">
-                                            {pengajuanPercepatanMenunggu.map(
-                                                (pp) => (
-                                                    <p
-                                                        key={pp.id}
-                                                        className="text-[11px] text-amber-700"
-                                                    >
-                                                        {tipeLabel[pp.tipe]} •
-                                                        Pinjaman{' '}
-                                                        {formatRupiah(
-                                                            pp.pinjaman_nominal
-                                                        )}{' '}
-                                                        • {pp.tenor_lama} →{' '}
-                                                        {pp.tenor_baru ??
-                                                            'lunas'} bulan •{' '}
-                                                        {statusPengajuanLabel[
-                                                            pp.status
-                                                        ]?.text ?? pp.status}
-                                                    </p>
-                                                )
-                                            )}
+                                        <div className="mt-1 space-y-1">
+                                            {pengajuanPercepatanMenunggu.map((pp) => (
+                                                <p key={pp.id} className="text-xs text-amber-700">
+                                                    {tipeLabel[pp.tipe]} • Pinjaman{' '}
+                                                    {formatRupiah(pp.pinjaman_nominal)} •{' '}
+                                                    {pp.tenor_lama} → {pp.tenor_baru ?? 'lunas'} bulan •{' '}
+                                                    {statusPengajuanLabel[pp.status]?.text ?? pp.status}
+                                                </p>
+                                            ))}
                                         </div>
                                     </div>
                                 </div>
@@ -582,21 +518,14 @@ export default function Dashboard({
                         ================================================== */}
                         {pinjamanAktifCount > 0 &&
                             pengajuanPercepatanMenunggu.length === 0 &&
-                            pinjamanAktifList.some(
-                                (p) => p.sudah_pakai_percepatan
-                            ) && (
-                                <div className="flex items-start gap-3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
-                                    <Info
-                                        className="text-slate-500 shrink-0 mt-0.5"
-                                        size={17}
-                                    />
+                            pinjamanAktifList.some((p) => p.sudah_pakai_percepatan) && (
+                                <div className="flex items-start gap-3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5">
+                                    <Info className="text-slate-500 shrink-0 mt-0.5" size={17} />
 
                                     <p className="text-xs text-slate-600 leading-relaxed">
-                                        Hak perubahan tenor atau pelunasan
-                                        dipercepat telah digunakan pada
-                                        pinjaman yang masih berjalan.
-                                        Pengajuan berikutnya dapat dilakukan
-                                        setelah pinjaman tersebut dilunasi.
+                                        Hak perubahan tenor atau pelunasan dipercepat telah digunakan
+                                        pada pinjaman yang masih berjalan. Pengajuan berikutnya dapat
+                                        dilakukan setelah pinjaman tersebut dilunasi.
                                     </p>
                                 </div>
                             )}
@@ -605,20 +534,20 @@ export default function Dashboard({
                             AKTIVITAS TERBARU
                         ================================================== */}
                         <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
-                            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+                            <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100">
                                 <div>
                                     <p className="text-sm font-bold text-slate-700">
                                         Aktivitas Terbaru
                                     </p>
 
-                                    <p className="text-[11px] text-slate-400 mt-0.5">
-                                        Riwayat transaksi terakhir
+                                    <p className="text-xs text-slate-400 mt-0.5">
+                                        Transaksi terakhir Anda
                                     </p>
                                 </div>
 
                                 <Link
                                     href={route('portal.riwayat')}
-                                    className="text-xs font-semibold text-brand-green flex items-center gap-1 hover:text-brand-green-dark"
+                                    className={`text-xs font-semibold text-brand-green flex items-center gap-1 rounded px-1 py-1 hover:text-brand-green-dark ${focusRing}`}
                                 >
                                     Lihat riwayat
                                     <ArrowRight size={13} />
@@ -627,20 +556,15 @@ export default function Dashboard({
 
                             {riwayatGabungan.length === 0 ? (
                                 <p className="text-sm text-slate-400 text-center py-8">
-                                    Belum terdapat aktivitas transaksi.
+                                    Belum ada aktivitas transaksi.
                                 </p>
                             ) : (
                                 <div className="divide-y divide-slate-100">
                                     {riwayatGabungan.map((item, i) => (
-                                        <div
-                                            key={i}
-                                            className="flex items-center gap-3 px-4 py-3"
-                                        >
+                                        <div key={i} className="flex items-center gap-3 px-4 py-3">
                                             {item.tipe === 'simpanan' ? (
                                                 <div className="w-8 h-8 rounded-full bg-brand-green-light text-brand-green-dark flex items-center justify-center shrink-0">
-                                                    <ArrowDownCircle
-                                                        size={14}
-                                                    />
+                                                    <ArrowDownCircle size={14} />
                                                 </div>
                                             ) : (
                                                 <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
@@ -649,16 +573,16 @@ export default function Dashboard({
                                             )}
 
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-xs sm:text-sm font-semibold text-slate-700 truncate">
+                                                <p className="text-sm font-semibold text-slate-700 truncate">
                                                     {item.label}
                                                 </p>
 
-                                                <p className="text-[11px] text-slate-400">
+                                                <p className="text-xs text-slate-400">
                                                     {item.tanggal_format}
                                                 </p>
                                             </div>
 
-                                            <p className="text-xs sm:text-sm font-bold text-slate-800 shrink-0">
+                                            <p className="text-sm font-bold text-slate-800 shrink-0">
                                                 {formatRupiah(item.nominal)}
                                             </p>
                                         </div>
@@ -676,50 +600,47 @@ export default function Dashboard({
                         {/* Rincian Simpanan */}
                         <div className="bg-white rounded-xl border border-slate-100 p-4">
                             <div className="flex items-center gap-2 mb-3">
-                                <PiggyBank
-                                    size={16}
-                                    className="text-brand-green"
-                                />
+                                <PiggyBank size={16} className="text-brand-green" />
 
                                 <p className="text-sm font-bold text-slate-700">
                                     Rincian Simpanan
                                 </p>
                             </div>
 
-                            <div className="space-y-2">
+                            <div className="space-y-2.5">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-xs text-slate-400">
+                                    <span className="text-xs text-slate-500">
                                         Simpanan Pokok
                                     </span>
 
-                                    <span className="text-xs font-semibold text-slate-700">
+                                    <span className="text-sm font-semibold text-slate-700">
                                         {formatRupiah(simpananPokok)}
                                     </span>
                                 </div>
 
                                 <div className="flex items-center justify-between">
-                                    <span className="text-xs text-slate-400">
+                                    <span className="text-xs text-slate-500">
                                         Simpanan Wajib
                                     </span>
 
-                                    <span className="text-xs font-semibold text-slate-700">
+                                    <span className="text-sm font-semibold text-slate-700">
                                         {formatRupiah(simpananWajib)}
                                     </span>
                                 </div>
 
-                                <div className="pt-2 mt-1 border-t border-slate-100 flex items-center justify-between">
-                                    <span className="text-xs font-semibold text-slate-600">
+                                <div className="pt-2.5 mt-2.5 border-t border-slate-100 flex items-center justify-between">
+                                    <span className="text-sm font-semibold text-slate-600">
                                         Total Simpanan
                                     </span>
 
-                                    <span className="text-sm font-bold text-slate-800">
+                                    <span className="text-base font-bold text-slate-800">
                                         {formatRupiah(totalSimpanan)}
                                     </span>
                                 </div>
 
                                 {settingSimpanan.length > 0 && (
-                                    <div className="pt-3 mt-2 border-t border-slate-100">
-                                        <p className="text-[10px] uppercase tracking-wide font-semibold text-slate-400 mb-2">
+                                    <div className="pt-3.5 mt-3 border-t border-slate-100">
+                                        <p className="text-xs uppercase tracking-wide font-semibold text-slate-400 mb-2">
                                             Ketentuan Simpanan
                                         </p>
 
@@ -727,9 +648,9 @@ export default function Dashboard({
                                             {settingSimpanan.map((s, i) => (
                                                 <div
                                                     key={i}
-                                                    className="flex items-center justify-between gap-3 text-[11px]"
+                                                    className="flex items-center justify-between gap-3 text-xs"
                                                 >
-                                                    <span className="text-slate-400">
+                                                    <span className="text-slate-500">
                                                         {s.label}
                                                     </span>
 
@@ -744,16 +665,13 @@ export default function Dashboard({
                             </div>
                         </div>
 
-                        {/* Ketentuan Tenor */}
+                        {/* Ketentuan Pinjaman */}
                         <div className="bg-white rounded-xl border border-slate-100 p-4">
                             <div className="flex items-center gap-2 mb-3">
-                                <Percent
-                                    size={16}
-                                    className="text-brand-green"
-                                />
+                                <Percent size={16} className="text-brand-green" />
 
                                 <p className="text-sm font-bold text-slate-700">
-                                    Ketentuan Tenor
+                                    Ketentuan Pinjaman
                                 </p>
                             </div>
 
@@ -761,61 +679,40 @@ export default function Dashboard({
                                 {tabelTenor.map((t, i) => (
                                     <div
                                         key={i}
-                                        className="flex items-center justify-between gap-3 text-[11px]"
+                                        className="flex items-center justify-between gap-3 text-xs"
                                     >
-                                        <span className="text-slate-400">
-                                            {formatRupiah(t.nominal_min)}
-                                            &ndash;
-                                            {formatRupiah(t.nominal_max)}
+                                        <span className="text-slate-500">
+                                            {formatRupiah(t.nominal_min)}&ndash;{formatRupiah(t.nominal_max)}
                                         </span>
 
                                         <span className="font-semibold text-slate-600 shrink-0">
-                                            Maks. {t.tenor_maksimal_bulan}{' '}
-                                            bulan
+                                            Maks. {t.tenor_maksimal_bulan} bulan
                                         </span>
                                     </div>
                                 ))}
                             </div>
-                        </div>
 
-                        {/* Informasi */}
-                        <div className="bg-slate-50 rounded-xl border border-slate-100 p-4">
-                            <div className="flex items-center gap-2 mb-2">
-                                <Info
-                                    size={15}
-                                    className="text-brand-navy"
-                                />
+                            <details className="group mt-3 pt-3 border-t border-slate-100">
+                                <summary className="flex items-center gap-2 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2">
+                                    <ShieldCheck size={15} className="text-brand-green shrink-0" />
 
-                                <p className="text-xs font-bold text-slate-700">
-                                    Informasi
+                                    <span className="text-xs font-semibold text-slate-600">
+                                        Alur persetujuan pinjaman
+                                    </span>
+
+                                    <ArrowRight
+                                        size={13}
+                                        className="ml-auto text-slate-400 rotate-90 group-open:-rotate-90 transition-transform motion-reduce:transition-none"
+                                    />
+                                </summary>
+
+                                <p className="text-xs text-slate-500 leading-relaxed mt-2.5">
+                                    Pengajuan diperiksa oleh Bendahara dan selanjutnya memperoleh
+                                    persetujuan Ketua Koperasi sebelum proses pencairan.
+                                    Informasi simpanan, pinjaman, dan angsuran ditampilkan
+                                    berdasarkan data administrasi koperasi.
                                 </p>
-                            </div>
-
-                            <p className="text-[11px] text-slate-500 leading-relaxed">
-                                Informasi simpanan, pinjaman, dan angsuran
-                                ditampilkan berdasarkan data administrasi
-                                koperasi.
-                            </p>
-
-                            <div className="flex items-start gap-2 mt-3 pt-3 border-t border-slate-200">
-                                <ShieldCheck
-                                    size={15}
-                                    className="text-brand-green shrink-0 mt-0.5"
-                                />
-
-                                <div>
-                                    <p className="text-[11px] font-semibold text-slate-600 mb-0.5">
-                                        Proses Persetujuan
-                                    </p>
-
-                                    <p className="text-[11px] text-slate-500 leading-relaxed">
-                                        Pengajuan diperiksa oleh Bendahara dan
-                                        selanjutnya memperoleh persetujuan
-                                        Ketua Koperasi sebelum proses
-                                        pencairan.
-                                    </p>
-                                </div>
-                            </div>
+                            </details>
                         </div>
                     </div>
                 </div>
