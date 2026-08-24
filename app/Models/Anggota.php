@@ -64,6 +64,11 @@ class Anggota extends Model
         return $this->hasMany(Pinjaman::class);
     }
 
+    public function pengajuanLimit(): HasMany
+    {
+        return $this->hasMany(PengajuanLimit::class);
+    }
+
     public function rekening(): HasMany
     {
         return $this->hasMany(RekeningAnggota::class);

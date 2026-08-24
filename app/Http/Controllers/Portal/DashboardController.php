@@ -46,6 +46,12 @@ class DashboardController extends Controller
             ->latest('updated_at')
             ->first();
 
+        // Pengajuan limit yang sedang berjalan (status diajukan)
+        $pengajuanLimitBerjalan = $anggota->pengajuanLimit()
+            ->where('status', 'diajukan')
+            ->latest('tanggal_pengajuan')
+            ->first();
+
         $angsuranBerikutnya = null;
         if ($pinjamanAktif) {
             $terdekat = $pinjamanAktif->jadwalAktif()
@@ -177,6 +183,11 @@ class DashboardController extends Controller
             'pengajuanBerjalan' => $pengajuanBerjalan ? [
                 'nominal' => (float) $pengajuanBerjalan->nominal,
                 'status' => $pengajuanBerjalan->status,
+            ] : null,
+            'pengajuanLimitBerjalan' => $pengajuanLimitBerjalan ? [
+                'limit_diminta' => (float) $pengajuanLimitBerjalan->limit_diminta,
+                'status' => $pengajuanLimitBerjalan->status,
+                'tanggal_pengajuan' => $pengajuanLimitBerjalan->tanggal_pengajuan->format('d M Y'),
             ] : null,
             'pengajuanDitolak' => $pengajuanDitolak ? [
                 'nominal' => (float) $pengajuanDitolak->nominal,

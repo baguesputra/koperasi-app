@@ -2,9 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\Anggota;
 use App\Models\KasKoperasi;
-use App\Models\SettingSimpanan;
 use App\Models\Simpanan;
 use App\Models\User;
 use App\Services\Keuangan\JurnalKasService;
