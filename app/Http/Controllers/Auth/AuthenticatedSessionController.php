@@ -30,6 +30,10 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
+        if (config('auth.mode') === 'sso') {
+            return redirect()->route('sso.redirect');
+        }
+
         $request->authenticate();
 
         if (auth()->user()?->status === 'nonaktif') {
@@ -67,9 +71,7 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerateToken();
 
         if (config('auth.mode') === 'sso') {
-            return redirect()->away(
-                'https://gate.appdutamall.com/dashboard'
-            );
+            return redirect()->away('https://gate.appdutamall.com/dashboard');
         }
 
         return redirect()->route('login');

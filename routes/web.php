@@ -31,6 +31,7 @@ use Illuminate\Support\Facades\Route;
 // --------------------- Portal SSO -------------------------
 Route::get('/auth/sso/redirect', [SsoController::class, 'redirect'])->name('sso.redirect');
 Route::get('/auth/sso/callback', [SsoController::class, 'callback'])->name('sso.callback');
+Route::get('/auth/sso/logout', [SsoController::class, 'logout'])->name('sso.logout');
 
 Route::get('/', function () {
     if (auth()->check()) {
@@ -233,5 +234,13 @@ Route::middleware(['auth', 'permission:kas.topup'])->group(function () {
 });
 
 Route::post('/angsuran/konfirmasi-percepatan', [AngsuranController::class, 'konfirmasiPercepatan'])->name('angsuran.konfirmasi-percepatan');
+
+// SSO logout - must be before auth.php to take precedence
+Route::get('logout', function () {
+    if (config('auth.mode') === 'sso') {
+        return redirect()->away('https://gate.appdutamall.com/dashboard');
+    }
+    return redirect()->route('login');
+})->name('logout');
 
 require __DIR__.'/auth.php';

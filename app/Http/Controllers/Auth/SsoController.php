@@ -109,6 +109,6 @@ class SsoController extends Controller
         request()->session()->invalidate();
         request()->session()->regenerateToken();
 
-        return redirect()->away('https://gate.appdutamall.com/dashboard');
+        return redirect()->away(config('services.sso.logout_url'));
     }
 }

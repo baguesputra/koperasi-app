@@ -43,6 +43,7 @@ return [
         'token_url' => env('SSO_TOKEN_URL'),
         'userinfo_url' => env('SSO_USERINFO_URL'),
         'profile_url' => env('SSO_PROFILE_URL'),
+        'logout_url' => env('SSO_LOGOUT_URL'),
     ],
 
     'wa' => [

@@ -225,10 +225,10 @@ Summary hasil meeting dengan koperasi 15 Agustus 2026
 - [x] optimisasi kode agar mudah dimaintenance dan dibaca
 
 # Testing Checklist — Koperasi App
-**Tanggal:** 25 Agustus 2026
-- [ ] Perancangan audit trail dari sisi keuangan
-- [ ] notifikasi setelah pengajuan awal, setelah approve bendahara dan approve ketua
-- [ ] notifikasi angsuran dan simpanan sudah terbayarkan ke bendahara atau ketua
+**Tanggal:** 26 Agustus 2026
+- [x] notifikasi whatsapp untuk proses bisnis koperasi
+- [x] pembuatan testing unit fitur
+- [x] pembuatan halaman laporan export excel dan pdf
 
 # Testing Checklist — Koperasi App
 **Tanggal:** 24 - 28 Agustus 2026
@@ -238,6 +238,7 @@ Summary hasil meeting dengan koperasi 15 Agustus 2026
 - [ ] Menambah reconciliation otomatis
 - [ ] import excel anggota otomatis buat user juga
 - [ ] multi tenant ( opsional )
+- [ ] Perancangan audit trail dari sisi keuangan
 
 
 
