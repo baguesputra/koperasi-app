@@ -96,7 +96,7 @@ export default function SidebarLayout({ children }) {
             </Transition>
 
             <div className="flex-1 flex flex-col min-w-0">
-                <header className="h-16 sticky top-0 z-40 bg-slate-50 px-4 flex items-center justify-between gap-4 shrink-0">
+                <header className="h-16 sticky top-0 z-40 bg-slate-50 px-4 flex items-center gap-2 shrink-0">
                     <button
                         onClick={() => setMobileSidebarOpen(true)}
                         className="lg:hidden inline-flex items-center justify-center p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg"
@@ -105,55 +105,51 @@ export default function SidebarLayout({ children }) {
                         <Menu size={24} />
                     </button>
 
-                    <div className="flex-1 lg:hidden" />
-
-                    {bisaPengaturan && (
-                        <>
+                    <div className="flex items-center gap-1 ml-auto">
+                        {bisaPengaturan && (
                             <Link
                                 href={route('pengaturan.index')}
-                                className="hidden lg:flex items-center text-slate-400 hover:text-brand-navy transition-colors"
+                                className="p-2 rounded-lg text-slate-400 hover:text-brand-navy hover:bg-white transition-colors"
                                 title="Pengaturan"
                             >
                                 <Settings size={20} />
                             </Link>
-                            <span className="hidden lg:block w-0.5 h-6 bg-slate-300" />
-                        </>
-                    )}
+                        )}
 
-                    <Dropdown>
-                        <Dropdown.Trigger>
-                            <button
-                                type="button"
-                                className="flex items-center gap-3 rounded-full py-1 pl-1 pr-2 hover:bg-slate-100 transition-colors"
-                            >
-                                <div className="w-9 h-9 rounded-full bg-brand-green text-white flex items-center justify-center text-sm font-bold">
-                                    {initial}
-                                </div>
-                                <div className="hidden sm:block leading-tight text-left">
-                                    <p className="text-sm font-semibold text-slate-800">{auth.user?.name}</p>
-                                    <p className="text-xs text-slate-400 capitalize">
-                                        {auth.user?.roles?.[0]?.replace('_', ' ') ?? '-'}
-                                    </p>
-                                </div>
-                                <ChevronDown size={16} className="text-slate-400" />
-                            </button>
-                        </Dropdown.Trigger>
+                        <Dropdown>
+                            <Dropdown.Trigger>
+                                <button
+                                    type="button"
+                                    className="flex items-center gap-3 rounded-full py-1 pl-1 pr-2 hover:bg-slate-100 transition-colors"
+                                >
+                                    <div className="w-9 h-9 rounded-full bg-brand-green text-white flex items-center justify-center text-sm font-bold">
+                                        {initial}
+                                    </div>
+                                    <div className="hidden sm:block leading-tight text-left">
+                                        <p className="text-sm font-semibold text-slate-800">{auth.user?.name}</p>
+                                        <p className="text-xs text-slate-400 capitalize">
+                                            {auth.user?.roles?.[0]?.replace('_', ' ') ?? '-'}
+                                        </p>
+                                    </div>
+                                    <ChevronDown size={16} className="text-slate-400" />
+                                </button>
+                            </Dropdown.Trigger>
 
-                        <Dropdown.Content>
-                            {bisaAjukanPinjaman && (
-                                <>
-                                    <Dropdown.Link href={route('portal.dashboard')}>
-                                        Pengajuan Pinjaman
-                                    </Dropdown.Link>
-                                    <Dropdown.Link href={route('dashboard')}>
-                                        Dashboard Koperasi
-                                    </Dropdown.Link>
-                                </>
-                            )}
-                            <Dropdown.Link href={route('profile.edit')}>
-                                Profile
-                            </Dropdown.Link>
-                            <form method="POST" action={route('logout')}>
+                            <Dropdown.Content>
+                                {bisaAjukanPinjaman && (
+                                    <>
+                                        <Dropdown.Link href={route('portal.dashboard')}>
+                                            Pengajuan Pinjaman
+                                        </Dropdown.Link>
+                                        <Dropdown.Link href={route('dashboard')}>
+                                            Dashboard Koperasi
+                                        </Dropdown.Link>
+                                    </>
+                                )}
+                                <Dropdown.Link href={route('profile.edit')}>
+                                    Profile
+                                </Dropdown.Link>
+                                <form method="POST" action={route('logout')}>
     <input
         type="hidden"
         name="_token"
@@ -169,8 +165,9 @@ export default function SidebarLayout({ children }) {
         Keluar
     </button>
 </form>
-                        </Dropdown.Content>
-                    </Dropdown>
+                            </Dropdown.Content>
+                        </Dropdown>
+                    </div>
                 </header>
 
                 <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-[1400px] w-full mx-auto">
