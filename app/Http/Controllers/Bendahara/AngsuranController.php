@@ -23,13 +23,17 @@ class AngsuranController extends Controller
 
         $cabangAktif = $request->string('cabang');
 
+        // Prefetch 1x: pinjaman yang punya pengajuan percepatan berjalan (anti N+1 di map bawah)
+        $pinjamanBerpengajuan = PengajuanPercepatan::whereIn('status', ['diajukan', 'approved_bendahara'])
+            ->pluck('pinjaman_id')
+            ->flip();
+
         $semuaNormal = Angsuran::with('pinjaman.anggota')
             ->where('status', 'belum_bayar')
             ->whereYear('tanggal_jatuh_tempo', $tahun)->whereMonth('tanggal_jatuh_tempo', $bulanAngka)
             ->get()
-            ->map(function ($a) {
-                $adaPengajuan = PengajuanPercepatan::where('pinjaman_id', $a->pinjaman_id)
-                    ->whereIn('status', ['diajukan', 'approved_bendahara'])->exists();
+            ->map(function ($a) use ($pinjamanBerpengajuan) {
+                $adaPengajuan = $pinjamanBerpengajuan->has($a->pinjaman_id);
 
                 return [
                     'id' => 'n-'.$a->id,
