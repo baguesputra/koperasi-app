@@ -2,6 +2,7 @@ import Sidebar from './Partials/Sidebar';
 import { Link, usePage } from '@inertiajs/react';
 import { Settings, ChevronDown, Menu, X } from 'lucide-react';
 import Dropdown from '@/Components/Dropdown';
+import FlashToast from '@/Components/ui/FlashToast';
 import { useEffect, useRef, useState } from 'react';
 import { Transition } from '@headlessui/react';
 
@@ -171,6 +172,7 @@ export default function SidebarLayout({ children }) {
                 </header>
 
                 <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-[1400px] w-full mx-auto">
+                    <FlashToast />
                     {children}
                 </main>
             </div>
