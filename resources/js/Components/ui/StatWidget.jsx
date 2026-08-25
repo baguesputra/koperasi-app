@@ -13,8 +13,8 @@ export default function StatWidget({ label, value, icon: Icon, tone = 'navy', co
                     <Icon size={20} />
                 </div>
                 <div className="min-w-0">
-                    <p className="text-sm text-slate-500 truncate">{label}</p>
-                    <p className="text-2xl font-bold text-slate-800 mt-0.5 truncate leading-tight">{value}</p>
+                    <p className="text-sm text-slate-500 leading-snug">{label}</p>
+                    <p className="text-xl font-bold text-slate-800 mt-0.5 leading-tight break-words">{value}</p>
                 </div>
             </div>
         );
