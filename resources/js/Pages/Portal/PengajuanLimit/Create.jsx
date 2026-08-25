@@ -1,5 +1,5 @@
 import AnggotaLayout from '@/Layouts/AnggotaLayout';
-import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import { ArrowLeft, Clock, CheckCircle2, XCircle } from 'lucide-react';
 
 function formatRupiah(angka) {
@@ -19,7 +19,6 @@ const statusIcon = { diajukan: Clock, disetujui: CheckCircle2, ditolak: XCircle 
 const statusLabel = { diajukan: 'Menunggu', disetujui: 'Disetujui', ditolak: 'Ditolak' };
 
 export default function Create({ limitSaatIni, riwayat }) {
-    const { props } = usePage();
     const { data, setData, post, processing, errors, reset } = useForm({
         limit_diminta: '', keterangan: '',
     });
@@ -49,13 +48,6 @@ export default function Create({ limitSaatIni, riwayat }) {
                     Limit pinjaman Anda saat ini: <span className="font-semibold text-slate-600">{formatRupiah(limitSaatIni)}</span>
                 </p>
             </div>
-
-            {props.flash.status && (
-                <div className="mb-5 flex items-start gap-3 bg-brand-green-light border border-brand-green/25 rounded-xl p-4">
-                    <CheckCircle2 size={20} className="text-brand-green-dark shrink-0 mt-0.5" />
-                    <p className="text-sm font-semibold text-brand-green-dark">{props.flash.status}</p>
-                </div>
-            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                 <div className="bg-white rounded-2xl border border-slate-100 p-6">

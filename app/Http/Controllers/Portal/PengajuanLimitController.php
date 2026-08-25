@@ -46,9 +46,11 @@ class PengajuanLimitController extends Controller
             'keterangan' => ['required', 'string', 'min:10', 'max:500'],
         ]);
 
+        $anggota = auth()->user()->anggota;
+
         try {
             $this->service->ajukan(
-                auth()->user()->anggota,
+                $anggota,
                 (float) $request->limit_diminta,
                 $request->keterangan
             );
@@ -56,6 +58,11 @@ class PengajuanLimitController extends Controller
             return back()->withErrors(['limit_diminta' => $e->getMessage()]);
         }
 
-        return back()->with('status', 'Pengajuan tambah limit berhasil dikirim.');
+        return redirect()
+            ->route('portal.dashboard')
+            ->with('limit_terkirim', [
+                'diminta' => (float) $request->limit_diminta,
+                'limit_saat_ini' => (float) $this->eligibilitas->limitMaksimal($anggota),
+            ]);
     }
 }

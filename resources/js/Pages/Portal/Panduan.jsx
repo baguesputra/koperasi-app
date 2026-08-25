@@ -262,7 +262,7 @@ const TATA_CARA = [
             },
             {
                 judul: 'Kirim pengajuan',
-                deskripsi: 'Klik "Kirim Pengajuan". Tahapannya lebih pendek daripada pinjaman: hanya Ketua Koperasi yang meninjau, tanpa tahap Bendahara.',
+                deskripsi: 'Klik "Kirim Pengajuan". Anda dibawa kembali ke Beranda beserta kuitansi konfirmasi, dan konfirmasi dikirim melalui WhatsApp Koperasi. Tahapannya lebih pendek daripada pinjaman: hanya Ketua Koperasi yang meninjau, tanpa tahap Bendahara.',
                 mockup: <MiniButton label="Kirim Pengajuan" icon={ArrowRight} />,
             },
             {

@@ -230,8 +230,10 @@ export default function Dashboard({
     const { flash } = usePage().props;
     const terkirim = flash.pinjamanTerkirim;
     const percepatanTerkirim = flash.percepatanTerkirim;
+    const limitTerkirim = flash.limitTerkirim;
     const [konfirmasiDitutup, setKonfirmasiDitutup] = useState(false);
     const [percepatanDitutup, setPercepatanDitutup] = useState(false);
+    const [limitDitutup, setLimitDitutup] = useState(false);
 
     return (
         <AnggotaLayout>
@@ -257,6 +259,19 @@ export default function Dashboard({
                     paragraf={percepatanParagraf[percepatanTerkirim.tipe]}
                     catatan="Selama masa peninjauan, tidak ada tindakan yang perlu Anda lakukan. Apabila pengajuan disetujui, pemberitahuan beserta bulan mulai berlakunya akan disampaikan melalui WhatsApp. Status pengajuan juga dapat dipantau pada halaman Beranda."
                     onClose={() => setPercepatanDitutup(true)}
+                />
+            )}
+
+            {limitTerkirim && !limitDitutup && (
+                <KuitansiModal
+                    judul="Pengajuan Berhasil Terkirim"
+                    rows={[
+                        { label: 'Limit yang Diminta', value: formatRupiah(limitTerkirim.diminta) },
+                        { label: 'Limit Anda Saat Ini', value: formatRupiah(limitTerkirim.limit_saat_ini) },
+                    ]}
+                    paragraf="Pengajuan penambahan limit Anda telah kami terima dan diteruskan melalui WhatsApp Koperasi untuk diproses lebih lanjut."
+                    catatan="Penambahan limit ditinjau langsung oleh Ketua Koperasi. Apabila disetujui, pemberitahuan akan disampaikan melalui WhatsApp dan limit baru aktif untuk pinjaman berikutnya."
+                    onClose={() => setLimitDitutup(true)}
                 />
             )}
 
