@@ -145,6 +145,11 @@ export default function Dashboard({
 
     const bisaAjukanLimit = bisaAjukan && !pengajuanLimitBerjalan && limitTersedia > 0;
 
+    const bisaUbahTenor =
+        !pengajuanBerjalan &&
+        pengajuanPercepatanMenunggu.length === 0 &&
+        pinjamanAktifList.some((p) => !p.sudah_pakai_percepatan);
+
     return (
         <AnggotaLayout>
             <Head title="Beranda" />
@@ -357,7 +362,7 @@ export default function Dashboard({
                                 </div>
 
                                 {/* Aksi */}
-                                <div className="mt-4 pt-4 border-t border-white/10">
+                                <div className="mt-4 pt-4 border-t border-white/10 space-y-3">
                                     {pengajuanBerjalan ? (
                                         <StatusStrip dark>
                                             Proses pengajuan:{' '}
@@ -384,6 +389,16 @@ export default function Dashboard({
                                         </div>
                                     ) : (
                                         <StatusStrip dark>{alasanTidakBisa}</StatusStrip>
+                                    )}
+
+                                    {bisaUbahTenor && (
+                                        <Link
+                                            href={route('portal.percepatan.create')}
+                                            className={`inline-flex items-center gap-1.5 text-xs font-semibold text-slate-300 hover:text-white transition-colors rounded ${focusRing}`}
+                                        >
+                                            <Repeat size={13} />
+                                            Ubah Tenor / Lunas Dipercepat
+                                        </Link>
                                     )}
                                 </div>
                             </div>
