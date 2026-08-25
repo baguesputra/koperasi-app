@@ -1,6 +1,9 @@
 {
     "name": "baileys-service",
     "private": true,
+    "scripts": {
+        "start": "node index.js"
+    },
     "dependencies": {
         "@whiskeysockets/baileys": "^6.7.16",
         "qrcode": "^1.5.4"
