@@ -86,7 +86,7 @@ function StatusStrip({ dark = false, children }) {
     );
 }
 
-function KonfirmasiKirim({ nominal, tenorBulan, onClose }) {
+function KuitansiModal({ judul, rows, paragraf, catatan, onClose }) {
     return (
         <div
             className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200"
@@ -102,36 +102,28 @@ function KonfirmasiKirim({ nominal, tenorBulan, onClose }) {
                         </div>
 
                         <h2 id="konfirmasi-title" className="text-xl font-bold text-slate-800">
-                            Pengajuan Berhasil Terkirim
+                            {judul}
                         </h2>
                     </div>
 
                     <div className="mx-6 border-t-2 border-dashed border-slate-200" />
 
                     <div className="px-6 py-4 space-y-2.5">
-                        <div className="flex items-center justify-between text-sm">
-                            <span className="text-slate-500">Nominal Pinjaman</span>
-                            <span className="font-bold text-slate-800">{formatRupiah(nominal)}</span>
-                        </div>
-
-                        <div className="flex items-center justify-between text-sm">
-                            <span className="text-slate-500">Lama Cicilan</span>
-                            <span className="font-bold text-slate-800">{tenorBulan} bulan</span>
-                        </div>
+                        {rows.map((r) => (
+                            <div key={r.label} className="flex items-start justify-between gap-4 text-sm">
+                                <span className="text-slate-500 shrink-0">{r.label}</span>
+                                <span className="font-bold text-slate-800 text-right">{r.value}</span>
+                            </div>
+                        ))}
                     </div>
 
                     <div className="mx-6 border-t-2 border-dashed border-slate-200" />
 
                     <div className="px-6 py-5">
-                        <p className="text-sm text-slate-600 leading-relaxed">
-                            Pengajuan pinjaman Anda telah kami terima dan diteruskan melalui
-                            WhatsApp Koperasi untuk diproses lebih lanjut.
-                        </p>
+                        <p className="text-sm text-slate-600 leading-relaxed">{paragraf}</p>
 
                         <p className="mt-3 text-xs text-slate-500 leading-relaxed bg-slate-50 border border-slate-100 rounded-lg p-3">
-                            Selama masa peninjauan, tidak ada tindakan yang perlu Anda lakukan.
-                            Apabila pengajuan disetujui, pemberitahuan akan disampaikan melalui
-                            WhatsApp. Status pengajuan juga dapat dipantau pada halaman Beranda.
+                            {catatan}
                         </p>
 
                         <button
@@ -146,6 +138,28 @@ function KonfirmasiKirim({ nominal, tenorBulan, onClose }) {
             </div>
         </div>
     );
+}
+
+const percepatanParagraf = {
+    percepat: 'Pengajuan pengurangan lama cicilan Anda telah kami terima dan diteruskan melalui WhatsApp Koperasi untuk diproses lebih lanjut.',
+    perpanjang: 'Pengajuan penambahan lama cicilan Anda telah kami terima dan diteruskan melalui WhatsApp Koperasi untuk diproses lebih lanjut.',
+    lunas_total: 'Pengajuan pelunasan dipercepat Anda telah kami terima dan diteruskan melalui WhatsApp Koperasi untuk diproses lebih lanjut.',
+};
+
+function percepatanRows(p) {
+    const rows = [
+        { label: 'Pinjaman', value: formatRupiah(p.nominal) },
+        { label: 'Tenor saat ini', value: `${p.tenor_lama} bulan` },
+    ];
+
+    if (p.tipe === 'lunas_total') {
+        rows.push({ label: 'Pelunasan', value: 'Seluruh sisa pokok \u2022 bunga 1 bulan' });
+    } else {
+        const arah = p.tipe === 'percepat' ? 'Tenor dikurangi' : 'Tenor ditambah';
+        rows.push({ label: arah, value: `${p.tenor_lama} \u2192 ${p.tenor_baru} bulan` });
+    }
+
+    return rows;
 }
 
 export default function Dashboard({
@@ -215,17 +229,34 @@ export default function Dashboard({
 
     const { flash } = usePage().props;
     const terkirim = flash.pinjamanTerkirim;
+    const percepatanTerkirim = flash.percepatanTerkirim;
     const [konfirmasiDitutup, setKonfirmasiDitutup] = useState(false);
+    const [percepatanDitutup, setPercepatanDitutup] = useState(false);
 
     return (
         <AnggotaLayout>
             <Head title="Beranda" />
 
             {terkirim && !konfirmasiDitutup && (
-                <KonfirmasiKirim
-                    nominal={terkirim.nominal}
-                    tenorBulan={terkirim.tenor_bulan}
+                <KuitansiModal
+                    judul="Pengajuan Berhasil Terkirim"
+                    rows={[
+                        { label: 'Nominal Pinjaman', value: formatRupiah(terkirim.nominal) },
+                        { label: 'Lama Cicilan', value: `${terkirim.tenor_bulan} bulan` },
+                    ]}
+                    paragraf="Pengajuan pinjaman Anda telah kami terima dan diteruskan melalui WhatsApp Koperasi untuk diproses lebih lanjut."
+                    catatan="Selama masa peninjauan, tidak ada tindakan yang perlu Anda lakukan. Apabila pengajuan disetujui, pemberitahuan akan disampaikan melalui WhatsApp. Status pengajuan juga dapat dipantau pada halaman Beranda."
                     onClose={() => setKonfirmasiDitutup(true)}
+                />
+            )}
+
+            {percepatanTerkirim && !percepatanDitutup && (
+                <KuitansiModal
+                    judul="Pengajuan Berhasil Terkirim"
+                    rows={percepatanRows(percepatanTerkirim)}
+                    paragraf={percepatanParagraf[percepatanTerkirim.tipe]}
+                    catatan="Selama masa peninjauan, tidak ada tindakan yang perlu Anda lakukan. Apabila pengajuan disetujui, pemberitahuan beserta bulan mulai berlakunya akan disampaikan melalui WhatsApp. Status pengajuan juga dapat dipantau pada halaman Beranda."
+                    onClose={() => setPercepatanDitutup(true)}
                 />
             )}
 

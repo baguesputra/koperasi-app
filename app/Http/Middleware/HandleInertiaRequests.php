@@ -48,6 +48,7 @@ class HandleInertiaRequests extends Middleware
                 'importBerhasil' => fn () => $request->session()->get('importBerhasil'),
                 'importGagal' => fn () => $request->session()->get('importGagal'),
                 'pinjamanTerkirim' => fn () => $request->session()->get('pinjaman_terkirim'),
+                'percepatanTerkirim' => fn () => $request->session()->get('percepatan_terkirim'),
             ],
             'notifications' => function () use ($request) {
                 $user = $request->user();

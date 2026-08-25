@@ -1,7 +1,13 @@
 import AnggotaLayout from '@/Layouts/AnggotaLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
-import { ArrowLeft, TrendingDown, TrendingUp, CheckCircle2, AlertCircle } from 'lucide-react';
+import {
+    ArrowLeft, TrendingDown, TrendingUp, CheckCircle2, AlertCircle,
+    Check, RotateCcw,
+} from 'lucide-react';
+
+const focusRing =
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2';
 
 function formatRupiah(angka) {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
@@ -55,6 +61,19 @@ export default function Create({ pinjaman }) {
         setData('tenor_baru', bulan);
         muatPreview(tipeDipilih, bulan);
     }
+
+    function gantiJenis() {
+        setTipeDipilih(null);
+        setPreview(null);
+        setData({ tipe: '', tenor_baru: '', keterangan: data.keterangan });
+    }
+
+    const opsiAktif = opsi.find((o) => o.tipe === tipeDipilih);
+    const langkah = [
+        { label: 'Pilih Jenis', done: !!tipeDipilih, active: !tipeDipilih },
+        { label: 'Tenor & Simulasi', done: !!preview, active: !!tipeDipilih && !preview },
+        { label: 'Alasan & Kirim', done: false, active: !!preview },
+    ];
 
     function submit(e) {
         e.preventDefault();
@@ -114,6 +133,35 @@ export default function Create({ pinjaman }) {
             </div>
 
             <div className="max-w-2xl">
+                {/* Stepper */}
+                <ol className="flex items-center gap-2 mb-6" aria-label="Progres pengajuan perubahan tenor">
+                    {langkah.map((s, i) => (
+                        <li key={s.label} className="flex items-center gap-2 flex-1 last:flex-none">
+                            <span
+                                aria-current={s.active ? 'step' : undefined}
+                                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 transition-colors ${
+                                    s.done
+                                        ? 'bg-brand-green text-white'
+                                        : s.active
+                                            ? 'border-2 border-brand-green text-brand-green-dark bg-white'
+                                            : 'border-2 border-slate-200 text-slate-400 bg-white'
+                                }`}
+                            >
+                                {s.done ? <Check size={14} /> : i + 1}
+                            </span>
+
+                            <span className={`text-xs font-semibold whitespace-nowrap hidden sm:block ${s.active || s.done ? 'text-slate-700' : 'text-slate-400'}`}>
+                                {s.label}
+                            </span>
+
+                            {i < langkah.length - 1 && (
+                                <span aria-hidden="true" className={`flex-1 h-0.5 rounded ${langkah[i].done ? 'bg-brand-green' : 'bg-slate-200'}`} />
+                            )}
+                        </li>
+                    ))}
+                </ol>
+
+                {/* Kartu pilihan jenis */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
                     {opsi.map((o) => {
                         const Icon = o.icon;
@@ -121,8 +169,10 @@ export default function Create({ pinjaman }) {
                         return (
                             <button
                                 key={o.tipe}
+                                type="button"
                                 onClick={() => pilihTipe(o.tipe)}
-                                className={`text-left p-4 rounded-2xl border-2 transition-colors ${
+                                aria-pressed={aktif}
+                                className={`text-left p-4 rounded-2xl border-2 transition-colors ${focusRing} ${
                                     aktif ? 'border-brand-green bg-brand-green-light' : 'border-slate-200 bg-white hover:border-slate-300'
                                 }`}
                             >
@@ -133,6 +183,34 @@ export default function Create({ pinjaman }) {
                         );
                     })}
                 </div>
+
+                {/* Recap jenis dipilih */}
+                {tipeDipilih && opsiAktif && (
+                    <div className="flex items-center justify-between gap-3 bg-brand-green-light border border-brand-green/25 rounded-xl px-4 py-3 mb-5">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <opsiAktif.icon size={18} className="text-brand-green-dark shrink-0" />
+
+                            <div className="min-w-0">
+                                <p className="text-xs font-bold uppercase tracking-wide text-brand-green-dark">
+                                    Jenis dipilih
+                                </p>
+
+                                <p className="text-sm font-semibold text-slate-800 truncate">
+                                    {opsiAktif.label}
+                                </p>
+                            </div>
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={gantiJenis}
+                            className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg border border-brand-green/40 text-brand-green-dark hover:bg-white/70 transition-colors ${focusRing}`}
+                        >
+                            <RotateCcw size={12} />
+                            Ganti
+                        </button>
+                    </div>
+                )}
 
                 {tipeDipilih && (
                     <form onSubmit={submit} className="bg-white rounded-2xl border border-slate-100 p-6">
@@ -146,7 +224,8 @@ export default function Create({ pinjaman }) {
                                             key={bulan}
                                             type="button"
                                             onClick={() => pilihTenor(bulan)}
-                                            className={`py-3 rounded-xl text-base font-bold border-2 transition-colors ${
+                                            aria-pressed={data.tenor_baru === bulan}
+                                            className={`py-3 rounded-xl text-base font-bold border-2 transition-colors ${focusRing} ${
                                                 data.tenor_baru === bulan
                                                     ? 'border-brand-green bg-brand-green-light text-brand-green-dark'
                                                     : 'border-slate-200 text-slate-600 hover:border-slate-300'
@@ -170,7 +249,8 @@ export default function Create({ pinjaman }) {
                                             key={bulan}
                                             type="button"
                                             onClick={() => pilihTenor(bulan)}
-                                            className={`py-3 rounded-xl text-base font-bold border-2 transition-colors ${
+                                            aria-pressed={data.tenor_baru === bulan}
+                                            className={`py-3 rounded-xl text-base font-bold border-2 transition-colors ${focusRing} ${
                                                 data.tenor_baru === bulan
                                                     ? 'border-brand-green bg-brand-green-light text-brand-green-dark'
                                                     : 'border-slate-200 text-slate-600 hover:border-slate-300'
@@ -223,13 +303,15 @@ export default function Create({ pinjaman }) {
                         )}
 
                         <div className="mb-6">
-                            <label className="block text-base font-semibold text-slate-700 mb-2">Alasan Pengajuan</label>
+                            <label htmlFor="alasan-perubahan" className="block text-base font-semibold text-slate-700 mb-2">Alasan Pengajuan</label>
+                            <p className="text-xs text-slate-400 -mt-1 mb-2">Minimal 10 karakter.</p>
                             <textarea
+                                id="alasan-perubahan"
                                 value={data.keterangan}
                                 onChange={(e) => setData('keterangan', e.target.value)}
                                 rows={3}
                                 placeholder="Jelaskan alasan Anda mengajukan perubahan ini"
-                                className="w-full px-4 py-3 text-base rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
+                                className={`w-full px-4 py-3 text-base rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors ${focusRing}`}
                             />
                             {errors.keterangan && <p className="text-sm text-red-600 mt-1.5">{errors.keterangan}</p>}
                         </div>
@@ -244,7 +326,7 @@ export default function Create({ pinjaman }) {
                         <button
                             type="submit"
                             disabled={processing}
-                            className="w-full py-3.5 text-base font-bold rounded-2xl bg-brand-green text-white hover:bg-brand-green-dark transition-colors disabled:opacity-50"
+                            className={`w-full py-3.5 text-base font-bold rounded-2xl bg-brand-green text-white hover:bg-brand-green-dark transition-colors disabled:opacity-50 ${focusRing}`}
                         >
                             {processing ? 'Mengirim...' : 'Kirim Pengajuan'}
                         </button>

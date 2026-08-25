@@ -229,7 +229,7 @@ const TATA_CARA = [
             },
             {
                 judul: 'Kirim dan tunggu keputusan',
-                deskripsi: 'Klik "Kirim Pengajuan". Bendahara meninjau lalu Ketua Koperasi memutuskan, termasuk apakah perubahan berlaku bulan ini atau bulan depan.',
+                deskripsi: 'Klik "Kirim Pengajuan". Anda dibawa kembali ke Beranda beserta kuitansi konfirmasi, dan konfirmasi dikirim melalui WhatsApp Koperasi. Bendahara meninjau lalu Ketua memutuskan, termasuk bulan mulai berlakunya perubahan.',
                 mockup: <MiniTimeline steps={['Bendahara', 'Ketua']} />,
             },
         ],

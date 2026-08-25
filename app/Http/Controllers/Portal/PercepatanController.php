@@ -49,7 +49,14 @@ class PercepatanController extends Controller
             return back()->withErrors(['tipe' => $e->getMessage()]);
         }
 
-        return redirect()->route('portal.dashboard')->with('status', 'Pengajuan berhasil dikirim.');
+        return redirect()
+            ->route('portal.dashboard')
+            ->with('percepatan_terkirim', [
+                'tipe' => $request->tipe,
+                'nominal' => (float) $pinjaman->nominal,
+                'tenor_lama' => (int) $pinjaman->tenor_bulan,
+                'tenor_baru' => $request->tenor_baru ? (int) $request->tenor_baru : null,
+            ]);
     }
 
     public function preview(Request $request)
