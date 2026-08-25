@@ -6,6 +6,7 @@ use App\Models\Anggota;
 use App\Models\Pinjaman;
 use App\Models\RekeningAnggota;
 use App\Models\User;
+use App\Services\Wa\WaService;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -57,7 +58,7 @@ class PengajuanPinjamanService
         // tanpa peduli sisa berapa pun). Jika sudah ada pinjaman aktif lain, update flag-nya juga.
         $pakaiPrivilegeReloan = $cekEligibilitas['sisa_angsuran'] > 0;
 
-        return DB::transaction(function () use ($pengaju, $anggota, $nominal, $tenorBulan, $keperluan, $rekening, $statusAwal, $cairOlehBendahara, $catatanBendahara, $pakaiPrivilegeReloan, $audit) {
+        $pinjaman = DB::transaction(function () use ($pengaju, $anggota, $nominal, $tenorBulan, $keperluan, $rekening, $statusAwal, $cairOlehBendahara, $catatanBendahara, $pakaiPrivilegeReloan, $audit) {
             if ($pakaiPrivilegeReloan) {
                 Pinjaman::where('anggota_id', $anggota->id)
                     ->where('status', 'aktif')
@@ -87,6 +88,21 @@ class PengajuanPinjamanService
                 'user_agent_setuju' => isset($audit['user_agent']) ? substr($audit['user_agent'], 0, 255) : null,
             ]);
         });
+
+        $ringkasan = 'Rp '.number_format($nominal, 0, ',', '.')." (tenor {$tenorBulan} bulan)";
+
+        WaService::keAnggota(
+            $anggota,
+            'pinjaman_diajukan',
+            "Halo {$anggota->nama}, pengajuan pinjaman Anda sebesar {$ringkasan} sudah diterima dan sedang diproses."
+        );
+
+        WaService::kePengurus(
+            'pinjaman_diajukan',
+            "Ada pengajuan pinjaman baru dari {$anggota->nama}: {$ringkasan}. Silakan tinjau di sistem koperasi."
+        );
+
+        return $pinjaman;
     }
 
     /**

@@ -136,6 +136,9 @@ Route::middleware(['auth', 'permission:pengaturan.kelola', 'password.confirm'])-
     Route::delete('/pengaturan/tenor/{tenor}', [PengaturanController::class, 'destroyTenor'])->name('pengaturan.tenor.destroy');
     Route::post('/pengaturan/bunga', [PengaturanController::class, 'updateBunga'])->name('pengaturan.bunga.update');
     Route::post('/pengaturan/simpanan/{setting}', [PengaturanController::class, 'updateSimpanan'])->name('pengaturan.simpanan.update');
+    // --------- WhatsApp (Baileys) ------------
+    Route::get('/pengaturan/wa', [PengaturanController::class, 'waData'])->name('pengaturan.wa.data');
+    Route::post('/pengaturan/wa/logout', [PengaturanController::class, 'waLogout'])->name('pengaturan.wa.logout');
     // --------- Role ------------
     Route::get('/role', [RoleController::class, 'index'])->name('role.index');
     Route::post('/role', [RoleController::class, 'store'])->name('role.store');

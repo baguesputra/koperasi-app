@@ -4,6 +4,7 @@ namespace App\Services\Pinjaman;
 
 use App\Models\PengajuanPercepatan;
 use App\Models\Pinjaman;
+use App\Services\Wa\WaService;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -34,7 +35,7 @@ class PercepatanPinjamanService
             }
         }
 
-        return PengajuanPercepatan::create([
+        $pengajuan = PengajuanPercepatan::create([
             'pinjaman_id' => $pinjaman->id,
             'tipe' => $tipe,
             'tenor_lama' => $pinjaman->tenor_bulan,
@@ -43,6 +44,19 @@ class PercepatanPinjamanService
             'status' => 'diajukan',
             'tanggal_pengajuan' => now(),
         ]);
+
+        WaService::keAnggota(
+            $pinjaman->anggota,
+            'perubahan_tenor_diajukan',
+            "Halo {$pinjaman->anggota->nama}, pengajuan perubahan tenor Anda untuk pinjaman Rp ".number_format((float) $pinjaman->nominal, 0, ',', '.').' sudah diterima dan sedang diproses.'
+        );
+
+        WaService::kePengurus(
+            'perubahan_tenor_diajukan',
+            "Ada pengajuan perubahan tenor dari {$pinjaman->anggota->nama} ({$tipe}). Silakan tinjau di sistem koperasi."
+        );
+
+        return $pengajuan;
     }
 
     /**
@@ -84,16 +98,34 @@ class PercepatanPinjamanService
     public function approveBendahara(PengajuanPercepatan $p, string $catatan): void
     {
         $p->update(['status' => 'approved_bendahara', 'catatan_bendahara' => $catatan]);
+
+        WaService::keAnggota(
+            $p->pinjaman->anggota,
+            'perubahan_tenor_disetujui_bendahara',
+            'Pengajuan perubahan tenor Anda telah disetujui Bendahara dan sedang menunggu persetujuan Ketua.'
+        );
     }
 
     public function rejectBendahara(PengajuanPercepatan $p, string $catatan): void
     {
         $p->update(['status' => 'ditolak', 'catatan_bendahara' => $catatan]);
+
+        WaService::keAnggota(
+            $p->pinjaman->anggota,
+            'perubahan_tenor_ditolak',
+            'Mohon maaf, pengajuan perubahan tenor Anda DITOLAK oleh Bendahara.'.($catatan ? " Catatan: {$catatan}" : '')
+        );
     }
 
     public function rejectKetua(PengajuanPercepatan $p, string $catatan): void
     {
         $p->update(['status' => 'ditolak', 'catatan_ketua' => $catatan]);
+
+        WaService::keAnggota(
+            $p->pinjaman->anggota,
+            'perubahan_tenor_ditolak',
+            'Mohon maaf, pengajuan perubahan tenor Anda DITOLAK oleh Ketua.'.($catatan ? " Catatan: {$catatan}" : '')
+        );
     }
 
     public function approveKetua(PengajuanPercepatan $pengajuan, string $catatan, string $bulanBerlaku): void
@@ -175,5 +207,11 @@ class PercepatanPinjamanService
 
             $pinjaman->update(['sudah_pakai_percepatan' => true]);
         });
+
+        WaService::keAnggota(
+            $pengajuan->pinjaman->anggota,
+            'perubahan_tenor_disetujui_ketua',
+            'Pengajuan perubahan tenor Anda telah DISETUJUI Ketua dan sudah berlaku.'.($catatan ? " Catatan: {$catatan}" : '')
+        );
     }
 }

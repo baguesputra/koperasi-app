@@ -4,6 +4,7 @@ namespace App\Services\Pinjaman;
 
 use App\Models\Pinjaman;
 use App\Services\Keuangan\JurnalKasService;
+use App\Services\Wa\WaService;
 use Illuminate\Support\Facades\DB;
 
 class PersetujuanPinjamanService
@@ -19,6 +20,12 @@ class PersetujuanPinjamanService
             'status' => 'approved_bendahara',
             'catatan_bendahara' => $catatan,
         ]);
+
+        WaService::keAnggota(
+            $pinjaman->anggota,
+            'pinjaman_disetujui_bendahara',
+            'Pengajuan pinjaman Anda telah disetujui Bendahara dan sedang menunggu persetujuan Ketua.'
+        );
     }
 
     public function rejectBendahara(Pinjaman $pinjaman, string $catatan): void
@@ -27,6 +34,12 @@ class PersetujuanPinjamanService
             'status' => 'ditolak',
             'catatan_bendahara' => $catatan,
         ]);
+
+        WaService::keAnggota(
+            $pinjaman->anggota,
+            'pinjaman_ditolak',
+            'Mohon maaf, pengajuan pinjaman Anda ditolak oleh Bendahara.'.($catatan ? " Catatan: {$catatan}" : '')
+        );
     }
 
     public function approveKetua(Pinjaman $pinjaman, string $catatan): void
@@ -52,6 +65,12 @@ class PersetujuanPinjamanService
                 userId: auth()->id(),
             );
         });
+
+        WaService::keAnggota(
+            $pinjaman->anggota,
+            'pinjaman_disetujui_ketua',
+            'Selamat, pinjaman Anda sebesar Rp '.number_format((float) $pinjaman->nominal, 0, ',', '.').' telah disetujui Ketua dan dicairkan.'
+        );
     }
 
     public function rejectKetua(Pinjaman $pinjaman, string $catatan): void
@@ -60,5 +79,11 @@ class PersetujuanPinjamanService
             'status' => 'ditolak',
             'catatan_ketua' => $catatan,
         ]);
+
+        WaService::keAnggota(
+            $pinjaman->anggota,
+            'pinjaman_ditolak',
+            'Mohon maaf, pengajuan pinjaman Anda ditolak oleh Ketua.'.($catatan ? " Catatan: {$catatan}" : '')
+        );
     }
 }

@@ -43,10 +43,41 @@ services:
     networks:
       - koperasi_network
 
+  baileys:
+    build:
+      context: ./baileys-service
+    container_name: koperasi_baileys
+    restart: unless-stopped
+    environment:
+      TOKEN: ${BAILEYS_TOKEN:-change-me-in-production}
+    ports:
+      - "3000:3000"
+    volumes:
+      - koperasi_baileys_session:/app/session
+    networks:
+      - koperasi_network
+
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: koperasi_queue
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+    command: php artisan queue:listen --tries=1 --timeout=0
+    depends_on:
+      - mysql
+    networks:
+      - koperasi_network
+
 networks:
   koperasi_network:
     driver: bridge
 
 volumes:
   koperasi_mysql_data:
+    driver: local
+  koperasi_baileys_session:
     driver: local

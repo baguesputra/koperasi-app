@@ -5,6 +5,7 @@ namespace App\Services\Pinjaman;
 use App\Models\Anggota;
 use App\Models\AuditLog;
 use App\Models\PengajuanLimit;
+use App\Services\Wa\WaService;
 use RuntimeException;
 
 class PengajuanLimitService
@@ -27,7 +28,7 @@ class PengajuanLimitService
             throw new RuntimeException('Limit yang diajukan harus lebih besar dari limit Anda saat ini: Rp '.number_format($limitSaatIni, 0, ',', '.'));
         }
 
-        return PengajuanLimit::create([
+        $pengajuan = PengajuanLimit::create([
             'anggota_id' => $anggota->id,
             'limit_saat_ini' => $limitSaatIni,
             'limit_diminta' => $limitDiminta,
@@ -35,6 +36,19 @@ class PengajuanLimitService
             'status' => 'diajukan',
             'tanggal_pengajuan' => now(),
         ]);
+
+        WaService::keAnggota(
+            $anggota,
+            'limit_diajukan',
+            "Halo {$anggota->nama}, pengajuan kenaikan limit Anda (dari Rp ".number_format($limitSaatIni, 0, ',', '.').' menjadi Rp '.number_format($limitDiminta, 0, ',', '.').') sudah diterima dan sedang diproses.'
+        );
+
+        WaService::kePengurus(
+            'limit_diajukan',
+            "Ada pengajuan kenaikan limit dari {$anggota->nama}: dari Rp ".number_format($limitSaatIni, 0, ',', '.').' menjadi Rp '.number_format($limitDiminta, 0, ',', '.').'. Silakan tinjau di sistem koperasi.'
+        );
+
+        return $pengajuan;
     }
 
     public function setujui(PengajuanLimit $pengajuan, string $catatan): void
@@ -52,6 +66,12 @@ class PengajuanLimitService
             ['limit_custom' => $pengajuan->anggota->limit_custom],
             ['limit_custom' => $pengajuan->limit_diminta]
         );
+
+        WaService::keAnggota(
+            $pengajuan->anggota,
+            'limit_disetujui',
+            "Selamat {$pengajuan->anggota->nama}, pengajuan limit Anda disetujui. Limit pinjaman Anda kini Rp ".number_format($pengajuan->limit_diminta, 0, ',', '.').'.'
+        );
     }
 
     public function tolak(PengajuanLimit $pengajuan, string $catatan): void
@@ -60,5 +80,11 @@ class PengajuanLimitService
             'status' => 'ditolak',
             'catatan_ketua' => $catatan,
         ]);
+
+        WaService::keAnggota(
+            $pengajuan->anggota,
+            'limit_ditolak',
+            'Mohon maaf, pengajuan limit Anda ditolak.'.($catatan ? " Catatan: {$catatan}" : '')
+        );
     }
 }

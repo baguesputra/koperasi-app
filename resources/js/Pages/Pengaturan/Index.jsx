@@ -1,13 +1,14 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
-import { Percent, HandCoins, CalendarRange, PiggyBank, Shield, UserCog, ChevronRight } from 'lucide-react';
+import { Percent, HandCoins, CalendarRange, PiggyBank, Shield, UserCog, ChevronRight, QrCode } from 'lucide-react';
 import Card from '@/Components/ui/Card';
 import Drawer from '@/Components/ui/Drawer';
 import TabBunga from './Partials/TabBunga';
 import TabLimit from './Partials/TabLimit';
 import TabTenor from './Partials/TabTenor';
 import TabSimpanan from './Partials/TabSimpanan';
+import TabWa from './Partials/TabWa';
 import SheetKelolaPengguna from './Partials/SheetKelolaPengguna';
 import SheetKelolaRole from './Partials/SheetKelolaRole';
 
@@ -16,6 +17,7 @@ const tabs = [
     { key: 'limit', label: 'Limit Pinjaman', icon: HandCoins },
     { key: 'tenor', label: 'Tenor', icon: CalendarRange },
     { key: 'simpanan', label: 'Simpanan', icon: PiggyBank },
+    { key: 'wa', label: 'WhatsApp', icon: QrCode },
 ];
 
 export default function Index({
@@ -92,6 +94,7 @@ export default function Index({
                 {tabAktif === 'limit' && <TabLimit limitPinjaman={limitPinjaman} />}
                 {tabAktif === 'tenor' && <TabTenor tabelTenor={tabelTenor} />}
                 {tabAktif === 'simpanan' && <TabSimpanan settingSimpanan={settingSimpanan} />}
+                {tabAktif === 'wa' && <TabWa />}
             </Card>
 
             {/* Manajemen akses */}

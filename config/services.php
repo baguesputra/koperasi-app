@@ -45,4 +45,10 @@ return [
         'profile_url' => env('SSO_PROFILE_URL'),
     ],
 
+    'wa' => [
+        'url' => env('BAILEYS_URL', 'http://baileys:3000'),
+        'token' => env('BAILEYS_TOKEN'),
+        'timeout' => (float) env('BAILEYS_TIMEOUT', 10),
+    ],
+
 ];

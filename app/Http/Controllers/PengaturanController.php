@@ -8,7 +8,12 @@ use App\Models\SettingLimitPinjaman;
 use App\Models\SettingSimpanan;
 use App\Models\TabelTenor;
 use App\Models\User;
+use App\Models\WaLog;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Permission\Models\Permission;
@@ -16,7 +21,7 @@ use Spatie\Permission\Models\Role;
 
 class PengaturanController extends Controller
 {
-    private const TAB_DIPERBOLEHKAN = ['bunga', 'limit', 'tenor', 'simpanan'];
+    private const TAB_DIPERBOLEHKAN = ['bunga', 'limit', 'tenor', 'simpanan', 'wa'];
 
     private const PANEL_DIPERBOLEHKAN = ['kelola-pengguna', 'kelola-role'];
 
@@ -196,5 +201,63 @@ class PengaturanController extends Controller
         );
 
         return back()->with('status', 'Nominal simpanan berhasil diperbarui.');
+    }
+
+    public function waData(): JsonResponse
+    {
+        $status = $this->baileysGet('/status');
+
+        $qr = null;
+        if (! ($status['connected'] ?? false) && ($status['hasQR'] ?? false)) {
+            $qr = $this->baileysGet('/qr')['qr'] ?? null;
+        }
+
+        return response()->json([
+            'terhubung' => (bool) ($status['connected'] ?? false),
+            'layanan' => $status !== null,
+            'qr' => $qr,
+            'logs' => WaLog::query()
+                ->latest('id')
+                ->limit(50)
+                ->get()
+                ->map(fn ($log) => [
+                    'id' => $log->id,
+                    'waktu' => $log->created_at?->format('d M Y H:i'),
+                    'penerima' => $log->penerima,
+                    'event' => $log->event,
+                    'pesan' => $log->pesan,
+                    'status' => $log->status,
+                    'error' => $log->error,
+                ]),
+        ]);
+    }
+
+    public function waLogout(): JsonResponse
+    {
+        try {
+            Http::baseUrl(config('services.wa.url'))
+                ->withToken(config('services.wa.token'))
+                ->timeout(config('services.wa.timeout'))
+                ->post('/logout')
+                ->throw();
+        } catch (ConnectionException|RequestException) {
+            return response()->json(['message' => 'Layanan WhatsApp tidak dapat dihubungi.'], 502);
+        }
+
+        return response()->json(['message' => 'Perangkat WhatsApp berhasil dikeluarkan.']);
+    }
+
+    private function baileysGet(string $path): ?array
+    {
+        try {
+            return Http::baseUrl(config('services.wa.url'))
+                ->withToken(config('services.wa.token'))
+                ->timeout(config('services.wa.timeout'))
+                ->get($path)
+                ->throw()
+                ->json() ?? null;
+        } catch (ConnectionException|RequestException) {
+            return null;
+        }
     }
 }
