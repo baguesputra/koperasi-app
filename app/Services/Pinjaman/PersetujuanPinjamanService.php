@@ -2,9 +2,12 @@
 
 namespace App\Services\Pinjaman;
 
+use App\Helpers\TerbilangHelper;
 use App\Models\Pinjaman;
 use App\Services\Keuangan\JurnalKasService;
+use App\Services\Wa\WaPesan;
 use App\Services\Wa\WaService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
 
 class PersetujuanPinjamanService
@@ -21,10 +24,17 @@ class PersetujuanPinjamanService
             'catatan_bendahara' => $catatan,
         ]);
 
+        $isi = "Pengajuan pinjaman Anda telah kami informasikan dengan rincian:\n\n"
+            ."- Nomor Referensi: #{$pinjaman->id}\n"
+            .'- Nominal: '.WaPesan::rupiah($pinjaman->nominal)."\n"
+            ."- Tenor: {$pinjaman->tenor_bulan} bulan\n\n"
+            .'Status saat ini: *Disetujui Bendahara* dan sedang menunggu persetujuan Ketua.'
+            .' Pemberitahuan selanjutnya akan kami sampaikan melalui WhatsApp ini.';
+
         WaService::keAnggota(
             $pinjaman->anggota,
             'pinjaman_disetujui_bendahara',
-            'Pengajuan pinjaman Anda telah disetujui Bendahara dan sedang menunggu persetujuan Ketua.'
+            WaPesan::susun($pinjaman->anggota->nama, $pinjaman->anggota->no_anggota, $isi)
         );
     }
 
@@ -38,7 +48,7 @@ class PersetujuanPinjamanService
         WaService::keAnggota(
             $pinjaman->anggota,
             'pinjaman_ditolak',
-            'Mohon maaf, pengajuan pinjaman Anda ditolak oleh Bendahara.'.($catatan ? " Catatan: {$catatan}" : '')
+            $this->pesanDitolak('Bendahara', $pinjaman, $catatan)
         );
     }
 
@@ -66,10 +76,24 @@ class PersetujuanPinjamanService
             );
         });
 
-        WaService::keAnggota(
+        $pinjaman->refresh();
+
+        $isi = "Dengan hormat,\n\nSelamat! Pengajuan pinjaman Anda telah *DISETUJUI* oleh Ketua dan dana telah dicairkan pada "
+            .now()->translatedFormat('d F Y').".\n\nRincian pencairan:\n"
+            ."- Nomor Referensi: #{$pinjaman->id}\n"
+            .'- Nominal: '.WaPesan::rupiah($pinjaman->nominal).' ('.TerbilangHelper::angkaKeTerbilang($pinjaman->nominal).")\n"
+            ."- Tenor: {$pinjaman->tenor_bulan} bulan\n"
+            .'- Bunga: '.$pinjaman->persentase_bunga."% per bulan (metode menurun)\n"
+            .'- Rekening tujuan: '.$pinjaman->snapshot_bank.' '.$pinjaman->snapshot_no_rekening.' a.n. '.$pinjaman->snapshot_atas_nama."\n\n"
+            ."Dokumen *Bukti Peminjaman* terlampir pada pesan ini, memuat rincian jadwal angsuran Anda. Mohon lakukan pembayaran angsuran sesuai tanggal jatuh tempo yang tercantum.\n\n"
+            .'Terima kasih atas kepercayaan Anda.';
+
+        WaService::keAnggotaDokumen(
             $pinjaman->anggota,
             'pinjaman_disetujui_ketua',
-            'Selamat, pinjaman Anda sebesar Rp '.number_format((float) $pinjaman->nominal, 0, ',', '.').' telah disetujui Ketua dan dicairkan.'
+            WaPesan::susun($pinjaman->anggota->nama, $pinjaman->anggota->no_anggota, $isi),
+            Pdf::loadView('wa.bukti-pinjaman', $pinjaman->dataBukti())->output(),
+            "Bukti-Peminjaman-{$pinjaman->id}.pdf",
         );
     }
 
@@ -83,7 +107,20 @@ class PersetujuanPinjamanService
         WaService::keAnggota(
             $pinjaman->anggota,
             'pinjaman_ditolak',
-            'Mohon maaf, pengajuan pinjaman Anda ditolak oleh Ketua.'.($catatan ? " Catatan: {$catatan}" : '')
+            $this->pesanDitolak('Ketua', $pinjaman, $catatan)
         );
+    }
+
+    private function pesanDitolak(string $oleh, Pinjaman $pinjaman, string $catatan): string
+    {
+        $isi = "Dengan hormat,\n\nMohon maaf, pengajuan pinjaman Anda dengan rincian berikut:\n\n"
+            ."- Nomor Referensi: #{$pinjaman->id}\n"
+            .'- Nominal: '.WaPesan::rupiah($pinjaman->nominal)."\n"
+            ."- Tenor: {$pinjaman->tenor_bulan} bulan\n\n"
+            ."telah *DITOLAK* oleh {$oleh}."
+            .($catatan ? "\n\nCatatan: {$catatan}" : '')
+            ."\n\nApabila terdapat pertanyaan lebih lanjut, silakan menghubungi pengurus atau Bendahara Koperasi.";
+
+        return WaPesan::susun($pinjaman->anggota->nama, $pinjaman->anggota->no_anggota, $isi);
     }
 }

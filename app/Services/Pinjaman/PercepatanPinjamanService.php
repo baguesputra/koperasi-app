@@ -4,6 +4,7 @@ namespace App\Services\Pinjaman;
 
 use App\Models\PengajuanPercepatan;
 use App\Models\Pinjaman;
+use App\Services\Wa\WaPesan;
 use App\Services\Wa\WaService;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -45,15 +46,34 @@ class PercepatanPinjamanService
             'tanggal_pengajuan' => now(),
         ]);
 
+        $labelTipe = self::labelTipe($tipe);
+
         WaService::keAnggota(
             $pinjaman->anggota,
             'perubahan_tenor_diajukan',
-            "Halo {$pinjaman->anggota->nama}, pengajuan perubahan tenor Anda untuk pinjaman Rp ".number_format((float) $pinjaman->nominal, 0, ',', '.').' sudah diterima dan sedang diproses.'
+            WaPesan::susun($pinjaman->anggota->nama, $pinjaman->anggota->no_anggota,
+                'Pengajuan perubahan jadwal angsuran Anda telah kami terima pada '.now()->translatedFormat('d F Y')." dengan rincian sebagai berikut:\n\n"
+                ."- Nomor Referensi Pinjaman: #{$pinjaman->id}\n"
+                .'- Nominal Pinjaman: '.WaPesan::rupiah($pinjaman->nominal)."\n"
+                ."- Jenis Pengajuan: {$labelTipe}\n"
+                .($pengajuan->tenor_baru ? "- Tenor: {$pengajuan->tenor_lama} bulan menjadi *{$pengajuan->tenor_baru} bulan*\n" : '')
+                ."- Keterangan: {$keterangan}\n\n"
+                .'Status saat ini: *Menunggu verifikasi Bendahara*.'
+                .' Pemberitahuan selanjutnya akan kami sampaikan melalui WhatsApp ini.')
         );
 
         WaService::kePengurus(
             'perubahan_tenor_diajukan',
-            "Ada pengajuan perubahan tenor dari {$pinjaman->anggota->nama} ({$tipe}). Silakan tinjau di sistem koperasi."
+            WaPesan::susun(null, null,
+                "Notifikasi Pengajuan Perubahan Jadwal Angsuran\n\n"
+                ."Telah diterima pengajuan perubahan dengan rincian sebagai berikut:\n\n"
+                ."- Pemohon: {$pinjaman->anggota->nama} (No. Anggota: {$pinjaman->anggota->no_anggota})\n"
+                ."- Nomor Referensi Pinjaman: #{$pinjaman->id}\n"
+                .'- Nominal Pinjaman: '.WaPesan::rupiah($pinjaman->nominal)."\n"
+                ."- Jenis Pengajuan: {$labelTipe}\n"
+                .($pengajuan->tenor_baru ? "- Tenor: {$pengajuan->tenor_lama} bulan menjadi {$pengajuan->tenor_baru} bulan\n" : '')
+                ."- Keterangan: {$keterangan}\n\n"
+                .'Mohon lakukan verifikasi melalui sistem koperasi.')
         );
 
         return $pengajuan;
@@ -102,7 +122,10 @@ class PercepatanPinjamanService
         WaService::keAnggota(
             $p->pinjaman->anggota,
             'perubahan_tenor_disetujui_bendahara',
-            'Pengajuan perubahan tenor Anda telah disetujui Bendahara dan sedang menunggu persetujuan Ketua.'
+            WaPesan::susun($p->pinjaman->anggota->nama, $p->pinjaman->anggota->no_anggota,
+                'Pengajuan '.self::labelTipe($p->tipe)." Anda untuk pinjaman #{$p->pinjaman->id} ("
+                .WaPesan::rupiah($p->pinjaman->nominal).') telah *Disetujui Bendahara* dan sedang menunggu persetujuan Ketua.'
+                .' Pemberitahuan selanjutnya akan kami sampaikan melalui WhatsApp ini.')
         );
     }
 
@@ -113,7 +136,7 @@ class PercepatanPinjamanService
         WaService::keAnggota(
             $p->pinjaman->anggota,
             'perubahan_tenor_ditolak',
-            'Mohon maaf, pengajuan perubahan tenor Anda DITOLAK oleh Bendahara.'.($catatan ? " Catatan: {$catatan}" : '')
+            self::pesanDitolak('Bendahara', $p, $catatan)
         );
     }
 
@@ -124,7 +147,7 @@ class PercepatanPinjamanService
         WaService::keAnggota(
             $p->pinjaman->anggota,
             'perubahan_tenor_ditolak',
-            'Mohon maaf, pengajuan perubahan tenor Anda DITOLAK oleh Ketua.'.($catatan ? " Catatan: {$catatan}" : '')
+            self::pesanDitolak('Ketua', $p, $catatan)
         );
     }
 
@@ -208,10 +231,36 @@ class PercepatanPinjamanService
             $pinjaman->update(['sudah_pakai_percepatan' => true]);
         });
 
+        $labelBulan = $bulanBerlaku === 'bulan_ini' ? 'bulan ini ('.now()->translatedFormat('F Y').')' : 'bulan depan ('.now()->addMonthNoOverflow()->translatedFormat('F Y').')';
+        $isi = 'Selamat! Pengajuan '.self::labelTipe($pengajuan->tipe)." Anda untuk pinjaman #{$pengajuan->pinjaman->id} ("
+            .WaPesan::rupiah($pengajuan->pinjaman->nominal).") telah *DISETUJUI* oleh Ketua dan berlaku mulai {$labelBulan}."
+            .($catatan ? "\n\nCatatan: {$catatan}" : '')
+            ."\n\nJadwal angsuran terbaru dapat dilihat pada sistem koperasi. Terima kasih.";
+
         WaService::keAnggota(
             $pengajuan->pinjaman->anggota,
             'perubahan_tenor_disetujui_ketua',
-            'Pengajuan perubahan tenor Anda telah DISETUJUI Ketua dan sudah berlaku.'.($catatan ? " Catatan: {$catatan}" : '')
+            WaPesan::susun($pengajuan->pinjaman->anggota->nama, $pengajuan->pinjaman->anggota->no_anggota, $isi)
         );
+    }
+
+    private static function labelTipe(string $tipe): string
+    {
+        return match ($tipe) {
+            'percepat' => 'Percepatan Pelunasan (tenor diperpendek)',
+            'perpanjang' => 'Perpanjangan Tenor',
+            'lunas_total' => 'Pelunasan Total',
+            default => ucfirst($tipe),
+        };
+    }
+
+    private static function pesanDitolak(string $oleh, PengajuanPercepatan $p, string $catatan): string
+    {
+        $isi = 'Mohon maaf, pengajuan '.self::labelTipe($p->tipe)." Anda untuk pinjaman #{$p->pinjaman->id} ("
+            .WaPesan::rupiah($p->pinjaman->nominal).") telah *DITOLAK* oleh {$oleh}."
+            .($catatan ? "\n\nCatatan: {$catatan}" : '')
+            ."\n\nApabila terdapat pertanyaan lebih lanjut, silakan menghubungi pengurus atau Bendahara Koperasi.";
+
+        return WaPesan::susun($p->pinjaman->anggota->nama, $p->pinjaman->anggota->no_anggota, $isi);
     }
 }

@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Helpers\TerbilangHelper;
 use App\Models\Anggota;
 use App\Models\Angsuran;
 use App\Models\JurnalKas;
@@ -252,55 +251,6 @@ class PinjamanController extends Controller
     {
         abort_unless($pinjaman->status === 'aktif', 403, 'Bukti peminjaman hanya tersedia untuk pinjaman dengan status Aktif.');
 
-        $pinjaman->load(['anggota', 'angsuran']);
-
-        $angsuranList = $pinjaman->angsuran()
-            ->orderBy('cicilan_ke')
-            ->get()
-            ->map(fn ($a) => [
-                'cicilan_ke' => $a->cicilan_ke,
-                'tanggal_jatuh_tempo' => $a->tanggal_jatuh_tempo?->format('d M Y'),
-                'nominal_pokok' => (float) $a->nominal_pokok,
-                'nominal_bunga' => (float) $a->nominal_bunga,
-                'total_bayar' => (float) $a->total_bayar,
-                'status' => $a->status,
-            ]);
-
-        $totalPokok = $angsuranList->sum('nominal_pokok');
-        $totalBunga = $angsuranList->sum('nominal_bunga');
-        $totalAngsuran = $angsuranList->sum('total_bayar');
-
-        return Inertia::render('Pinjaman/CetakBukti', [
-            'pinjaman' => [
-                'id' => $pinjaman->id,
-                'nominal' => (float) $pinjaman->nominal,
-                'terbilang' => TerbilangHelper::angkaKeTerbilang($pinjaman->nominal),
-                'tenor_bulan' => $pinjaman->tenor_bulan,
-                'persentase_bunga' => (float) $pinjaman->persentase_bunga,
-                'keperluan' => $pinjaman->keperluan,
-                'tanggal_pengajuan' => $pinjaman->tanggal_pengajuan->format('d M Y'),
-                'tanggal_cair' => $pinjaman->tanggal_cair?->format('d M Y'),
-                'rekening' => [
-                    'bank' => $pinjaman->snapshot_bank,
-                    'no_rekening' => $pinjaman->snapshot_no_rekening,
-                    'atas_nama' => $pinjaman->snapshot_atas_nama,
-                ],
-                'anggota' => [
-                    'id' => $pinjaman->anggota->id,
-                    'no_anggota' => $pinjaman->anggota->no_anggota,
-                    'no_karyawan' => $pinjaman->anggota->no_karyawan,
-                    'nama' => $pinjaman->anggota->nama,
-                    'cabang' => $pinjaman->anggota->cabang,
-                    'unit_bisnis' => $pinjaman->anggota->unit_bisnis,
-                    'jabatan' => $pinjaman->anggota->jabatan,
-                ],
-            ],
-            'angsuran' => $angsuranList,
-            'totals' => [
-                'pokok' => $totalPokok,
-                'bunga' => $totalBunga,
-                'angsuran' => $totalAngsuran,
-            ],
-        ]);
+        return Inertia::render('Pinjaman/CetakBukti', $pinjaman->dataBukti());
     }
 }

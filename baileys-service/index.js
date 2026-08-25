@@ -18,6 +18,25 @@ let sock = null
 let latestQr = null
 let connected = false
 
+const JEDA_KIRIM_MS = Number(process.env.SEND_INTERVAL_MS || 2000)
+// ponytail: antrean in-memory, "terkirim" tercatat saat masuk antrean; kalau kehilangan
+// pesan saat restart/offline jadi masalah, pindah ke antrian persist (redis/db)
+const antrean = []
+
+setInterval(async () => {
+    if (!antrean.length || !connected || !sock) return
+    const tugas = antrean.shift()
+    try {
+        await tugas()
+    } catch (e) {
+        console.error('[wa] kirim gagal:', e?.message)
+    }
+}, JEDA_KIRIM_MS)
+
+function jid(nomor) {
+    return String(nomor).includes('@') ? nomor : `${nomor}@s.whatsapp.net`
+}
+
 function json(res, status, body) {
     res.writeHead(status, { 'Content-Type': 'application/json' })
     res.end(JSON.stringify(body))
@@ -91,9 +110,23 @@ const server = http.createServer(async (req, res) => {
             const body = await bacaBody(req)
             if (!body.to || !body.message) return json(res, 422, { error: 'to & message wajib' })
             if (!connected || !sock) return json(res, 503, { error: 'WhatsApp belum terhubung' })
-            const jid = String(body.to).includes('@') ? body.to : `${body.to}@s.whatsapp.net`
-            await sock.sendMessage(jid, { text: body.message })
-            return json(res, 200, { ok: true })
+            antrean.push(() => sock.sendMessage(jid(body.to), { text: String(body.message) }))
+            return json(res, 202, { ok: true, queued: true })
+        }
+
+        if (req.method === 'POST' && url.pathname === '/send-document') {
+            const body = await bacaBody(req)
+            if (!body.to || !body.filename || !body.base64) return json(res, 422, { error: 'to, filename & base64 wajib' })
+            if (String(body.base64).length > 15_000_000) return json(res, 413, { error: 'dokumen terlalu besar' })
+            if (!connected || !sock) return json(res, 503, { error: 'WhatsApp belum terhubung' })
+            const pesan = {
+                document: Buffer.from(String(body.base64), 'base64'),
+                fileName: String(body.filename),
+                mimetype: body.mimetype || 'application/pdf',
+            }
+            if (body.caption) pesan.caption = String(body.caption)
+            antrean.push(() => sock.sendMessage(jid(body.to), pesan))
+            return json(res, 202, { ok: true, queued: true })
         }
 
         if (req.method === 'POST' && url.pathname === '/logout') {

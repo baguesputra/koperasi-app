@@ -5,6 +5,7 @@ namespace App\Services\Pinjaman;
 use App\Models\Anggota;
 use App\Models\AuditLog;
 use App\Models\PengajuanLimit;
+use App\Services\Wa\WaPesan;
 use App\Services\Wa\WaService;
 use RuntimeException;
 
@@ -40,12 +41,25 @@ class PengajuanLimitService
         WaService::keAnggota(
             $anggota,
             'limit_diajukan',
-            "Halo {$anggota->nama}, pengajuan kenaikan limit Anda (dari Rp ".number_format($limitSaatIni, 0, ',', '.').' menjadi Rp '.number_format($limitDiminta, 0, ',', '.').') sudah diterima dan sedang diproses.'
+            WaPesan::susun($anggota->nama, $anggota->no_anggota,
+                'Pengajuan kenaikan limit pinjaman Anda telah kami terima pada '.now()->translatedFormat('d F Y')." dengan rincian sebagai berikut:\n\n"
+                .'- Limit saat ini: '.WaPesan::rupiah($limitSaatIni)."\n"
+                .'- Limit diajukan: '.WaPesan::rupiah($limitDiminta)."\n"
+                ."- Keterangan: {$keterangan}\n\n"
+                .'Status saat ini: *Menunggu persetujuan Ketua*.'
+                .' Pemberitahuan selanjutnya akan kami sampaikan melalui WhatsApp ini.')
         );
 
         WaService::kePengurus(
             'limit_diajukan',
-            "Ada pengajuan kenaikan limit dari {$anggota->nama}: dari Rp ".number_format($limitSaatIni, 0, ',', '.').' menjadi Rp '.number_format($limitDiminta, 0, ',', '.').'. Silakan tinjau di sistem koperasi.'
+            WaPesan::susun(null, null,
+                "Notifikasi Pengajuan Kenaikan Limit\n\n"
+                ."Telah diterima pengajuan kenaikan limit pinjaman dengan rincian sebagai berikut:\n\n"
+                ."- Pemohon: {$anggota->nama} (No. Anggota: {$anggota->no_anggota})\n"
+                .'- Limit saat ini: '.WaPesan::rupiah($limitSaatIni)."\n"
+                .'- Limit diajukan: '.WaPesan::rupiah($limitDiminta)."\n"
+                ."- Keterangan: {$keterangan}\n\n"
+                .'Mohon lakukan peninjauan melalui sistem koperasi.')
         );
 
         return $pengajuan;
@@ -70,7 +84,11 @@ class PengajuanLimitService
         WaService::keAnggota(
             $pengajuan->anggota,
             'limit_disetujui',
-            "Selamat {$pengajuan->anggota->nama}, pengajuan limit Anda disetujui. Limit pinjaman Anda kini Rp ".number_format($pengajuan->limit_diminta, 0, ',', '.').'.'
+            WaPesan::susun($pengajuan->anggota->nama, $pengajuan->anggota->no_anggota,
+                "Selamat! Pengajuan kenaikan limit pinjaman Anda telah *DISETUJUI* oleh Ketua.\n\n"
+                .'- Limit sebelumnya: '.WaPesan::rupiah($pengajuan->limit_saat_ini)."\n"
+                .'- Limit berlaku saat ini: '.WaPesan::rupiah($pengajuan->limit_diminta)."\n\n"
+                .'Anda kini dapat mengajukan pinjaman hingga batas limit yang berlaku. Terima kasih atas kepercayaan Anda.')
         );
     }
 
@@ -81,10 +99,16 @@ class PengajuanLimitService
             'catatan_ketua' => $catatan,
         ]);
 
+        $isi = 'Mohon maaf, pengajuan kenaikan limit pinjaman Anda dari '
+            .WaPesan::rupiah($pengajuan->limit_saat_ini).' menjadi '.WaPesan::rupiah($pengajuan->limit_diminta)
+            .' telah *DITOLAK* oleh Ketua.'
+            .($catatan ? "\n\nCatatan: {$catatan}" : '')
+            ."\n\nApabila terdapat pertanyaan lebih lanjut, silakan menghubungi pengurus atau Bendahara Koperasi.";
+
         WaService::keAnggota(
             $pengajuan->anggota,
             'limit_ditolak',
-            'Mohon maaf, pengajuan limit Anda ditolak.'.($catatan ? " Catatan: {$catatan}" : '')
+            WaPesan::susun($pengajuan->anggota->nama, $pengajuan->anggota->no_anggota, $isi)
         );
     }
 }

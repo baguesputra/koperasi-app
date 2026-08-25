@@ -2,10 +2,12 @@
 
 namespace App\Services\Pinjaman;
 
+use App\Helpers\TerbilangHelper;
 use App\Models\Anggota;
 use App\Models\Pinjaman;
 use App\Models\RekeningAnggota;
 use App\Models\User;
+use App\Services\Wa\WaPesan;
 use App\Services\Wa\WaService;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -89,17 +91,33 @@ class PengajuanPinjamanService
             ]);
         });
 
-        $ringkasan = 'Rp '.number_format($nominal, 0, ',', '.')." (tenor {$tenorBulan} bulan)";
+        $rincian = "- Nomor Referensi: #{$pinjaman->id}\n"
+            .'- Nominal: '.WaPesan::rupiah($nominal).' (terbilang: '.TerbilangHelper::angkaKeTerbilang($nominal)." rupiah)\n"
+            ."- Tenor: {$tenorBulan} bulan\n"
+            .'- Bunga: '.$pinjaman->persentase_bunga."% per bulan (metode menurun)\n"
+            ."- Keperluan: {$keperluan}\n"
+            .'- Rekening pencairan: '.$pinjaman->snapshot_bank.' '.$pinjaman->snapshot_no_rekening.' a.n. '.$pinjaman->snapshot_atas_nama;
 
         WaService::keAnggota(
             $anggota,
             'pinjaman_diajukan',
-            "Halo {$anggota->nama}, pengajuan pinjaman Anda sebesar {$ringkasan} sudah diterima dan sedang diproses."
+            WaPesan::susun($anggota->nama, $anggota->no_anggota,
+                'Pengajuan pinjaman Anda telah kami terima pada '.now()->translatedFormat('d F Y')." dengan rincian sebagai berikut:\n\n{$rincian}\n\n"
+                .'Status saat ini: *Menunggu verifikasi Bendahara*.'
+                .' Pemberitahuan selanjutnya akan kami sampaikan melalui WhatsApp ini.')
         );
 
         WaService::kePengurus(
             'pinjaman_diajukan',
-            "Ada pengajuan pinjaman baru dari {$anggota->nama}: {$ringkasan}. Silakan tinjau di sistem koperasi."
+            WaPesan::susun(null, null,
+                "Notifikasi Pengajuan Pinjaman\n\n"
+                ."Telah diterima pengajuan pinjaman baru dengan rincian sebagai berikut:\n\n"
+                ."- Pemohon: {$anggota->nama} (No. Anggota: {$anggota->no_anggota})\n"
+                ."- Nomor Referensi: #{$pinjaman->id}\n"
+                .'- Nominal: '.WaPesan::rupiah($nominal)."\n"
+                ."- Tenor: {$tenorBulan} bulan\n"
+                ."- Keperluan: {$keperluan}\n\n"
+                .'Mohon lakukan verifikasi melalui sistem koperasi.')
         );
 
         return $pinjaman;

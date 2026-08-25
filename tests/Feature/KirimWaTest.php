@@ -11,6 +11,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class KirimWaTest extends TestCase
@@ -93,5 +94,66 @@ class KirimWaTest extends TestCase
         WaService::keAnggota($anggota, 'tes_event', 'pesan');
 
         Queue::assertPushed(KirimWaJob::class);
+    }
+
+    public function test_dokumen_terkirim_dan_file_temp_terhapus(): void
+    {
+        Http::fake(['*' => Http::response(['ok' => true])]);
+        Storage::fake('local');
+        Storage::disk('local')->put('wa/bukti.pdf', 'ISI-PDF');
+
+        (new KirimWaJob('08123456789', null, 'pinjaman_disetujui_ketua', 'Pesan caption', [
+            'path' => 'wa/bukti.pdf',
+            'filename' => 'Bukti-Peminjaman-1.pdf',
+        ]))->handle();
+
+        Http::assertSent(fn ($request) => $request->url() === 'http://baileys-test:3000/send-document'
+            && $request['to'] === '628123456789'
+            && $request['filename'] === 'Bukti-Peminjaman-1.pdf'
+            && base64_decode($request['base64']) === 'ISI-PDF');
+
+        $log = WaLog::sole();
+        $this->assertSame('terkirim', $log->status);
+        Storage::disk('local')->assertMissing('wa/bukti.pdf');
+    }
+
+    public function test_dokumen_gagal_kirim_file_tetap_terhapus(): void
+    {
+        Http::fake(fn () => throw new ConnectionException('timeout'));
+        Storage::fake('local');
+        Storage::disk('local')->put('wa/bukti.pdf', 'ISI-PDF');
+
+        (new KirimWaJob('08123456789', null, 'tes_event', 'pesan', [
+            'path' => 'wa/bukti.pdf',
+            'filename' => 'bukti.pdf',
+        ]))->handle();
+
+        $this->assertSame('gagal', WaLog::sole()->status);
+        Storage::disk('local')->assertMissing('wa/bukti.pdf');
+    }
+
+    public function test_keanggotadokumen_menulis_file_dan_dispatch(): void
+    {
+        Queue::fake();
+        Storage::fake('local');
+        $anggota = Anggota::create([
+            'user_id' => User::factory()->create()->id,
+            'no_anggota' => 'TST-WA-002',
+            'nama' => 'Budi Dokumen',
+            'cabang' => 'Banjarmasin',
+            'unit_bisnis' => 'Operasional',
+            'jabatan' => 'staff',
+            'tanggal_mulai_kerja' => '2024-01-01',
+            'tanggal_jadi_anggota' => '2024-01-01',
+            'no_hp' => '08123456789',
+            'status' => 'aktif',
+        ]);
+
+        WaService::keAnggotaDokumen($anggota, 'tes_event', 'pesan', 'PDF-BYTES', 'bukti.pdf');
+
+        Queue::assertPushed(KirimWaJob::class, fn (KirimWaJob $job) => true);
+        $files = Storage::disk('local')->files('wa');
+        $this->assertCount(1, $files);
+        $this->assertSame('PDF-BYTES', Storage::disk('local')->get($files[0]));
     }
 }

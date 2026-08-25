@@ -8,6 +8,7 @@ use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 
 class KirimWaJob implements ShouldQueue
 {
@@ -20,31 +21,41 @@ class KirimWaJob implements ShouldQueue
         private ?int $anggotaId,
         private string $event,
         private string $pesan,
+        private ?array $dokumen = null, // ['path' => path-di-storage, 'filename' => nama-file]
     ) {}
 
     public function handle(): void
     {
-        $nomor = self::normalisasi($this->noHp);
-
-        if (! $nomor) {
-            WaLog::create([
-                'anggota_id' => $this->anggotaId,
-                'penerima' => $this->noHp ?? '-',
-                'event' => $this->event,
-                'pesan' => $this->pesan,
-                'status' => 'dilewati',
-                'error' => 'Nomor HP tidak tersedia/tidak valid',
-            ]);
-
-            return;
-        }
-
         try {
-            Http::baseUrl(config('services.wa.url'))
+            $nomor = self::normalisasi($this->noHp);
+
+            if (! $nomor) {
+                WaLog::create([
+                    'anggota_id' => $this->anggotaId,
+                    'penerima' => $this->noHp ?? '-',
+                    'event' => $this->event,
+                    'pesan' => $this->pesan,
+                    'status' => 'dilewati',
+                    'error' => 'Nomor HP tidak tersedia/tidak valid',
+                ]);
+
+                return;
+            }
+
+            $http = Http::baseUrl(config('services.wa.url'))
                 ->withToken(config('services.wa.token'))
-                ->timeout(config('services.wa.timeout'))
-                ->post('/send', ['to' => $nomor, 'message' => $this->pesan])
-                ->throw();
+                ->timeout(config('services.wa.timeout'));
+
+            if ($this->dokumen) {
+                $http->post('/send-document', [
+                    'to' => $nomor,
+                    'filename' => $this->dokumen['filename'],
+                    'caption' => $this->pesan,
+                    'base64' => base64_encode(Storage::disk('local')->get($this->dokumen['path'])),
+                ])->throw();
+            } else {
+                $http->post('/send', ['to' => $nomor, 'message' => $this->pesan])->throw();
+            }
 
             WaLog::create([
                 'anggota_id' => $this->anggotaId,
@@ -54,7 +65,15 @@ class KirimWaJob implements ShouldQueue
                 'status' => 'terkirim',
             ]);
         } catch (ConnectionException|RequestException $e) {
-            $this->catatGagal($nomor, $e->getMessage());
+            if (isset($nomor)) {
+                $this->catatGagal($nomor, $e->getMessage());
+            } else {
+                report($e);
+            }
+        } finally {
+            if ($this->dokumen) {
+                Storage::disk('local')->delete($this->dokumen['path']);
+            }
         }
     }
 
