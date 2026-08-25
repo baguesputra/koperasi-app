@@ -6,10 +6,13 @@ use App\Models\Anggota;
 use App\Models\SettingSimpanan;
 use App\Models\Simpanan;
 use App\Models\User;
+use App\Services\Keuangan\JurnalKasService;
 use Illuminate\Database\Seeder;
 
 class AnggotaSeeder extends Seeder
 {
+    public function __construct(private JurnalKasService $jurnalKas) {}
+
     public function run(): void
     {
         $this->seedAnggotaUtama();
@@ -210,5 +213,132 @@ class AnggotaSeeder extends Seeder
                 'input_by' => $userId,
             ]
         );
+
+        // Jurnal simpanan pokok masuk ke kantong simpanan
+        if ($userId) {
+            $this->jurnalKas->catat(
+                tipe: 'masuk',
+                kategori: 'simpanan_pokok_masuk',
+                kantong: 'simpanan',
+                jumlah: $nominalPokok,
+                keterangan: "Simpanan pokok {$anggota->nama}",
+                referensiId: $anggota->id,
+                tanggal: $anggota->tanggal_jadi_anggota->format('Y-m-d'),
+                userId: $userId,
+                subJudul: 'Simpanan pokok masuk',
+            );
+        }
+    }
+
+    /**
+     * 2 anggota resign untuk testing fitur resign/reaktivasi + settlement.
+     */
+    private function seedAnggotaResign(): void
+    {
+        $data = [
+            [
+                'no_karyawan_user' => 'TOP-900001',
+                'no_anggota' => 'ANG-RSG-0001',
+                'no_ktp' => '3207123456789012',
+                'nama' => 'Agus Wijaya',
+                'cabang' => 'Banjarmasin',
+                'unit_bisnis' => 'Operasional',
+                'department' => 'Produksi',
+                'divisi' => 'Lapangan',
+                'jabatan' => 'staff',
+                'tanggal_mulai_kerja' => now()->subYears(5),
+                'tanggal_jadi_anggota' => now()->subYears(4),
+                'status' => 'resign',
+                'tanggal_resign' => now()->subMonths(2),
+                'alasan_resign' => 'Pindah domisili ke luar kota',
+                'resigned_by' => 1, // admin
+            ],
+            [
+                'no_karyawan_user' => 'TOP-900002',
+                'no_anggota' => 'ANG-RSG-0002',
+                'no_ktp' => '3207123456789013',
+                'nama' => 'Sari Rahayu',
+                'cabang' => 'Samarinda',
+                'unit_bisnis' => 'Keuangan',
+                'department' => 'Keuangan',
+                'divisi' => 'Akuntansi',
+                'jabatan' => 'staff',
+                'tanggal_mulai_kerja' => now()->subYears(3),
+                'tanggal_jadi_anggota' => now()->subYears(2),
+                'status' => 'resign',
+                'tanggal_resign' => now()->subMonths(1),
+                'alasan_resign' => 'Berhenti bekerja demi menjaga ibu',
+                'resigned_by' => 1,
+            ],
+        ];
+
+        foreach ($data as $row) {
+            $user = User::where('no_karyawan', $row['no_karyawan_user'])->first();
+
+            $anggota = Anggota::updateOrCreate(
+                ['no_karyawan' => $row['no_karyawan_user']],
+                array_merge($this->atributAnggota($row, $user?->id), [
+                    'tanggal_resign' => $row['tanggal_resign'],
+                    'alasan_resign' => $row['alasan_resign'],
+                    'resigned_by' => $row['resigned_by'],
+                ])
+            );
+
+            // Settlement JSON untuk testing slip resign
+            $nominalPokok = SettingSimpanan::where('jenis', 'pokok')->value('nominal') ?? 50_000;
+            $nominalWajib = SettingSimpanan::where('jenis', 'wajib')->value('nominal') ?? 45_000;
+
+            // Buat simpanan sebelum resign
+            foreach (['pokok', 'wajib'] as $jenis) {
+                Simpanan::firstOrCreate(
+                    ['anggota_id' => $anggota->id, 'jenis' => $jenis, 'bulan_periode' => now()->subMonths(3)->format('Y-m')],
+                    ['jumlah' => $jenis === 'pokok' ? 50_000 : 45_000, 'bulan_periode' => now()->subMonths(3)->format('Y-m'), 'tanggal_input' => now()->subMonths(3), 'input_by' => 1]
+                );
+            }
+
+            $settlement = [
+                'tagihan_pelunasan' => 0,
+                'simpanan_pokok_total' => 50_000,
+                'simpanan_wajib_total' => 45_000,
+                'dana_sosial_hangus' => 5_000,
+                'alokasi_dari_pokok' => 0,
+                'alokasi_dari_wajib' => 0,
+                'kembali_pokok' => 50_000,
+                'kembali_wajib' => 45_000,
+                'total_dikembalikan' => 95_000,
+                'tanggal_proses' => $row['tanggal_resign'],
+                'aktor' => 'Admin Koperasi',
+            ];
+
+            $anggota->update([
+                'resigned_settlement_json' => $settlement,
+            ]);
+
+            $this->catatSimpananPokok($anggota, $user?->id);
+        }
+    }
+
+    /**
+     * Tambahan anggota dengan variasi no_hp untuk testing WA notification.
+     */
+    private function seedAnggotaNoHpVariasi(): void
+    {
+        $noHpVariasi = [
+            'TOP-200001' => '081234567001',
+            'TOP-200002' => '+62 813 4567 8901',
+            'TOP-200003' => '628123456789',
+            'TOP-200004' => '0822-3456-7890',
+            'TOP-200005' => '0852 1234 5678',
+        ];
+
+        foreach ($noHpVariasi as $noKaryawan => $noHp) {
+            $user = User::where('no_karyawan', $noKaryawan)->first();
+            if (! $user) continue;
+
+            $anggota = Anggota::where('no_karyawan', $noKaryawan)->first();
+            if ($anggota) {
+                $anggota->update(['no_hp' => $noHp]);
+            }
+        }
     }
 }

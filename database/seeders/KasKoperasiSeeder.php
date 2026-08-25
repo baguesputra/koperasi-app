@@ -2,38 +2,33 @@
 
 namespace Database\Seeders;
 
+use App\Models\JurnalKas;
 use App\Models\KasKoperasi;
-use App\Models\Simpanan;
-use App\Models\User;
-use App\Services\Keuangan\JurnalKasService;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 
 class KasKoperasiSeeder extends Seeder
 {
     public function run(): void
     {
-        // Hitung saldo_simpanan dari simpanan wajib yang sudah ada (sebelum seeder simpanan jalan)
-        $saldoSimpananAwal = (float) DB::table('simpanan')
-            ->join('anggota', 'anggota.id', '=', 'simpanan.anggota_id')
-            ->whereIn('simpanan.jenis', ['wajib'])
-            ->where('anggota.status', 'aktif')
-            ->sum('simpanan.jumlah');
+        $adminId = \App\Models\User::where('no_karyawan', 'ADM-000001')->value('id') ?? 1;
 
+        // Modal awal positif agar seeders berikutnya (pencairan, pengeluaran) lolos validasi saldo.
         KasKoperasi::firstOrCreate(['id' => 1], [
             'saldo_pinjaman' => 100_000_000,
-            'saldo_dana_sosial' => 3_000_000,
-            'saldo_simpanan' => $saldoSimpananAwal,
+            'saldo_dana_sosial' => 20_000_000,
+            'saldo_simpanan' => 0,
             'saldo_pengembalian_simpanan' => 0,
         ]);
 
-        $adminId = User::where('no_karyawan', 'ADM-000001')->value('id') ?? 1;
-
-        (new JurnalKasService)->catatSaldoAwal('pinjaman', 100_000_000, $adminId);
-
-        // Catat saldo awal simpanan jika ada
-        if ($saldoSimpananAwal > 0) {
-            (new JurnalKasService)->catatSaldoAwal('simpanan', $saldoSimpananAwal, $adminId);
-        }
+        // Jurnal saldo awal — supaya Laporan Arus Kas punya jejak dari mana modal datang.
+        // Tanpa ini, saldo awal "muncul tanpa jejak" di laporan per kantong.
+        JurnalKas::firstOrCreate(
+            ['tipe' => 'masuk', 'kategori' => 'saldo_awal', 'kantong' => 'pinjaman'],
+            ['jumlah' => 100_000_000, 'keterangan' => 'Saldo awal Dana Pinjaman', 'tanggal' => now()->subYears(2)->toDateString(), 'created_by' => $adminId]
+        );
+        JurnalKas::firstOrCreate(
+            ['tipe' => 'masuk', 'kategori' => 'saldo_awal', 'kantong' => 'dana_sosial'],
+            ['jumlah' => 20_000_000, 'keterangan' => 'Saldo awal Dana Sosial', 'tanggal' => now()->subYears(2)->toDateString(), 'created_by' => $adminId]
+        );
     }
 }

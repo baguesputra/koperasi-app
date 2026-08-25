@@ -4,14 +4,15 @@ namespace Database\Seeders;
 
 use App\Models\Anggota;
 use App\Models\Angsuran;
-use App\Models\JurnalKas;
-use App\Models\KasKoperasi;
 use App\Models\Pinjaman;
 use App\Models\User;
+use App\Services\Keuangan\JurnalKasService;
 use Illuminate\Database\Seeder;
 
 class PinjamanSeeder extends Seeder
 {
+    public function __construct(private JurnalKasService $jurnalKas) {}
+
     public function run(): void
     {
         $this->seedPinjamanBaru();
@@ -200,48 +201,38 @@ class PinjamanSeeder extends Seeder
      */
     private function catatMutasiPinjaman(Pinjaman $pinjaman): void
     {
-        $kas = KasKoperasi::firstOrCreate(['id' => 1], ['saldo_pinjaman' => 0]);
         $benId = $this->benId();
-        $ketuaId = $this->ketuaId();
 
-        // Pencairan pinjaman -> kas keluar
+        // Pencairan pinjaman -> kas keluar (via service agar saldo ter-update)
         if ($pinjaman->tanggal_pencairan && in_array($pinjaman->status, ['aktif', 'lunas'])) {
-            $jurnal = JurnalKas::firstOrCreate(
-                ['tipe' => 'keluar', 'kategori' => 'pencairan_pinjaman', 'referensi_id' => $pinjaman->id],
-                [
-                    'jumlah' => $pinjaman->nominal,
-                    'keterangan' => "Pencairan pinjaman - {$pinjaman->anggota->nama}",
-                    'tanggal' => $pinjaman->tanggal_pencairan,
-                    'created_by' => $ketuaId,
-                ]
+            $this->jurnalKas->catat(
+                tipe: 'keluar',
+                kategori: 'pencairan_pinjaman',
+                kantong: 'pinjaman',
+                jumlah: (float) $pinjaman->nominal,
+                keterangan: "Pencairan pinjaman - {$pinjaman->anggota->nama}",
+                referensiId: $pinjaman->id,
+                tanggal: $pinjaman->tanggal_pencairan->format('Y-m-d'),
+                userId: $this->ketuaId(),
             );
-
-            if ($jurnal->wasRecentlyCreated) {
-                $kas->decrement('saldo_pinjaman', $pinjaman->nominal);
-            }
         }
 
         // Angsuran lunas -> kas masuk
-        $angsuranLunas = $pinjaman->angsuran()
+        $pinjaman->angsuran()
             ->where('status', 'lunas')
             ->whereNotNull('tanggal_konfirmasi_bayar')
-            ->get();
-
-        foreach ($angsuranLunas as $angsuran) {
-            $jurnal = JurnalKas::firstOrCreate(
-                ['tipe' => 'masuk', 'kategori' => 'pembayaran_angsuran', 'referensi_id' => $angsuran->id],
-                [
-                    'jumlah' => $angsuran->total_bayar,
-                    'keterangan' => "Angsuran ke-{$angsuran->cicilan_ke} - {$pinjaman->anggota->nama}",
-                    'tanggal' => $angsuran->tanggal_konfirmasi_bayar,
-                    'created_by' => $benId,
-                ]
-            );
-
-            if ($jurnal->wasRecentlyCreated) {
-                $kas->increment('saldo_pinjaman', $angsuran->total_bayar);
-            }
-        }
+            ->each(function ($angsuran) use ($pinjaman, $benId) {
+                $this->jurnalKas->catat(
+                    tipe: 'masuk',
+                    kategori: 'pembayaran_angsuran',
+                    kantong: 'pinjaman',
+                    jumlah: (float) $angsuran->total_bayar,
+                    keterangan: "Angsuran ke-{$angsuran->cicilan_ke} - {$pinjaman->anggota->nama}",
+                    referensiId: $angsuran->id,
+                    tanggal: $angsuran->tanggal_konfirmasi_bayar->format('Y-m-d'),
+                    userId: $benId,
+                );
+            });
     }
 
     /**
@@ -249,7 +240,6 @@ class PinjamanSeeder extends Seeder
      */
     private function seedTopupKas(): void
     {
-        $kas = KasKoperasi::firstOrCreate(['id' => 1], ['saldo_pinjaman' => 0]);
         $benId = $this->benId();
 
         $topups = [
@@ -258,19 +248,16 @@ class PinjamanSeeder extends Seeder
         ];
 
         foreach ($topups as $t) {
-            $jurnal = JurnalKas::firstOrCreate(
-                ['tipe' => 'masuk', 'kategori' => 'topup_bulanan', 'referensi_id' => $t['referensi_id']],
-                [
-                    'jumlah' => $t['jumlah'],
-                    'keterangan' => 'Topup saldo koperasi',
-                    'tanggal' => $t['tanggal'],
-                    'created_by' => $benId,
-                ]
+            $this->jurnalKas->catat(
+                tipe: 'masuk',
+                kategori: 'topup_bulanan',
+                kantong: 'pinjaman',
+                jumlah: (float) $t['jumlah'],
+                keterangan: 'Topup saldo koperasi',
+                referensiId: null,
+                tanggal: $t['tanggal']->format('Y-m-d'),
+                userId: $benId,
             );
-
-            if ($jurnal->wasRecentlyCreated) {
-                $kas->increment('saldo_pinjaman', $t['jumlah']);
-            }
         }
     }
 

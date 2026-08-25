@@ -15,11 +15,16 @@ class DatabaseSeeder extends Seeder
             TabelTenorSeeder::class,
             SettingBungaSeeder::class,
             SettingLimitPinjamanSeeder::class,
-            KasKoperasiSeeder::class,
             SettingSimpananSeeder::class,
+            KasKoperasiSeeder::class,
             AnggotaSeeder::class,
             SimpananSeeder::class,
             PinjamanSeeder::class,
+            PengeluaranSeeder::class,
+            AuditLogSeeder::class,
+            PengajuanPercepatanSeeder::class,
+            PengajuanLimitSeeder::class,
+            KasKoperasiFinalizerSeeder::class,
         ]);
     }
 }
