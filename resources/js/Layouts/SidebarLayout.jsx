@@ -1,17 +1,10 @@
 import Sidebar from './Partials/Sidebar';
-import { Link, usePage } from '@inertiajs/react';
-import { Settings, ChevronDown, Menu, X } from 'lucide-react';
-import Dropdown from '@/Components/Dropdown';
+import { Menu } from 'lucide-react';
 import FlashToast from '@/Components/ui/FlashToast';
 import { useEffect, useRef, useState } from 'react';
 import { Transition } from '@headlessui/react';
 
 export default function SidebarLayout({ children }) {
-    const { auth } = usePage().props;
-    const initial = auth.user?.name?.charAt(0)?.toUpperCase() ?? '?';
-    const bisaPengaturan = auth.user?.permissions?.includes('pengaturan.kelola');
-    const bisaAjukanPinjaman = auth.user?.permissions?.includes('portal.akses');
-
     const [collapsed, setCollapsed] = useState(
         () => typeof window !== 'undefined' && localStorage.getItem('sidebar-collapsed') === '1',
     );
@@ -97,79 +90,20 @@ export default function SidebarLayout({ children }) {
             </Transition>
 
             <div className="flex-1 flex flex-col min-w-0">
-                <header className="h-16 sticky top-0 z-40 bg-slate-50 px-4 flex items-center gap-2 shrink-0">
+                <div className="lg:hidden sticky top-0 z-40 bg-slate-50 h-12 px-4 flex items-center shrink-0">
                     <button
                         onClick={() => setMobileSidebarOpen(true)}
-                        className="lg:hidden inline-flex items-center justify-center p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg"
+                        className="p-2 -ml-2 rounded-lg text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/40"
                         aria-label="Buka menu navigasi"
                     >
-                        <Menu size={24} />
+                        <Menu size={22} />
                     </button>
-
-                    <div className="flex items-center gap-1 ml-auto">
-                        {bisaPengaturan && (
-                            <Link
-                                href={route('pengaturan.index')}
-                                className="p-2 rounded-lg text-slate-400 hover:text-brand-navy hover:bg-white transition-colors"
-                                title="Pengaturan"
-                            >
-                                <Settings size={20} />
-                            </Link>
-                        )}
-
-                        <Dropdown>
-                            <Dropdown.Trigger>
-                                <button
-                                    type="button"
-                                    className="flex items-center gap-3 rounded-full py-1 pl-1 pr-2 hover:bg-slate-100 transition-colors"
-                                >
-                                    <div className="w-9 h-9 rounded-full bg-brand-green text-white flex items-center justify-center text-sm font-bold">
-                                        {initial}
-                                    </div>
-                                    <div className="hidden sm:block leading-tight text-left">
-                                        <p className="text-sm font-semibold text-slate-800">{auth.user?.name}</p>
-                                        <p className="text-xs text-slate-400 capitalize">
-                                            {auth.user?.roles?.[0]?.replace('_', ' ') ?? '-'}
-                                        </p>
-                                    </div>
-                                    <ChevronDown size={16} className="text-slate-400" />
-                                </button>
-                            </Dropdown.Trigger>
-
-                            <Dropdown.Content>
-                                {bisaAjukanPinjaman && (
-                                    <>
-                                        <Dropdown.Link href={route('portal.dashboard')}>
-                                            Pengajuan Pinjaman
-                                        </Dropdown.Link>
-                                        <Dropdown.Link href={route('dashboard')}>
-                                            Dashboard Koperasi
-                                        </Dropdown.Link>
-                                    </>
-                                )}
-                                <Dropdown.Link href={route('profile.edit')}>
-                                    Profile
-                                </Dropdown.Link>
-                                <form method="POST" action={route('logout')}>
-    <input
-        type="hidden"
-        name="_token"
-        value={document
-            .querySelector('meta[name="csrf-token"]')
-            ?.getAttribute('content')}
-    />
-
-    <button
-        type="submit"
-        className="block w-full px-4 py-2 text-start text-sm leading-5 text-red-600 transition duration-150 ease-in-out hover:text-red-700 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
-    >
-        Keluar
-    </button>
-</form>
-                            </Dropdown.Content>
-                        </Dropdown>
+                    <div className="flex items-center gap-2 mx-auto">
+                        <img src="/images/logo.png" alt="Koperasi App" className="w-7 h-7" />
+                        <span className="text-sm font-bold text-slate-800">Koperasi App</span>
                     </div>
-                </header>
+                    <span className="w-[38px]" aria-hidden="true" />
+                </div>
 
                 <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-[1400px] w-full mx-auto">
                     <FlashToast />

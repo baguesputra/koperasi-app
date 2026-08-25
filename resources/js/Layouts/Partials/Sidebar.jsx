@@ -3,8 +3,10 @@ import {
     LayoutDashboard, Users, PiggyBank, HandCoins,
     ClipboardCheck, CalendarCheck, HeartHandshake,
     Wallet, FileBarChart, Receipt, TrendingUp,
-    ChevronLeft, ChevronRight, Repeat
+    ChevronLeft, ChevronRight, Repeat, Settings, LogOut
 } from 'lucide-react';
+
+const fokusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/40';
 
 const menuGroups = [
     {
@@ -46,6 +48,11 @@ const menuGroups = [
 export default function Sidebar({ collapsed = false, expanding = false, onToggle }) {
     const { auth, notifications } = usePage().props;
     const userPermissions = auth.user?.permissions ?? [];
+    const bisaPengaturan = userPermissions.includes('pengaturan.kelola');
+    const initial = auth.user?.name?.charAt(0)?.toUpperCase() ?? '?';
+    const csrfToken = typeof document !== 'undefined'
+        ? document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+        : null;
     const tertutup = collapsed && !expanding;
     const badgeAngka = {
         'bendahara.pinjaman.index': notifications?.menunggu_tinjauan_bendahara ?? 0,
@@ -130,6 +137,75 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
                     </div>
                 ))}
             </nav>
+
+            {/* Profil & aksi akun */}
+            {tertutup ? (
+                <div className="border-t border-slate-100 px-2 py-3 shrink-0 flex flex-col items-center gap-1">
+                    <Link
+                        href={route('profile.edit')}
+                        title="Profil Saya"
+                        className={`w-9 h-9 rounded-full bg-brand-green text-white flex items-center justify-center text-sm font-bold hover:opacity-90 transition-opacity ${fokusRing}`}
+                    >
+                        {initial}
+                    </Link>
+                    {bisaPengaturan && (
+                        <Link
+                            href={route('pengaturan.index')}
+                            title="Pengaturan"
+                            className={`w-9 h-9 rounded-xl text-slate-400 hover:text-brand-navy hover:bg-slate-50 flex items-center justify-center transition-colors ${fokusRing}`}
+                        >
+                            <Settings size={18} />
+                        </Link>
+                    )}
+                    <form method="POST" action={route('logout')}>
+                        <input type="hidden" name="_token" value={csrfToken} />
+                        <button
+                            type="submit"
+                            title="Keluar"
+                            className={`w-9 h-9 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center transition-colors ${fokusRing}`}
+                        >
+                            <LogOut size={18} />
+                        </button>
+                    </form>
+                </div>
+            ) : (
+                <div className="border-t border-slate-100 px-4 py-3 shrink-0 flex items-center gap-1">
+                    <Link
+                        href={route('profile.edit')}
+                        title="Profil Saya"
+                        className={`flex items-center gap-2.5 min-w-0 flex-1 rounded-xl p-1 -m-1 hover:bg-slate-50 transition-colors ${fokusRing}`}
+                    >
+                        <span className="w-9 h-9 rounded-full bg-brand-green text-white flex items-center justify-center text-sm font-bold shrink-0">
+                            {initial}
+                        </span>
+                        <span className="min-w-0 leading-tight">
+                            <span className="block text-sm font-semibold text-slate-800 truncate">{auth.user?.name}</span>
+                            <span className="block text-xs text-slate-400 capitalize truncate">
+                                {auth.user?.roles?.[0]?.replace('_', ' ') ?? '-'}
+                            </span>
+                        </span>
+                    </Link>
+                    {bisaPengaturan && (
+                        <Link
+                            href={route('pengaturan.index')}
+                            title="Pengaturan"
+                            className={`p-2 rounded-lg text-slate-400 hover:text-brand-navy hover:bg-slate-50 transition-colors shrink-0 ${fokusRing}`}
+                        >
+                            <Settings size={18} />
+                        </Link>
+                    )}
+                    <form method="POST" action={route('logout')} className="shrink-0">
+                        <input type="hidden" name="_token" value={csrfToken} />
+                        <button
+                            type="submit"
+                            title="Keluar"
+                            className={`p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors ${fokusRing}`}
+                        >
+                            <LogOut size={18} />
+                        </button>
+                    </form>
+                </div>
+            )}
 
             {!tertutup ? (
                 <div className="px-5 py-4 border-t border-slate-100 text-xs text-slate-400 shrink-0 flex items-center justify-between">
