@@ -54,6 +54,7 @@ class SimpananController extends Controller
             'cabangAktif' => $cabangAktif->value(),
             'daftarCabang' => $daftarCabang,
             'ringkasanCabang' => $ringkasanCabang,
+            'nominalPerAnggota' => $nominalPerAnggota,
             'totalDanaSosialTerkumpul' => (float) $totalDanaSosialTerkumpul,
         ]);
     }
