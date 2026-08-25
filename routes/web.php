@@ -12,6 +12,7 @@ use App\Http\Controllers\KasKoperasiController;
 use App\Http\Controllers\Ketua\PengajuanLimitController as KetuaPengajuanLimitController;
 use App\Http\Controllers\Ketua\PercepatanController as KetuaPercepatanController;
 use App\Http\Controllers\Ketua\PinjamanController as KetuaPinjamanController;
+use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\Pengaturan\PenggunaController;
 use App\Http\Controllers\PengaturanController;
 use App\Http\Controllers\PengeluaranController;
@@ -96,6 +97,16 @@ Route::middleware(['auth', 'permission:simpanan.lihat'])->group(function () {
 
 Route::middleware(['auth', 'permission:kas.lihat'])->group(function () {
     Route::get('/kas-koperasi', [KasKoperasiController::class, 'index'])->name('kas-koperasi.index');
+});
+
+// ==========================================
+// LAPORAN
+// ==========================================
+Route::middleware(['auth', 'permission:laporan.lihat'])->prefix('laporan')->name('laporan.')->group(function () {
+    Route::get('/', [LaporanController::class, 'index'])->name('index');
+    Route::get('/{jenis}', [LaporanController::class, 'show'])->where('jenis', '[a-z0-9-]+')->name('show');
+    Route::get('/{jenis}/pdf', [LaporanController::class, 'pdf'])->where('jenis', '[a-z0-9-]+')->name('pdf');
+    Route::get('/{jenis}/export', [LaporanController::class, 'export'])->where('jenis', '[a-z0-9-]+')->name('export');
 });
 
 // ==========================================

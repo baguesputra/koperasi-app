@@ -78,6 +78,8 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             // Load langsung / refresh / ketik URL: tampilkan halaman error penuh.
-            return Inertia::render('Errors/Error', ['status' => $status]);
+            return Inertia::render('Errors/Error', ['status' => $status])
+                ->toResponse($request)
+                ->setStatusCode($status);
         });
     })->create();

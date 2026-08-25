@@ -40,7 +40,7 @@ const menuGroups = [
         items: [
             { label: 'Kas Koperasi', routeName: 'kas-koperasi.index', icon: Wallet, permission: 'kas.lihat' },
             { label: 'Pengeluaran', routeName: 'pengeluaran.index', icon: Receipt, permission: 'kas.lihat' },
-            { label: 'Laporan', routeName: null, icon: FileBarChart, permission: 'laporan.lihat', disabled: true },
+            { label: 'Laporan', routeName: 'laporan.index', icon: FileBarChart, permission: 'laporan.lihat' },
         ],
     },
 ];
