@@ -119,11 +119,11 @@ class PinjamanController extends Controller
             return back()->withErrors(['pengajuan' => $e->getMessage()]);
         }
 
-        return redirect()->route('portal.pinjaman.berhasil');
-    }
-
-    public function berhasil(): Response
-    {
-        return Inertia::render('Portal/Pinjaman/Berhasil');
+        return redirect()
+            ->route('portal.dashboard')
+            ->with('pinjaman_terkirim', [
+                'nominal' => (float) $request->nominal,
+                'tenor_bulan' => (int) $request->tenor_bulan,
+            ]);
     }
 }

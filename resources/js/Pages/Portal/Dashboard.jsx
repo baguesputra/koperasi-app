@@ -1,5 +1,6 @@
 import AnggotaLayout from '@/Layouts/AnggotaLayout';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
+import { useState } from 'react';
 import {
     PiggyBank,
     Wallet,
@@ -85,6 +86,68 @@ function StatusStrip({ dark = false, children }) {
     );
 }
 
+function KonfirmasiKirim({ nominal, tenorBulan, onClose }) {
+    return (
+        <div
+            className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="konfirmasi-title"
+        >
+            <div className="min-h-full flex items-center justify-center p-4">
+                <div className="bg-white rounded-2xl w-full max-w-md my-8 shadow-2xl overflow-hidden">
+                    <div className="px-6 pt-8 pb-6 text-center">
+                        <div className="w-16 h-16 rounded-full bg-brand-green-light flex items-center justify-center mx-auto mb-4">
+                            <CheckCircle2 size={32} className="text-brand-green" />
+                        </div>
+
+                        <h2 id="konfirmasi-title" className="text-xl font-bold text-slate-800">
+                            Pengajuan Berhasil Terkirim
+                        </h2>
+                    </div>
+
+                    <div className="mx-6 border-t-2 border-dashed border-slate-200" />
+
+                    <div className="px-6 py-4 space-y-2.5">
+                        <div className="flex items-center justify-between text-sm">
+                            <span className="text-slate-500">Nominal Pinjaman</span>
+                            <span className="font-bold text-slate-800">{formatRupiah(nominal)}</span>
+                        </div>
+
+                        <div className="flex items-center justify-between text-sm">
+                            <span className="text-slate-500">Lama Cicilan</span>
+                            <span className="font-bold text-slate-800">{tenorBulan} bulan</span>
+                        </div>
+                    </div>
+
+                    <div className="mx-6 border-t-2 border-dashed border-slate-200" />
+
+                    <div className="px-6 py-5">
+                        <p className="text-sm text-slate-600 leading-relaxed">
+                            Pengajuan pinjaman Anda telah kami terima dan diteruskan melalui
+                            WhatsApp Koperasi untuk diproses lebih lanjut.
+                        </p>
+
+                        <p className="mt-3 text-xs text-slate-500 leading-relaxed bg-slate-50 border border-slate-100 rounded-lg p-3">
+                            Selama masa peninjauan, tidak ada tindakan yang perlu Anda lakukan.
+                            Apabila pengajuan disetujui, pemberitahuan akan disampaikan melalui
+                            WhatsApp. Status pengajuan juga dapat dipantau pada halaman Beranda.
+                        </p>
+
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className={`w-full mt-5 py-3 text-sm font-bold rounded-xl bg-brand-navy text-white hover:bg-brand-navy-dark transition-colors ${focusRing}`}
+                        >
+                            Kembali ke Beranda
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function Dashboard({
     anggota,
     totalSimpanan,
@@ -150,9 +213,21 @@ export default function Dashboard({
         pengajuanPercepatanMenunggu.length === 0 &&
         pinjamanAktifList.some((p) => !p.sudah_pakai_percepatan);
 
+    const { flash } = usePage().props;
+    const terkirim = flash.pinjamanTerkirim;
+    const [konfirmasiDitutup, setKonfirmasiDitutup] = useState(false);
+
     return (
         <AnggotaLayout>
             <Head title="Beranda" />
+
+            {terkirim && !konfirmasiDitutup && (
+                <KonfirmasiKirim
+                    nominal={terkirim.nominal}
+                    tenorBulan={terkirim.tenor_bulan}
+                    onClose={() => setKonfirmasiDitutup(true)}
+                />
+            )}
 
             <div className="space-y-5">
 

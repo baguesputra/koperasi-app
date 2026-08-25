@@ -50,10 +50,10 @@ export default function Create({ limitSaatIni, riwayat }) {
                 </p>
             </div>
 
-            {props.status && (
+            {props.flash.status && (
                 <div className="mb-5 flex items-start gap-3 bg-brand-green-light border border-brand-green/25 rounded-xl p-4">
                     <CheckCircle2 size={20} className="text-brand-green-dark shrink-0 mt-0.5" />
-                    <p className="text-sm font-semibold text-brand-green-dark">{props.status}</p>
+                    <p className="text-sm font-semibold text-brand-green-dark">{props.flash.status}</p>
                 </div>
             )}
 

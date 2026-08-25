@@ -52,7 +52,6 @@ Route::middleware(['auth', 'permission:portal.akses'])->prefix('portal')->name('
     Route::post('/pinjaman/cek-nominal', [PortalPinjamanController::class, 'cekNominal'])->name('pinjaman.cek-nominal');
     Route::post('/pinjaman/simulasi', [PortalPinjamanController::class, 'simulasi'])->name('pinjaman.simulasi');
     Route::post('/pinjaman', [PortalPinjamanController::class, 'store'])->name('pinjaman.store');
-    Route::get('/pinjaman/berhasil', [PortalPinjamanController::class, 'berhasil'])->name('pinjaman.berhasil');
 
     // ------------ Profile ----------------
     Route::get('/profil', [ProfilController::class, 'index'])->name('profil');

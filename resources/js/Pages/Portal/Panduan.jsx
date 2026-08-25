@@ -173,12 +173,12 @@ const TATA_CARA = [
             },
             {
                 judul: 'Kirim pengajuan',
-                deskripsi: 'Klik "Konfirmasi & Kirim Pengajuan". Setelah terkirim, pengajuan tidak bisa dibatalkan; statusnya hanya bisa disetujui atau ditolak.',
+                deskripsi: 'Klik "Konfirmasi & Kirim Pengajuan". Setelah terkirim, Anda dibawa kembali ke Beranda beserta kuitansi konfirmasi berisi rincian pengajuan. Pengajuan yang sudah terkirim tidak bisa dibatalkan; statusnya hanya bisa disetujui atau ditolak.',
                 mockup: <MiniButton label="Konfirmasi & Kirim Pengajuan" icon={ArrowRight} />,
             },
             {
                 judul: 'Pantau statusnya',
-                deskripsi: 'Kartu pinjaman di Beranda menampilkan tahap yang sedang berjalan. Alur lengkapnya:',
+                deskripsi: 'Konfirmasi pengajuan diteruskan melalui WhatsApp Koperasi. Kartu pinjaman di Beranda menampilkan tahap yang sedang berjalan; jika disetujui, pemberitahuan disampaikan melalui WhatsApp.',
                 mockup: <MiniTimeline steps={['Bendahara', 'Ketua', 'Dana Cair']} />,
             },
         ],
