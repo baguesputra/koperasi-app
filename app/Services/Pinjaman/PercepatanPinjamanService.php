@@ -215,16 +215,19 @@ class PercepatanPinjamanService
                 for ($i = 1; $i <= $tenorBaru; $i++) {
                     $bunga = round($sisa * $persentase, 2);
 
+                    // Cicilan terakhir menyerap sisa pembulatan supaya Σpokok == sisa pokok persis
+                    $pokok = ($i === $tenorBaru) ? $sisa : $pokokPerBulan;
+
                     $pengajuan->angsuranBaru()->create([
                         'cicilan_ke' => $i,
-                        'nominal_pokok' => $pokokPerBulan,
+                        'nominal_pokok' => $pokok,
                         'nominal_bunga' => $bunga,
-                        'total_bayar' => $pokokPerBulan + $bunga,
+                        'total_bayar' => $pokok + $bunga,
                         'status' => 'belum_bayar',
                         'tanggal_jatuh_tempo' => $tanggalMulai->copy()->addMonths($i - 1)->endOfMonth(),
                     ]);
 
-                    $sisa -= $pokokPerBulan;
+                    $sisa -= $pokok;
                 }
             }
 

@@ -44,7 +44,7 @@ class PinjamanMandiriTest extends TestCase
     {
         $bendahara = $this->login('BEN-000001');
 
-        $this->ajukan()->assertRedirect(route('portal.pinjaman.berhasil'));
+        $this->ajukan()->assertRedirect(route('portal.dashboard'));
 
         $this->assertDatabaseHas('pinjaman', [
             'pengaju_user_id' => $bendahara->id,
@@ -80,7 +80,7 @@ class PinjamanMandiriTest extends TestCase
     {
         $ketua = $this->login('KET-000001');
 
-        $this->ajukan()->assertRedirect(route('portal.pinjaman.berhasil'));
+        $this->ajukan()->assertRedirect(route('portal.dashboard'));
         $pinjaman = Pinjaman::where('pengaju_user_id', $ketua->id)->first();
 
         $this->assertDatabaseHas('pinjaman', [

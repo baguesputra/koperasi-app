@@ -52,7 +52,31 @@ class PersetujuanPinjamanService
         );
     }
 
+    /**
+     * Pencairan pinjaman pengajuan mandiri Ketua oleh Bendahara
+     * (status approved_bendahara + cair_oleh_bendahara). Prosesnya identik
+     * dengan approveKetua: aktifkan, bentuk jadwal, catat jurnal keluar,
+     * kirim WA formal + lampiran Bukti Peminjaman.
+     */
+    public function cairBendahara(Pinjaman $pinjaman, string $catatan): void
+    {
+        if ($pinjaman->status !== 'approved_bendahara' || ! $pinjaman->cair_oleh_bendahara) {
+            throw new \RuntimeException('Pinjaman ini tidak dalam status menunggu pencairan Bendahara.');
+        }
+
+        $this->cairkan($pinjaman, $catatan);
+    }
+
     public function approveKetua(Pinjaman $pinjaman, string $catatan): void
+    {
+        if ($pinjaman->status !== 'approved_bendahara') {
+            throw new \RuntimeException('Hanya pinjaman berstatus Disetujui Bendahara yang dapat disetujui Ketua.');
+        }
+
+        $this->cairkan($pinjaman, $catatan);
+    }
+
+    private function cairkan(Pinjaman $pinjaman, string $catatan): void
     {
         DB::transaction(function () use ($pinjaman, $catatan) {
             $pinjaman->update([

@@ -36,14 +36,17 @@ class PerhitunganBungaService
         for ($cicilanKe = 1; $cicilanKe <= $tenorBulan; $cicilanKe++) {
             $bunga = round($sisaPokok * $persentase, 2);
 
+            // Cicilan terakhir menyerap sisa pembulatan supaya Σpokok == nominal persis
+            $pokok = $cicilanKe === $tenorBulan ? $sisaPokok : $pokokPerBulan;
+
             $jadwal[] = [
                 'cicilan_ke' => $cicilanKe,
-                'nominal_pokok' => $pokokPerBulan,
+                'nominal_pokok' => $pokok,
                 'nominal_bunga' => $bunga,
-                'total_bayar' => $pokokPerBulan + $bunga,
+                'total_bayar' => $pokok + $bunga,
             ];
 
-            $sisaPokok -= $pokokPerBulan;
+            $sisaPokok -= $pokok;
         }
 
         return $jadwal;

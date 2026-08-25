@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('jurnal_kas', function (Blueprint $table) {
             $table->id();
             $table->enum('tipe', ['masuk', 'keluar']);
-            $table->enum('kategori', ['topup_bulanan', 'pencairan_pinjaman', 'pembayaran_angsuran']);
+            $table->string('kategori'); // ponytail: enum penuh diterapkan via ALTER MySQL di migrasi lanjutan (sqlite/test bebas CHECK usang)
             $table->decimal('jumlah', 15, 2);
             $table->text('keterangan')->nullable();
             $table->unsignedBigInteger('referensi_id')->nullable(); // merujuk ke pinjaman_id atau angsuran_id, tanpa FK constraint (polymorphic sederhana)

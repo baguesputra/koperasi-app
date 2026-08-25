@@ -138,6 +138,7 @@ app/
 - [`docs/ERD-Koperasi-App.md`](docs/ERD-Koperasi-App.md) — Diagram ERD
 - [`docs/DEVELOPMENT_LOG.md`](docs/DEVELOPMENT_LOG.md) — Changelog teknis
 - [`docs/SETUP-TANPA-DOCKER.md`](docs/SETUP-TANPA-DOCKER.md) — Setup tanpa Docker + layanan WhatsApp
+- [`docs/TESTING.md`](docs/TESTING.md) — Panduan testing & konvensi
 
 ---
 
