@@ -2,22 +2,57 @@ import { useEffect, useState } from 'react';
 import { router } from '@inertiajs/react';
 import { Activity, ChevronDown, ChevronRight, Search, RotateCcw, ChevronLeft } from 'lucide-react';
 import Button from '@/Components/ui/Button';
+import { infoAksi, inisialNama, waktuRelatif } from '@/Utils/auditActions';
 
 const fokusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/40';
 
-function JsonBlock({ label, data }) {
-    if (!data || (typeof data === 'object' && Object.keys(data).length === 0)) {
-        return null;
-    }
+function DataDiff({ dataLama, dataBaru }) {
+    const punya = (obj) => obj && Object.keys(obj).length > 0;
+
+    if (!punya(dataLama) && !punya(dataBaru)) return null;
+
+    const semuaKunci = [...new Set([...Object.keys(dataLama ?? {}), ...Object.keys(dataBaru ?? {})])];
 
     return (
-        <div className="mb-3 last:mb-0">
-            <p className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-1">{label}</p>
-            <pre className="text-xs bg-slate-50 border border-slate-100 rounded-lg p-3 overflow-x-auto whitespace-pre-wrap break-words">
-                {JSON.stringify(data, null, 2)}
-            </pre>
+        <div className="overflow-hidden rounded-lg border border-slate-200">
+            <table className="w-full text-xs">
+                <thead>
+                    <tr className="bg-slate-100 text-left text-slate-500">
+                        <th className="py-2 px-3 font-semibold w-1/4">Field</th>
+                        <th className="py-2 px-3 font-semibold w-3/8 text-red-600">Sebelum</th>
+                        <th className="py-2 px-3 font-semibold w-3/8 text-brand-green-dark">Sesudah</th>
+                    </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 bg-white">
+                    {semuaKunci.map((kunci) => {
+                        const lama = dataLama?.[kunci];
+                        const baru = dataBaru?.[kunci];
+                        const berubah = JSON.stringify(lama) !== JSON.stringify(baru);
+
+                        if (!berubah && punya(dataLama) && punya(dataBaru)) return null;
+
+                        return (
+                            <tr key={kunci} className={berubah ? 'bg-amber-50/50' : ''}>
+                                <td className="py-1.5 px-3 font-mono text-slate-500 break-all">{kunci}</td>
+                                <td className="py-1.5 px-3 text-slate-500 break-all line-through decoration-red-300">
+                                    {formatNilai(lama)}
+                                </td>
+                                <td className="py-1.5 px-3 text-slate-800 font-medium break-all">{formatNilai(baru)}</td>
+                            </tr>
+                        );
+                    })}
+                </tbody>
+            </table>
         </div>
     );
+}
+
+function formatNilai(nilai) {
+    if (nilai === null || nilai === undefined) return '—';
+    if (typeof nilai === 'object') return JSON.stringify(nilai);
+    if (typeof nilai === 'boolean') return nilai ? 'true' : 'false';
+    if (nilai === '') return '(kosong)';
+    return String(nilai);
 }
 
 export default function TabAuditLog({ auditLogs, filterAudit }) {
@@ -121,7 +156,7 @@ export default function TabAuditLog({ auditLogs, filterAudit }) {
                 )}
             </div>
 
-            {/* Table */}
+            {/* List */}
             {!auditLogs ? (
                 <p className="text-base text-slate-400 text-center py-10">Memuat log audit...</p>
             ) : auditLogs.data.length === 0 ? (
@@ -132,14 +167,17 @@ export default function TabAuditLog({ auditLogs, filterAudit }) {
                     </p>
                 </div>
             ) : (
-                <div className="divide-y divide-slate-50 border border-slate-100 rounded-xl overflow-hidden">
+                <ol className="space-y-2.5">
                     {auditLogs.data.map((log) => {
                         const expanded = expandedId === log.id;
+                        const info = infoAksi(log.aksi);
                         const punyaData = (log.data_lama && Object.keys(log.data_lama).length > 0)
                             || (log.data_baru && Object.keys(log.data_baru).length > 0);
 
                         return (
-                            <div key={log.id} className={expanded ? 'bg-slate-50' : 'hover:bg-slate-50/60 transition-colors'}>
+                            <li key={log.id} className={`rounded-xl border transition-colors ${
+                                expanded ? 'border-slate-200 bg-white shadow-sm' : 'border-transparent hover:bg-slate-50'
+                            }`}>
                                 <button
                                     type="button"
                                     onClick={() => punyaData && toggleExpand(log.id)}
@@ -147,38 +185,74 @@ export default function TabAuditLog({ auditLogs, filterAudit }) {
                                     aria-expanded={expanded}
                                     className={`w-full text-left px-4 sm:px-5 py-3.5 flex items-start gap-3 sm:gap-4 ${punyaData ? 'cursor-pointer' : 'cursor-default'}`}
                                 >
+                                    {/* Chevron / spacer */}
                                     {punyaData ? (
-                                        expanded
-                                            ? <ChevronDown size={16} className="shrink-0 mt-1 text-slate-400" />
-                                            : <ChevronRight size={16} className="shrink-0 mt-1 text-slate-300" />
+                                        <span className={`shrink-0 mt-0.5 w-6 h-6 rounded-full flex items-center justify-center ${info.outcomeStyle}`}>
+                                            {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                        </span>
                                     ) : (
-                                        <span className="w-4 shrink-0" />
+                                        <span className={`shrink-0 mt-0.5 w-6 h-6 rounded-full flex items-center justify-center ${info.outcomeStyle}`}>
+                                            <Activity size={13} />
+                                        </span>
                                     )}
+
+                                    {/* Konten utama */}
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-semibold text-slate-800 break-all">{log.keterangan}</p>
-                                        <p className="text-xs text-slate-400 mt-0.5 flex flex-wrap gap-x-2">
-                                            <span className="font-mono bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">{log.aksi}</span>
-                                            <span>{log.user ? `${log.user.name} (${log.user.no_karyawan})` : 'Sistem'}</span>
-                                            <span>&bull; {log.created_at}</span>
-                                        </p>
+                                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                                            <span className="text-sm font-bold text-slate-800">{info.label}</span>
+                                            {info.kategoriLabel && (
+                                                <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold ${info.kategoriStyle}`}>
+                                                    {info.kategoriLabel}
+                                                </span>
+                                            )}
+                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold ${info.outcomeStyle}`}>
+                                                {info.label.includes('Tolak') ? 'Ditolak' : info.label.includes('Setujui') ? 'Disetujui' : info.label.includes('Cair') ? 'Dicairkan' : 'Aktivitas'}
+                                            </span>
+                                        </div>
+                                        <p className="text-sm text-slate-600 leading-snug">{log.keterangan}</p>
+                                    </div>
+
+                                    {/* Metadata kanan */}
+                                    <div className="shrink-0 flex items-center gap-2.5 sm:flex-col sm:items-end sm:gap-1">
+                                        {log.user ? (
+                                            <span className="flex items-center gap-2">
+                                                <span className="w-7 h-7 rounded-full bg-brand-navy text-white text-[11px] font-bold flex items-center justify-center shrink-0">
+                                                    {inisialNama(log.user.name)}
+                                                </span>
+                                                <span className="hidden sm:inline text-xs font-medium text-slate-700 max-w-[140px] truncate">
+                                                    {log.user.name}
+                                                </span>
+                                            </span>
+                                        ) : (
+                                            <span className="w-7 h-7 rounded-full bg-slate-200 text-slate-500 text-[10px] font-bold flex items-center justify-center shrink-0">SY</span>
+                                        )}
+                                        <time
+                                            title={log.created_at}
+                                            className="text-xs text-slate-400 whitespace-nowrap"
+                                        >
+                                            {waktuRelatif(log.created_at)}
+                                        </time>
                                     </div>
                                 </button>
 
+                                {/* Detail diff */}
                                 {expanded && (
-                                    <div className="px-4 sm:px-5 pb-4 pl-11 sm:pl-13">
-                                        <JsonBlock label="Data Lama" data={log.data_lama} />
-                                        <JsonBlock label="Data Baru" data={log.data_baru} />
+                                    <div className="px-4 sm:px-5 pb-4 pl-[52px] sm:pl-[60px]">
+                                        <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400 mb-2">
+                                            Detail perubahan &middot; oleh {log.user ? `${log.user.name} (${log.user.no_karyawan})` : 'Sistem'} pada {log.created_at}
+                                        </p>
+                                        <DataDiff dataLama={log.data_lama} dataBaru={log.data_baru} />
                                     </div>
                                 )}
-                            </div>
+                            </li>
                         );
                     })}
-                </div>
+                </ol>
             )}
 
             {/* Pagination */}
             {auditLogs && auditLogs.last_page > 1 && (
-                <div className="flex flex-wrap items-center justify-between gap-3 mt-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 mt-5">
                     <p className="text-xs text-slate-400">
                         Menampilkan {auditLogs.from}–{auditLogs.to} dari {auditLogs.total} log
                     </p>
