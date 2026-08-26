@@ -21,7 +21,7 @@ use Spatie\Permission\Models\Role;
 
 class PengaturanController extends Controller
 {
-    private const TAB_DIPERBOLEHKAN = ['bunga', 'limit', 'tenor', 'simpanan', 'wa'];
+    private const TAB_DIPERBOLEHKAN = ['bunga', 'limit', 'tenor', 'simpanan', 'wa', 'audit'];
 
     private const PANEL_DIPERBOLEHKAN = ['kelola-pengguna', 'kelola-role'];
 
@@ -88,6 +88,42 @@ class PengaturanController extends Controller
                 'dilindungi' => $user->no_karyawan === 'ADM-000001',
             ]);
 
+        // Audit log (hanya diambil saat tab audit aktif)
+        $auditLogs = null;
+        if ($tabAktif === 'audit') {
+            $queryAudit = AuditLog::with('user')->latest();
+
+            if ($request->filled('search')) {
+                $search = $request->string('search');
+                $queryAudit->where(function ($q) use ($search) {
+                    $q->where('aksi', 'like', "%{$search}%")
+                        ->orWhere('keterangan', 'like', "%{$search}%");
+                });
+            }
+
+            if ($request->filled('date_from')) {
+                $queryAudit->whereDate('created_at', '>=', $request->date('date_from'));
+            }
+            if ($request->filled('date_to')) {
+                $queryAudit->whereDate('created_at', '<=', $request->date('date_to'));
+            }
+
+            $auditLogs = $queryAudit->paginate(20)
+                ->withQueryString()
+                ->through(fn ($log) => [
+                    'id' => $log->id,
+                    'aksi' => $log->aksi,
+                    'keterangan' => $log->keterangan,
+                    'data_lama' => $log->data_lama,
+                    'data_baru' => $log->data_baru,
+                    'user' => $log->user ? [
+                        'name' => $log->user->name,
+                        'no_karyawan' => $log->user->no_karyawan,
+                    ] : null,
+                    'created_at' => $log->created_at->format('d M Y H:i'),
+                ]);
+        }
+
         return Inertia::render('Pengaturan/Index', [
             'tabAktif' => $tabAktif,
             'panelAktif' => $panelAktif,
@@ -100,6 +136,8 @@ class PengaturanController extends Controller
             'tabelTenor' => TabelTenor::orderBy('nominal_min')->get(),
             'bungaSaatIni' => SettingBunga::orderByDesc('berlaku_dari_tanggal')->first(),
             'settingSimpanan' => SettingSimpanan::orderBy('id')->get(),
+            'auditLogs' => $auditLogs,
+            'filterAudit' => $request->only(['search', 'date_from', 'date_to']),
         ]);
     }
 

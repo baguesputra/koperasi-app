@@ -2,6 +2,7 @@
 
 namespace App\Services\Pinjaman;
 
+use App\Models\AuditLog;
 use App\Models\PengajuanPercepatan;
 use App\Models\Pinjaman;
 use App\Services\Wa\WaPesan;
@@ -45,6 +46,21 @@ class PercepatanPinjamanService
             'status' => 'diajukan',
             'tanggal_pengajuan' => now(),
         ]);
+
+        AuditLog::catat(
+            aksi: 'percepatan_diajukan',
+            keterangan: "Pengajuan perubahan tenor ".self::labelTipe($tipe)." untuk pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) diajukan. Nominal pinjaman: ".WaPesan::rupiah($pinjaman->nominal),
+            dataLama: null,
+            dataBaru: [
+                'pengajuan_id' => $pengajuan->id,
+                'pinjaman_id' => $pinjaman->id,
+                'tipe' => $tipe,
+                'tenor_lama' => $pinjaman->tenor_bulan,
+                'tenor_baru' => $tenorBaru,
+                'keterangan' => $keterangan,
+                'status' => 'diajukan',
+            ]
+        );
 
         $labelTipe = self::labelTipe($tipe);
 
@@ -117,7 +133,15 @@ class PercepatanPinjamanService
 
     public function approveBendahara(PengajuanPercepatan $p, string $catatan): void
     {
+        $statusLama = $p->status;
         $p->update(['status' => 'approved_bendahara', 'catatan_bendahara' => $catatan]);
+
+        AuditLog::catat(
+            aksi: 'percepatan_setujui_bendahara',
+            keterangan: "Pengajuan percepatan #{$p->id} (pinjaman #{$p->pinjaman->id}) disetujui oleh Bendahara. Jenis: ".self::labelTipe($p->tipe),
+            dataLama: ['status' => $statusLama],
+            dataBaru: ['status' => 'approved_bendahara', 'catatan_bendahara' => $catatan]
+        );
 
         WaService::keAnggota(
             $p->pinjaman->anggota,
@@ -131,7 +155,15 @@ class PercepatanPinjamanService
 
     public function rejectBendahara(PengajuanPercepatan $p, string $catatan): void
     {
+        $statusLama = $p->status;
         $p->update(['status' => 'ditolak', 'catatan_bendahara' => $catatan]);
+
+        AuditLog::catat(
+            aksi: 'percepatan_tolak_bendahara',
+            keterangan: "Pengajuan percepatan #{$p->id} (pinjaman #{$p->pinjaman->id}) ditolak oleh Bendahara. Jenis: ".self::labelTipe($p->tipe),
+            dataLama: ['status' => $statusLama],
+            dataBaru: ['status' => 'ditolak', 'catatan_bendahara' => $catatan]
+        );
 
         WaService::keAnggota(
             $p->pinjaman->anggota,
@@ -142,7 +174,15 @@ class PercepatanPinjamanService
 
     public function rejectKetua(PengajuanPercepatan $p, string $catatan): void
     {
+        $statusLama = $p->status;
         $p->update(['status' => 'ditolak', 'catatan_ketua' => $catatan]);
+
+        AuditLog::catat(
+            aksi: 'percepatan_tolak_ketua',
+            keterangan: "Pengajuan percepatan #{$p->id} (pinjaman #{$p->pinjaman->id}) ditolak oleh Ketua. Jenis: ".self::labelTipe($p->tipe),
+            dataLama: ['status' => $statusLama],
+            dataBaru: ['status' => 'ditolak', 'catatan_ketua' => $catatan]
+        );
 
         WaService::keAnggota(
             $p->pinjaman->anggota,
@@ -153,6 +193,7 @@ class PercepatanPinjamanService
 
     public function approveKetua(PengajuanPercepatan $pengajuan, string $catatan, string $bulanBerlaku): void
     {
+        $statusLama = $pengajuan->status;
         DB::transaction(function () use ($pengajuan, $catatan, $bulanBerlaku) {
             $pinjaman = $pengajuan->pinjaman;
 
@@ -233,6 +274,19 @@ class PercepatanPinjamanService
 
             $pinjaman->update(['sudah_pakai_percepatan' => true]);
         });
+
+        AuditLog::catat(
+            aksi: 'percepatan_setujui_ketua',
+            keterangan: "Pengajuan percepatan #{$pengajuan->id} (pinjaman #{$pengajuan->pinjaman->id}) disetujui oleh Ketua. Jenis: ".self::labelTipe($pengajuan->tipe).", berlaku: {$bulanBerlaku}",
+            dataLama: ['status' => $statusLama],
+            dataBaru: [
+                'status' => 'aktif',
+                'catatan_ketua' => $catatan,
+                'bulan_berlaku' => $bulanBerlaku,
+                'sisa_pokok_saat_approval' => $pengajuan->fresh()->sisa_pokok_saat_approval,
+                'nominal_final' => $pengajuan->fresh()->nominal_final,
+            ]
+        );
 
         $labelBulan = $bulanBerlaku === 'bulan_ini' ? 'bulan ini ('.now()->translatedFormat('F Y').')' : 'bulan depan ('.now()->addMonthNoOverflow()->translatedFormat('F Y').')';
         $isi = 'Selamat! Pengajuan '.self::labelTipe($pengajuan->tipe)." Anda untuk pinjaman #{$pengajuan->pinjaman->id} ("

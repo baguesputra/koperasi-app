@@ -4,6 +4,7 @@ namespace App\Services\Pinjaman;
 
 use App\Models\Angsuran;
 use App\Models\AngsuranPercepatan;
+use App\Models\AuditLog;
 use App\Services\Keuangan\JurnalKasService;
 use Illuminate\Support\Facades\DB;
 
@@ -26,6 +27,7 @@ class KonfirmasiAngsuranService
             }
 
             $jumlah = 0;
+            $totalBayar = 0.0;
 
             if ($normalIds) {
                 $list = Angsuran::with('pinjaman.anggota')
@@ -44,6 +46,7 @@ class KonfirmasiAngsuranService
 
                     $this->tandaiLunasJikaSelesai($angsuran->pinjaman);
                     $jumlah++;
+                    $totalBayar += (float) $angsuran->total_bayar;
                 }
             }
 
@@ -66,8 +69,22 @@ class KonfirmasiAngsuranService
 
                     $this->tandaiLunasJikaSelesai($pinjaman);
                     $jumlah++;
+                    $totalBayar += (float) $angsuran->total_bayar;
                 }
             }
+
+            // Audit log untuk konfirmasi massal
+            AuditLog::catat(
+                aksi: 'angsuran_konfirmasi_massal',
+                keterangan: "Konfirmasi {$jumlah} angsuran, total ".number_format($totalBayar, 0, ',', '.')." oleh user #{$confirmedByUserId}",
+                dataLama: ['requested_ids' => $items],
+                dataBaru: [
+                    'confirmed_count' => $jumlah,
+                    'total_amount' => $totalBayar,
+                    'confirmed_by' => $confirmedByUserId,
+                    'ids' => $items,
+                ]
+            );
 
             return $jumlah;
         });

@@ -2,6 +2,7 @@
 
 namespace App\Services\Keuangan;
 
+use App\Models\AuditLog;
 use App\Models\Pengeluaran;
 use Illuminate\Support\Facades\DB;
 
@@ -30,6 +31,25 @@ class PengeluaranService
                 referensiId: $pengeluaran->id,
                 tanggal: $tanggal,
                 userId: $userId,
+            );
+
+            // Audit log untuk pencatatan pengeluaran
+            $labelJenis = $jenis === 'koperasi' ? 'Pengeluaran Koperasi' : 'Pengeluaran Dana Sosial';
+            $labelKantong = $jenis === 'koperasi' ? 'Dana Pinjaman' : 'Dana Sosial';
+
+            AuditLog::catat(
+                aksi: 'pengeluaran_dicatat',
+                keterangan: "{$labelJenis} dicatat: {$keterangan}, nominal: ".number_format($jumlah, 0, ',', '.').", dari {$labelKantong}",
+                dataLama: null,
+                dataBaru: [
+                    'pengeluaran_id' => $pengeluaran->id,
+                    'jenis' => $jenis,
+                    'jumlah' => $jumlah,
+                    'keterangan' => $keterangan,
+                    'tanggal' => $tanggal,
+                    'input_by' => $userId,
+                    'kantong' => $jenis === 'koperasi' ? 'pinjaman' : 'dana_sosial',
+                ]
             );
 
             return $pengeluaran;

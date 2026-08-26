@@ -3,6 +3,7 @@
 namespace App\Services\Simpanan;
 
 use App\Models\Anggota;
+use App\Models\AuditLog;
 use App\Models\SettingSimpanan;
 use App\Models\Simpanan;
 use App\Services\Keuangan\JurnalKasService;
@@ -37,6 +38,9 @@ class KonfirmasiSimpananService
                 ->keyBy('id');
 
             $jumlahDiproses = 0;
+            $totalWajib = 0.0;
+            $totalDanaSosial = 0.0;
+            $processedAnggota = [];
 
             foreach ($anggotaIds as $anggotaId) {
                 if (! $anggotaTerkunci->has($anggotaId)) {
@@ -97,7 +101,25 @@ class KonfirmasiSimpananService
                 );
 
                 $jumlahDiproses++;
+                $totalWajib += $nominalWajib;
+                $totalDanaSosial += $nominalDanaSosial;
+                $processedAnggota[] = $anggotaId;
             }
+
+            // Audit log untuk konfirmasi massal simpanan
+            AuditLog::catat(
+                aksi: 'simpanan_konfirmasi_massal',
+                keterangan: "Konfirmasi simpanan {$jumlahDiproses} anggota (wajib: ".number_format($totalWajib, 0, ',', '.').", dana sosial: ".number_format($totalDanaSosial, 0, ',', '.').") untuk periode {$bulanPeriode} oleh user #{$inputByUserId}",
+                dataLama: ['requested_ids' => $anggotaIds, 'bulan_periode' => $bulanPeriode],
+                dataBaru: [
+                    'confirmed_count' => $jumlahDiproses,
+                    'total_wajib' => $totalWajib,
+                    'total_dana_sosial' => $totalDanaSosial,
+                    'input_by' => $inputByUserId,
+                    'bulan_periode' => $bulanPeriode,
+                    'anggota_ids' => $processedAnggota,
+                ]
+            );
 
             return $jumlahDiproses;
         });

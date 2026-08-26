@@ -1,7 +1,7 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
-import { Percent, HandCoins, CalendarRange, PiggyBank, Shield, UserCog, ChevronRight, QrCode } from 'lucide-react';
+import { Percent, HandCoins, CalendarRange, PiggyBank, Shield, UserCog, ChevronRight, QrCode, Activity } from 'lucide-react';
 import Card from '@/Components/ui/Card';
 import Drawer from '@/Components/ui/Drawer';
 import TabBunga from './Partials/TabBunga';
@@ -9,6 +9,7 @@ import TabLimit from './Partials/TabLimit';
 import TabTenor from './Partials/TabTenor';
 import TabSimpanan from './Partials/TabSimpanan';
 import TabWa from './Partials/TabWa';
+import TabAuditLog from './Partials/TabAuditLog';
 import SheetKelolaPengguna from './Partials/SheetKelolaPengguna';
 import SheetKelolaRole from './Partials/SheetKelolaRole';
 
@@ -18,6 +19,7 @@ const tabs = [
     { key: 'tenor', label: 'Tenor', icon: CalendarRange },
     { key: 'simpanan', label: 'Simpanan', icon: PiggyBank },
     { key: 'wa', label: 'WhatsApp', icon: QrCode },
+    { key: 'audit', label: 'Audit Log', icon: Activity },
 ];
 
 export default function Index({
@@ -33,6 +35,8 @@ export default function Index({
     tabelTenor,
     bungaSaatIni,
     settingSimpanan,
+    auditLogs,
+    filterAudit,
 }) {
     const [sheet, setSheet] = useState(panelAktif);
 
@@ -95,6 +99,7 @@ export default function Index({
                 {tabAktif === 'tenor' && <TabTenor tabelTenor={tabelTenor} />}
                 {tabAktif === 'simpanan' && <TabSimpanan settingSimpanan={settingSimpanan} />}
                 {tabAktif === 'wa' && <TabWa />}
+                {tabAktif === 'audit' && <TabAuditLog auditLogs={auditLogs} filterAudit={filterAudit} />}
             </Card>
 
             {/* Manajemen akses */}

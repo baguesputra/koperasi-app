@@ -3,6 +3,7 @@
 namespace App\Services\Pinjaman;
 
 use App\Helpers\TerbilangHelper;
+use App\Models\AuditLog;
 use App\Models\Pinjaman;
 use App\Services\Keuangan\JurnalKasService;
 use App\Services\Wa\WaPesan;
@@ -19,10 +20,18 @@ class PersetujuanPinjamanService
 
     public function approveBendahara(Pinjaman $pinjaman, string $catatan): void
     {
+        $statusLama = $pinjaman->status;
         $pinjaman->update([
             'status' => 'approved_bendahara',
             'catatan_bendahara' => $catatan,
         ]);
+
+        AuditLog::catat(
+            aksi: 'pinjaman_setujui_bendahara',
+            keterangan: "Pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) disetujui oleh Bendahara. Nominal: ".WaPesan::rupiah($pinjaman->nominal),
+            dataLama: ['status' => $statusLama],
+            dataBaru: ['status' => 'approved_bendahara', 'catatan_bendahara' => $catatan]
+        );
 
         $isi = "Pengajuan pinjaman Anda telah kami informasikan dengan rincian:\n\n"
             ."- Nomor Referensi: #{$pinjaman->id}\n"
@@ -40,10 +49,18 @@ class PersetujuanPinjamanService
 
     public function rejectBendahara(Pinjaman $pinjaman, string $catatan): void
     {
+        $statusLama = $pinjaman->status;
         $pinjaman->update([
             'status' => 'ditolak',
             'catatan_bendahara' => $catatan,
         ]);
+
+        AuditLog::catat(
+            aksi: 'pinjaman_tolak_bendahara',
+            keterangan: "Pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) ditolak oleh Bendahara. Nominal: ".WaPesan::rupiah($pinjaman->nominal),
+            dataLama: ['status' => $statusLama],
+            dataBaru: ['status' => 'ditolak', 'catatan_bendahara' => $catatan]
+        );
 
         WaService::keAnggota(
             $pinjaman->anggota,
@@ -64,7 +81,7 @@ class PersetujuanPinjamanService
             throw new \RuntimeException('Pinjaman ini tidak dalam status menunggu pencairan Bendahara.');
         }
 
-        $this->cairkan($pinjaman, $catatan);
+        $this->cairkan($pinjaman, $catatan, 'pinjaman_cair_bendahara', 'dicairkan oleh Bendahara (pengajuan mandiri Ketua)');
     }
 
     public function approveKetua(Pinjaman $pinjaman, string $catatan): void
@@ -73,11 +90,12 @@ class PersetujuanPinjamanService
             throw new \RuntimeException('Hanya pinjaman berstatus Disetujui Bendahara yang dapat disetujui Ketua.');
         }
 
-        $this->cairkan($pinjaman, $catatan);
+        $this->cairkan($pinjaman, $catatan, 'pinjaman_setujui_ketua', 'disetujui & dicairkan oleh Ketua');
     }
 
-    private function cairkan(Pinjaman $pinjaman, string $catatan): void
+    private function cairkan(Pinjaman $pinjaman, string $catatan, string $aksi = 'pinjaman_cair', string $deskripsi = 'dicairkan'): void
     {
+        $statusLama = $pinjaman->status;
         DB::transaction(function () use ($pinjaman, $catatan) {
             $pinjaman->update([
                 'status' => 'aktif',
@@ -102,6 +120,13 @@ class PersetujuanPinjamanService
 
         $pinjaman->refresh();
 
+        AuditLog::catat(
+            aksi: $aksi,
+            keterangan: "Pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) {$deskripsi}. Nominal: ".WaPesan::rupiah($pinjaman->nominal),
+            dataLama: ['status' => $statusLama],
+            dataBaru: ['status' => 'aktif', 'catatan_ketua' => $catatan, 'tanggal_pencairan' => now()->toDateTimeString()]
+        );
+
         $isi = "Dengan hormat,\n\nSelamat! Pengajuan pinjaman Anda telah *DISETUJUI* oleh Ketua dan dana telah dicairkan pada "
             .now()->translatedFormat('d F Y').".\n\nRincian pencairan:\n"
             ."- Nomor Referensi: #{$pinjaman->id}\n"
@@ -123,10 +148,18 @@ class PersetujuanPinjamanService
 
     public function rejectKetua(Pinjaman $pinjaman, string $catatan): void
     {
+        $statusLama = $pinjaman->status;
         $pinjaman->update([
             'status' => 'ditolak',
             'catatan_ketua' => $catatan,
         ]);
+
+        AuditLog::catat(
+            aksi: 'pinjaman_tolak_ketua',
+            keterangan: "Pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) ditolak oleh Ketua. Nominal: ".WaPesan::rupiah($pinjaman->nominal),
+            dataLama: ['status' => $statusLama],
+            dataBaru: ['status' => 'ditolak', 'catatan_ketua' => $catatan]
+        );
 
         WaService::keAnggota(
             $pinjaman->anggota,

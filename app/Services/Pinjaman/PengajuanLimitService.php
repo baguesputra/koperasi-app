@@ -38,6 +38,20 @@ class PengajuanLimitService
             'tanggal_pengajuan' => now(),
         ]);
 
+        AuditLog::catat(
+            aksi: 'limit_diajukan',
+            keterangan: "Pengajuan kenaikan limit untuk {$anggota->nama} ({$anggota->no_anggota}) diajukan. Limit saat ini: ".WaPesan::rupiah($limitSaatIni).", diminta: ".WaPesan::rupiah($limitDiminta),
+            dataLama: null,
+            dataBaru: [
+                'pengajuan_id' => $pengajuan->id,
+                'anggota_id' => $anggota->id,
+                'limit_saat_ini' => $limitSaatIni,
+                'limit_diminta' => $limitDiminta,
+                'keterangan' => $keterangan,
+                'status' => 'diajukan',
+            ]
+        );
+
         WaService::keAnggota(
             $anggota,
             'limit_diajukan',
@@ -94,10 +108,18 @@ class PengajuanLimitService
 
     public function tolak(PengajuanLimit $pengajuan, string $catatan): void
     {
+        $statusLama = $pengajuan->status;
         $pengajuan->update([
             'status' => 'ditolak',
             'catatan_ketua' => $catatan,
         ]);
+
+        AuditLog::catat(
+            aksi: 'limit_ditolak',
+            keterangan: "Pengajuan kenaikan limit untuk {$pengajuan->anggota->nama} ({$pengajuan->anggota->no_anggota}) ditolak. Limit saat ini: ".WaPesan::rupiah($pengajuan->limit_saat_ini).", diminta: ".WaPesan::rupiah($pengajuan->limit_diminta),
+            dataLama: ['status' => $statusLama],
+            dataBaru: ['status' => 'ditolak', 'catatan_ketua' => $catatan]
+        );
 
         $isi = 'Mohon maaf, pengajuan kenaikan limit pinjaman Anda dari '
             .WaPesan::rupiah($pengajuan->limit_saat_ini).' menjadi '.WaPesan::rupiah($pengajuan->limit_diminta)

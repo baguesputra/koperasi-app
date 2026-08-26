@@ -230,6 +230,7 @@ Summary hasil meeting dengan koperasi 15 Agustus 2026
 - [x] pembuatan testing unit fitur
 - [x] pembuatan halaman laporan export excel dan pdf
 - [x] Menambah idempotency key jika terjadi double klik action crud
+- [x] Perancangan audit trail
 
 # Testing Checklist — Koperasi App
 **Tanggal:** 24 - 28 Agustus 2026
@@ -238,7 +239,7 @@ Summary hasil meeting dengan koperasi 15 Agustus 2026
 - [ ] Menambah reconciliation otomatis
 - [ ] import excel anggota otomatis buat user juga
 - [ ] multi tenant ( opsional )
-- [ ] Perancangan audit trail dari sisi keuangan
+
 
 
 
