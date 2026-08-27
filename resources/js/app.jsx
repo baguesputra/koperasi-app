@@ -28,3 +28,17 @@ createInertiaApp({
         color: '#4B5563',
     },
 });
+
+if ('serviceWorker' in navigator) {
+    import('workbox-window').then(({ Workbox }) => {
+        const wb = new Workbox('/sw.js');
+        wb.addEventListener('installed', (event) => {
+            if (!event.isUpdate) {
+                console.log('PWA: App cached and ready for offline use');
+            } else {
+                console.log('PWA: New version available, please refresh');
+            }
+        });
+        wb.register();
+    });
+}
