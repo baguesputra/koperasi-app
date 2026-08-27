@@ -234,10 +234,13 @@ Summary hasil meeting dengan koperasi 15 Agustus 2026
 
 # Testing Checklist — Koperasi App
 **Tanggal:** 24 - 28 Agustus 2026
-- [ ] Pembuatan api untuk aplikasi mobile dan aplikasi core lain nya
+- [x] Pembuatan api untuk aplikasi mobile dan aplikasi core lain nya
+- [x] Pembuatan PWA untuk mobile
+- [ ] - [ ] import excel anggota otomatis buat user juga
+
+Opsional
 - [ ] Gabung jadi 1 halaman approval bendahara dan ketua
 - [ ] Menambah reconciliation otomatis
-- [ ] import excel anggota otomatis buat user juga
 - [ ] multi tenant ( opsional )
 
 
@@ -260,6 +263,6 @@ Summary hasil meeting dengan koperasi 15 Agustus 2026
 - [ ] screen shoot tampilan aplikasi ( plugin playwright )
 - [ ] dokumentasi kode ( buat dokumen dan juga komen pada funtion atau fitur )
 - [ ] manual book
-- [ ] dokumentasi api
+- [x] dokumentasi api
 - [ ] dokumentasi database ( erd )
 
