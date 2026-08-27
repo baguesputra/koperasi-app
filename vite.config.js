@@ -11,7 +11,7 @@ export default defineConfig({
         }),
         react(),
         VitePWA({
-            registerType: 'autoUpdate',
+            registerType: 'prompt',
             includeAssets: ['favicon.ico', 'favicon_custom.ico', 'images/logo.png'],
             manifest: {
                 name: 'Koperasi App',
@@ -40,6 +40,9 @@ export default defineConfig({
             },
             workbox: {
                 globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+                additionalManifestEntries: [
+                    { url: '/', revision: null },
+                ],
                 runtimeCaching: [
                     {
                         urlPattern: /^https?.*\.(?:js|css|png|jpg|jpeg|svg|woff2?)$/,
