@@ -45,12 +45,13 @@ class PerusahaanProvider extends AbstractProvider implements ProviderInterface
                 ],
             ]
         );
-
+        // dd($response->getBody()->getContents());
         return json_decode($response->getBody(), true);
     }
 
     protected function mapUserToObject(array $user): SocialiteUser
     {
+        // dd($user); 
         return (new SocialiteUser)
             ->setRaw($user)
             ->map([
