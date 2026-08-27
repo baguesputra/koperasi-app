@@ -12,15 +12,58 @@ use App\Models\PengajuanLimit;
 use App\Models\PengajuanPercepatan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use OpenApi\Attributes as OA;
 
+#[OA\Tag(name: 'Dashboard', description: 'Dashboard endpoints for mobile app')]
 class DashboardController extends Controller
 {
     /**
      * Get dashboard statistics
      */
+    #[OA\Get(
+        path: '/api/dashboard/stats',
+        summary: 'Get member dashboard statistics',
+        tags: ['Dashboard'],
+        security: [['sanctum' => []]],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Dashboard statistics',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'anggota', type: 'object',
+                            properties: [
+                                new OA\Property(property: 'nama', type: 'string', example: 'Budi Santoso'),
+                                new OA\Property(property: 'no_anggota', type: 'string', example: 'ANG-2026-0001'),
+                                new OA\Property(property: 'lama_keanggotaan_label', type: 'string', example: '6 bulan'),
+                            ]
+                        ),
+                        new OA\Property(property: 'totalSimpanan', type: 'number', format: 'float', example: 320000),
+                        new OA\Property(property: 'simpananPokok', type: 'number', format: 'float', example: 50000),
+                        new OA\Property(property: 'simpananWajib', type: 'number', format: 'float', example: 270000),
+                        new OA\Property(property: 'limitMaksimal', type: 'number', format: 'float', example: 960000),
+                        new OA\Property(property: 'limitTersedia', type: 'number', format: 'float', example: 960000),
+                        new OA\Property(property: 'sisaAngsuranAktif', type: 'integer', example: 0),
+                        new OA\Property(property: 'cicilanPokokAktif', type: 'number', format: 'float', example: 0),
+                        new OA\Property(property: 'pinjamanAktif', type: 'object', nullable: true,
+                            properties: [
+                                new OA\Property(property: 'id', type: 'integer'),
+                                new OA\Property(property: 'nominal', type: 'number', format: 'float'),
+                                new OA\Property(property: 'tenor_bulan', type: 'integer'),
+                                new OA\Property(property: 'sisa_angsuran', type: 'integer'),
+                                new OA\Property(property: 'total_angsuran', type: 'integer'),
+                                new OA\Property(property: 'sisa_total_bayar', type: 'number', format: 'float'),
+                            ]
+                        ),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Unauthorized'),
+            new OA\Response(response: 404, description: 'Anggota not found'),
+        ]
+    )]
     public function stats(Request $request)
     {
-        // Get authenticated user's anggota
         $anggota = $request->user()->anggota;
         
         if (!$anggota) {
@@ -29,11 +72,6 @@ class DashboardController extends Controller
             ], 404);
         }
 
-        // For member dashboard, we show personal stats
-        // For admin/bendahara/ketua, we would show overall stats
-        // For now, let's implement member dashboard stats
-        
-        // Get simpanan totals
         $simpananAgg = $anggota->simpanan()
             ->selectRaw('
                 SUM(CASE WHEN jenis IN ("pokok","wajib") THEN jumlah ELSE 0 END) as total,
@@ -46,21 +84,17 @@ class DashboardController extends Controller
         $simpananPokok = (float) ($simpananAgg->pokok ?? 0);
         $simpananWajib = (float) ($simpananAgg->wajib ?? 0);
 
-        // Get active pinjaman
         $pinjamanAktif = $anggota->pinjamanAktif();
 
-        // Get eligibility (we would use a service in real implementation)
-        // For now, we'll calculate a simple eligibility
-        $limitMaksimal = $totalSimpanan * 3; // Simplified: 3x simpanan
+        $limitMaksimal = $totalSimpanan * 3;
         $cekEligibilitas = [
             'limit_tersedia' => $pinjamanAktif ? max(0, $limitMaksimal - ($pinjamanAktif->nominal ?? 0)) : $limitMaksimal,
             'sisa_angsuran' => $pinjamanAktif ? $pinjamanAktif->sisaCicilanAktif() : 0,
             'cicilan_pokok' => $pinjamanAktif ? $pinjamanAktif->cicilanPokokAktif() : 0,
-            'boleh' => true, // Simplified
+            'boleh' => true,
             'alasan' => null,
         ];
 
-        // Get next angsuran
         $angsuranBerikutnya = null;
         $sisaTotalBayar = 0;
 
@@ -80,54 +114,6 @@ class DashboardController extends Controller
                 ];
             }
         }
-
-        // Get riwayat simpanan (last 6)
-        $riwayatSimpanan = $anggota->simpanan()
-            ->whereIn('jenis', ['wajib', 'pokok'])
-            ->latest('tanggal_input')
-            ->take(6)
-            ->get()
-            ->map(fn ($s) => [
-                'tipe' => 'simpanan',
-                'label' => match ($s->jenis) {
-                    'pokok' => 'Simpanan Pokok',
-                    'wajib' => 'Simpanan Wajib',
-                    'dana_sosial' => 'Dana Sosial',
-                    default => $s->jenis,
-                },
-                'nominal' => (float) $s->jumlah,
-                'tanggal' => $s->tanggal_input,
-                'tanggal_format' => $s->tanggal_input->format('d M Y'),
-            ]);
-
-        // Get riwayat angsuran (lunas)
-        $riwayatAngsuran = $anggota->pinjaman()
-            ->with(['angsuran' => fn ($q) => $q->where('status', 'lunas')])
-            ->get()
-            ->pluck('angsuran')
-            ->flatten()
-            ->map(fn ($a) => [
-                'tipe' => 'angsuran',
-                'label' => "Cicilan ke-{$a->cicilan_ke}",
-                'nominal' => (float) $a->total_bayar,
-                'tanggal' => $a->tanggal_konfirmasi_bayar,
-                'tanggal_format' => $a->tanggal_konfirmasi_bayar->format('d M Y'),
-            ]);
-
-        // Combine and sort riwayat
-        $riwayatGabungan = $riwayatSimpanan->concat($riwayatAngsuran)
-            ->sortByDesc('tanggal')
-            ->take(4)
-            ->values()
-            ->map(fn ($item) => collect($item)->except('tanggal'));
-
-        // Get tabel tenor (for reference)
-        $tabelTenor = \App\Models\TabelTenor::orderBy('nominal_min')
-            ->get(['nominal_min', 'nominal_max', 'tenor_maksimal_bulan']);
-
-        // Get setting simpanan (for reference)
-        $settingSimpanan = \App\Models\SettingSimpanan::orderBy('id')
-            ->get(['jenis', 'label', 'nominal']);
 
         return response()->json([
             'anggota' => [
@@ -150,20 +136,33 @@ class DashboardController extends Controller
                 'total_angsuran' => $pinjamanAktif->totalCicilanAktif(),
                 'sisa_total_bayar' => $pinjamanAktif->sisaTotalBayarAktif(),
             ] : null,
-            // For simplicity, we're not including all the lists in the stats endpoint
-            // These would be in separate endpoints or fetched as needed
         ]);
     }
 
     /**
      * Get actionable items
      */
+    #[OA\Get(
+        path: '/api/dashboard/actionable',
+        summary: 'Get actionable items (for admin dashboard)',
+        tags: ['Dashboard'],
+        security: [['sanctum' => []]],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Actionable items',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'message', type: 'string'),
+                        new OA\Property(property: 'data', type: 'array', items: new OA\Items()),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Unauthorized'),
+        ]
+    )]
     public function actionable(Request $request)
     {
-        // This would typically be for admin/bendahara/ketua dashboards
-        // For member dashboard, we might show personal actionable items
-        // For now, let's return an empty array or basic info
-        
         return response()->json([
             'message' => 'Actionable items endpoint - would show pending approvals for admins',
             'data' => []
@@ -173,9 +172,36 @@ class DashboardController extends Controller
     /**
      * Get chart data
      */
+    #[OA\Get(
+        path: '/api/dashboard/charts',
+        summary: 'Get 6-month trend chart data',
+        tags: ['Dashboard'],
+        security: [['sanctum' => []]],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Chart data for trends',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'labelBulan', type: 'array', items: new OA\Items(type: 'string')),
+                        new OA\Property(property: 'grafikTren', type: 'array',
+                            items: new OA\Items(
+                                properties: [
+                                    new OA\Property(property: 'bulan', type: 'string', example: 'Mar 2026'),
+                                    new OA\Property(property: 'simpanan', type: 'number', format: 'float'),
+                                    new OA\Property(property: 'pinjaman', type: 'number', format: 'float'),
+                                ]
+                            )
+                        ),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Unauthorized'),
+            new OA\Response(response: 404, description: 'Anggota not found'),
+        ]
+    )]
     public function charts(Request $request)
     {
-        // Get authenticated user's anggota
         $anggota = $request->user()->anggota;
         
         if (!$anggota) {
@@ -184,7 +210,6 @@ class DashboardController extends Controller
             ], 404);
         }
 
-        // Get simpanan per bulan (last 6 months)
         $awalPeriode = Carbon::now()->subMonths(5)->startOfMonth();
         
         $simpananPerBulan = $anggota->simpanan()
@@ -196,7 +221,6 @@ class DashboardController extends Controller
             ->get()
             ->keyBy(fn ($r) => sprintf('%04d-%02d', $r->tahun, $r->bulan));
 
-        // Get pinjaman per bulan (last 6 months) - for member, this would be their own pinjaman
         $pinjamanPerBulan = $anggota->pinjaman()
             ->where('tanggal_pencairan', '>=', $awalPeriode)
             ->selectRaw('YEAR(tanggal_pencairan) as tahun, MONTH(tanggal_pencairan) as bulan, SUM(nominal) as total')
@@ -206,7 +230,6 @@ class DashboardController extends Controller
             ->get()
             ->keyBy(fn ($r) => sprintf('%04d-%02d', $r->tahun, $r->bulan));
 
-        // Build chart data
         $labelBulan = [];
         $grafikTren = [];
 
@@ -231,9 +254,34 @@ class DashboardController extends Controller
     /**
      * Get recent activity
      */
+    #[OA\Get(
+        path: '/api/dashboard/aktivitas',
+        summary: 'Get recent activity (loan applications & payments)',
+        tags: ['Dashboard'],
+        security: [['sanctum' => []]],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Recent activity list',
+                content: new OA\JsonContent(
+                    type: 'array',
+                    items: new OA\Items(
+                        properties: [
+                            new OA\Property(property: 'tipe', type: 'string', enum: ['pinjaman', 'angsuran']),
+                            new OA\Property(property: 'nama', type: 'string'),
+                            new OA\Property(property: 'keterangan', type: 'string'),
+                            new OA\Property(property: 'status', type: 'string'),
+                            new OA\Property(property: 'tanggal_format', type: 'string', example: '23 Aug 2026'),
+                        ]
+                    )
+                )
+            ),
+            new OA\Response(response: 401, description: 'Unauthorized'),
+            new OA\Response(response: 404, description: 'Anggota not found'),
+        ]
+    )]
     public function aktivitas(Request $request)
     {
-        // Get authenticated user's anggota
         $anggota = $request->user()->anggota;
         
         if (!$anggota) {
@@ -242,7 +290,6 @@ class DashboardController extends Controller
             ], 404);
         }
 
-        // Get recent pinjaman applications
         $aktivitasPinjaman = $anggota->pinjaman()
             ->with('anggota')
             ->latest('tanggal_pengajuan')
@@ -256,7 +303,6 @@ class DashboardController extends Controller
                 'tanggal' => $p->tanggal_pengajuan,
             ]);
 
-        // Get recent angsuran lunas
         $aktivitasAngsuran = \App\Models\Angsuran::whereHas('pinjaman.anggota', function ($q) use ($anggota) {
             $q->where('id', $anggota->id);
         })
@@ -273,7 +319,6 @@ class DashboardController extends Controller
                 'tanggal' => $a->tanggal_konfirmasi_bayar,
             ]);
 
-        // Combine and sort aktivitas
         $aktivitasTerbaru = $aktivitasPinjaman->concat($aktivitasAngsuran)
             ->sortByDesc('tanggal')
             ->take(6)

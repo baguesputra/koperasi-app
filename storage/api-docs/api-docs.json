@@ -1,0 +1,2644 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Koperasi App API",
+        "description": "RESTful API for Koperasi App mobile applications and integrations",
+        "version": "1.0.0"
+    },
+    "paths": {
+        "/api/register": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Register a new user",
+                "description": "Register a new user",
+                "operationId": "a718f172ff3ac464d723835815f8fb57",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "email",
+                                    "password",
+                                    "password_confirmation"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "John Doe",
+                                        "maxLength": 255
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "john@example.com",
+                                        "maxLength": 255
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "example": "password123",
+                                        "minLength": 8
+                                    },
+                                    "password_confirmation": {
+                                        "type": "string",
+                                        "example": "password123",
+                                        "minLength": 8
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "User registered successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "user": {
+                                            "$ref": "#/components/schemas/User"
+                                        },
+                                        "token": {
+                                            "type": "string",
+                                            "example": "1|abc123..."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            }
+        },
+        "/api/login": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Login user and return token",
+                "description": "Login user and return token",
+                "operationId": "44212a9096e4b09358281e9ec8a0701d",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "email",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "john@example.com"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "example": "password123"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Login successful",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "user": {
+                                            "$ref": "#/components/schemas/User"
+                                        },
+                                        "token": {
+                                            "type": "string",
+                                            "example": "1|abc123..."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid credentials"
+                    }
+                }
+            }
+        },
+        "/api/logout": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Logout user (revoke token)",
+                "description": "Logout user (revoke token)",
+                "operationId": "79854151e609bd20032aa5aa4d5a35c0",
+                "responses": {
+                    "200": {
+                        "description": "Logged out successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Logged out successfully"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/user": {
+            "get": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Get authenticated user",
+                "description": "Get the authenticated user",
+                "operationId": "b5e90fe100cd00fd4957f924d70b7db8",
+                "responses": {
+                    "200": {
+                        "description": "Current user data",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/User"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/dashboard/stats": {
+            "get": {
+                "tags": [
+                    "Dashboard"
+                ],
+                "summary": "Get member dashboard statistics",
+                "description": "Get dashboard statistics",
+                "operationId": "cabcc6ba02fd4175bde81636208c73d8",
+                "responses": {
+                    "200": {
+                        "description": "Dashboard statistics",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "anggota": {
+                                            "properties": {
+                                                "nama": {
+                                                    "type": "string",
+                                                    "example": "Budi Santoso"
+                                                },
+                                                "no_anggota": {
+                                                    "type": "string",
+                                                    "example": "ANG-2026-0001"
+                                                },
+                                                "lama_keanggotaan_label": {
+                                                    "type": "string",
+                                                    "example": "6 bulan"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "totalSimpanan": {
+                                            "type": "number",
+                                            "format": "float",
+                                            "example": 320000
+                                        },
+                                        "simpananPokok": {
+                                            "type": "number",
+                                            "format": "float",
+                                            "example": 50000
+                                        },
+                                        "simpananWajib": {
+                                            "type": "number",
+                                            "format": "float",
+                                            "example": 270000
+                                        },
+                                        "limitMaksimal": {
+                                            "type": "number",
+                                            "format": "float",
+                                            "example": 960000
+                                        },
+                                        "limitTersedia": {
+                                            "type": "number",
+                                            "format": "float",
+                                            "example": 960000
+                                        },
+                                        "sisaAngsuranAktif": {
+                                            "type": "integer",
+                                            "example": 0
+                                        },
+                                        "cicilanPokokAktif": {
+                                            "type": "number",
+                                            "format": "float",
+                                            "example": 0
+                                        },
+                                        "pinjamanAktif": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "nominal": {
+                                                    "type": "number",
+                                                    "format": "float"
+                                                },
+                                                "tenor_bulan": {
+                                                    "type": "integer"
+                                                },
+                                                "sisa_angsuran": {
+                                                    "type": "integer"
+                                                },
+                                                "total_angsuran": {
+                                                    "type": "integer"
+                                                },
+                                                "sisa_total_bayar": {
+                                                    "type": "number",
+                                                    "format": "float"
+                                                }
+                                            },
+                                            "type": "object",
+                                            "nullable": true
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Anggota not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/dashboard/actionable": {
+            "get": {
+                "tags": [
+                    "Dashboard"
+                ],
+                "summary": "Get actionable items (for admin dashboard)",
+                "description": "Get actionable items",
+                "operationId": "a6edecce88435cc65127c542d96a9ceb",
+                "responses": {
+                    "200": {
+                        "description": "Actionable items",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/dashboard/charts": {
+            "get": {
+                "tags": [
+                    "Dashboard"
+                ],
+                "summary": "Get 6-month trend chart data",
+                "description": "Get chart data",
+                "operationId": "acf5b2ff4cfbada8aa78149ff892ed77",
+                "responses": {
+                    "200": {
+                        "description": "Chart data for trends",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "labelBulan": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "grafikTren": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "bulan": {
+                                                        "type": "string",
+                                                        "example": "Mar 2026"
+                                                    },
+                                                    "simpanan": {
+                                                        "type": "number",
+                                                        "format": "float"
+                                                    },
+                                                    "pinjaman": {
+                                                        "type": "number",
+                                                        "format": "float"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Anggota not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/dashboard/aktivitas": {
+            "get": {
+                "tags": [
+                    "Dashboard"
+                ],
+                "summary": "Get recent activity (loan applications & payments)",
+                "description": "Get recent activity",
+                "operationId": "be4f4eb439579d2cb658a16f7e23067c",
+                "responses": {
+                    "200": {
+                        "description": "Recent activity list",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "tipe": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "pinjaman",
+                                                    "angsuran"
+                                                ]
+                                            },
+                                            "nama": {
+                                                "type": "string"
+                                            },
+                                            "keterangan": {
+                                                "type": "string"
+                                            },
+                                            "status": {
+                                                "type": "string"
+                                            },
+                                            "tanggal_format": {
+                                                "type": "string",
+                                                "example": "23 Aug 2026"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Anggota not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/master-data/cabang": {
+            "get": {
+                "tags": [
+                    "Master Data"
+                ],
+                "summary": "Get list of branches (cabang)",
+                "description": "Get list of cabang",
+                "operationId": "60d95c8119ef653b9a9aaafd1c66d862",
+                "responses": {
+                    "200": {
+                        "description": "List of branches",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string",
+                                        "example": "Banjarmasin"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/master-data/unit-bisnis": {
+            "get": {
+                "tags": [
+                    "Master Data"
+                ],
+                "summary": "Get list of business units",
+                "description": "Get list of unit bisnis",
+                "operationId": "7fcb120f0e8ede93e7085051dc141b16",
+                "responses": {
+                    "200": {
+                        "description": "List of business units",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string",
+                                        "example": "Operasional"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/master-data/jabatan": {
+            "get": {
+                "tags": [
+                    "Master Data"
+                ],
+                "summary": "Get list of positions (jabatan)",
+                "description": "Get list of jabatan",
+                "operationId": "b8f19e0f59af87f60e3269bd14891eab",
+                "responses": {
+                    "200": {
+                        "description": "List of positions",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string",
+                                        "example": "staff"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/master-data/divisi": {
+            "get": {
+                "tags": [
+                    "Master Data"
+                ],
+                "summary": "Get list of divisions (divisi)",
+                "description": "Get list of divisi",
+                "operationId": "0946e9c46c1ee750b31d6acf29adc7e2",
+                "responses": {
+                    "200": {
+                        "description": "List of divisions",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string",
+                                        "example": "Lapangan"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/master-data/department": {
+            "get": {
+                "tags": [
+                    "Master Data"
+                ],
+                "summary": "Get list of departments",
+                "description": "Get list of department",
+                "operationId": "3ced4a52992c493d9ba6d9151cc846df",
+                "responses": {
+                    "200": {
+                        "description": "List of departments",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string",
+                                        "example": "Operasional"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/master-data/tabel-tenor": {
+            "get": {
+                "tags": [
+                    "Master Data"
+                ],
+                "summary": "Get tenor table for loan applications",
+                "description": "Get tabel tenor",
+                "operationId": "f30fa38de0e2d047f6390452e73d8198",
+                "responses": {
+                    "200": {
+                        "description": "Tenor table",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "nominal_min": {
+                                                "type": "string",
+                                                "example": "0.00"
+                                            },
+                                            "nominal_max": {
+                                                "type": "string",
+                                                "example": "1000000.00"
+                                            },
+                                            "tenor_maksimal_bulan": {
+                                                "type": "integer",
+                                                "example": 3
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/master-data/setting-simpanan": {
+            "get": {
+                "tags": [
+                    "Master Data"
+                ],
+                "summary": "Get savings settings",
+                "description": "Get setting simpanan",
+                "operationId": "d31652beb8a8ffc8336a0c90c4934e36",
+                "responses": {
+                    "200": {
+                        "description": "Savings settings",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "jenis": {
+                                                "type": "string",
+                                                "example": "pokok"
+                                            },
+                                            "label": {
+                                                "type": "string",
+                                                "example": "Simpanan Pokok"
+                                            },
+                                            "nominal": {
+                                                "type": "string",
+                                                "example": "50000.00"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/pengajuan-anggota": {
+            "get": {
+                "tags": [
+                    "Pengajuan Anggota"
+                ],
+                "summary": "List member loan applications",
+                "description": "Display a listing of the resource.",
+                "operationId": "105318d5aafe1e026232caa911f5a77f",
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "description": "Filter by status",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "Filter by start date (Y-m-d)",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "Filter by end date (Y-m-d)",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Items per page",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated list of loan applications",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Pinjaman"
+                                            }
+                                        },
+                                        "current_page": {
+                                            "type": "integer"
+                                        },
+                                        "last_page": {
+                                            "type": "integer"
+                                        },
+                                        "per_page": {
+                                            "type": "integer"
+                                        },
+                                        "total": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Anggota not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Pengajuan Anggota"
+                ],
+                "summary": "Create a new loan application",
+                "description": "Store a newly created resource in storage.",
+                "operationId": "9bcf54cd9cfba6ad2cf9badb34e2d9cd",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "nominal",
+                                    "tenor_bulan",
+                                    "keperluan"
+                                ],
+                                "properties": {
+                                    "nominal": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 5000000,
+                                        "minimum": 1000000
+                                    },
+                                    "tenor_bulan": {
+                                        "type": "integer",
+                                        "example": 12,
+                                        "maximum": 120,
+                                        "minimum": 1
+                                    },
+                                    "keperluan": {
+                                        "type": "string",
+                                        "example": "Renovasi rumah",
+                                        "maxLength": 255
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Loan application created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Pinjaman"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Only active members can submit applications"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/pengajuan-anggota/{id}": {
+            "get": {
+                "tags": [
+                    "Pengajuan Anggota"
+                ],
+                "summary": "Get loan application details",
+                "description": "Display the specified resource.",
+                "operationId": "036bf00f72f25d834c0a613e3b9cd882",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Loan application ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Loan application details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Pinjaman"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Unauthorized - application does not belong to you"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Pengajuan Anggota"
+                ],
+                "summary": "Update loan application (only if pending)",
+                "description": "Update the specified resource in storage.",
+                "operationId": "8bc500f9ee8a3c57edaa1a53a5ce9276",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Loan application ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "nominal": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 5000000,
+                                        "minimum": 1000000
+                                    },
+                                    "tenor_bulan": {
+                                        "type": "integer",
+                                        "example": 12,
+                                        "maximum": 120,
+                                        "minimum": 1
+                                    },
+                                    "keperluan": {
+                                        "type": "string",
+                                        "example": "Renovasi rumah",
+                                        "maxLength": 255
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Loan application updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Pinjaman"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Can only update applications that are still pending"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Pengajuan Anggota"
+                ],
+                "summary": "Delete loan application (only if pending)",
+                "description": "Remove the specified resource from storage.",
+                "operationId": "b4cc57d2ddc9eef536ca23a4b61b646a",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Loan application ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Application deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Application deleted successfully"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Can only delete applications that are still pending"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/pengajuan-limit": {
+            "get": {
+                "tags": [
+                    "Pengajuan Limit"
+                ],
+                "summary": "List member limit increase applications",
+                "description": "Display a listing of the resource.",
+                "operationId": "1063611a7d62316710428c07f4e3359a",
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "description": "Filter by status",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Items per page",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated list of limit applications",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/PengajuanLimit"
+                                            }
+                                        },
+                                        "current_page": {
+                                            "type": "integer"
+                                        },
+                                        "last_page": {
+                                            "type": "integer"
+                                        },
+                                        "per_page": {
+                                            "type": "integer"
+                                        },
+                                        "total": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Anggota not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Pengajuan Limit"
+                ],
+                "summary": "Submit a limit increase request",
+                "description": "Store a newly created resource in storage.",
+                "operationId": "68d367d1a09a4fe0725dea330dec9a06",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "limit_diminta"
+                                ],
+                                "properties": {
+                                    "limit_diminta": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 10000000,
+                                        "minimum": 1000000
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Limit increase application created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PengajuanLimit"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Only active members can submit applications"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/pengajuan-limit/{id}": {
+            "get": {
+                "tags": [
+                    "Pengajuan Limit"
+                ],
+                "summary": "Get limit application details",
+                "description": "Display the specified resource.",
+                "operationId": "26d7588e4990b3b04de7d2bb6d97611c",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Limit application ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Limit application details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PengajuanLimit"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Unauthorized - application does not belong to you"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Pengajuan Limit"
+                ],
+                "summary": "Update limit application (only if pending)",
+                "description": "Update the specified resource in storage.",
+                "operationId": "eee04041f781023b04e0eb222d631f6c",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Limit application ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "limit_diminta": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 10000000,
+                                        "minimum": 1000000
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Limit application updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PengajuanLimit"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Can only update applications that are still pending"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Pengajuan Limit"
+                ],
+                "summary": "Delete limit application (only if pending)",
+                "description": "Remove the specified resource from storage.",
+                "operationId": "41e82741f8ee044b824e50e5af074084",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Limit application ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Application deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Application deleted successfully"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Can only delete applications that are still pending"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/percepatan": {
+            "get": {
+                "tags": [
+                    "Percepatan"
+                ],
+                "summary": "List member tenor change applications",
+                "description": "Display a listing of the resource.",
+                "operationId": "c3fa154db527a3e5583d77509054723d",
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "description": "Filter by status",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Items per page",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated list of tenor applications",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/PengajuanPercepatan"
+                                            }
+                                        },
+                                        "current_page": {
+                                            "type": "integer"
+                                        },
+                                        "last_page": {
+                                            "type": "integer"
+                                        },
+                                        "per_page": {
+                                            "type": "integer"
+                                        },
+                                        "total": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Anggota not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Percepatan"
+                ],
+                "summary": "Submit a tenor change request",
+                "description": "Store a newly created resource in storage.",
+                "operationId": "e35af5474605c990917de6675265917c",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "pinjaman_id",
+                                    "tenor_lama",
+                                    "tenor_baru"
+                                ],
+                                "properties": {
+                                    "pinjaman_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "tenor_lama": {
+                                        "type": "integer",
+                                        "example": 12,
+                                        "minimum": 1
+                                    },
+                                    "tenor_baru": {
+                                        "type": "integer",
+                                        "example": 24,
+                                        "maximum": 120,
+                                        "minimum": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Tenor change application created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PengajuanPercepatan"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Only active members can submit applications / Can only apply on active loans"
+                    },
+                    "404": {
+                        "description": "Pinjaman not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/percepatan/{id}": {
+            "get": {
+                "tags": [
+                    "Percepatan"
+                ],
+                "summary": "Get tenor application details",
+                "description": "Display the specified resource.",
+                "operationId": "03cb439cdf2a937162ec1896ca565703",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Tenor application ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Tenor application details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PengajuanPercepatan"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Unauthorized - application does not belong to you"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Percepatan"
+                ],
+                "summary": "Update tenor application (only if pending)",
+                "description": "Update the specified resource in storage.",
+                "operationId": "7bc105cd6855fecb69b7909a1d0b8681",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Tenor application ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "tenor_lama": {
+                                        "type": "integer",
+                                        "example": 12,
+                                        "minimum": 1
+                                    },
+                                    "tenor_baru": {
+                                        "type": "integer",
+                                        "example": 24,
+                                        "maximum": 120,
+                                        "minimum": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Tenor application updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PengajuanPercepatan"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Can only update applications that are still pending"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Percepatan"
+                ],
+                "summary": "Delete tenor application (only if pending)",
+                "description": "Remove the specified resource from storage.",
+                "operationId": "c3bd7e805df69aa777f6e2cd9cc25a94",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Tenor application ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Application deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Application deleted successfully"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Can only delete applications that are still pending"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/percepatan/{id}/preview": {
+            "post": {
+                "tags": [
+                    "Percepatan"
+                ],
+                "summary": "Preview tenor change impact",
+                "description": "Preview tenor changes impact",
+                "operationId": "60df649a3f98954c9cdbc4dbaea96aaa",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Tenor application ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "tenor_lama": {
+                                        "type": "integer",
+                                        "example": 12,
+                                        "minimum": 1
+                                    },
+                                    "tenor_baru": {
+                                        "type": "integer",
+                                        "example": 24,
+                                        "maximum": 120,
+                                        "minimum": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Tenor change preview",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "current": {
+                                            "properties": {
+                                                "tenor_sisa": {
+                                                    "type": "integer"
+                                                },
+                                                "pokok_per_bulan": {
+                                                    "type": "number",
+                                                    "format": "float"
+                                                },
+                                                "bunga_per_bulan": {
+                                                    "type": "number",
+                                                    "format": "float"
+                                                },
+                                                "total_per_bulan": {
+                                                    "type": "number",
+                                                    "format": "float"
+                                                },
+                                                "total_sisa": {
+                                                    "type": "number",
+                                                    "format": "float"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "proposed": {
+                                            "properties": {
+                                                "tenor_baru": {
+                                                    "type": "integer"
+                                                },
+                                                "pokok_per_bulan": {
+                                                    "type": "number",
+                                                    "format": "float"
+                                                },
+                                                "bunga_per_bulan": {
+                                                    "type": "number",
+                                                    "format": "float"
+                                                },
+                                                "total_per_bulan": {
+                                                    "type": "number",
+                                                    "format": "float"
+                                                },
+                                                "total_baru": {
+                                                    "type": "number",
+                                                    "format": "float"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "comparison": {
+                                            "properties": {
+                                                "selisih_total": {
+                                                    "type": "number",
+                                                    "format": "float"
+                                                },
+                                                "perubahan_tenor": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "No remaining installments found"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Unauthorized"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/pinjaman": {
+            "get": {
+                "tags": [
+                    "Pinjaman"
+                ],
+                "summary": "List user loans",
+                "description": "Display a listing of the resource.",
+                "operationId": "34915626407efaf8d9c7511cad357794",
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "description": "Filter by status",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Items per page",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated list of loans",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Pinjaman"
+                                            }
+                                        },
+                                        "current_page": {
+                                            "type": "integer"
+                                        },
+                                        "last_page": {
+                                            "type": "integer"
+                                        },
+                                        "per_page": {
+                                            "type": "integer"
+                                        },
+                                        "total": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Anggota not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Pinjaman"
+                ],
+                "summary": "Submit a new loan application",
+                "description": "Store a newly created resource in storage.",
+                "operationId": "22b9e5d59082a02fef5c88c9e3b36644",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "nominal",
+                                    "tenor_bulan",
+                                    "keperluan"
+                                ],
+                                "properties": {
+                                    "nominal": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 5000000,
+                                        "minimum": 1000000
+                                    },
+                                    "tenor_bulan": {
+                                        "type": "integer",
+                                        "example": 12,
+                                        "maximum": 120,
+                                        "minimum": 1
+                                    },
+                                    "keperluan": {
+                                        "type": "string",
+                                        "example": "Renovasi rumah",
+                                        "maxLength": 255
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Loan application created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Pinjaman"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Only active members can submit applications"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/pinjaman/{id}": {
+            "get": {
+                "tags": [
+                    "Pinjaman"
+                ],
+                "summary": "Get loan details",
+                "description": "Display the specified resource.",
+                "operationId": "44e88c06f2fd2d1a4d0f72cc06687255",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Loan ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Loan details with installments",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Pinjaman"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Unauthorized - loan does not belong to you"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/pinjaman/{id}/cek-nominal": {
+            "post": {
+                "tags": [
+                    "Pinjaman"
+                ],
+                "summary": "Check loan eligibility for a nominal amount",
+                "description": "Check loan eligibility/nominal",
+                "operationId": "6c5d52bca564ea8254592ec6014b0668",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Loan ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "nominal"
+                                ],
+                                "properties": {
+                                    "nominal": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 5000000,
+                                        "minimum": 1000000
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Eligibility check result",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "eligible": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "max_nominal": {
+                                            "type": "number",
+                                            "format": "float",
+                                            "example": 960000
+                                        },
+                                        "current_nominal": {
+                                            "type": "number",
+                                            "format": "float",
+                                            "example": 5000000
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Loan amount exceeds maximum eligible amount"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/pinjaman/{id}/simulasi": {
+            "post": {
+                "tags": [
+                    "Pinjaman"
+                ],
+                "summary": "Simulate loan repayment schedule",
+                "description": "Simulate loan",
+                "operationId": "273499ea4897298091189fdc27055358",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Loan ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "nominal": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 1000000,
+                                        "minimum": 1000000
+                                    },
+                                    "tenor_bulan": {
+                                        "type": "integer",
+                                        "example": 12,
+                                        "maximum": 120,
+                                        "minimum": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Loan simulation result",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "nominal": {
+                                            "type": "number",
+                                            "format": "float"
+                                        },
+                                        "tenor_bulan": {
+                                            "type": "integer"
+                                        },
+                                        "pokok_per_bulan": {
+                                            "type": "number",
+                                            "format": "float"
+                                        },
+                                        "bunga_per_bulan": {
+                                            "type": "number",
+                                            "format": "float"
+                                        },
+                                        "angsuran_per_bulan": {
+                                            "type": "number",
+                                            "format": "float"
+                                        },
+                                        "total_bunga": {
+                                            "type": "number",
+                                            "format": "float"
+                                        },
+                                        "total_pembayaran": {
+                                            "type": "number",
+                                            "format": "float"
+                                        },
+                                        "rincian_angsuran": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "cicilan_ke": {
+                                                        "type": "integer"
+                                                    },
+                                                    "pokok": {
+                                                        "type": "number",
+                                                        "format": "float"
+                                                    },
+                                                    "bunga": {
+                                                        "type": "number",
+                                                        "format": "float"
+                                                    },
+                                                    "total": {
+                                                        "type": "number",
+                                                        "format": "float"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Unauthorized"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "User": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "John Doe"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "john@example.com"
+                    },
+                    "no_karyawan": {
+                        "type": "string",
+                        "example": "TOP-100001"
+                    },
+                    "sso_id": {
+                        "type": "string",
+                        "example": null,
+                        "nullable": true
+                    },
+                    "auth_provider": {
+                        "type": "string",
+                        "example": "local"
+                    },
+                    "email_verified_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "harus_ganti_password": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "status": {
+                        "type": "string",
+                        "example": "aktif"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "Pinjaman": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "anggota_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "pengaju_user_id": {
+                        "type": "integer",
+                        "example": 4
+                    },
+                    "nominal": {
+                        "type": "string",
+                        "example": "5000000.00"
+                    },
+                    "tenor_bulan": {
+                        "type": "integer",
+                        "example": 12
+                    },
+                    "keperluan": {
+                        "type": "string",
+                        "example": "Renovasi rumah"
+                    },
+                    "snapshot_bank": {
+                        "type": "string",
+                        "example": "BCA",
+                        "nullable": true
+                    },
+                    "snapshot_no_rekening": {
+                        "type": "string",
+                        "example": "1234567890",
+                        "nullable": true
+                    },
+                    "snapshot_atas_nama": {
+                        "type": "string",
+                        "example": "John Doe",
+                        "nullable": true
+                    },
+                    "persentase_bunga": {
+                        "type": "string",
+                        "example": "1.00"
+                    },
+                    "status": {
+                        "type": "string",
+                        "example": "diajukan",
+                        "enum": [
+                            "diajukan",
+                            "approved_bendahara",
+                            "approved_ketua",
+                            "aktif",
+                            "ditolak",
+                            "lunas"
+                        ]
+                    },
+                    "cair_oleh_bendahara": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "sudah_pakai_privilege_reloan": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "sudah_pakai_percepatan": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "tanggal_pengajuan": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "tanggal_pencairan": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "disetujui_pada": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "versi_syarat": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "ip_address_setuju": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "user_agent_setuju": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "catatan_bendahara": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "catatan_ketua": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "anggota": {
+                        "$ref": "#/components/schemas/Anggota"
+                    },
+                    "pengaju": {
+                        "$ref": "#/components/schemas/User"
+                    }
+                },
+                "type": "object"
+            },
+            "Anggota": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "user_id": {
+                        "type": "integer",
+                        "example": 4
+                    },
+                    "no_anggota": {
+                        "type": "string",
+                        "example": "ANG-2026-0001"
+                    },
+                    "no_karyawan": {
+                        "type": "string",
+                        "example": "TOP-100001"
+                    },
+                    "no_ktp": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "nama": {
+                        "type": "string",
+                        "example": "Budi Santoso"
+                    },
+                    "cabang": {
+                        "type": "string",
+                        "example": "Banjarmasin"
+                    },
+                    "unit_bisnis": {
+                        "type": "string",
+                        "example": "Operasional"
+                    },
+                    "department": {
+                        "type": "string",
+                        "example": "Operasional"
+                    },
+                    "divisi": {
+                        "type": "string",
+                        "example": "Lapangan"
+                    },
+                    "no_hp": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "alamat": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "jabatan": {
+                        "type": "string",
+                        "example": "staff"
+                    },
+                    "tanggal_mulai_kerja": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "tanggal_jadi_anggota": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "status": {
+                        "type": "string",
+                        "example": "aktif"
+                    },
+                    "tanggal_resign": {
+                        "type": "string",
+                        "format": "date",
+                        "nullable": true
+                    },
+                    "alasan_resign": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "resigned_by": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "resigned_settlement_json": {
+                        "type": "array",
+                        "items": {},
+                        "nullable": true
+                    },
+                    "reaktivasi_history_json": {
+                        "type": "array",
+                        "items": {},
+                        "nullable": true
+                    },
+                    "limit_custom": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "limit_custom_keterangan": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "user": {
+                        "$ref": "#/components/schemas/User"
+                    }
+                },
+                "type": "object"
+            },
+            "PengajuanLimit": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "anggota_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "limit_saat_ini": {
+                        "type": "string",
+                        "example": "0.00"
+                    },
+                    "limit_diminta": {
+                        "type": "string",
+                        "example": "10000000.00"
+                    },
+                    "keterangan": {
+                        "type": "string",
+                        "example": "Pengajuan via mobile app"
+                    },
+                    "status": {
+                        "type": "string",
+                        "example": "diajukan",
+                        "enum": [
+                            "diajukan",
+                            "approved_ketua",
+                            "ditolak"
+                        ]
+                    },
+                    "catatan_ketua": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "tanggal_pengajuan": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "anggota": {
+                        "$ref": "#/components/schemas/Anggota"
+                    }
+                },
+                "type": "object"
+            },
+            "PengajuanPercepatan": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "pinjaman_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "tenor_lama": {
+                        "type": "integer",
+                        "example": 12
+                    },
+                    "tenor_baru": {
+                        "type": "integer",
+                        "example": 24
+                    },
+                    "status": {
+                        "type": "string",
+                        "example": "diajukan",
+                        "enum": [
+                            "diajukan",
+                            "approved_bendahara",
+                            "approved_ketua",
+                            "aktif",
+                            "ditolak"
+                        ]
+                    },
+                    "tanggal_pengajuan": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "pinjaman": {
+                        "$ref": "#/components/schemas/Pinjaman"
+                    }
+                },
+                "type": "object"
+            }
+        },
+        "securitySchemes": {
+            "sanctum": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+                "description": "Enter token in format (Bearer <token>)"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Authentication",
+            "description": "Authentication endpoints"
+        },
+        {
+            "name": "Dashboard",
+            "description": "Dashboard endpoints for mobile app"
+        },
+        {
+            "name": "Master Data",
+            "description": "Reference data for forms and dropdowns"
+        },
+        {
+            "name": "Pengajuan Anggota",
+            "description": "Member loan applications"
+        },
+        {
+            "name": "Pengajuan Limit",
+            "description": "Limit increase applications"
+        },
+        {
+            "name": "Percepatan",
+            "description": "Tenor change applications"
+        },
+        {
+            "name": "Pinjaman",
+            "description": "Loan management"
+        }
+    ],
+    "security": [
+        {
+            "sanctum": []
+        }
+    ]
+}
