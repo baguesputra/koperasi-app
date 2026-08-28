@@ -179,6 +179,7 @@ function kirimPengajuan() {
                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-semibold text-slate-400">Rp</span>
                             <input
                                 type="number"
+                                inputMode="numeric"
                                 value={nominal}
                                 onChange={(e) => setNominal(e.target.value)}
                                 placeholder="0"
@@ -208,7 +209,7 @@ function kirimPengajuan() {
                                     <button
                                         key={bulan}
                                         onClick={() => pilihTenor(bulan)}
-                                        className={`py-3 rounded-xl text-base font-bold border-2 transition-colors ${
+                                        className={`py-3 min-h-[44px] rounded-xl text-base font-bold border-2 transition-colors ${
                                             tenorDipilih === bulan
                                                 ? 'border-brand-green bg-brand-green-light text-brand-green-dark'
                                                 : 'border-slate-200 text-slate-600 hover:border-slate-300'

@@ -50,13 +50,13 @@ export default function SidebarLayout({ children }) {
     return (
         <div className="flex min-h-screen bg-slate-50">
             {/* Desktop Sidebar */}
-            <div
-                onMouseEnter={sidebarMasuk}
-                onMouseLeave={sidebarKeluar}
-                className={`hidden lg:block sticky top-0 h-screen shrink-0 p-3 transition-[width] duration-300 ${
-                    collapsed ? 'w-[88px]' : 'w-[280px]'
-                } ${elevating ? 'z-50' : ''}`}
-            >
+<div
+                 onMouseEnter={sidebarMasuk}
+                 onMouseLeave={sidebarKeluar}
+                 className={`hidden lg:block sticky top-0 pt-[env(safe-area-inset-top)] h-screen shrink-0 p-3 transition-[width] duration-300 ${
+                     collapsed ? 'w-[88px]' : 'w-[280px]'
+                 } ${elevating ? 'z-50' : ''}`}
+             >
                 <Sidebar collapsed={collapsed} expanding={expanding} onToggle={toggleSidebar} />
             </div>
 
@@ -90,12 +90,12 @@ export default function SidebarLayout({ children }) {
             </Transition>
 
             <div className="flex-1 flex flex-col min-w-0">
-                <div className="lg:hidden sticky top-0 z-40 bg-slate-50 h-12 px-4 flex items-center shrink-0">
-                    <button
-                        onClick={() => setMobileSidebarOpen(true)}
-                        className="p-2 -ml-2 rounded-lg text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/40"
-                        aria-label="Buka menu navigasi"
-                    >
+                <div className="lg:hidden sticky top-0 pt-[env(safe-area-inset-top)] z-40 bg-slate-50 h-12 px-4 flex items-center shrink-0">
+<button
+                         onClick={() => setMobileSidebarOpen(true)}
+                         className="min-h-[44px] min-w-[44px] p-2 -ml-2 rounded-lg text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/40"
+                         aria-label="Buka menu navigasi"
+                     >
                         <Menu size={22} />
                     </button>
                     <div className="flex items-center gap-2 mx-auto">

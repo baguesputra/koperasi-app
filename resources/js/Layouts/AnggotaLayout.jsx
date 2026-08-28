@@ -1,6 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import { useState, useRef, useEffect } from 'react';
-import { User, LogOut, ChevronDown, HelpCircle } from 'lucide-react';
+import { User, LogOut, ChevronDown, HelpCircle, Home, History, FilePlus } from 'lucide-react';
 import Panduan from '@/Pages/Portal/Panduan';
 
 export default function AnggotaLayout({ children }) {
@@ -32,9 +32,11 @@ export default function AnggotaLayout({ children }) {
         return () => document.removeEventListener('keydown', handleEsc);
     }, [showPanduan]);
 
+    const isCurrentRoute = (name) => route().current(name);
+
     return (
-        <div className="min-h-screen bg-slate-50">
-            <header className="sticky top-0 z-50 bg-white border-b-2 border-brand-navy">
+        <div className="min-h-screen bg-slate-50 flex flex-col pb-16 sm:pb-0">
+            <header className="sticky top-0 z-50 bg-white border-b-2 border-brand-navy pt-[env(safe-area-inset-top)]">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-3 sm:gap-5">
                         <Link href={route('portal.dashboard')} className="flex items-center gap-2.5">
@@ -45,17 +47,17 @@ export default function AnggotaLayout({ children }) {
                         <button
                             type="button"
                             onClick={() => setShowPanduan(true)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-lg border border-slate-200 text-slate-600 hover:bg-brand-green-light hover:border-brand-green hover:text-brand-green-dark transition-colors"
+                            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg border border-slate-200 text-slate-600 hover:bg-brand-green-light hover:border-brand-green hover:text-brand-green-dark transition-colors min-h-[44px]"
                         >
-                            <HelpCircle size={14} />
-                            <span className="hidden sm:inline">Tata Cara</span>
+                            <HelpCircle size={16} />
+                            <span>Tata Cara</span>
                         </button>
                     </div>
 
                     <div className="relative" ref={dropdownRef}>
                         <button
                             onClick={() => setDropdownOpen(!dropdownOpen)}
-                            className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-slate-100 transition-colors"
+                            className="flex items-center gap-2 min-h-[44px] min-w-[44px] pl-1 pr-2 py-1 rounded-full hover:bg-slate-100 transition-colors"
                         >
                             <div className="w-9 h-9 rounded-full bg-brand-green text-white flex items-center justify-center text-sm font-bold">
                                 {initial}
@@ -86,30 +88,75 @@ export default function AnggotaLayout({ children }) {
                                     </Link>
                                 )}
                                 <form method="POST" action={route('logout')}>
-    <input
-        type="hidden"
-        name="_token"
-        value={document
-            .querySelector('meta[name="csrf-token"]')
-            ?.getAttribute('content')}
-    />
+                                    <input
+                                        type="hidden"
+                                        name="_token"
+                                        value={document
+                                            .querySelector('meta[name="csrf-token"]')
+                                            ?.getAttribute('content')}
+                                    />
 
-    <button
-        type="submit"
-        className="block w-full px-4 py-2 text-start text-sm leading-5 text-red-600 transition duration-150 ease-in-out hover:text-red-700 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
-    >
-        Keluar
-    </button>
-</form>
+                                    <button
+                                        type="submit"
+                                        className="block w-full px-4 py-3 text-start text-sm leading-5 text-red-600 transition duration-150 ease-in-out hover:text-red-700 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                                    >
+                                        Keluar
+                                    </button>
+                                </form>
                             </div>
                         )}
                     </div>
                 </div>
             </header>
 
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+            <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8">
                 {children}
             </main>
+
+            {/* Mobile Bottom Navigation Bar */}
+            <nav className="sm:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-slate-200 pb-[env(safe-area-inset-bottom)] shadow-lg">
+                <div className="grid grid-cols-4 h-16">
+                    <Link
+                        href={route('portal.dashboard')}
+                        className={`flex flex-col items-center justify-center gap-1 text-xs font-semibold ${
+                            isCurrentRoute('portal.dashboard') ? 'text-brand-green' : 'text-slate-500 hover:text-slate-700'
+                        }`}
+                    >
+                        <Home size={20} />
+                        <span>Beranda</span>
+                    </Link>
+
+                    <Link
+                        href={route('portal.pinjaman.create')}
+                        className={`flex flex-col items-center justify-center gap-1 text-xs font-semibold ${
+                            isCurrentRoute('portal.pinjaman.create') ? 'text-brand-green' : 'text-slate-500 hover:text-slate-700'
+                        }`}
+                    >
+                        <FilePlus size={20} />
+                        <span>Ajukan</span>
+                    </Link>
+
+                    <Link
+                        href={route('portal.riwayat')}
+                        className={`flex flex-col items-center justify-center gap-1 text-xs font-semibold ${
+                            isCurrentRoute('portal.riwayat') ? 'text-brand-green' : 'text-slate-500 hover:text-slate-700'
+                        }`}
+                    >
+                        <History size={20} />
+                        <span>Riwayat</span>
+                    </Link>
+
+                    <Link
+                        href={route('portal.profil')}
+                        className={`flex flex-col items-center justify-center gap-1 text-xs font-semibold ${
+                            isCurrentRoute('portal.profil') ? 'text-brand-green' : 'text-slate-500 hover:text-slate-700'
+                        }`}
+                    >
+                        <User size={20} />
+                        <span>Profil</span>
+                    </Link>
+                </div>
+            </nav>
 
             {showPanduan && <Panduan onClose={() => setShowPanduan(false)} />}
         </div>

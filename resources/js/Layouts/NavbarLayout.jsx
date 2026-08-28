@@ -5,7 +5,7 @@ import MobileNav from './Partials/MobileNav';
 export default function NavbarLayout({ children }) {
     return (
         <div className="min-h-screen bg-slate-50">
-            <div className="sticky top-0 z-50">
+            <div className="sticky top-0 pt-[env(safe-area-inset-top)] z-50">
                 <Navbar />
                 <Topbar />
                 <MobileNav />
