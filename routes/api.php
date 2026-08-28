@@ -17,27 +17,31 @@ Route::middleware('guest')->group(function () {
 
 // Authenticated routes (require Sanctum authentication)
 Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::post('/logout', [AuthController::class, 'logout'])->name('api.logout');
     Route::get('/user', [AuthController::class, 'user']);
     
     // Member Applications (Pengajuan Anggota)
     Route::apiResource('/pengajuan-anggota', PengajuanAnggotaController::class)
-        ->except(['create', 'edit']); // API doesn't need these
+        ->except(['create', 'edit'])
+        ->names('api.pengajuan-anggota');
     
     // Loan Applications
     Route::apiResource('/pinjaman', PinjamanController::class)
-        ->except(['create', 'edit']);
-    Route::post('/pinjaman/{pinjaman}/cek-nominal', [PinjamanController::class, 'cekNominal']);
-    Route::post('/pinjaman/{pinjaman}/simulasi', [PinjamanController::class, 'simulasi']);
+        ->except(['create', 'edit'])
+        ->names('api.pinjaman');
+    Route::post('/pinjaman/{pinjaman}/cek-nominal', [PinjamanController::class, 'cekNominal'])->name('api.pinjaman.cek-nominal');
+    Route::post('/pinjaman/{pinjaman}/simulasi', [PinjamanController::class, 'simulasi'])->name('api.pinjaman.simulasi');
     
     // Limit Increase Applications
     Route::apiResource('/pengajuan-limit', PengajuanLimitController::class)
-        ->except(['create', 'edit']);
+        ->except(['create', 'edit'])
+        ->names('api.pengajuan-limit');
     
     // Tenor Change Applications
     Route::apiResource('/percepatan', PercepatanController::class)
-        ->except(['create', 'edit']);
-    Route::post('/percepatan/{percepatan}/preview', [PercepatanController::class, 'preview']);
+        ->except(['create', 'edit'])
+        ->names('api.percepatan');
+    Route::post('/percepatan/{percepatan}/preview', [PercepatanController::class, 'preview'])->name('api.percepatan.preview');
     
     // Dashboard Endpoints
     Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
