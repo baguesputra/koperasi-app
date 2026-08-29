@@ -53,9 +53,9 @@ export default function SidebarLayout({ children }) {
 <div
                  onMouseEnter={sidebarMasuk}
                  onMouseLeave={sidebarKeluar}
-                 className={`hidden lg:block sticky top-0 pt-[env(safe-area-inset-top)] h-screen shrink-0 p-3 transition-[width] duration-300 ${
-                     collapsed ? 'w-[88px]' : 'w-[280px]'
-                 } ${elevating ? 'z-50' : ''}`}
+className={`hidden lg:block sticky top-0 h-screen shrink-0 p-3 transition-[width] duration-300 ${
+                      collapsed ? 'w-[88px]' : 'w-[280px]'
+                  } ${elevating ? 'z-50' : ''}`}
              >
                 <Sidebar collapsed={collapsed} expanding={expanding} onToggle={toggleSidebar} />
             </div>
