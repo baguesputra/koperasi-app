@@ -9,6 +9,7 @@ use App\Models\Pinjaman;
 use App\Services\Pinjaman\PerhitunganBungaService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Config;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -137,7 +138,7 @@ class PinjamanController extends Controller
             return $p;
         });
 
-        $daftarCabang = Anggota::query()->whereNotNull('cabang')->distinct()->orderBy('cabang')->pluck('cabang');
+        $daftarCabang = Config::get('cabang');
 
         // Statistik: 1 query dengan conditional aggregation
         $statistik = Pinjaman::query()
