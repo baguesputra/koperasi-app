@@ -236,7 +236,7 @@ Summary hasil meeting dengan koperasi 15 Agustus 2026
 **Tanggal:** 24 - 28 Agustus 2026
 - [x] Pembuatan api untuk aplikasi mobile dan aplikasi core lain nya
 - [x] Pembuatan PWA untuk mobile
-- [ ] - [ ] import excel anggota otomatis buat user juga
+- [ ] import excel anggota otomatis buat user juga
 
 Opsional
 - [ ] Gabung jadi 1 halaman approval bendahara dan ketua
