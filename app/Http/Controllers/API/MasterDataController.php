@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Models\Anggota;
+use App\Models\SettingSimpanan;
+use App\Models\TabelTenor;
 use Illuminate\Http\Request;
 use OpenApi\Attributes as OA;
 
@@ -31,7 +34,7 @@ class MasterDataController extends Controller
     )]
     public function cabang(Request $request)
     {
-        $cabang = \App\Models\Anggota::distinct()
+        $cabang = Anggota::distinct()
             ->pluck('cabang')
             ->sort()
             ->values()
@@ -62,7 +65,7 @@ class MasterDataController extends Controller
     )]
     public function unitBisnis(Request $request)
     {
-        $unitBisnis = \App\Models\Anggota::distinct()
+        $unitBisnis = Anggota::distinct()
             ->pluck('unit_bisnis')
             ->sort()
             ->values()
@@ -93,7 +96,7 @@ class MasterDataController extends Controller
     )]
     public function jabatan(Request $request)
     {
-        $jabatan = \App\Models\Anggota::distinct()
+        $jabatan = Anggota::distinct()
             ->pluck('jabatan')
             ->sort()
             ->values()
@@ -124,7 +127,7 @@ class MasterDataController extends Controller
     )]
     public function divisi(Request $request)
     {
-        $divisi = \App\Models\Anggota::distinct()
+        $divisi = Anggota::distinct()
             ->pluck('divisi')
             ->sort()
             ->values()
@@ -155,7 +158,7 @@ class MasterDataController extends Controller
     )]
     public function department(Request $request)
     {
-        $department = \App\Models\Anggota::distinct()
+        $department = Anggota::distinct()
             ->pluck('department')
             ->sort()
             ->values()
@@ -192,7 +195,7 @@ class MasterDataController extends Controller
     )]
     public function tabelTenor(Request $request)
     {
-        $tabelTenor = \App\Models\TabelTenor::orderBy('nominal_min')
+        $tabelTenor = TabelTenor::orderBy('nominal_min')
             ->get(['nominal_min', 'nominal_max', 'tenor_maksimal_bulan']);
 
         return response()->json($tabelTenor);
@@ -226,7 +229,7 @@ class MasterDataController extends Controller
     )]
     public function settingSimpanan(Request $request)
     {
-        $settingSimpanan = \App\Models\SettingSimpanan::orderBy('id')
+        $settingSimpanan = SettingSimpanan::orderBy('id')
             ->get(['jenis', 'label', 'nominal']);
 
         return response()->json($settingSimpanan);

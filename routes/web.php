@@ -30,7 +30,9 @@ use Illuminate\Support\Facades\Route;
 
 // --------------------- Portal SSO -------------------------
 Route::get('/auth/sso/redirect', [SsoController::class, 'redirect'])->name('sso.redirect');
-Route::get('/auth/sso/callback', [SsoController::class, 'callback'])->name('sso.callback');
+Route::get('/auth/sso/callback', [SsoController::class, 'callback'])
+    ->name('sso.callback')
+    ->middleware('throttle:sso-callback');
 Route::get('/auth/sso/logout', [SsoController::class, 'logout'])->name('sso.logout');
 
 Route::get('/', function () {

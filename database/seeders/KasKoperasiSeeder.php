@@ -4,13 +4,14 @@ namespace Database\Seeders;
 
 use App\Models\JurnalKas;
 use App\Models\KasKoperasi;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class KasKoperasiSeeder extends Seeder
 {
     public function run(): void
     {
-        $adminId = \App\Models\User::where('no_karyawan', 'ADM-000001')->value('id') ?? 1;
+        $adminId = User::where('no_karyawan', 'ADM-000001')->value('id') ?? 1;
 
         // Modal awal positif agar seeders berikutnya (pencairan, pengeluaran) lolos validasi saldo.
         KasKoperasi::firstOrCreate(['id' => 1], [

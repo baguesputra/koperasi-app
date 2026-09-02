@@ -109,7 +109,7 @@ class KonfirmasiSimpananService
             // Audit log untuk konfirmasi massal simpanan
             AuditLog::catat(
                 aksi: 'simpanan_konfirmasi_massal',
-                keterangan: "Konfirmasi simpanan {$jumlahDiproses} anggota (wajib: ".number_format($totalWajib, 0, ',', '.').", dana sosial: ".number_format($totalDanaSosial, 0, ',', '.').") untuk periode {$bulanPeriode} oleh user #{$inputByUserId}",
+                keterangan: "Konfirmasi simpanan {$jumlahDiproses} anggota (wajib: ".number_format($totalWajib, 0, ',', '.').', dana sosial: '.number_format($totalDanaSosial, 0, ',', '.').") untuk periode {$bulanPeriode} oleh user #{$inputByUserId}",
                 dataLama: ['requested_ids' => $anggotaIds, 'bulan_periode' => $bulanPeriode],
                 dataBaru: [
                     'confirmed_count' => $jumlahDiproses,

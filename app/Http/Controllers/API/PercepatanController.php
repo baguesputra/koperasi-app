@@ -4,7 +4,7 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\PengajuanPercepatan;
-use App\Models\Anggota;
+use App\Models\Pinjaman;
 use Illuminate\Http\Request;
 use OpenApi\Attributes as OA;
 
@@ -45,8 +45,8 @@ class PercepatanController extends Controller
     public function index(Request $request)
     {
         $anggota = $request->user()->anggota;
-        
-        if (!$anggota) {
+
+        if (! $anggota) {
             return response()->json([
                 'message' => 'Anggota not found for user',
             ], 404);
@@ -55,7 +55,7 @@ class PercepatanController extends Controller
         $query = PengajuanPercepatan::whereHas('pinjaman.anggota', function ($q) use ($anggota) {
             $q->where('id', $anggota->id);
         })
-        ->with(['pinjaman.anggota.user']);
+            ->with(['pinjaman.anggota.user']);
 
         if ($request->has('status')) {
             $query->where('status', $request->status);
@@ -106,8 +106,8 @@ class PercepatanController extends Controller
         ]);
 
         $anggota = $request->user()->anggota;
-        
-        if (!$anggota) {
+
+        if (! $anggota) {
             return response()->json([
                 'message' => 'Anggota not found for user',
             ], 404);
@@ -119,11 +119,11 @@ class PercepatanController extends Controller
             ], 403);
         }
 
-        $pinjaman = \App\Models\Pinjaman::where('id', $request->pinjaman_id)
+        $pinjaman = Pinjaman::where('id', $request->pinjaman_id)
             ->where('anggota_id', $anggota->id)
             ->first();
-            
-        if (!$pinjaman) {
+
+        if (! $pinjaman) {
             return response()->json([
                 'message' => 'Pinjaman not found or does not belong to you',
             ], 404);
@@ -171,8 +171,8 @@ class PercepatanController extends Controller
     public function show(Request $request, PengajuanPercepatan $pengajuanPercepatan)
     {
         $anggota = $request->user()->anggota;
-        
-        if (!$anggota || $pengajuanPercepatan->pinjaman->anggota->id !== $anggota->id) {
+
+        if (! $anggota || $pengajuanPercepatan->pinjaman->anggota->id !== $anggota->id) {
             return response()->json([
                 'message' => 'Unauthorized',
             ], 403);
@@ -216,8 +216,8 @@ class PercepatanController extends Controller
     public function update(Request $request, PengajuanPercepatan $pengajuanPercepatan)
     {
         $anggota = $request->user()->anggota;
-        
-        if (!$anggota || $pengajuanPercepatan->pinjaman->anggota->id !== $anggota->id) {
+
+        if (! $anggota || $pengajuanPercepatan->pinjaman->anggota->id !== $anggota->id) {
             return response()->json([
                 'message' => 'Unauthorized',
             ], 403);
@@ -259,7 +259,7 @@ class PercepatanController extends Controller
                 description: 'Application deleted successfully',
                 content: new OA\JsonContent(
                     properties: [
-                        new OA\Property(property: 'message', type: 'string', example: 'Application deleted successfully')
+                        new OA\Property(property: 'message', type: 'string', example: 'Application deleted successfully'),
                     ]
                 )
             ),
@@ -270,8 +270,8 @@ class PercepatanController extends Controller
     public function destroy(Request $request, PengajuanPercepatan $pengajuanPercepatan)
     {
         $anggota = $request->user()->anggota;
-        
-        if (!$anggota || $pengajuanPercepatan->pinjaman->anggota->id !== $anggota->id) {
+
+        if (! $anggota || $pengajuanPercepatan->pinjaman->anggota->id !== $anggota->id) {
             return response()->json([
                 'message' => 'Unauthorized',
             ], 403);
@@ -352,8 +352,8 @@ class PercepatanController extends Controller
     public function preview(Request $request, PengajuanPercepatan $pengajuanPercepatan)
     {
         $anggota = $request->user()->anggota;
-        
-        if (!$anggota || $pengajuanPercepatan->pinjaman->anggota->id !== $anggota->id) {
+
+        if (! $anggota || $pengajuanPercepatan->pinjaman->anggota->id !== $anggota->id) {
             return response()->json([
                 'message' => 'Unauthorized',
             ], 403);
@@ -366,31 +366,31 @@ class PercepatanController extends Controller
 
         $tenorLama = $request->tenor_lama ?? $pengajuanPercepatan->tenor_lama;
         $tenorBaru = $request->tenor_baru ?? $pengajuanPercepatan->tenor_baru;
-        
+
         $pinjaman = $pengajuanPercepatan->pinjaman;
-        
+
         $angsuranList = $pinjaman->angsuran()
             ->where('status', 'belum_bayar')
             ->orderBy('cicilan_ke')
             ->get();
-            
+
         if ($angsuranList->isEmpty()) {
             return response()->json([
                 'message' => 'No remaining installments found',
             ], 400);
         }
-        
+
         $currentPokokPerBulan = $angsuranList->avg('nominal_pokok');
         $currentBungaPerBulan = $angsuranList->avg('nominal_bunga');
         $currentTotalPerBulan = $angsuranList->avg('total_bayar');
         $remainingCicilan = $angsuranList->count();
-        
+
         $pokokPerBulanBaru = $pinjaman->nominal / $tenorBaru;
         $bungaRate = $pinjaman->persentase_bunga;
         $totalBungaBaru = ($pinjaman->nominal * $bungaRate / 100) * $tenorBaru;
         $bungaPerBulanBaru = $totalBungaBaru / $tenorBaru;
         $totalPerBulanBaru = $pokokPerBulanBaru + $bungaPerBulanBaru;
-        
+
         $totalSaatIni = $currentTotalPerBulan * $remainingCicilan;
         $totalBaru = $totalPerBulanBaru * $tenorBaru;
         $selisih = $totalBaru - $totalSaatIni;
@@ -415,8 +415,8 @@ class PercepatanController extends Controller
                 'perubahan_tenor' => $tenorBaru - $tenorLama,
             ],
             'message' => $selisih > 0
-                ? 'Tenor extension will increase total payment by ' . number_format($selisih, 0, ',', '.')
-                : 'Tenor reduction will decrease total payment by ' . number_format(abs($selisih), 0, ',', '.'),
+                ? 'Tenor extension will increase total payment by '.number_format($selisih, 0, ',', '.')
+                : 'Tenor reduction will decrease total payment by '.number_format(abs($selisih), 0, ',', '.'),
         ]);
     }
 }

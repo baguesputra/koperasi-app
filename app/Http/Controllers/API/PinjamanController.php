@@ -4,7 +4,6 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\Pinjaman;
-use App\Models\Anggota;
 use Illuminate\Http\Request;
 use OpenApi\Attributes as OA;
 
@@ -45,8 +44,8 @@ class PinjamanController extends Controller
     public function index(Request $request)
     {
         $anggota = $request->user()->anggota;
-        
-        if (!$anggota) {
+
+        if (! $anggota) {
             return response()->json([
                 'message' => 'Anggota not found for user',
             ], 404);
@@ -103,8 +102,8 @@ class PinjamanController extends Controller
         ]);
 
         $anggota = $request->user()->anggota;
-        
-        if (!$anggota) {
+
+        if (! $anggota) {
             return response()->json([
                 'message' => 'Anggota not found for user',
             ], 404);
@@ -154,8 +153,8 @@ class PinjamanController extends Controller
     public function show(Request $request, Pinjaman $pinjaman)
     {
         $anggota = $request->user()->anggota;
-        
-        if (!$anggota || $pinjaman->anggota_id !== $anggota->id) {
+
+        if (! $anggota || $pinjaman->anggota_id !== $anggota->id) {
             return response()->json([
                 'message' => 'Unauthorized',
             ], 403);
@@ -206,8 +205,8 @@ class PinjamanController extends Controller
     public function cekNominal(Request $request, Pinjaman $pinjaman)
     {
         $anggota = $request->user()->anggota;
-        
-        if (!$anggota || $pinjaman->anggota_id !== $anggota->id) {
+
+        if (! $anggota || $pinjaman->anggota_id !== $anggota->id) {
             return response()->json([
                 'message' => 'Unauthorized',
             ], 403);
@@ -216,16 +215,16 @@ class PinjamanController extends Controller
         $totalSimpanan = $anggota->simpanan()
             ->whereIn('jenis', ['pokok', 'wajib'])
             ->sum('jumlah');
-            
+
         $maxNominal = $totalSimpanan * 3;
-        
+
         return response()->json([
             'eligible' => $request->nominal <= $maxNominal,
             'max_nominal' => $maxNominal,
             'current_nominal' => $request->nominal,
-            'message' => $request->nominal <= $maxNominal 
-                ? 'Loan amount is eligible' 
-                : 'Loan amount exceeds maximum eligible amount of ' . number_format($maxNominal, 0, ',', '.'),
+            'message' => $request->nominal <= $maxNominal
+                ? 'Loan amount is eligible'
+                : 'Loan amount exceeds maximum eligible amount of '.number_format($maxNominal, 0, ',', '.'),
         ]);
     }
 
@@ -280,8 +279,8 @@ class PinjamanController extends Controller
     public function simulasi(Request $request, Pinjaman $pinjaman)
     {
         $anggota = $request->user()->anggota;
-        
-        if (!$anggota || $pinjaman->anggota_id !== $anggota->id) {
+
+        if (! $anggota || $pinjaman->anggota_id !== $anggota->id) {
             return response()->json([
                 'message' => 'Unauthorized',
             ], 403);
@@ -294,9 +293,9 @@ class PinjamanController extends Controller
 
         $nominal = $request->nominal ?? $pinjaman->nominal;
         $tenorBulan = $request->tenor_bulan ?? $pinjaman->tenor_bulan;
-        
+
         $bungaPersentase = 1.5;
-        
+
         $bungaPerBulan = ($nominal * $bungaPersentase / 100);
         $pokokPerBulan = $nominal / $tenorBulan;
         $angsuranPerBulan = $pokokPerBulan + $bungaPerBulan;
@@ -311,7 +310,7 @@ class PinjamanController extends Controller
             'angsuran_per_bulan' => $angsuranPerBulan,
             'total_bunga' => $totalBunga,
             'total_pembayaran' => $totalPembayaran,
-            'rincian_angsuran' => array_map(fn($i) => [
+            'rincian_angsuran' => array_map(fn ($i) => [
                 'cicilan_ke' => $i + 1,
                 'pokok' => $pokokPerBulan,
                 'bunga' => $bungaPerBulan,

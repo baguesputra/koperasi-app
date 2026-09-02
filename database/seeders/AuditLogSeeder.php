@@ -35,7 +35,7 @@ class AuditLogSeeder extends Seeder
             [$bendahara, 'resign_anggota', 'Agus Wijaya resign — simpanan dikembalikan via kantong pengembalian', ['status' => 'aktif'], ['status' => 'resign'], 60],
 
             // Pinjaman
-            [$ketua, 'approve_pinjaman_ketua', "Pinjaman #3 Ahmad Ridwan disetujui Ketua & dicairkan", ['status' => 'approved_bendahara'], ['status' => 'aktif'], 80],
+            [$ketua, 'approve_pinjaman_ketua', 'Pinjaman #3 Ahmad Ridwan disetujui Ketua & dicairkan', ['status' => 'approved_bendahara'], ['status' => 'aktif'], 80],
             [$ketua, 'reject_pinjaman_ketua', 'Pinjaman #7 ditolak Ketua dengan catatan', null, ['status' => 'ditolak'], 70],
             [$bendahara, 'approve_pinjaman_bendahara', 'Pinjaman #8 Maya Sari disetujui Bendahara, diteruskan ke Ketua', ['status' => 'diajukan'], ['status' => 'approved_bendahara'], 65],
 

@@ -4,7 +4,7 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\Pinjaman;
-use App\Models\Anggota;
+use App\Models\SettingBunga;
 use Illuminate\Http\Request;
 use OpenApi\Attributes as OA;
 
@@ -47,8 +47,8 @@ class PengajuanAnggotaController extends Controller
     public function index(Request $request)
     {
         $anggota = $request->user()->anggota;
-        
-        if (!$anggota) {
+
+        if (! $anggota) {
             return response()->json([
                 'message' => 'Anggota not found for user',
             ], 404);
@@ -64,7 +64,7 @@ class PengajuanAnggotaController extends Controller
         if ($request->has('start_date') && $request->has('end_date')) {
             $query->whereBetween('tanggal_pengajuan', [
                 $request->start_date,
-                $request->end_date
+                $request->end_date,
             ]);
         }
 
@@ -112,8 +112,8 @@ class PengajuanAnggotaController extends Controller
         ]);
 
         $anggota = $request->user()->anggota;
-        
-        if (!$anggota) {
+
+        if (! $anggota) {
             return response()->json([
                 'message' => 'Anggota not found for user',
             ], 404);
@@ -125,9 +125,9 @@ class PengajuanAnggotaController extends Controller
             ], 403);
         }
 
-        $bungaRate = \App\Models\SettingBunga::latest('berlaku_dari_tanggal')
+        $bungaRate = SettingBunga::latest('berlaku_dari_tanggal')
             ->value('persentase') ?? 1.5;
-            
+
         $pengajuan = Pinjaman::create([
             'anggota_id' => $anggota->id,
             'pengaju_user_id' => $request->user()->id,
@@ -167,8 +167,8 @@ class PengajuanAnggotaController extends Controller
     public function show(Request $request, Pinjaman $pengajuan)
     {
         $anggota = $request->user()->anggota;
-        
-        if (!$anggota || $pengajuan->anggota_id !== $anggota->id) {
+
+        if (! $anggota || $pengajuan->anggota_id !== $anggota->id) {
             return response()->json([
                 'message' => 'Unauthorized',
             ], 403);
@@ -213,8 +213,8 @@ class PengajuanAnggotaController extends Controller
     public function update(Request $request, Pinjaman $pengajuan)
     {
         $anggota = $request->user()->anggota;
-        
-        if (!$anggota || $pengajuan->anggota_id !== $anggota->id) {
+
+        if (! $anggota || $pengajuan->anggota_id !== $anggota->id) {
             return response()->json([
                 'message' => 'Unauthorized',
             ], 403);
@@ -258,7 +258,7 @@ class PengajuanAnggotaController extends Controller
                 description: 'Application deleted successfully',
                 content: new OA\JsonContent(
                     properties: [
-                        new OA\Property(property: 'message', type: 'string', example: 'Application deleted successfully')
+                        new OA\Property(property: 'message', type: 'string', example: 'Application deleted successfully'),
                     ]
                 )
             ),
@@ -269,8 +269,8 @@ class PengajuanAnggotaController extends Controller
     public function destroy(Request $request, Pinjaman $pengajuan)
     {
         $anggota = $request->user()->anggota;
-        
-        if (!$anggota || $pengajuan->anggota_id !== $anggota->id) {
+
+        if (! $anggota || $pengajuan->anggota_id !== $anggota->id) {
             return response()->json([
                 'message' => 'Unauthorized',
             ], 403);

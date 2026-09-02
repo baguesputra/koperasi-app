@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Anggota;
 use App\Models\Angsuran;
 use App\Models\AngsuranPercepatan;
 use App\Models\PengajuanPercepatan;
@@ -201,7 +202,7 @@ class PengajuanPercepatanSeeder extends Seeder
             return $pinjamanLama;
         }
 
-        $anggota = \App\Models\Anggota::where('no_karyawan', $noKaryawan)->firstOrFail();
+        $anggota = Anggota::where('no_karyawan', $noKaryawan)->firstOrFail();
         $pinjaman = Pinjaman::create([
             'anggota_id' => $anggota->id,
             'pengaju_user_id' => $anggota->user_id,

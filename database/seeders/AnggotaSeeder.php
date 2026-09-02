@@ -333,7 +333,9 @@ class AnggotaSeeder extends Seeder
 
         foreach ($noHpVariasi as $noKaryawan => $noHp) {
             $user = User::where('no_karyawan', $noKaryawan)->first();
-            if (! $user) continue;
+            if (! $user) {
+                continue;
+            }
 
             $anggota = Anggota::where('no_karyawan', $noKaryawan)->first();
             if ($anggota) {

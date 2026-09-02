@@ -3,13 +3,7 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
-use App\Models\Anggota;
-use App\Models\Pinjaman;
-use App\Models\Simpanan;
-use App\Models\KasKoperasi;
-use App\Models\JurnalKas;
-use App\Models\PengajuanLimit;
-use App\Models\PengajuanPercepatan;
+use App\Models\Angsuran;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use OpenApi\Attributes as OA;
@@ -65,8 +59,8 @@ class DashboardController extends Controller
     public function stats(Request $request)
     {
         $anggota = $request->user()->anggota;
-        
-        if (!$anggota) {
+
+        if (! $anggota) {
             return response()->json([
                 'message' => 'Anggota not found for user',
             ], 404);
@@ -102,7 +96,7 @@ class DashboardController extends Controller
             $angsuranBelumBayar = $pinjamanAktif->angsuranBelumBayar()
                 ->orderBy('cicilan_ke')
                 ->get();
-                
+
             $sisaTotalBayar = $angsuranBelumBayar->sum('total_bayar');
 
             $terdekat = $angsuranBelumBayar->first();
@@ -154,7 +148,7 @@ class DashboardController extends Controller
                 content: new OA\JsonContent(
                     properties: [
                         new OA\Property(property: 'message', type: 'string'),
-                        new OA\Property(property: 'data', type: 'array', items: new OA\Items()),
+                        new OA\Property(property: 'data', type: 'array', items: new OA\Items),
                     ]
                 )
             ),
@@ -165,7 +159,7 @@ class DashboardController extends Controller
     {
         return response()->json([
             'message' => 'Actionable items endpoint - would show pending approvals for admins',
-            'data' => []
+            'data' => [],
         ]);
     }
 
@@ -203,15 +197,15 @@ class DashboardController extends Controller
     public function charts(Request $request)
     {
         $anggota = $request->user()->anggota;
-        
-        if (!$anggota) {
+
+        if (! $anggota) {
             return response()->json([
                 'message' => 'Anggota not found for user',
             ], 404);
         }
 
         $awalPeriode = Carbon::now()->subMonths(5)->startOfMonth();
-        
+
         $simpananPerBulan = $anggota->simpanan()
             ->where('tanggal_input', '>=', $awalPeriode)
             ->selectRaw('YEAR(tanggal_input) as tahun, MONTH(tanggal_input) as bulan, SUM(jumlah) as total')
@@ -283,8 +277,8 @@ class DashboardController extends Controller
     public function aktivitas(Request $request)
     {
         $anggota = $request->user()->anggota;
-        
-        if (!$anggota) {
+
+        if (! $anggota) {
             return response()->json([
                 'message' => 'Anggota not found for user',
             ], 404);
@@ -298,12 +292,12 @@ class DashboardController extends Controller
             ->map(fn ($p) => [
                 'tipe' => 'pinjaman',
                 'nama' => $p->anggota->nama,
-                'keterangan' => 'Mengajukan pinjaman ' . number_format($p->nominal, 0, ',', '.'),
+                'keterangan' => 'Mengajukan pinjaman '.number_format($p->nominal, 0, ',', '.'),
                 'status' => $p->status,
                 'tanggal' => $p->tanggal_pengajuan,
             ]);
 
-        $aktivitasAngsuran = \App\Models\Angsuran::whereHas('pinjaman.anggota', function ($q) use ($anggota) {
+        $aktivitasAngsuran = Angsuran::whereHas('pinjaman.anggota', function ($q) use ($anggota) {
             $q->where('id', $anggota->id);
         })
             ->where('status', 'lunas')

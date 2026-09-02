@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\PengajuanLimit;
 use App\Models\Anggota;
+use App\Models\PengajuanLimit;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 

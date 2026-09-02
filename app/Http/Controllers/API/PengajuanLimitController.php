@@ -4,7 +4,6 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\PengajuanLimit;
-use App\Models\Anggota;
 use Illuminate\Http\Request;
 use OpenApi\Attributes as OA;
 
@@ -45,8 +44,8 @@ class PengajuanLimitController extends Controller
     public function index(Request $request)
     {
         $anggota = $request->user()->anggota;
-        
-        if (!$anggota) {
+
+        if (! $anggota) {
             return response()->json([
                 'message' => 'Anggota not found for user',
             ], 404);
@@ -99,8 +98,8 @@ class PengajuanLimitController extends Controller
         ]);
 
         $anggota = $request->user()->anggota;
-        
-        if (!$anggota) {
+
+        if (! $anggota) {
             return response()->json([
                 'message' => 'Anggota not found for user',
             ], 404);
@@ -113,7 +112,7 @@ class PengajuanLimitController extends Controller
         }
 
         $limitSaatIni = $anggota->limit_custom ?? 0;
-        
+
         $pengajuanLimit = PengajuanLimit::create([
             'anggota_id' => $anggota->id,
             'limit_saat_ini' => $limitSaatIni,
@@ -151,8 +150,8 @@ class PengajuanLimitController extends Controller
     public function show(Request $request, PengajuanLimit $pengajuanLimit)
     {
         $anggota = $request->user()->anggota;
-        
-        if (!$anggota || $pengajuanLimit->anggota_id !== $anggota->id) {
+
+        if (! $anggota || $pengajuanLimit->anggota_id !== $anggota->id) {
             return response()->json([
                 'message' => 'Unauthorized',
             ], 403);
@@ -195,8 +194,8 @@ class PengajuanLimitController extends Controller
     public function update(Request $request, PengajuanLimit $pengajuanLimit)
     {
         $anggota = $request->user()->anggota;
-        
-        if (!$anggota || $pengajuanLimit->anggota_id !== $anggota->id) {
+
+        if (! $anggota || $pengajuanLimit->anggota_id !== $anggota->id) {
             return response()->json([
                 'message' => 'Unauthorized',
             ], 403);
@@ -236,7 +235,7 @@ class PengajuanLimitController extends Controller
                 description: 'Application deleted successfully',
                 content: new OA\JsonContent(
                     properties: [
-                        new OA\Property(property: 'message', type: 'string', example: 'Application deleted successfully')
+                        new OA\Property(property: 'message', type: 'string', example: 'Application deleted successfully'),
                     ]
                 )
             ),
@@ -247,8 +246,8 @@ class PengajuanLimitController extends Controller
     public function destroy(Request $request, PengajuanLimit $pengajuanLimit)
     {
         $anggota = $request->user()->anggota;
-        
-        if (!$anggota || $pengajuanLimit->anggota_id !== $anggota->id) {
+
+        if (! $anggota || $pengajuanLimit->anggota_id !== $anggota->id) {
             return response()->json([
                 'message' => 'Unauthorized',
             ], 403);

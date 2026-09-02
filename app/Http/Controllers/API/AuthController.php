@@ -90,8 +90,8 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'tanggal_resign', type: 'string', format: 'date', nullable: true),
         new OA\Property(property: 'alasan_resign', type: 'string', nullable: true),
         new OA\Property(property: 'resigned_by', type: 'integer', nullable: true),
-        new OA\Property(property: 'resigned_settlement_json', type: 'array', nullable: true, items: new OA\Items()),
-        new OA\Property(property: 'reaktivasi_history_json', type: 'array', nullable: true, items: new OA\Items()),
+        new OA\Property(property: 'resigned_settlement_json', type: 'array', nullable: true, items: new OA\Items),
+        new OA\Property(property: 'reaktivasi_history_json', type: 'array', nullable: true, items: new OA\Items),
         new OA\Property(property: 'limit_custom', type: 'string', nullable: true),
         new OA\Property(property: 'limit_custom_keterangan', type: 'string', nullable: true),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time'),
@@ -163,11 +163,11 @@ class AuthController extends Controller
                 content: new OA\JsonContent(
                     properties: [
                         new OA\Property(property: 'user', ref: '#/components/schemas/User'),
-                        new OA\Property(property: 'token', type: 'string', example: '1|abc123...')
+                        new OA\Property(property: 'token', type: 'string', example: '1|abc123...'),
                     ]
                 )
             ),
-            new OA\Response(response: 422, description: 'Validation error')
+            new OA\Response(response: 422, description: 'Validation error'),
         ]
     )]
     public function register(Request $request)
@@ -216,11 +216,11 @@ class AuthController extends Controller
                 content: new OA\JsonContent(
                     properties: [
                         new OA\Property(property: 'user', ref: '#/components/schemas/User'),
-                        new OA\Property(property: 'token', type: 'string', example: '1|abc123...')
+                        new OA\Property(property: 'token', type: 'string', example: '1|abc123...'),
                     ]
                 )
             ),
-            new OA\Response(response: 422, description: 'Invalid credentials')
+            new OA\Response(response: 422, description: 'Invalid credentials'),
         ]
     )]
     public function login(Request $request)
@@ -260,11 +260,11 @@ class AuthController extends Controller
                 description: 'Logged out successfully',
                 content: new OA\JsonContent(
                     properties: [
-                        new OA\Property(property: 'message', type: 'string', example: 'Logged out successfully')
+                        new OA\Property(property: 'message', type: 'string', example: 'Logged out successfully'),
                     ]
                 )
             ),
-            new OA\Response(response: 401, description: 'Unauthorized')
+            new OA\Response(response: 401, description: 'Unauthorized'),
         ]
     )]
     public function logout(Request $request)
@@ -290,7 +290,7 @@ class AuthController extends Controller
                 description: 'Current user data',
                 content: new OA\JsonContent(ref: '#/components/schemas/User')
             ),
-            new OA\Response(response: 401, description: 'Unauthorized')
+            new OA\Response(response: 401, description: 'Unauthorized'),
         ]
     )]
     public function user(Request $request)

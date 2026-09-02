@@ -49,7 +49,7 @@ class PercepatanPinjamanService
 
         AuditLog::catat(
             aksi: 'percepatan_diajukan',
-            keterangan: "Pengajuan perubahan tenor ".self::labelTipe($tipe)." untuk pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) diajukan. Nominal pinjaman: ".WaPesan::rupiah($pinjaman->nominal),
+            keterangan: 'Pengajuan perubahan tenor '.self::labelTipe($tipe)." untuk pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) diajukan. Nominal pinjaman: ".WaPesan::rupiah($pinjaman->nominal),
             dataLama: null,
             dataBaru: [
                 'pengajuan_id' => $pengajuan->id,

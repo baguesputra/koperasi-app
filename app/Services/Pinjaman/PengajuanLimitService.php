@@ -40,7 +40,7 @@ class PengajuanLimitService
 
         AuditLog::catat(
             aksi: 'limit_diajukan',
-            keterangan: "Pengajuan kenaikan limit untuk {$anggota->nama} ({$anggota->no_anggota}) diajukan. Limit saat ini: ".WaPesan::rupiah($limitSaatIni).", diminta: ".WaPesan::rupiah($limitDiminta),
+            keterangan: "Pengajuan kenaikan limit untuk {$anggota->nama} ({$anggota->no_anggota}) diajukan. Limit saat ini: ".WaPesan::rupiah($limitSaatIni).', diminta: '.WaPesan::rupiah($limitDiminta),
             dataLama: null,
             dataBaru: [
                 'pengajuan_id' => $pengajuan->id,
@@ -116,7 +116,7 @@ class PengajuanLimitService
 
         AuditLog::catat(
             aksi: 'limit_ditolak',
-            keterangan: "Pengajuan kenaikan limit untuk {$pengajuan->anggota->nama} ({$pengajuan->anggota->no_anggota}) ditolak. Limit saat ini: ".WaPesan::rupiah($pengajuan->limit_saat_ini).", diminta: ".WaPesan::rupiah($pengajuan->limit_diminta),
+            keterangan: "Pengajuan kenaikan limit untuk {$pengajuan->anggota->nama} ({$pengajuan->anggota->no_anggota}) ditolak. Limit saat ini: ".WaPesan::rupiah($pengajuan->limit_saat_ini).', diminta: '.WaPesan::rupiah($pengajuan->limit_diminta),
             dataLama: ['status' => $statusLama],
             dataBaru: ['status' => 'ditolak', 'catatan_ketua' => $catatan]
         );

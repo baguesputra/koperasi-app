@@ -17,7 +17,7 @@ class IdempotencyMiddleware
         }
 
         $headerName = config('idempotency.header_name', 'Idempotency-Key');
-        $key = $request->header($headerName) ?? $request->header('X-' . $headerName);
+        $key = $request->header($headerName) ?? $request->header('X-'.$headerName);
 
         if (! $key) {
             return $next($request);
@@ -25,7 +25,7 @@ class IdempotencyMiddleware
 
         if (! Str::isUuid($key)) {
             return response()->json([
-                'message' => 'Invalid Idempotency-Key format (must be UUID)'
+                'message' => 'Invalid Idempotency-Key format (must be UUID)',
             ], 400);
         }
 

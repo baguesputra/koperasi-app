@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Auth;
 
 class AuditLog extends Model
 {
@@ -21,10 +22,10 @@ class AuditLog extends Model
         return $this->belongsTo(User::class);
     }
 
-    public static function catat(string $aksi, string $keterangan, $dataLama = null, $dataBaru = null): void
+    public static function catat(string $aksi, string $keterangan, $dataLama = null, $dataBaru = null, ?int $userId = null): void
     {
         self::create([
-            'user_id' => auth()->id(),
+            'user_id' => $userId ?? Auth::id(),
             'aksi' => $aksi,
             'keterangan' => $keterangan,
             'data_lama' => $dataLama,

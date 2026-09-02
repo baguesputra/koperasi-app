@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Anggota;
 use App\Models\Angsuran;
 use App\Models\JurnalKas;
 use App\Models\Pinjaman;
