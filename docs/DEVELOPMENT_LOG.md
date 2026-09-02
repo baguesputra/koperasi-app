@@ -233,6 +233,12 @@ Summary hasil meeting dengan koperasi 15 Agustus 2026
 - [x] Perancangan audit trail
 
 # Testing Checklist — Koperasi App
+**Tanggal:** 9 September 2026
+Hardening SSO dengan rate limiting, validasi akses, dan audit logging.
+Menambahkan automated test untuk berbagai skenario login SSO.
+Terapkan pola tab (Approval + Riwayat) ke 3 halaman Bendahara/Ketua — konsisten dengan Bendahara/Pinjaman, build & test pass.
+
+# Testing Checklist — Koperasi App
 **Tanggal:** 24 - 28 Agustus 2026
 - [x] Pembuatan api untuk aplikasi mobile dan aplikasi core lain nya
 - [x] Pembuatan PWA untuk mobile
