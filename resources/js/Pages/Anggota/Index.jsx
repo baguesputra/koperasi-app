@@ -163,11 +163,11 @@ export default function Index({ anggota, statistik, filters, noAnggotaBerikutnya
                 <div className="overflow-x-auto">
                     <table className="w-full table-sticky-first">
                         <thead>
-                            <tr className="border-b border-slate-100 text-left">
+                            <tr className="border-b border-slate-100 text-left sticky top-0 bg-white z-10">
                                 <th className="px-5 py-3.5 text-sm font-semibold text-slate-500">Anggota</th>
                                 <th className="px-5 py-3.5 text-sm font-semibold text-slate-500">Cabang</th>
-                                <th className="px-5 py-3.5 text-sm font-semibold text-slate-500">Jabatan</th>
-                                <th className="px-5 py-3.5 text-sm font-semibold text-slate-500">Lama Anggota</th>
+                                <th className="hidden md:table-cell px-5 py-3.5 text-sm font-semibold text-slate-500">Jabatan</th>
+                                <th className="hidden md:table-cell px-5 py-3.5 text-sm font-semibold text-slate-500">Lama Anggota</th>
                                 <th className="px-5 py-3.5 text-sm font-semibold text-slate-500">Status</th>
                                 <th className="px-5 py-3.5 text-right text-sm font-semibold text-slate-500">Aksi</th>
                             </tr>
@@ -194,8 +194,8 @@ anggota.data.map((a) => (
                                                 </div>
                                             </td>
                                             <td className="px-5 py-3.5 text-base text-slate-600">{a.cabang}</td>
-                                            <td className="px-5 py-3.5 text-base text-slate-600">{jabatanLabel[a.jabatan]}</td>
-                                            <td className="px-5 py-3.5 text-base text-slate-600">{formatLamaAnggota(a.lama_keanggotaan_tahun)}</td>
+                                            <td className="hidden md:table-cell px-5 py-3.5 text-base text-slate-600">{jabatanLabel[a.jabatan]}</td>
+                                            <td className="hidden md:table-cell px-5 py-3.5 text-base text-slate-600">{formatLamaAnggota(a.lama_keanggotaan_tahun)}</td>
                                             <td className="px-5 py-3.5">
                                                 <StatusBadge status={a.status} />
                                             </td>
@@ -204,27 +204,27 @@ anggota.data.map((a) => (
                                                     {canResign && a.status === 'aktif' && (
                                                         <button
                                                             onClick={(e) => { e.stopPropagation(); bukaResign(a); }}
-                                                            className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                                                            className="inline-flex items-center justify-center w-10 h-10 min-w-[44px] min-h-[44px] rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                                                             title="Resign anggota"
                                                         >
-                                                            <UserMinus size={16} />
+                                                            <UserMinus size={18} />
                                                         </button>
                                                     )}
                                                     {canResign && a.status === 'resign' && (
                                                         <>
                                                             <button
                                                                 onClick={(e) => { e.stopPropagation(); bukaReaktivasi(a); }}
-                                                                className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-slate-400 hover:text-brand-green hover:bg-slate-100 transition-colors"
+                                                                className="inline-flex items-center justify-center w-10 h-10 min-w-[44px] min-h-[44px] rounded-lg text-slate-400 hover:text-brand-green hover:bg-slate-100 transition-colors"
                                                                 title="Aktifkan kembali"
                                                             >
-                                                                <RotateCcw size={16} />
+                                                                <RotateCcw size={18} />
                                                             </button>
                                                             <button
                                                                 onClick={(e) => { e.stopPropagation(); bukaSlip(a); }}
-                                                                className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                                                                className="inline-flex items-center justify-center w-10 h-10 min-w-[44px] min-h-[44px] rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
                                                                 title="Lihat slip resign"
                                                             >
-                                                                <FileText size={16} />
+                                                                <FileText size={18} />
                                                             </button>
                                                         </>
                                                     )}
