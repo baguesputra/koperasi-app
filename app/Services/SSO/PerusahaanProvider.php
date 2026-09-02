@@ -51,13 +51,15 @@ class PerusahaanProvider extends AbstractProvider implements ProviderInterface
 
     protected function mapUserToObject(array $user): SocialiteUser
     {
-        // dd($user); 
+        $data = $user['data'] ?? $user;
+
         return (new SocialiteUser)
             ->setRaw($user)
             ->map([
-                'id' => $user['id'] ?? $user['sub'] ?? null,
-                'name' => $user['name'] ?? null,
-                'email' => $user['email'] ?? null,
+                'id' => $data['id'] ?? $data['sub'] ?? null,
+                'name' => $data['name'] ?? null,
+                'email' => $data['email'] ?? null,
+                'nik' => $data['nik'] ?? $data['employee_id'] ?? null,
             ]);
     }
 }

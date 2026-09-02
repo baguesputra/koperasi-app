@@ -25,14 +25,19 @@ class SsoController extends Controller
                 ->stateless()
                 ->user();
 
-            $raw = $ssoUser->getRaw();
+            $ssoId = $ssoUser->id;
+            $email = $ssoUser->email;
+            $nik = $ssoUser->nik;
+            $name = $ssoUser->name;
 
-            $ssoId = $raw['sub'] ?? $raw['id'] ?? null;
-            $email = $raw['email'] ?? null;
-            $nik = $raw['nik'] ?? $raw['employee_id'] ?? null;
-            $name = $raw['name'] ?? null;
+            \Log::info('SSO Callback Debug', [
+                'sso_id' => $ssoId,
+                'email' => $email,
+                'nik' => $nik,
+                'name' => $name,
+            ]);
 
-            // 1. Cari berdasarkan SSO ID
+            // 1. Cari berdasarkan SSO ID (paling spesifik)
             $user = User::where('sso_id', $ssoId)->first();
 
             // 2. Kalau belum ada, cari berdasarkan email
@@ -45,16 +50,13 @@ class SsoController extends Controller
                 $user = User::where('no_karyawan', $nik)->first();
             }
 
-            // 4. Kalau belum ada, cari anggota
+            // 4. Kalau belum ada, cari anggota & create user baru
             if (! $user && $nik) {
                 $anggota = Anggota::where('no_karyawan', $nik)->first();
 
                 if (! $anggota) {
                     return redirect()->route('login')
-                        ->with(
-                            'error',
-                            'Akun Anda belum terdaftar sebagai anggota koperasi.'
-                        );
+                        ->with('error', 'Akun Anda belum terdaftar sebagai anggota koperasi.');
                 }
 
                 $user = User::create([
@@ -74,7 +76,18 @@ class SsoController extends Controller
                 }
             }
 
-            // 5. Hubungkan akun lokal dengan akun SSO
+            // 5. User tidak ditemukan setelah semua pencarian
+            if (! $user) {
+                \Log::error('SSO user not found in local DB', [
+                    'sso_id' => $ssoId,
+                    'email' => $email,
+                    'nik' => $nik,
+                ]);
+                return redirect()->route('login')
+                    ->with('error', 'Akun SSO tidak terdaftar di sistem koperasi. Hubungi admin.');
+            }
+
+            // 6. Hubungkan akun lokal dengan akun SSO
             $user->update([
                 'sso_id' => $ssoId,
                 'auth_provider' => 'sso',
@@ -82,7 +95,7 @@ class SsoController extends Controller
                 'email_verified_at' => $user->email_verified_at ?? now(),
             ]);
 
-            // 6. Login ke aplikasi Koperasi
+            // 7. Cek status user
             if ($user->status === 'nonaktif') {
                 return redirect()->route('login')
                     ->with('error', 'Akun Anda dinonaktifkan. Silakan hubungi pengurus koperasi.');
