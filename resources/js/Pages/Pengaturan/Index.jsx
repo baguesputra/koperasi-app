@@ -93,7 +93,7 @@ export default function Index({
                 })}
             </div>
 
-            <Card padding="lg">
+            <Card padding="lg" className="max-h-[calc(100vh-280px)] overflow-y-auto">
                 {tabAktif === 'bunga' && <TabBunga bungaSaatIni={bungaSaatIni} />}
                 {tabAktif === 'limit' && <TabLimit limitPinjaman={limitPinjaman} />}
                 {tabAktif === 'tenor' && <TabTenor tabelTenor={tabelTenor} />}
