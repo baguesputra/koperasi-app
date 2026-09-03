@@ -84,8 +84,8 @@ class SsoCallbackTest extends TestCase
 
         $response = $this->get(route('sso.callback'));
 
-        $response->assertRedirect(route('login'));
-        $response->assertSessionHas('error', 'Email tidak tersedia dari SSO. Hubungi admin.');
+        $response->assertRedirect(route('sso.gagal'));
+        $response->assertSessionHas('error', 'Email tidak tersedia dari SSO. Hubungi admin koperasi untuk mendaftarkan email Anda.');
         $this->assertGuest();
     }
 
@@ -100,8 +100,8 @@ class SsoCallbackTest extends TestCase
 
         $response = $this->get(route('sso.callback'));
 
-        $response->assertRedirect(route('login'));
-        $response->assertSessionHas('error', 'Akun SSO tidak terdaftar di sistem koperasi. Hubungi admin.');
+        $response->assertRedirect(route('sso.gagal'));
+        $response->assertSessionHas('error', 'Akun SSO tidak terdaftar di sistem koperasi. Hubungi admin koperasi untuk mendaftarkan Anda sebagai anggota.');
         $this->assertGuest();
     }
 
@@ -122,8 +122,8 @@ class SsoCallbackTest extends TestCase
 
         $response = $this->get(route('sso.callback'));
 
-        $response->assertRedirect(route('login'));
-        $response->assertSessionHas('error', 'Data anda belum sesuai. Hubungi admin.');
+        $response->assertRedirect(route('sso.gagal'));
+        $response->assertSessionHas('error', 'Anda belum terdaftar sebagai anggota koperasi. Hubungi admin koperasi untuk mendaftarkan keanggotaan Anda.');
         $this->assertGuest();
     }
 
@@ -150,8 +150,8 @@ class SsoCallbackTest extends TestCase
 
         $response = $this->get(route('sso.callback'));
 
-        $response->assertRedirect(route('login'));
-        $response->assertSessionHas('error', 'Data anda belum sesuai. Hubungi admin.');
+        $response->assertRedirect(route('sso.gagal'));
+        $response->assertSessionHas('error', 'Email SSO tidak cocok dengan data lokal. Hubungi admin koperasi untuk memperbarui data Anda.');
         $this->assertGuest();
     }
 
@@ -178,8 +178,8 @@ class SsoCallbackTest extends TestCase
 
         $response = $this->get(route('sso.callback'));
 
-        $response->assertRedirect(route('login'));
-        $response->assertSessionHas('error', 'Akun Anda dinonaktifkan. Silakan hubungi pengurus koperasi.');
+        $response->assertRedirect(route('sso.gagal'));
+        $response->assertSessionHas('error', 'Akun Anda dinonaktifkan. Silakan hubungi pengurus koperasi untuk mengaktifkan kembali.');
         $this->assertGuest();
     }
 
@@ -207,8 +207,8 @@ class SsoCallbackTest extends TestCase
 
         $response = $this->get(route('sso.callback'));
 
-        $response->assertRedirect(route('login'));
-        $response->assertSessionHas('error', 'Data anda belum sesuai. Hubungi admin.');
+        $response->assertRedirect(route('sso.gagal'));
+        $response->assertSessionHas('error', 'Email SSO tidak cocok dengan data lokal. Hubungi admin koperasi untuk memperbarui data Anda.');
         $this->assertGuest();
     }
 

@@ -27,6 +27,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SimpananController;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 // --------------------- Portal SSO -------------------------
 Route::get('/auth/sso/redirect', [SsoController::class, 'redirect'])->name('sso.redirect');
@@ -245,5 +246,12 @@ Route::get('logout', function () {
 
     return redirect()->route('login');
 })->name('logout');
+
+// SSO gagal - accessible without auth, does NOT redirect to SSO
+Route::get('/auth/sso/gagal', function () {
+    return Inertia::render('Auth/SsoGagal', [
+        'error' => session('error'),
+    ]);
+})->middleware('guest')->name('sso.gagal');
 
 require __DIR__.'/auth.php';

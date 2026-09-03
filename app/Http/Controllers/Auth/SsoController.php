@@ -41,8 +41,8 @@ class SsoController extends Controller
                     'sso_id' => $ssoId,
                 ]);
 
-                return redirect()->route('login')
-                    ->with('error', 'Email tidak tersedia dari SSO. Hubungi admin.');
+                return redirect()->route('sso.gagal')
+                    ->with('error', 'Email tidak tersedia dari SSO. Hubungi admin koperasi untuk mendaftarkan email Anda.');
             }
 
             $user = User::where('sso_id', $ssoId)->first();
@@ -62,8 +62,8 @@ class SsoController extends Controller
                     'nik' => $nik,
                 ]);
 
-                return redirect()->route('login')
-                    ->with('error', 'Akun SSO tidak terdaftar di sistem koperasi. Hubungi admin.');
+                return redirect()->route('sso.gagal')
+                    ->with('error', 'Akun SSO tidak terdaftar di sistem koperasi. Hubungi admin koperasi untuk mendaftarkan Anda sebagai anggota.');
             }
 
             if (! $user->anggota) {
@@ -72,8 +72,8 @@ class SsoController extends Controller
                     'user_id' => $user->id,
                 ], null, $user->id);
 
-                return redirect()->route('login')
-                    ->with('error', 'Data anda belum sesuai. Hubungi admin.');
+                return redirect()->route('sso.gagal')
+                    ->with('error', 'Anda belum terdaftar sebagai anggota koperasi. Hubungi admin koperasi untuk mendaftarkan keanggotaan Anda.');
             }
 
             if ($user->email !== $email) {
@@ -84,8 +84,8 @@ class SsoController extends Controller
                     'sso_email' => $email,
                 ], null, $user->id);
 
-                return redirect()->route('login')
-                    ->with('error', 'Data anda belum sesuai. Hubungi admin.');
+                return redirect()->route('sso.gagal')
+                    ->with('error', 'Email SSO tidak cocok dengan data lokal. Hubungi admin koperasi untuk memperbarui data Anda.');
             }
 
             $user->update([
@@ -100,8 +100,8 @@ class SsoController extends Controller
                     'user_id' => $user->id,
                 ], null, $user->id);
 
-                return redirect()->route('login')
-                    ->with('error', 'Akun Anda dinonaktifkan. Silakan hubungi pengurus koperasi.');
+                return redirect()->route('sso.gagal')
+                    ->with('error', 'Akun Anda dinonaktifkan. Silakan hubungi pengurus koperasi untuk mengaktifkan kembali.');
             }
 
             Auth::guard('web')->login($user);
@@ -121,8 +121,8 @@ class SsoController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            return redirect()->route('login')
-                ->with('error', 'Login SSO gagal. Silakan coba lagi.');
+            return redirect()->route('sso.gagal')
+                ->with('error', 'Login SSO gagal. Silakan coba lagi atau hubungi admin koperasi jika berulang.');
         }
     }
 
