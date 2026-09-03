@@ -27,7 +27,11 @@ const kasSeries = [
 
 export default function Dashboard({ stats, actionable, grafikTren, grafikKas, aktivitasTerbaru }) {
     const { auth } = usePage().props;
-    const aksesBendahara = auth.user?.permissions?.includes('pinjaman.tinjau-bendahara');
+    const userPermissions = auth.user?.permissions ?? [];
+
+    function bisaAkses(permission) {
+        return permission === null || userPermissions.includes(permission);
+    }
 
     const widgets = [
         { label: 'Total Anggota Aktif', value: stats.total_anggota_aktif, icon: Users, tone: 'navy' },
@@ -39,13 +43,13 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
     ];
 
     const actionItems = [
-        { label: 'Tinjauan Bendahara', value: actionable.menunggu_tinjauan_bendahara, icon: ClipboardCheck, href: route('bendahara.pinjaman.index'), urgent: actionable.menunggu_tinjauan_bendahara > 0 },
-        { label: 'Approval Ketua', value: actionable.menunggu_approval_ketua, icon: ShieldCheck, href: route('ketua.pinjaman.index'), urgent: actionable.menunggu_approval_ketua > 0 },
-        { label: 'Perubahan Tenor', value: actionable.perubahan_tenor, icon: FileClock, href: aksesBendahara ? route('bendahara.percepatan.index') : route('ketua.percepatan.index'), urgent: actionable.perubahan_tenor > 0 },
-        { label: 'Pengajuan Limit', value: actionable.pengajuan_limit, icon: Gauge, href: route('ketua.pengajuan-limit.index'), urgent: actionable.pengajuan_limit > 0 },
-        { label: 'Belum Setor Simpanan', value: actionable.anggota_belum_simpanan, icon: AlertCircle, href: route('bendahara.simpanan.index'), urgent: actionable.anggota_belum_simpanan > 0 },
-        { label: 'Angsuran Jatuh Tempo', value: actionable.angsuran_jatuh_tempo, icon: CalendarClock, href: route('bendahara.angsuran.index'), urgent: actionable.angsuran_jatuh_tempo > 0 },
-    ];
+        { label: 'Tinjauan Bendahara', value: actionable.menunggu_tinjauan_bendahara, icon: ClipboardCheck, href: route('bendahara.pinjaman.index'), urgent: actionable.menunggu_tinjauan_bendahara > 0, permission: 'pinjaman.tinjau-bendahara' },
+        { label: 'Approval Ketua', value: actionable.menunggu_approval_ketua, icon: ShieldCheck, href: route('ketua.pinjaman.index'), urgent: actionable.menunggu_approval_ketua > 0, permission: 'pinjaman.approve-ketua' },
+        { label: 'Perubahan Tenor (Bendahara)', value: actionable.perubahan_tenor, icon: FileClock, href: route('bendahara.percepatan.index'), urgent: actionable.perubahan_tenor > 0, permission: 'pinjaman.tinjau-bendahara' },
+        { label: 'Perubahan Tenor (Ketua)', value: actionable.perubahan_tenor, icon: FileClock, href: route('ketua.percepatan.index'), urgent: actionable.perubahan_tenor > 0, permission: 'pinjaman.approve-ketua' },
+        { label: 'Pengajuan Limit', value: actionable.pengajuan_limit, icon: Gauge, href: route('ketua.pengajuan-limit.index'), urgent: actionable.pengajuan_limit > 0, permission: 'pinjaman.approve-ketua' },
+        { label: 'Belum Setor Simpanan', value: actionable.anggota_belum_simpanan, icon: AlertCircle, href: route('bendahara.simpanan.index'), urgent: actionable.anggota_belum_simpanan > 0, permission: 'simpanan.konfirmasi' },
+    ].filter((item) => bisaAkses(item.permission));
 
     const jumlahMenunggu = actionItems.filter((item) => item.value > 0).length;
 
@@ -125,7 +129,7 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                         {jumlahMenunggu > 0 ? `${jumlahMenunggu} menunggu aksi • klik untuk ke menu` : 'Semua beres'}
                     </p>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {actionItems.map((item) => {
                         const Icon = item.icon;
                         return (
