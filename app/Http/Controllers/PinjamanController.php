@@ -6,6 +6,7 @@ use App\Models\Angsuran;
 use App\Models\JurnalKas;
 use App\Models\Pinjaman;
 use App\Services\Pinjaman\PerhitunganBungaService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
@@ -247,9 +248,14 @@ class PinjamanController extends Controller
             ->all();
     }
 
-    public function cetakBukti(Pinjaman $pinjaman): Response
+    public function cetakBukti(Request $request, Pinjaman $pinjaman)
     {
         abort_unless($pinjaman->status === 'aktif', 403, 'Bukti peminjaman hanya tersedia untuk pinjaman dengan status Aktif.');
+
+        if ($request->query('download')) {
+            $pdf = Pdf::loadView('pinjaman.cetak_bukti', $pinjaman->dataBukti());
+            return $pdf->download('pinjaman-' . $pinjaman->anggota->no_anggota . '.pdf');
+        }
 
         return Inertia::render('Pinjaman/CetakBukti', $pinjaman->dataBukti());
     }

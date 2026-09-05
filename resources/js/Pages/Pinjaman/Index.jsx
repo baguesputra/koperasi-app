@@ -62,10 +62,28 @@ export default function Index({ pinjaman, filters, statistik, cabangAktif, dafta
         setDrawerOpen(false);
     }
 
-    function bukaCetak(e, p) {
-        e.stopPropagation();
-        window.open(route('pinjaman.cetak-bukti', p.id), '_blank');
-    }
+function bukaCetak(e, p) {
+    e.stopPropagation();
+    fetch(route('pinjaman.cetak-bukti', { pinjaman: p.id, download: 1 }))
+        .then(res => {
+            if (!res.ok) throw new Error('Failed to fetch PDF');
+            return res.blob();
+        })
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `pinjaman-${p.no_anggota}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Gagal mengunduh PDF. Silakan coba lagi.');
+        });
+}
 
     return (
         <AppLayout>

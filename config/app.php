@@ -73,8 +73,8 @@ return [
     |--------------------------------------------------------------------------
     |
     | The application locale determines the default locale that will be used
-    | by Laravel's translation / localization methods. This option can be
-    | set to any locale for which you plan to have translation strings.
+    | by Laravel's translation / localization methods. This option can
+    | be set to any locale for which you plan to have translation strings.
     |
     */
 
@@ -123,4 +123,7 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    'aliases' => [
+        'PDF' => Barryvdh\DomPDF\Facade\Pdf::class,
+    ],
 ];

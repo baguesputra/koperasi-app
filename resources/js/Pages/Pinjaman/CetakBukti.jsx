@@ -42,13 +42,16 @@ export default function CetakBukti({ pinjaman, angsuran, totals }) {
                 </div>
 
                 <div className="print-area max-w-3xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
-                    <div className="text-center border-b border-slate-200 pb-5 mb-6">
-                        <h2 className="text-2xl font-bold text-slate-800">KOPERASI KARYAWAN</h2>
-                        <p className="text-sm text-slate-500 mt-1">Bukti Peminjaman</p>
-                        <p className="text-xs text-slate-400 mt-1">
-                            Nomor: BUKTI-PJM/{pinjaman.anggota.no_anggota}/{pinjaman.id}
-                        </p>
-                    </div>
+<div className="flex items-center border-b border-slate-200 pb-5 mb-6">
+    <img src="/images/logo.png" alt="Logo" className="h-10 w-auto mr-4" />
+    <div>
+        <h2 className="text-2xl font-bold text-slate-800">KOPERASI KARYAWAN</h2>
+        <p className="text-sm text-slate-500 mt-1">Bukti Peminjaman</p>
+        <p className="text-xs text-slate-400 mt-1">
+            Nomor: BUKTI-PJM/{pinjaman.anggota.no_anggota}/{pinjaman.id}
+        </p>
+    </div>
+</div>
 
                     <section className="mb-6">
                         <h3 className="text-sm font-bold text-slate-700 mb-3 uppercase tracking-wider">Data Anggota</h3>
