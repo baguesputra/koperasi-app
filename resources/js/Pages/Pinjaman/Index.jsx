@@ -144,12 +144,12 @@ export default function Index({ pinjaman, filters, statistik, cabangAktif, dafta
                                 <tr><td colSpan={6} className="px-5 py-10 text-center text-base text-slate-400">Tidak ada data ditemukan.</td></tr>
                             ) : (
                                 pinjaman.data.map((p) => (
-                                    <tr key={p.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                                    <tr key={p.id} onClick={() => bukaDetail(p)} className="border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer">
                                         <td className="px-5 py-3.5">
                                             <div className="flex items-center gap-2">
                                                 <div className="min-w-0">
                                                     <button
-                                                        onClick={() => bukaDetail(p)}
+                                                        onClick={(e) => { e.stopPropagation(); bukaDetail(p); }}
                                                         className="block text-left text-base font-semibold text-slate-800 hover:text-brand-green transition-colors"
                                                     >
                                                         {p.nama}
@@ -178,7 +178,7 @@ export default function Index({ pinjaman, filters, statistik, cabangAktif, dafta
                                         <td className="px-5 py-3.5 text-right">
                                             {p.status === 'aktif' && (
                                                 <button
-                                                    onClick={(e) => bukaCetak(e, p)}
+                                                    onClick={(e) => { e.stopPropagation(); bukaCetak(e, p); }}
                                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-lg bg-brand-green text-white hover:bg-brand-green/90 transition-colors"
                                                     title="Cetak bukti peminjaman"
                                                 >

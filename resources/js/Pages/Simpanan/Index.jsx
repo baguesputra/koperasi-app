@@ -133,46 +133,46 @@ export default function Index({
                                 <th className="px-5 py-3.5 text-right text-sm font-semibold text-slate-500">Total Simpanan</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            {anggota.data.length === 0 ? (
-                                <tr>
-                                    <td colSpan={3} className="px-5 py-10 text-center text-base text-slate-400">
-                                        {cabangAktif
-                                            ? `Belum ada anggota di cabang ${cabangAktif}.`
-                                            : 'Belum ada data anggota ditemukan.'}
-                                    </td>
-                                </tr>
-                            ) : (
-                                anggota.data.map((a) => (
-                                    <tr key={a.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                                        <td className="px-5 py-3.5">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full bg-brand-green text-white flex items-center justify-center text-sm font-bold shrink-0">
-                                                    {inisial(a.nama)}
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <button
-                                                        onClick={() => bukaDetail(a)}
-                                                        className="block w-full text-left text-base font-semibold text-slate-800 hover:text-brand-green truncate"
-                                                    >
-                                                        {a.nama}
-                                                    </button>
-                                                    <p className="text-sm text-slate-400">{a.no_anggota}</p>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-5 py-3.5">
-                                            <span className="inline-block px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-600">
-                                                {a.cabang}
-                                            </span>
-                                        </td>
-                                        <td className="px-5 py-3.5 text-right text-base font-bold text-slate-800">
-                                            {formatRupiah(a.total_simpanan)}
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
+<tbody>
+  {anggota.data.length === 0 ? (
+    <tr>
+      <td colSpan={3} className="px-5 py-10 text-center text-base text-slate-400">
+        {cabangAktif
+          ? `Belum ada anggota di cabang ${cabangAktif}.`
+          : 'Belum ada data anggota ditemukan.'}
+      </td>
+    </tr>
+  ) : (
+    anggota.data.map((a) => (
+      <tr key={a.id} onClick={() => bukaDetail(a)} className="border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer">
+        <td className="px-5 py-3.5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-brand-green text-white flex items-center justify-center text-sm font-bold shrink-0">
+              {inisial(a.nama)}
+            </div>
+            <div className="min-w-0">
+              <button
+                onClick={(e) => { e.stopPropagation(); bukaDetail(a); }}
+                className="block w-full text-left text-base font-semibold text-slate-800 hover:text-brand-green truncate"
+              >
+                {a.nama}
+              </button>
+              <p className="text-sm text-slate-400">{a.no_anggota}</p>
+            </div>
+          </div>
+        </td>
+        <td className="px-5 py-3.5">
+          <span className="inline-block px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-600">
+            {a.cabang}
+          </span>
+        </td>
+        <td className="px-5 py-3.5 text-right text-base font-bold text-slate-800">
+          {formatRupiah(a.total_simpanan)}
+        </td>
+      </tr>
+    ))
+  )}
+</tbody>
                     </table>
                 </div>
             </Card>
