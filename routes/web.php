@@ -17,6 +17,7 @@ use App\Http\Controllers\Pengaturan\PenggunaController;
 use App\Http\Controllers\PengaturanController;
 use App\Http\Controllers\PengeluaranController;
 use App\Http\Controllers\PinjamanController;
+use App\Http\Controllers\VerifikasiController;
 use App\Http\Controllers\Portal\DashboardController as PortalDashboardController;
 use App\Http\Controllers\Portal\PengajuanLimitController as PortalPengajuanLimitController;
 use App\Http\Controllers\Portal\PercepatanController as PortalPercepatanController;
@@ -93,6 +94,12 @@ Route::middleware(['auth', 'permission:pinjaman.lihat'])->group(function () {
     Route::get('/pinjaman/{pinjaman}', [PinjamanController::class, 'show'])->name('pinjaman.show');
     Route::get('/pinjaman/{pinjaman}/cetak-bukti', [PinjamanController::class, 'cetakBukti'])->name('pinjaman.cetak-bukti');
 });
+
+// ==========================================
+// VERIFIKASI BUKTI PINJAMAN (Public via QR Code)
+// ==========================================
+Route::get('/verifikasi/bukti/{pinjaman}', [VerifikasiController::class, 'show'])
+    ->name('verifikasi.bukti');
 
 Route::middleware(['auth', 'permission:simpanan.lihat'])->group(function () {
     Route::get('/simpanan', [SimpananController::class, 'index'])->name('simpanan.index');

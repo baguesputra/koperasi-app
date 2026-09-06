@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\URL;
 
 class Pinjaman extends Model
 {
@@ -36,6 +37,7 @@ class Pinjaman extends Model
         'catatan_bendahara',
         'catatan_ketua',
         'sudah_pakai_percepatan',
+        'verification_revoked_at',
     ];
 
     protected $casts = [
@@ -47,6 +49,7 @@ class Pinjaman extends Model
         'tanggal_pencairan' => 'date',
         'disetujui_pada' => 'datetime',
         'sudah_pakai_percepatan' => 'boolean',
+        'verification_revoked_at' => 'datetime',
     ];
 
     public function anggota(): BelongsTo
@@ -74,11 +77,6 @@ class Pinjaman extends Model
         return $this->angsuranBelumBayar()->count();
     }
 
-    /**
-     * Rata-rata nominal pokok per angsuran yang masih belum dibayar.
-     * Hanya membaca tabel angsuran biasa (tidak termasuk angsuran_percepatan).
-     * Gunakan cicilanPokokAktif() untuk kalkulasi limit reloan yang konsisten dengan jadwalAktif().
-     */
     public function cicilanPokok(): float
     {
         return (float) ($this->angsuran()
@@ -86,10 +84,6 @@ class Pinjaman extends Model
             ->avg('nominal_pokok') ?? 0);
     }
 
-    /**
-     * Angsuran-percepatan yang terkait langsung via pengajuan_percepatan.
-     * Dipakai untuk filter hanya angsuran_percepatan dari pengajuan yang aktif.
-     */
     public function angsuranPercepatan()
     {
         return $this->hasManyThrough(
@@ -105,10 +99,6 @@ class Pinjaman extends Model
         return $this->hasMany(PengajuanPercepatan::class);
     }
 
-    /**
-     * Jadwal angsuran yang AKTIF sekarang - gabungan dari angsuran asli (yang belum digantikan)
-     * dan angsuran_percepatan dari pengajuan yang sudah aktif (kalau ada).
-     */
     public function jadwalAktif()
     {
         $pengajuanAktif = $this->pengajuanPercepatan()->where('status', 'aktif')->latest()->first();
@@ -138,10 +128,6 @@ class Pinjaman extends Model
         return (float) $this->jadwalAktif()->where('status', 'belum_bayar')->sum('total_bayar');
     }
 
-    /**
-     * Rata-rata nominal pokok per cicilan aktif (gabungan angsuran biasa yang belum digantikan
-     * + angsuran_percepatan dari pengajuan aktif). Konsisten dengan jadwalAktif() / sisaCicilanAktif().
-     */
     public function cicilanPokokAktif(): float
     {
         return (float) ($this->jadwalAktif()
@@ -149,12 +135,83 @@ class Pinjaman extends Model
             ->avg('nominal_pokok') ?? 0);
     }
 
-    /**
-     * Susun data lengkap untuk Bukti Peminjaman (dipakai halaman cetak & lampiran PDF WA).
-     */
+    public function verificationUrl(): string
+    {
+        return URL::signedRoute('verifikasi.bukti', ['pinjaman' => $this->id]);
+    }
+
+    public function isVerificationRevoked(): bool
+    {
+        return $this->verification_revoked_at !== null;
+    }
+
+    public function getVerificationTimeline(): array
+    {
+        $timeline = [];
+
+        $timeline[] = [
+            'label' => 'Pengajuan',
+            'date' => $this->tanggal_pengajuan?->format('d M Y H:i'),
+            'user' => $this->pengaju?->name ?? '-',
+            'status' => 'done',
+            'icon' => 'file-text',
+        ];
+
+        $bendaharaData = $this->parseApprovalNote($this->catatan_bendahara);
+        $timeline[] = [
+            'label' => 'Approve Bendahara',
+            'date' => $bendaharaData['date'] ?? ($this->tanggal_pencairan?->format('d M Y H:i') ?? '-'),
+            'user' => $bendaharaData['user'] ?? '-',
+            'status' => in_array($this->status, ['approved_bendahara', 'approved_ketua', 'aktif', 'lunas']) ? 'done' : 'pending',
+            'icon' => 'shield-check',
+        ];
+
+        $ketuaData = $this->parseApprovalNote($this->catatan_ketua);
+        $timeline[] = [
+            'label' => 'Approve Ketua',
+            'date' => $ketuaData['date'] ?? ($this->disetujui_pada?->format('d M Y H:i') ?? '-'),
+            'user' => $ketuaData['user'] ?? '-',
+            'status' => in_array($this->status, ['approved_ketua', 'aktif', 'lunas']) ? 'done' : 'pending',
+            'icon' => 'user-check',
+        ];
+
+        $timeline[] = [
+            'label' => 'Pencairan',
+            'date' => $this->tanggal_pencairan?->format('d M Y H:i') ?? '-',
+            'user' => $this->cairOlehBendahara?->name ?? '-',
+            'status' => $this->status === 'aktif' ? 'done' : 'pending',
+            'icon' => 'banknote',
+        ];
+
+        return $timeline;
+    }
+
+    private function parseApprovalNote(?string $note): array
+    {
+        if (! $note) {
+            return [];
+        }
+
+        $result = ['date' => null, 'user' => null];
+
+        if (preg_match('/pada\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2})/i', $note, $matches)) {
+            $result['date'] = date('d M Y H:i', strtotime($matches[1]));
+        } elseif (preg_match('/(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2})/', $note, $matches)) {
+            $result['date'] = date('d M Y H:i', strtotime($matches[1]));
+        }
+
+        if (preg_match('/oleh\s+([A-Za-z\s.]+?)(?:\s+pada|\s*$)/i', $note, $matches)) {
+            $result['user'] = trim($matches[1]);
+        } elseif (preg_match('/disetujui\s+oleh\s+([A-Za-z\s.]+)/i', $note, $matches)) {
+            $result['user'] = trim($matches[1]);
+        }
+
+        return $result;
+    }
+
     public function dataBukti(): array
     {
-        $this->loadMissing(['anggota', 'angsuran']);
+        $this->loadMissing(['anggota', 'angsuran', 'pengaju']);
 
         $angsuranList = $this->angsuran()
             ->orderBy('cicilan_ke')
@@ -192,6 +249,7 @@ class Pinjaman extends Model
                     'unit_bisnis' => $this->anggota->unit_bisnis,
                     'jabatan' => $this->anggota->jabatan,
                 ],
+                'verification_url' => $this->verificationUrl(),
             ],
             'angsuran' => $angsuranList,
             'totals' => [
