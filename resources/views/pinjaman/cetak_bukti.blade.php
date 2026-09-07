@@ -1,6 +1,6 @@
 <?php
 use Endroid\QrCode\QrCode;
-use Endroid\QrCode\Writer\SvgWriter;
+use Endroid\QrCode\Writer\PngWriter;
 use Endroid\QrCode\Encoding\Encoding;
 use Endroid\QrCode\ErrorCorrectionLevel;
 
@@ -26,19 +26,23 @@ try {
         $verificationUrl,
         new Encoding('UTF-8'),
         ErrorCorrectionLevel::Medium,
-        60,  // size 60 directly
+        200,  // size 200 directly for sharper image
         0
     );
-    $writer = new SvgWriter();
-    $qrSvg = $writer->write($qrCode)->getString();
-    // Ensure clean width/height for Dompdf (replace any existing)
-    $qrSvg = preg_replace('/width\s*=\s*"[^"]*"/', 'width="60"', $qrSvg);
-    $qrSvg = preg_replace('/height\s*=\s*"[^"]*"/', 'height="60"', $qrSvg);
-    // Remove any px units
-    $qrSvg = preg_replace('/width\s*=\s*"(\d+)px"/', 'width="$1"', $qrSvg);
-    $qrSvg = preg_replace('/height\s*=\s*"(\d+)px"/', 'height="$1"', $qrSvg);
+    $writer = new PngWriter();
+    $result = $writer->write($qrCode);
+    $qrPngBase64 = base64_encode($result->getString());
 } catch (\Throwable $e) {
-    $qrSvg = '<svg width="60" height="60" xmlns="http://www.w3.org/2000/svg"><text x="5" y="20" font-size="8">QR</text></svg>';
+    // Fallback: generate a 200x200 PNG fallback
+    try {
+        $fallbackQr = new QrCode($verificationUrl, new Encoding('UTF-8'), ErrorCorrectionLevel::Medium, 200, 0);
+        $fallbackWriter = new PngWriter();
+        $fallbackResult = $fallbackWriter->write($fallbackQr);
+        $qrPngBase64 = base64_encode($fallbackResult->getString());
+    } catch (\Throwable $e) {
+        // Ultimate fallback: a 1x1 transparent PNG (will be stretched to 200x200 via HTML)
+        $qrPngBase64 = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==');
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -62,8 +66,8 @@ try {
             padding: 0;
             background: white;
             color: #000;
-            font-size: 12pt;
-            line-height: 1.5;
+            font-size: 13pt;
+            line-height: 1.6;
         }
         .container {
             max-width: 100%;
@@ -142,29 +146,25 @@ try {
         }
         /* ====== SECTION ====== */
         .section {
-            margin-bottom: 18px;
+            margin-bottom: 24px;
         }
         .section-title {
             font-family: 'Times New Roman', Times, serif;
-            font-size: 11pt;
+            font-size: 12pt;
             font-weight: 700;
             color: #000;
             text-transform: uppercase;
             letter-spacing: 1.2px;
-            background: #f0f0f0;
-            border-left: 4px solid #000;
-            border-right: 1px solid #000;
-            border-top: 1px solid #000;
-            border-bottom: 1px solid #000;
-            padding: 5px 10px;
-            margin-bottom: 10px;
+            border-bottom: 2px solid #000;
+            padding: 5px 0;
+            margin-bottom: 12px;
         }
         /* ====== INFO GRID 2 KOLOM ====== */
         .info-row {
             display: table;
             width: 100%;
             border-collapse: collapse;
-            font-size: 12pt;
+            font-size: 13pt;
             table-layout: fixed;
         }
         .info-row > div {
@@ -197,10 +197,9 @@ try {
         }
         /* ====== BANK CARD ====== */
         .bank-card {
-            border: 1px solid #000;
-            border-radius: 0;
-            padding: 12px 16px;
-            background: #fafafa;
+            border-left: 3px solid #000;
+            padding: 8px 0 8px 16px;
+            margin-left: 4px;
         }
         .bank-name {
             font-size: 13pt;
@@ -218,18 +217,13 @@ try {
         .angsuran-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 11pt;
-            border: 1.5px solid #000;
-        }
-        .angsuran-table thead tr {
-            background: #000;
+            font-size: 12pt;
         }
         .angsuran-table th {
-            color: white;
             font-weight: 700;
             padding: 8px 8px;
             text-align: center;
-            border: 1px solid #000;
+            border-bottom: 2px solid #000;
             font-size: 10pt;
             letter-spacing: 0.5px;
             text-transform: uppercase;
@@ -240,47 +234,37 @@ try {
         }
         .angsuran-table td {
             padding: 7px 8px;
-            border: 0.75px solid #000;
+            border-bottom: 1px solid #e0e0e0;
             color: #000;
         }
         .angsuran-table td.text-center {
             text-align: center;
-        }
-        .angsuran-table tfoot tr {
-            background: #f0f0f0;
         }
         .angsuran-table tfoot td {
             border-top: 2px solid #000;
             font-weight: 700;
             color: #000;
             font-size: 11.5pt;
+            padding-top: 8px;
         }
         /* ====== NOTES ====== */
         .notes {
-            border: 1px solid #000;
-            border-radius: 0;
-            padding: 10px 14px;
-            font-size: 10pt;
+            border-left: 3px solid #000;
+            padding: 8px 0 8px 16px;
+            margin-left: 4px;
+            font-size: 11pt;
             color: #000;
             line-height: 1.6;
-            background: #fafafa;
             font-style: italic;
         }
-        /* ====== TANDA TANGAN - SINGLE KETUA KANAN ====== */
+        /* ====== TANDA TANGAN KETUA + QR CODE ====== */
         .sig-section {
             margin-top: 35px;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-        }
-        .sig-left {
-            width: 50%;
-            text-align: left;
-        }
-        .sig-right {
-            width: 50%;
             text-align: center;
-            padding-right: 20px;
+        }
+        .sig-block {
+            display: inline-block;
+            text-align: center;
         }
         .sig-place {
             font-family: 'Times New Roman', Times, serif;
@@ -289,45 +273,32 @@ try {
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.8px;
-            padding-bottom: 75px;
+            margin-bottom: 10px;
+        }
+        .qr-block {
+            margin: 0 auto 10px auto;
+        }
+        .sig-line {
+            width: 120px;
+            height: 0;
+            border-top: 1.5px solid #000;
+            margin: 0 auto 10px auto;
         }
         .sig-name {
             font-family: 'Times New Roman', Times, serif;
             font-size: 11pt;
             font-weight: 700;
             color: #000;
-            border-top: 1.5px solid #000;
-            padding-top: 8px;
-            display: block;
             text-transform: uppercase;
+            display: block;
+            margin-bottom: 4px;
         }
         .sig-id {
             font-family: 'Times New Roman', Times, serif;
             font-size: 9pt;
             color: #000;
-            margin-top: 3px;
-            display: block;
             font-style: italic;
-        }
-        /* ====== QR CODE ====== */
-        .qr-section {
-            width: 100%;
-            text-align: left;
-            padding-bottom: 10px;
-        }
-        .qr-label {
-            font-family: 'Times New Roman', Times, serif;
-            font-size: 7pt;
-            color: #666;
-            margin-bottom: 4px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .qr-url {
-            font-family: 'Times New Roman', Times, serif;
-            font-size: 5.5pt;
-            color: #999;
-            margin-top: 2px;
+            display: block;
         }
         /* ====== FOOTER ====== */
         .footer-note {
@@ -335,7 +306,7 @@ try {
             margin-top: 22px;
             padding-top: 10px;
             border-top: 1px solid #000;
-            font-size: 9pt;
+            font-size: 10pt;
             color: #000;
             letter-spacing: 0.4px;
             font-style: italic;
@@ -477,16 +448,12 @@ try {
 
         <!-- ============ TANDA TANGAN KETUA + QR CODE ============ -->
         <div class="sig-section">
-            <div class="sig-left">
-                <!-- QR Code di kiri -->
-                <div class="qr-section">
-                    <div class="qr-label">Scan untuk Verifikasi</div>
-                    <div style="width: 60px; height: 60px;">{!! $qrSvg !!}</div>
-                    <div class="qr-url">{{ parse_url($verificationUrl, PHP_URL_HOST) }}/verifikasi/bukti/{{ $pinjaman['id'] }}</div>
-                </div>
-            </div>
-            <div class="sig-right">
+            <div class="sig-block">
                 <div class="sig-place">Ketua Koperasi</div>
+                <div class="qr-block">
+                    <img src="data:image/png;base64,{{ $qrPngBase64 }}" width="130" height="130" />
+                </div>
+                <div class="sig-line"></div>
                 <span class="sig-name">{{ $ketuaNama }}</span>
                 <span class="sig-id">Ketua</span>
             </div>
