@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -63,8 +64,12 @@ class AuthenticatedSessionController extends Controller
     //     return redirect('/login');
     // }
 
-    public function destroy(Request $request): RedirectResponse
+    public function destroy(Request $request): SymfonyResponse
     {
+        if (config('auth.mode') === 'sso' && Auth::guard('web')->user()?->sso_id) {
+            return app(SsoController::class)->logout();
+        }
+
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();

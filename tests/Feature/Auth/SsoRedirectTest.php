@@ -2,10 +2,14 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class SsoRedirectTest extends TestCase
 {
+    use RefreshDatabase;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -31,5 +35,14 @@ class SsoRedirectTest extends TestCase
     public function test_root_dialihkan_ke_sso_sa_t_belum_login(): void
     {
         $this->get('/')->assertRedirect(route('sso.redirect'));
+    }
+
+    public function test_slo_membersihkan_sesi_tanpa_saml(): void
+    {
+        $user = User::factory()->create(['status' => 'aktif']);
+        $this->actingAs($user);
+
+        $this->get(route('sso.slo'))->assertRedirect(route('login'));
+        $this->assertGuest();
     }
 }

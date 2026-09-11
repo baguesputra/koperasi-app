@@ -17,7 +17,6 @@ use App\Http\Controllers\Pengaturan\PenggunaController;
 use App\Http\Controllers\PengaturanController;
 use App\Http\Controllers\PengeluaranController;
 use App\Http\Controllers\PinjamanController;
-use App\Http\Controllers\VerifikasiController;
 use App\Http\Controllers\Portal\DashboardController as PortalDashboardController;
 use App\Http\Controllers\Portal\PengajuanLimitController as PortalPengajuanLimitController;
 use App\Http\Controllers\Portal\PercepatanController as PortalPercepatanController;
@@ -27,15 +26,18 @@ use App\Http\Controllers\Portal\RiwayatController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SimpananController;
+use App\Http\Controllers\VerifikasiController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 // --------------------- Portal SSO -------------------------
 Route::get('/auth/sso/redirect', [SsoController::class, 'redirect'])->name('sso.redirect');
-Route::get('/auth/sso/callback', [SsoController::class, 'callback'])
+Route::match(['get', 'post'], '/auth/sso/callback', [SsoController::class, 'callback'])
     ->name('sso.callback')
     ->middleware('throttle:sso-callback');
 Route::get('/auth/sso/logout', [SsoController::class, 'logout'])->name('sso.logout');
+Route::match(['get', 'post'], '/auth/sso/slo', [SsoController::class, 'slo'])->name('sso.slo');
+Route::get('/auth/sso/metadata', [SsoController::class, 'metadata'])->name('sso.metadata');
 
 Route::get('/', function () {
     if (auth()->check()) {

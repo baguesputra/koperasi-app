@@ -5,16 +5,22 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Inertia\Inertia;
 use Laravel\Socialite\Facades\Socialite;
 
 class SsoController extends Controller
 {
     public function redirect()
     {
-        return Socialite::driver('perusahaan')
+        $tujuan = Socialite::driver('perusahaan')
             ->stateless()
-            ->redirect();
+            ->redirect()
+            ->getTargetUrl();
+
+        return Inertia::location($tujuan);
     }
 
     public function callback()
@@ -25,14 +31,16 @@ class SsoController extends Controller
                 ->user();
 
             $ssoId = $ssoUser->id;
-            $email = $ssoUser->email;
-            $nik = $ssoUser->nik;
+            $email = $ssoUser->email ?? $ssoId;
             $name = $ssoUser->name;
 
-            \Log::info('SSO Callback Debug', [
+            if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $email = null;
+            }
+
+            Log::info('SSO Callback Debug', [
                 'sso_id' => $ssoId,
                 'email' => $email,
-                'nik' => $nik,
                 'name' => $name,
             ]);
 
@@ -51,22 +59,17 @@ class SsoController extends Controller
                 $user = User::where('email', $email)->first();
             }
 
-            if (! $user && $nik) {
-                $user = User::where('no_karyawan', $nik)->first();
-            }
-
             if (! $user) {
                 AuditLog::catat('sso_login_failed', 'user_not_found', [
                     'sso_id' => $ssoId,
                     'email' => $email,
-                    'nik' => $nik,
                 ]);
 
                 return redirect()->route('sso.gagal')
                     ->with('error', 'Akun SSO tidak terdaftar di sistem koperasi. Hubungi admin koperasi untuk mendaftarkan Anda sebagai anggota.');
             }
 
-            if (! $user->anggota) {
+            if ($user->hasRole('anggota') && ! $user->anggota) {
                 AuditLog::catat('sso_login_failed', 'no_anggota_relation', [
                     'sso_id' => $ssoId,
                     'user_id' => $user->id,
@@ -128,13 +131,50 @@ class SsoController extends Controller
 
     public function logout()
     {
-        Auth::guard('web')->logout();
+        $user = Auth::guard('web')->user();
+        if ($user && $user->sso_id) {
+            try {
+                // Initiate SAML logout request
+                return Socialite::driver('perusahaan')
+                    ->logoutRequest($user->sso_id);
+            } catch (\Exception $e) {
+                // If SAML logout fails, fall back to clearing session and redirecting to IdP SLO URL
+                report($e);
+            }
+        }
 
+        // Fallback: clear session and redirect to login or IdP SLO URL
+        Auth::guard('web')->logout();
         request()->session()->invalidate();
         request()->session()->regenerateToken();
 
-        $logoutUrl = config('services.sso.logout_url') ?? route('login');
+        $sloUrl = env('SAML_IDP_SLO_URL', route('login'));
 
-        return redirect()->away($logoutUrl);
+        return redirect()->away($sloUrl);
+    }
+
+    public function slo(Request $request)
+    {
+        Auth::guard('web')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        if ($request->has('SAMLRequest') || $request->has('SAMLResponse')) {
+            try {
+                return Socialite::driver('perusahaan')
+                    ->stateless()
+                    ->logoutResponse();
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
+        return redirect()->route('login');
+    }
+
+    public function metadata()
+    {
+        return Socialite::driver('perusahaan')
+            ->getServiceProviderMetadata();
     }
 }

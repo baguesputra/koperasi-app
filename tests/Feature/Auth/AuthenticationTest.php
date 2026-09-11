@@ -51,4 +51,18 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
         $response->assertRedirect(route('login'));
     }
+
+    public function test_logout_sso_dialihkan_ke_idp(): void
+    {
+        config(['auth.mode' => 'sso']);
+        config()->set('services.perusahaan.metadata', 'https://gate.appdutamall.com/saml/metadata');
+
+        $user = User::factory()->create(['sso_id' => 'admin@koperasi.test']);
+
+        $response = $this->actingAs($user)->post('/logout');
+
+        $this->assertAuthenticatedAs($user);
+        $response->assertRedirect();
+        $this->assertStringStartsWith('https://gate.appdutamall.com/saml/slo', $response->headers->get('Location'));
+    }
 }

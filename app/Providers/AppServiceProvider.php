@@ -4,10 +4,12 @@ namespace App\Providers;
 
 use App\Services\SSO\PerusahaanProvider;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
-use Laravel\Socialite\Facades\Socialite;
+use SocialiteProviders\Manager\SocialiteWasCalled;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -24,10 +26,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Socialite::extend('perusahaan', function ($app) {
-            $config = $app['config']['services.sso'];
-
-            return Socialite::buildProvider(PerusahaanProvider::class, $config);
+        Event::listen(SocialiteWasCalled::class, function (SocialiteWasCalled $event) {
+            $event->extendSocialite('perusahaan', PerusahaanProvider::class);
         });
 
         RateLimiter::for('sso-callback', function (Request $request) {
@@ -35,5 +35,10 @@ class AppServiceProvider extends ServiceProvider
                 return redirect()->route('login')->with('error', 'Terlalu banyak percobaan. Coba lagi nanti.');
             });
         });
+
+        PreventRequestForgery::except([
+            '/auth/sso/callback',
+            '/auth/sso/slo',
+        ]);
     }
 }

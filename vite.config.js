@@ -40,6 +40,8 @@ export default defineConfig({
             },
             workbox: {
                 globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+                navigateFallback: null,
+                navigateFallbackDenylist: [/^\/auth\/sso/, /^\/api\//],
                 additionalManifestEntries: [
                     { url: '/', revision: null },
                 ],

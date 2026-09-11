@@ -11,7 +11,7 @@
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
         <!-- PWA -->
-        <link rel="manifest" href="/manifest.webmanifest">
+        {{-- ponytail: tautan manifest dihapus, VitePWA tidak emit /manifest.webmanifest; tambah saat butuh install PWA --}}
         <meta name="theme-color" content="#1f2937">
         <link rel="apple-touch-icon" href="/images/logo.png">
         <meta name="apple-mobile-web-app-capable" content="yes">

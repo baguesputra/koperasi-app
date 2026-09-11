@@ -1,4 +1,4 @@
-﻿import { Head, Link, usePage } from '@inertiajs/react';
+﻿import { Head, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import { ArrowLeft, RefreshCw, AlertCircle } from 'lucide-react';
 
@@ -40,14 +40,13 @@ export default function SsoGagal({ error }) {
                     </p>
 
                     <div className="space-y-3">
-                        <Link
+                        <a
                             href={route('sso.redirect')}
                             className="w-full inline-flex items-center justify-center gap-2 py-2 px-4 text-sm font-semibold rounded-lg bg-brand-green text-white hover:bg-brand-green-dark transition-colors duration-200 active:scale-[0.95]"
                         >
                             <RefreshCw className="w-4 h-4" />
                             Coba Lagi
-                        </Link>
-
+                        </a>
                         <a
                             href={ssoLogoutUrl}
                             className="w-full inline-flex items-center justify-center gap-2 py-2 px-4 text-sm font-semibold rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors duration-200 active:scale-[0.95]"

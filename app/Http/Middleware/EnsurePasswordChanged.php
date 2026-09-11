@@ -13,7 +13,7 @@ class EnsurePasswordChanged
     {
         $user = $request->user();
 
-        if ($user && $user->harus_ganti_password && ! $request->routeIs('password.wajib-ganti', 'password.wajib-ganti.update', 'logout')) {
+        if ($user && $user->harus_ganti_password && ! $request->routeIs('password.wajib-ganti', 'password.wajib-ganti.update', 'logout', 'sso.logout', 'sso.slo')) {
             return redirect()->route('password.wajib-ganti');
         }
 

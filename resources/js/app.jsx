@@ -30,15 +30,19 @@ createInertiaApp({
 });
 
 if ('serviceWorker' in navigator) {
-    import('workbox-window').then(({ Workbox }) => {
-        const wb = new Workbox('/sw.js');
-        wb.addEventListener('installed', (event) => {
-            if (!event.isUpdate) {
-                console.log('PWA: App cached and ready for offline use');
-            } else {
-                console.log('PWA: New version available, please refresh');
-            }
+    if (import.meta.env.PROD) {
+        import('workbox-window').then(({ Workbox }) => {
+            const wb = new Workbox('/sw.js');
+            wb.addEventListener('installed', (event) => {
+                if (!event.isUpdate) {
+                    console.log('PWA: App cached and ready for offline use');
+                } else {
+                    console.log('PWA: New version available, please refresh');
+                }
+            });
+            wb.register();
         });
-        wb.register();
-    });
+    } else {
+        navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((r) => r.unregister()));
+    }
 }

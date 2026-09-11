@@ -6,6 +6,7 @@ use App\Models\Anggota;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Socialite\Facades\Socialite;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class SsoCallbackTest extends TestCase
@@ -107,11 +108,14 @@ class SsoCallbackTest extends TestCase
 
     public function test_sso_callback_fails_when_user_has_no_anggota_relation(): void
     {
+        Role::firstOrCreate(['name' => 'anggota', 'guard_name' => 'web']);
+
         $user = User::factory()->create([
             'email' => 'test@example.com',
             'no_karyawan' => 'TOP-100001',
             'status' => 'aktif',
         ]);
+        $user->assignRole('anggota');
 
         $this->mockSsoUser([
             'id' => 'sso-123',
@@ -127,11 +131,38 @@ class SsoCallbackTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_sso_callback_success_for_staff_without_anggota_relation(): void
+    {
+        Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+
+        $user = User::factory()->create([
+            'email' => 'admin@koperasi.test',
+            'no_karyawan' => 'ADM-000001',
+            'status' => 'aktif',
+        ]);
+        $user->assignRole('admin');
+
+        $this->mockSsoUser([
+            'id' => 'admin@koperasi.test',
+            'email' => 'admin@koperasi.test',
+            'name' => 'Admin Koperasi',
+        ]);
+
+        $response = $this->get(route('sso.callback'));
+
+        $response->assertRedirect(route('dashboard'));
+        $this->assertAuthenticatedAs($user);
+        $user->refresh();
+        $this->assertEquals('admin@koperasi.test', $user->sso_id);
+        $this->assertEquals('sso', $user->auth_provider);
+    }
+
     public function test_sso_callback_fails_when_email_mismatch(): void
     {
         $user = User::factory()->create([
             'email' => 'local@example.com',
             'no_karyawan' => 'TOP-100001',
+            'sso_id' => 'sso-123',
             'status' => 'aktif',
         ]);
 
@@ -144,7 +175,6 @@ class SsoCallbackTest extends TestCase
         $this->mockSsoUser([
             'id' => 'sso-123',
             'email' => 'sso@example.com',
-            'nik' => 'TOP-100001',
             'name' => 'Test User',
         ]);
 
@@ -264,6 +294,7 @@ class SsoCallbackTest extends TestCase
         $user = User::factory()->create([
             'email' => 'local@example.com',
             'no_karyawan' => 'TOP-100001',
+            'sso_id' => 'sso-123',
             'status' => 'aktif',
         ]);
 
@@ -276,7 +307,6 @@ class SsoCallbackTest extends TestCase
         $this->mockSsoUser([
             'id' => 'sso-123',
             'email' => 'sso@example.com',
-            'nik' => 'TOP-100001',
             'name' => 'Test User',
         ]);
 
@@ -287,5 +317,34 @@ class SsoCallbackTest extends TestCase
             'keterangan' => 'email_mismatch',
             'user_id' => $user->id,
         ]);
+    }
+
+    public function test_sso_callback_success_with_nameid_email_fallback(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'test@example.com',
+            'no_karyawan' => 'TOP-100001',
+            'status' => 'aktif',
+        ]);
+
+        Anggota::factory()->create([
+            'user_id' => $user->id,
+            'no_karyawan' => 'TOP-100001',
+            'status' => 'aktif',
+        ]);
+
+        $this->mockSsoUser([
+            'id' => 'test@example.com',
+            'email' => null,
+            'name' => 'Test User',
+        ]);
+
+        $response = $this->get(route('sso.callback'));
+
+        $response->assertRedirect(route('dashboard'));
+        $this->assertAuthenticatedAs($user);
+        $user->refresh();
+        $this->assertEquals('test@example.com', $user->sso_id);
+        $this->assertEquals('sso', $user->auth_provider);
     }
 }
