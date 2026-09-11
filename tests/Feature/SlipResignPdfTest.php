@@ -25,12 +25,13 @@ class SlipResignPdfTest extends TestCase
         $aktor = $this->masuk('ADM-000001');
 
         app(ResignService::class)->proses($anggota, 'Pindah kerja', now()->format('Y-m-d'), $aktor);
+        $anggota->refresh();
 
         $res = $this->get(route('anggota.slip-resign', $anggota));
 
         $res->assertOk();
         $res->assertHeader('content-type', 'application/pdf');
-        $res->assertHeader('content-disposition', 'attachment; filename=slip-resign-'.$anggota->no_anggota.'.pdf');
+        $res->assertHeader('content-disposition', 'attachment; filename=slip-resign-'.$anggota->no_karyawan.'.pdf');
         $this->assertStringStartsWith('%PDF', $res->getContent());
     }
 
@@ -51,8 +52,9 @@ class SlipResignPdfTest extends TestCase
 
         $data = Anggota::find($anggota->id)->dataSlipResign();
 
-        $this->assertSame($anggota->no_anggota, $data['anggota']['no_anggota']);
+        $this->assertSame($anggota->no_karyawan, $data['anggota']['no_karyawan']);
+        $this->assertArrayNotHasKey('no_anggota', $data['anggota']);
         $this->assertArrayHasKey('total_dikembalikan', $data['settlement']);
-        $this->assertStringStartsWith('SLIP-RESIGN/', $data['doc_no']);
+        $this->assertMatchesRegularExpression('#^\d{3}/KOP-RSGN/[IVX]+/\d{4}$#', $data['doc_no']);
     }
 }

@@ -219,7 +219,7 @@ class AnggotaController extends Controller
 
         $pdf = Pdf::loadView('anggota.slip_resign', $anggota->dataSlipResign());
 
-        return $pdf->download('slip-resign-'.$anggota->no_anggota.'.pdf');
+        return $pdf->download('slip-resign-'.$anggota->no_karyawan.'.pdf');
     }
 
     public function downloadTemplate()

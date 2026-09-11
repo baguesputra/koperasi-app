@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Helpers\TerbilangHelper;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -244,14 +245,13 @@ class Anggota extends Model
         return [
             'anggota' => [
                 'id' => $this->id,
-                'no_anggota' => $this->no_anggota,
                 'no_karyawan' => $this->no_karyawan,
                 'nama' => $this->nama,
                 'cabang' => $this->cabang,
                 'unit_bisnis' => $this->unit_bisnis,
                 'jabatan' => $this->jabatan,
-                'tanggal_jadi_anggota' => $this->tanggal_jadi_anggota?->format('d M Y'),
-                'tanggal_resign' => $this->tanggal_resign?->format('d M Y'),
+                'tanggal_jadi_anggota' => $this->tanggal_jadi_anggota?->translatedFormat('d F Y'),
+                'tanggal_resign' => $this->tanggal_resign?->translatedFormat('d F Y'),
                 'alasan_resign' => $this->alasan_resign,
             ],
             'settlement' => [
@@ -264,10 +264,13 @@ class Anggota extends Model
                 'kembali_pokok' => (float) ($settlement['kembali_pokok'] ?? 0),
                 'kembali_wajib' => (float) ($settlement['kembali_wajib'] ?? 0),
                 'total_dikembalikan' => (float) ($settlement['total_dikembalikan'] ?? 0),
+                'terbilang_total' => TerbilangHelper::angkaKeTerbilang((float) ($settlement['total_dikembalikan'] ?? 0)),
                 'tanggal_proses' => $settlement['tanggal_proses'] ?? $this->tanggal_resign?->format('Y-m-d'),
                 'aktor' => $settlement['aktor'] ?? null,
+                'pinjaman_rincian' => $settlement['pinjaman_rincian'] ?? [],
             ],
-            'doc_no' => 'SLIP-RESIGN/'.$this->no_anggota.'/'.($settlement['tanggal_proses'] ?? $this->tanggal_resign?->format('Y-m-d') ?? '-'),
+            'doc_no' => $settlement['doc_no'] ?? null,
+            'kota_ttd' => config('koperasi.kota_ttd', 'Banjarmasin'),
         ];
     }
 

@@ -33,14 +33,13 @@
 </head>
 <body>
     <div class="kop">
-        <h2>KOPERASI KARYAWAN</h2>
+        <h2>{{ config('koperasi.nama', 'KOPERASI KARYAWAN') }}</h2>
         <p>Bukti Peminjaman</p>
-        <small>Nomor: BUKTI-PJM/{{ $pinjaman['anggota']['no_anggota'] }}/{{ $pinjaman['id'] }}</small>
+        <small>Nomor: {{ $pinjaman['nomor_dokumen'] ?? '-' }}</small>
     </div>
 
     <h3>Data Anggota</h3>
     <table class="data">
-        <tr><td>No. Anggota</td><td>{{ $pinjaman['anggota']['no_anggota'] }}</td></tr>
         <tr><td>No. Karyawan</td><td>{{ $pinjaman['anggota']['no_karyawan'] }}</td></tr>
         <tr><td>Nama</td><td>{{ $pinjaman['anggota']['nama'] }}</td></tr>
         <tr><td>Cabang</td><td>{{ $pinjaman['anggota']['cabang'] }}</td></tr>

@@ -7,7 +7,9 @@ use App\Models\Angsuran;
 use App\Models\AngsuranPercepatan;
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Services\Dokumen\PenomoranDokumenService;
 use App\Services\Keuangan\JurnalKasService;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -104,7 +106,11 @@ class ResignService
             //   (B) KELUAR dari kantong:pengembalian_simpanan -> simpanan bayar angsuran.
             // saldo_pinjaman tetap TIDAK berkurang; cuma bertambah sebesar pelunasan.
             $totalPelunasan = 0.0;
+            $rincianPinjaman = [];
             foreach ($pinjamanAktif as $pinjaman) {
+                $nominalAwal = (float) $pinjaman->nominal;
+                $sisaCicilan = $pinjaman->sisaCicilanAktif();
+                $pelunasanPinjaman = 0.0;
                 $angsuranList = Angsuran::where('pinjaman_id', $pinjaman->id)
                     ->where('status', 'belum_bayar')
                     ->lockForUpdate()
@@ -128,6 +134,7 @@ class ResignService
                     );
 
                     $totalPelunasan += (float) $angsuran->total_bayar;
+                    $pelunasanPinjaman += (float) $angsuran->total_bayar;
                 }
 
                 // Angsuran percepatan dari pengajuan aktif
@@ -157,8 +164,15 @@ class ResignService
                         );
 
                         $totalPelunasan += (float) $ap->total_bayar;
+                        $pelunasanPinjaman += (float) $ap->total_bayar;
                     }
                 }
+
+                $rincianPinjaman[] = [
+                    'nominal_awal' => $nominalAwal,
+                    'sisa_tagihan' => $pelunasanPinjaman,
+                    'sisa_cicilan' => $sisaCicilan,
+                ];
 
                 // Tandai pinjaman lunas kalau semua jadwal sudah tidak ada belum_bayar.
                 $sisaLama = Angsuran::where('pinjaman_id', $pinjaman->id)->where('status', 'belum_bayar')->count();
@@ -208,6 +222,10 @@ class ResignService
 
             // Snapshot settlement untuk audit & reprint PDF.
             $settlement = [
+                'doc_no' => app(PenomoranDokumenService::class)->berikutnya(
+                    PenomoranDokumenService::JENIS_RESIGN,
+                    Carbon::parse($tanggalResign)
+                ),
                 'tagihan_pelunasan' => $totalPelunasan,
                 'simpanan_pokok_total' => $simpananPokok,
                 'simpanan_wajib_total' => $simpananWajib,
@@ -219,6 +237,7 @@ class ResignService
                 'total_dikembalikan' => $kembaliPokok + $kembaliWajib,
                 'tanggal_proses' => $tanggalResign,
                 'aktor' => $aktor->no_karyawan ?? $aktor->name,
+                'pinjaman_rincian' => $rincianPinjaman,
             ];
 
             // Update anggota + user.

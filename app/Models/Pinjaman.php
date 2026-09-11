@@ -18,6 +18,7 @@ class Pinjaman extends Model
     protected $fillable = [
         'anggota_id',
         'pengaju_user_id',
+        'nomor_dokumen',
         'nominal',
         'tenor_bulan',
         'keperluan',
@@ -228,13 +229,14 @@ class Pinjaman extends Model
         return [
             'pinjaman' => [
                 'id' => $this->id,
+                'nomor_dokumen' => $this->nomor_dokumen,
                 'nominal' => (float) $this->nominal,
                 'terbilang' => TerbilangHelper::angkaKeTerbilang($this->nominal),
                 'tenor_bulan' => $this->tenor_bulan,
                 'persentase_bunga' => (float) $this->persentase_bunga,
                 'keperluan' => $this->keperluan,
-                'tanggal_pengajuan' => $this->tanggal_pengajuan?->format('d M Y'),
-                'tanggal_cair' => $this->tanggal_pencairan?->format('d M Y'),
+                'tanggal_pengajuan' => $this->tanggal_pengajuan?->translatedFormat('d F Y'),
+                'tanggal_cair' => $this->tanggal_pencairan?->translatedFormat('d F Y'),
                 'rekening' => [
                     'bank' => $this->snapshot_bank,
                     'no_rekening' => $this->snapshot_no_rekening,
@@ -242,7 +244,6 @@ class Pinjaman extends Model
                 ],
                 'anggota' => [
                     'id' => $this->anggota->id,
-                    'no_anggota' => $this->anggota->no_anggota,
                     'no_karyawan' => $this->anggota->no_karyawan,
                     'nama' => $this->anggota->nama,
                     'cabang' => $this->anggota->cabang,
@@ -251,6 +252,7 @@ class Pinjaman extends Model
                 ],
                 'verification_url' => $this->verificationUrl(),
             ],
+            'kota_ttd' => config('koperasi.kota_ttd', 'Banjarmasin'),
             'angsuran' => $angsuranList,
             'totals' => [
                 'pokok' => $angsuranList->sum('nominal_pokok'),

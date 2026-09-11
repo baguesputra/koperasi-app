@@ -478,13 +478,14 @@
                 <div class="hero-brand">
                     <img src="/images/logo.png" alt="" class="hero-logo" onerror="this.style.display='none'">
                     <div class="hero-text">
-                        <h1>KOPERASI KARYAWAN</h1>
+                        <h1>{{ config('koperasi.nama', 'KOPERASI KARYAWAN') }}</h1>
+                        <p>{{ config('koperasi.unit', 'KARYA MANDIRI DUTA MALL BANJARMASIN') }}</p>
                         <p>Verifikasi Resmi Bukti Peminjaman Dana</p>
                     </div>
                 </div>
                 <div class="hero-meta">
                     <span class="badge">VALID</span>
-                    <div class="hero-ref">No. Referensi: BUKTI-PJM/{{ $pinjaman->anggota->no_anggota }}/{{ $pinjaman->id }}</div>
+                    <div class="hero-ref">No. Referensi: {{ $pinjaman->nomor_dokumen ?? '-' }}</div>
                     <div class="hero-verified">Diverifikasi: {{ now()->format('d M Y H:i') }}</div>
                 </div>
             </div>
@@ -526,8 +527,6 @@
                 <div class="card-header"><h3 class="card-title">Data Anggota</h3></div>
                 <div class="card-body">
                     <dl class="dl">
-                        <dt>No. Anggota</dt>
-                        <dd>{{ $pinjaman->anggota->no_anggota }}</dd>
                         <dt>No. Karyawan</dt>
                         <dd>{{ $pinjaman->anggota->no_karyawan }}</dd>
                         <dt>Nama Lengkap</dt>

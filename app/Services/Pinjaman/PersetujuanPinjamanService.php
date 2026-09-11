@@ -5,6 +5,7 @@ namespace App\Services\Pinjaman;
 use App\Helpers\TerbilangHelper;
 use App\Models\AuditLog;
 use App\Models\Pinjaman;
+use App\Services\Dokumen\PenomoranDokumenService;
 use App\Services\Keuangan\JurnalKasService;
 use App\Services\Wa\WaPesan;
 use App\Services\Wa\WaService;
@@ -96,11 +97,17 @@ class PersetujuanPinjamanService
     private function cairkan(Pinjaman $pinjaman, string $catatan, string $aksi = 'pinjaman_cair', string $deskripsi = 'dicairkan'): void
     {
         $statusLama = $pinjaman->status;
-        DB::transaction(function () use ($pinjaman, $catatan) {
+        $nomorDokumen = $pinjaman->nomor_dokumen
+            ?? app(PenomoranDokumenService::class)->berikutnya(
+                PenomoranDokumenService::JENIS_PINJAMAN,
+                now()
+            );
+        DB::transaction(function () use ($pinjaman, $catatan, $nomorDokumen) {
             $pinjaman->update([
                 'status' => 'aktif',
                 'catatan_ketua' => $catatan,
                 'tanggal_pencairan' => now(),
+                'nomor_dokumen' => $nomorDokumen,
             ]);
 
             $this->bunga->simpanJadwal($pinjaman);
