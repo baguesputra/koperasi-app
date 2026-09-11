@@ -76,7 +76,24 @@ export default function Index({ anggota, statistik, filters, noAnggotaBerikutnya
     }
 
     function bukaSlip(a) {
-        window.open(route('anggota.slip-resign', a.id), '_blank');
+        fetch(route('anggota.slip-resign', a.id))
+            .then((res) => {
+                if (!res.ok) throw new Error('Gagal mengunduh slip');
+                return res.blob();
+            })
+            .then((blob) => {
+                const url = window.URL.createObjectURL(blob);
+                const el = document.createElement('a');
+                el.href = url;
+                el.download = `slip-resign-${a.no_anggota}.pdf`;
+                document.body.appendChild(el);
+                el.click();
+                el.remove();
+                window.URL.revokeObjectURL(url);
+            })
+            .catch(() => {
+                alert('Gagal mengunduh slip resign. Silakan coba lagi.');
+            });
     }
 
     function terapkanFilter(overrides = {}) {

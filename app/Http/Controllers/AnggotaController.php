@@ -15,6 +15,7 @@ use App\Models\Simpanan;
 use App\Models\User;
 use App\Services\Anggota\ReaktivasiService;
 use App\Services\Anggota\ResignService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
@@ -212,25 +213,13 @@ class AnggotaController extends Controller
             ->with('status', "Anggota {$anggota->nama} berhasil diaktifkan kembali.");
     }
 
-    public function slipResign(Anggota $anggota): Response
+    public function slipResign(Anggota $anggota)
     {
         abort_unless($anggota->status === 'resign', 404, 'Slip hanya tersedia untuk anggota yang sudah resign.');
 
-        return Inertia::render('Anggota/SlipResign', [
-            'anggota' => [
-                'id' => $anggota->id,
-                'no_anggota' => $anggota->no_anggota,
-                'no_karyawan' => $anggota->no_karyawan,
-                'nama' => $anggota->nama,
-                'cabang' => $anggota->cabang,
-                'unit_bisnis' => $anggota->unit_bisnis,
-                'jabatan' => $anggota->jabatan,
-                'tanggal_jadi_anggota' => $anggota->tanggal_jadi_anggota?->format('Y-m-d'),
-                'tanggal_resign' => $anggota->tanggal_resign?->format('Y-m-d'),
-                'alasan_resign' => $anggota->alasan_resign,
-            ],
-            'settlement' => $anggota->resigned_settlement_json ?? [],
-        ]);
+        $pdf = Pdf::loadView('anggota.slip_resign', $anggota->dataSlipResign());
+
+        return $pdf->download('slip-resign-'.$anggota->no_anggota.'.pdf');
     }
 
     public function downloadTemplate()

@@ -237,6 +237,40 @@ class Anggota extends Model
         ];
     }
 
+    public function dataSlipResign(): array
+    {
+        $settlement = $this->resigned_settlement_json ?? [];
+
+        return [
+            'anggota' => [
+                'id' => $this->id,
+                'no_anggota' => $this->no_anggota,
+                'no_karyawan' => $this->no_karyawan,
+                'nama' => $this->nama,
+                'cabang' => $this->cabang,
+                'unit_bisnis' => $this->unit_bisnis,
+                'jabatan' => $this->jabatan,
+                'tanggal_jadi_anggota' => $this->tanggal_jadi_anggota?->format('d M Y'),
+                'tanggal_resign' => $this->tanggal_resign?->format('d M Y'),
+                'alasan_resign' => $this->alasan_resign,
+            ],
+            'settlement' => [
+                'simpanan_pokok_total' => (float) ($settlement['simpanan_pokok_total'] ?? 0),
+                'simpanan_wajib_total' => (float) ($settlement['simpanan_wajib_total'] ?? 0),
+                'dana_sosial_hangus' => (float) ($settlement['dana_sosial_hangus'] ?? 0),
+                'tagihan_pelunasan' => (float) ($settlement['tagihan_pelunasan'] ?? 0),
+                'alokasi_dari_pokok' => (float) ($settlement['alokasi_dari_pokok'] ?? 0),
+                'alokasi_dari_wajib' => (float) ($settlement['alokasi_dari_wajib'] ?? 0),
+                'kembali_pokok' => (float) ($settlement['kembali_pokok'] ?? 0),
+                'kembali_wajib' => (float) ($settlement['kembali_wajib'] ?? 0),
+                'total_dikembalikan' => (float) ($settlement['total_dikembalikan'] ?? 0),
+                'tanggal_proses' => $settlement['tanggal_proses'] ?? $this->tanggal_resign?->format('Y-m-d'),
+                'aktor' => $settlement['aktor'] ?? null,
+            ],
+            'doc_no' => 'SLIP-RESIGN/'.$this->no_anggota.'/'.($settlement['tanggal_proses'] ?? $this->tanggal_resign?->format('Y-m-d') ?? '-'),
+        ];
+    }
+
     public static function generateNoAnggota(): string
     {
         $tahun = now()->year;
