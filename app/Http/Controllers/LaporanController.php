@@ -67,12 +67,20 @@ class LaporanController extends Controller
         [, $periodeLabel] = $this->siapkanFilter($request, $def);
         $hasil = $def['data']($request);
 
+        $rowsExcel = collect($hasil['rows'])->map(function ($row, $i) use ($hasil) {
+            if (($hasil['gayaBaris'][$i] ?? null) === 'section') {
+                return [$row[0]];
+            }
+
+            return array_map(fn ($v) => $v === null ? '' : $v, $row);
+        })->all();
+
         $baris = [
             [$def['judul']],
             ["Periode: {$periodeLabel}"],
             [],
             $hasil['kolom'],
-            ...$hasil['rows'],
+            ...$rowsExcel,
         ];
         if ($hasil['totals']) {
             $baris[] = array_map(fn ($v) => is_string($v) ? $v : (string) $v, $hasil['totals']);
@@ -155,15 +163,27 @@ class LaporanController extends Controller
     private function opsi(array $def): array
     {
         $perluCabang = false;
+        $perluKantong = false;
         foreach ($def['filter']['ekstra'] ?? [] as $e) {
             if ((is_array($e) ? $e['nama'] : $e) === 'cabang') {
                 $perluCabang = true;
+            }
+            if ((is_array($e) ? $e['nama'] : $e) === 'kantong') {
+                $perluKantong = true;
             }
         }
 
         return [
             'cabang' => $perluCabang
                 ? Anggota::query()->whereNotNull('cabang')->distinct()->orderBy('cabang')->pluck('cabang')->all()
+                : null,
+            'kantong' => $perluKantong
+                ? [
+                    'pinjaman' => 'Dana Pinjaman',
+                    'dana_sosial' => 'Dana Sosial',
+                    'simpanan' => 'Simpanan Anggota',
+                    'pengembalian_simpanan' => 'Pengembalian Simpanan (transit)',
+                ]
                 : null,
         ];
     }

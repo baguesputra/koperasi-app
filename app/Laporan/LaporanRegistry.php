@@ -53,32 +53,136 @@ class LaporanRegistry
             // ============ KEUANGAN ============
             'arus-kas' => [
                 'judul' => 'Laporan Arus Kas',
-                'deskripsi' => 'Mutasi masuk/keluar per kantong dana selama periode terpilih.',
+                'deskripsi' => 'Arus masuk/keluar per kategori dengan saldo awal, arus bersih, dan saldo akhir.',
                 'kategori' => 'Keuangan',
                 'ikon' => 'wallet',
                 'filter' => ['tipe' => 'rentang', 'ekstra' => ['kantong']],
                 'periodeDefault' => fn () => [now()->startOfMonth()->format('Y-m'), now()->format('Y-m')],
                 'data' => function (Request $r) {
                     [$dari, $sampai] = self::rentang($r);
-                    $q = DB::table('jurnal_kas')->whereBetween('tanggal', [$dari, $sampai]);
-                    if ($r->filled('kantong')) {
-                        $q->where('kantong', $r->input('kantong'));
+                    $kantongFilter = $r->input('kantong');
+
+                    $kantongOperasional = [
+                        'pinjaman' => 'Dana Pinjaman',
+                        'dana_sosial' => 'Dana Sosial',
+                        'simpanan' => 'Simpanan Anggota',
+                    ];
+                    $transit = 'pengembalian_simpanan';
+
+                    if ($kantongFilter && isset($kantongOperasional[$kantongFilter])) {
+                        $kantongs = [$kantongFilter => $kantongOperasional[$kantongFilter]];
+                    } elseif ($kantongFilter === $transit) {
+                        $kantongs = [];
+                    } else {
+                        $kantongs = $kantongOperasional;
                     }
-                    $rows = $q->orderBy('tanggal')->orderBy('id')
-                        ->get()->map(fn ($j) => [
-                            Carbon::parse($j->tanggal)->format('d M Y'),
-                            self::kantongLabel($j->kantong),
-                            self::KATEGORI_LABEL[$j->kategori] ?? $j->kategori,
-                            $j->keterangan,
-                            $j->tipe === 'masuk' ? (float) $j->jumlah : 0.0,
-                            $j->tipe === 'keluar' ? (float) $j->jumlah : 0.0,
-                        ])->all();
+
+                    $saldoSebelum = fn (string $kantong) => (float) DB::table('jurnal_kas')
+                        ->where('kantong', $kantong)
+                        ->where('tanggal', '<=', $dari->copy()->subDay()->endOfDay())
+                        ->selectRaw("SUM(CASE WHEN tipe = 'masuk' THEN jumlah ELSE -jumlah END) as total")
+                        ->value('total');
+
+                    $agregat = DB::table('jurnal_kas')
+                        ->whereBetween('tanggal', [$dari, $sampai])
+                        ->selectRaw('kantong, kategori, tipe, SUM(jumlah) as total')
+                        ->groupBy('kantong', 'kategori', 'tipe')
+                        ->get();
+
+                    $masuk = [];
+                    $keluar = [];
+                    foreach ($agregat as $a) {
+                        if ($a->tipe === 'masuk') {
+                            $masuk[$a->kantong][$a->kategori] = (float) $a->total;
+                        } else {
+                            $keluar[$a->kantong][$a->kategori] = (float) $a->total;
+                        }
+                    }
+
+                    $rows = [];
+                    $gayaBaris = [];
+                    $bagian = function (string $label) use (&$rows, &$gayaBaris) {
+                        $rows[] = [$label, null];
+                        $gayaBaris[] = 'section';
+                    };
+                    $baris = function (string $uraian, $nilai, string $gaya = 'data') use (&$rows, &$gayaBaris) {
+                        $rows[] = [$uraian, $nilai];
+                        $gayaBaris[] = $gaya;
+                    };
+
+                    $totalAwal = 0.0;
+                    $totalMasuk = 0.0;
+                    $totalKeluar = 0.0;
+
+                    $bagian('A. Saldo awal periode');
+                    foreach ($kantongs as $k => $label) {
+                        $awal = $saldoSebelum($k);
+                        $totalAwal += $awal;
+                        $baris("Saldo awal — {$label}", $awal);
+                    }
+                    $baris('Jumlah saldo awal', $totalAwal, 'subtotal');
+
+                    $bagian('B. Arus masuk');
+                    foreach ($kantongs as $k => $label) {
+                        foreach ($masuk[$k] ?? [] as $kategori => $nilai) {
+                            $totalMasuk += $nilai;
+                            $baris((self::KATEGORI_LABEL[$kategori] ?? $kategori)." — {$label}", $nilai);
+                        }
+                    }
+                    if ($totalMasuk == 0) {
+                        $baris('Tidak ada arus masuk pada periode ini', 0.0);
+                    }
+                    $baris('Jumlah arus masuk', $totalMasuk, 'subtotal');
+
+                    $bagian('C. Arus keluar');
+                    foreach ($kantongs as $k => $label) {
+                        foreach ($keluar[$k] ?? [] as $kategori => $nilai) {
+                            $totalKeluar += $nilai;
+                            $baris((self::KATEGORI_LABEL[$kategori] ?? $kategori)." — {$label}", $nilai);
+                        }
+                    }
+                    if ($totalKeluar == 0) {
+                        $baris('Tidak ada arus keluar pada periode ini', 0.0);
+                    }
+                    $baris('Jumlah arus keluar', $totalKeluar, 'subtotal');
+
+                    $bersih = $totalMasuk - $totalKeluar;
+                    $akhir = $totalAwal + $bersih;
+
+                    $bagian('D. Rekonsiliasi');
+                    $baris('Arus bersih (masuk − keluar)', $bersih, 'subtotal');
+                    $baris('Saldo akhir periode (awal + bersih)', $akhir, 'subtotal');
+
+                    if (! $kantongFilter || $kantongFilter === $transit) {
+                        $tAwal = $saldoSebelum($transit);
+                        $tMasuk = array_sum($masuk[$transit] ?? []);
+                        $tKeluar = array_sum($keluar[$transit] ?? []);
+                        $tAkhir = $tAwal + $tMasuk - $tKeluar;
+
+                        $bagian('E. Kantong transit — Pengembalian Simpanan (terpisah, di luar total operasional)');
+                        $baris('Saldo awal transit', $tAwal);
+                        foreach ($masuk[$transit] ?? [] as $kategori => $nilai) {
+                            $baris('Masuk — '.(self::KATEGORI_LABEL[$kategori] ?? $kategori), $nilai);
+                        }
+                        foreach ($keluar[$transit] ?? [] as $kategori => $nilai) {
+                            $baris('Keluar — '.(self::KATEGORI_LABEL[$kategori] ?? $kategori), $nilai);
+                        }
+                        $baris('Saldo akhir transit', $tAkhir, 'subtotal');
+                    }
 
                     return self::hasil(
-                        ['Tanggal', 'Kantong', 'Kategori', 'Keterangan', 'Masuk', 'Keluar'],
-                        [4, 5],
+                        ['Uraian', 'Nilai'],
+                        [1],
                         $rows,
-                        [null, null, null, 'TOTAL', array_sum(array_column($rows, 4)), array_sum(array_column($rows, 5))]
+                        null,
+                        [
+                            ['Total arus masuk', self::rupiah($totalMasuk)],
+                            ['Total arus keluar', self::rupiah($totalKeluar)],
+                            ['Arus bersih', self::rupiah($bersih)],
+                            ['Saldo akhir periode', self::rupiah($akhir)],
+                        ],
+                        'Saldo awal dihitung dari seluruh jurnal sebelum periode. Kantong transit ditampilkan terpisah dan tidak masuk total operasional.',
+                        $gayaBaris,
                     );
                 },
             ],
@@ -566,8 +670,9 @@ class LaporanRegistry
         ?array $totals = null,
         ?array $ringkasan = null,
         ?string $catatan = null,
+        ?array $gayaBaris = null,
     ): array {
-        return compact('kolom', 'rataKanan', 'rows', 'totals', 'ringkasan', 'catatan');
+        return compact('kolom', 'rataKanan', 'rows', 'totals', 'ringkasan', 'catatan', 'gayaBaris');
     }
 
     /** Rentang dari input `dari`/`sampai` (Y-m). Controller menormalkan semua tipe filter ke bentuk ini. */

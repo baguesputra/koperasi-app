@@ -82,7 +82,7 @@ try {
         .kop-nama { font-size: 17pt; font-weight: 700; margin: 0; letter-spacing: 1px; text-transform: uppercase; }
         .kop-unit { font-size: 12pt; font-weight: 700; margin: 2px 0; letter-spacing: 0.6px; text-transform: uppercase; }
         .kop-alamat { font-size: 9pt; color: #333; margin: 0; }
-        .kop-garis { border-top: 3px double #000; margin: 10px 0 16px 0; }
+        .kop-garis { border-top: 2px solid #000; margin: 10px 0 16px 0; }
         .kop-judul { text-align: center; margin-bottom: 18px; }
         .dok-title { font-size: 14pt; font-weight: 700; margin: 0 0 4px 0; text-transform: uppercase; letter-spacing: 1.6px; text-decoration: underline; }
         .dok-number { font-size: 10pt; margin: 0; font-style: italic; }
@@ -121,24 +121,7 @@ try {
     </style>
 </head>
 <body>
-    <div class="kop-row">
-        <div class="kop-logo">
-            @if($logoBase64)
-                <img src="{{ $logoBase64 }}" alt="Logo Koperasi" />
-            @else
-                <div class="logo-fallback">KOP</div>
-            @endif
-        </div>
-        <div class="kop-text">
-            <h1 class="kop-nama">{{ $kopNama }}</h1>
-            <p class="kop-unit">{{ $kopUnit }}</p>
-            <p class="kop-alamat">{{ $kopAlamat }}</p>
-            @if($kopKontak)
-                <p class="kop-alamat">{{ $kopKontak }}</p>
-            @endif
-        </div>
-    </div>
-    <div class="kop-garis"></div>
+    @include('partials.kop')
     <div class="kop-judul">
         <p class="dok-title">Bukti Peminjaman Dana</p>
         <p class="dok-number">Nomor: {{ $docNo }}</p>

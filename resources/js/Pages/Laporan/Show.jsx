@@ -24,6 +24,12 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
 
     const tampilCell = (i, cell) => (hasil.rataKanan.includes(i) && typeof cell === 'number' ? formatRupiah(cell) : cell);
 
+    const gayaBaris = (ri) => (hasil.gayaBaris?.[ri] === 'section'
+        ? 'bg-slate-100'
+        : hasil.gayaBaris?.[ri] === 'subtotal'
+            ? 'bg-slate-50 font-bold'
+            : 'border-b border-slate-50 hover:bg-slate-50 transition-colors');
+
     return (
         <AppLayout>
             <Head title={laporan.judul} />
@@ -108,6 +114,19 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
                                 </select>
                             </div>
                         )}
+                        {'kantong' in filter && opsi.kantong && (
+                            <div>
+                                <label htmlFor="f-kantong" className="block text-sm font-semibold text-slate-600 mb-1.5">Kantong</label>
+                                <select
+                                    id="f-kantong" value={filter.kantong}
+                                    onChange={(e) => terapkan({ kantong: e.target.value })}
+                                    className={`px-3 py-2.5 text-base rounded-xl border border-slate-300 bg-white focus:border-brand-green outline-none ${fokusRing}`}
+                                >
+                                    <option value="">Semua Kantong</option>
+                                    {Object.entries(opsi.kantong).map(([nilai, label]) => <option key={nilai} value={nilai}>{label}</option>)}
+                                </select>
+                            </div>
+                        )}
                         {'status_anggota' in filter && (
                             <div>
                                 <label htmlFor="f-status" className="block text-sm font-semibold text-slate-600 mb-1.5">Status Anggota</label>
@@ -167,11 +186,17 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
                             </thead>
                             <tbody>
                                 {hasil.rows.map((row, ri) => (
-                                    <tr key={ri} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                                        {row.map((cell, ci) => (
-                                            <td key={ci} className={`px-4 py-2.5 text-slate-700 ${sel(ci)}`}>{tampilCell(ci, cell)}</td>
-                                        ))}
-                                    </tr>
+                                    hasil.gayaBaris?.[ri] === 'section' ? (
+                                        <tr key={ri} className="bg-slate-100">
+                                            <td colSpan={row.length + 1} className="px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-600">{row[0]}</td>
+                                        </tr>
+                                    ) : (
+                                        <tr key={ri} className={gayaBaris(ri)}>
+                                            {row.map((cell, ci) => (
+                                                <td key={ci} className={`px-4 py-2.5 text-slate-700 ${sel(ci)}`}>{tampilCell(ci, cell)}</td>
+                                            ))}
+                                        </tr>
+                                    )
                                 ))}
                             </tbody>
                             {hasil.totals && (
