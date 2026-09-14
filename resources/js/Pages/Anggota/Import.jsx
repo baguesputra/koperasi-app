@@ -34,7 +34,7 @@ export default function Import() {
                         Gunakan template ini agar format data sesuai dan bisa diproses sistem.
                     </p>
                     <div className="bg-slate-50 rounded-xl p-4 mb-4 text-sm text-slate-600 space-y-1">
-                        <p>&bull; Kolom <strong>Jabatan</strong> diisi: <code>staff</code> atau <code>hod</code></p>
+                        <p>&bull; Kolom <strong>Jabatan</strong> diisi nama jabatan asli (contoh: <code>Fullstack Developer</code>)</p>
                         <p>&bull; Kolom <strong>Tanggal</strong> diisi format: <code>2024-01-15</code> (Tahun-Bulan-Tanggal)</p>
                     </div>
                     <a href={route('anggota.template')}>

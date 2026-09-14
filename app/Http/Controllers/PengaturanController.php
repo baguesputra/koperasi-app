@@ -2,13 +2,20 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Anggota;
 use App\Models\AuditLog;
+use App\Models\Departemen;
+use App\Models\Divisi;
+use App\Models\Jabatan;
+use App\Models\Perusahaan;
 use App\Models\SettingBunga;
 use App\Models\SettingLimitPinjaman;
 use App\Models\SettingSimpanan;
 use App\Models\TabelTenor;
 use App\Models\User;
 use App\Models\WaLog;
+use App\Services\Gate\SinkronisasiAnggotaService;
+use App\Services\Gate\SinkronisasiMasterService;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\JsonResponse;
@@ -137,6 +144,14 @@ class PengaturanController extends Controller
             'tabelTenor' => TabelTenor::orderBy('nominal_min')->get(),
             'bungaSaatIni' => SettingBunga::orderByDesc('berlaku_dari_tanggal')->first(),
             'settingSimpanan' => SettingSimpanan::orderBy('id')->get(),
+            'ringkasanMaster' => [
+                'perusahaan' => Perusahaan::count(),
+                'departemen' => Departemen::count(),
+                'divisi' => Divisi::count(),
+                'jabatan' => Jabatan::count(),
+                'tanpaPerusahaan' => Anggota::whereNull('perusahaan_id')->count(),
+                'tanpaDivisi' => Anggota::whereNull('divisi_id')->count(),
+            ],
             'auditLogs' => $auditLogs,
             'filterAudit' => $request->only(['search', 'date_from', 'date_to']),
         ]);
@@ -240,6 +255,40 @@ class PengaturanController extends Controller
         );
 
         return back()->with('status', 'Nominal simpanan berhasil diperbarui.');
+    }
+
+    public function sinkronMasterGate(Request $request, SinkronisasiMasterService $sinkron)
+    {
+        $request->validate(['company_id' => ['nullable', 'string', 'max:50']]);
+
+        try {
+            $hasil = $sinkron->sinkron($request->input('company_id'), false, $request->user()->id);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->with('status', 'Sinkron master GATE gagal: '.$e->getMessage());
+        }
+
+        return back()->with(
+            'status',
+            'Sinkron master GATE selesai: '.$hasil['perusahaan'].' perusahaan, '.$hasil['departemen'].' departemen, '.$hasil['divisi'].' divisi, '.$hasil['jabatan'].' jabatan.'
+                .($hasil['gagal'] ? ' Gagal: '.implode(' ', array_slice($hasil['gagal'], 0, 3)) : '')
+        );
+    }
+
+    public function sinkronGate(Request $request, SinkronisasiAnggotaService $sinkron)
+    {
+        $hasil = $sinkron->sinkron(
+            $request->only(['company_id', 'department_id', 'level']),
+            false,
+            $request->user()->id
+        );
+
+        return back()->with(
+            'status',
+            'Sinkron GATE selesai: '.count($hasil['baru']).' baru, '.count($hasil['diperbarui']).' diperbarui, '.count($hasil['gagal']).' gagal.'
+                .($hasil['gagal'] ? ' '.implode(' ', array_slice($hasil['gagal'], 0, 3)) : '')
+        );
     }
 
     public function waData(): JsonResponse

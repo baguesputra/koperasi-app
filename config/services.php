@@ -69,4 +69,10 @@ return [
         'timeout' => (float) env('BAILEYS_TIMEOUT', 10),
     ],
 
+    'gate' => [
+        'base_url' => env('GATE_BASE_URL', 'https://gate.appdutamall.com'),
+        'token' => env('GATE_TOKEN'),
+        'timeout' => (float) env('GATE_TIMEOUT', 15),
+    ],
+
 ];

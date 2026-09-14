@@ -4,6 +4,10 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\Anggota;
+use App\Models\Departemen;
+use App\Models\Divisi;
+use App\Models\Jabatan;
+use App\Models\Perusahaan;
 use App\Models\SettingSimpanan;
 use App\Models\TabelTenor;
 use Illuminate\Http\Request;
@@ -96,11 +100,11 @@ class MasterDataController extends Controller
     )]
     public function jabatan(Request $request)
     {
-        $jabatan = Anggota::distinct()
-            ->pluck('jabatan')
-            ->sort()
-            ->values()
-            ->all();
+        $jabatan = Jabatan::orderBy('nama')->get(['id', 'nama', 'level', 'level_label']);
+
+        if ($jabatan->isEmpty()) {
+            $jabatan = Anggota::distinct()->pluck('jabatan')->sort()->values();
+        }
 
         return response()->json($jabatan);
     }
@@ -127,11 +131,11 @@ class MasterDataController extends Controller
     )]
     public function divisi(Request $request)
     {
-        $divisi = Anggota::distinct()
-            ->pluck('divisi')
-            ->sort()
-            ->values()
-            ->all();
+        $divisi = Divisi::with('perusahaan:id,nama')->orderBy('nama')->get();
+
+        if ($divisi->isEmpty()) {
+            $divisi = Anggota::distinct()->pluck('divisi')->sort()->values();
+        }
 
         return response()->json($divisi);
     }
@@ -158,13 +162,18 @@ class MasterDataController extends Controller
     )]
     public function department(Request $request)
     {
-        $department = Anggota::distinct()
-            ->pluck('department')
-            ->sort()
-            ->values()
-            ->all();
+        $department = Departemen::with('perusahaan:id,nama')->orderBy('nama')->get();
+
+        if ($department->isEmpty()) {
+            $department = Anggota::distinct()->pluck('department')->sort()->values();
+        }
 
         return response()->json($department);
+    }
+
+    public function perusahaan(Request $request)
+    {
+        return response()->json(Perusahaan::orderBy('nama')->get());
     }
 
     /**

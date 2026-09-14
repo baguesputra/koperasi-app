@@ -12,7 +12,6 @@ export default function Edit({ anggota, daftarCabang }) {
         nama: anggota.nama,
         cabang: anggota.cabang,
         unit_bisnis: anggota.unit_bisnis,
-        jabatan: anggota.jabatan,
         tanggal_mulai_kerja: anggota.tanggal_mulai_kerja?.slice(0, 10) ?? '',
         tanggal_jadi_anggota: anggota.tanggal_jadi_anggota?.slice(0, 10) ?? '',
         status: anggota.status,
@@ -61,25 +60,35 @@ export default function Edit({ anggota, daftarCabang }) {
                             </Select>
                         </FormField>
 
-                        <FormField label="Jabatan" error={errors.jabatan}>
-                            <Select
-                                size="sm"
-                                value={data.jabatan}
-                                onChange={(e) => setData('jabatan', e.target.value)}
-                            >
-                                <option value="staff">Staff</option>
-                                <option value="hod">HOD</option>
-                            </Select>
-                        </FormField>
+                        <div className="rounded-xl bg-slate-50 border border-slate-100 px-4 py-3">
+                            <p className="text-sm text-slate-400">Jabatan (otomatis dari GATE)</p>
+                            <p className="text-base font-semibold text-slate-700">{anggota.jabatanMaster?.nama ?? anggota.jabatan ?? '-'}</p>
+                        </div>
                     </div>
 
-                    <FormField label="Unit Bisnis" error={errors.unit_bisnis}>
-                        <TextField
-                            size="sm"
-                            value={data.unit_bisnis}
-                            onChange={(e) => setData('unit_bisnis', e.target.value)}
-                        />
-                    </FormField>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                        <div className="rounded-xl bg-slate-50 border border-slate-100 px-4 py-3">
+                            <p className="text-sm text-slate-400">Perusahaan (otomatis dari GATE)</p>
+                            <p className="text-base font-semibold text-slate-700">{anggota.perusahaan?.nama ?? '-'}</p>
+                        </div>
+                        <div className="rounded-xl bg-slate-50 border border-slate-100 px-4 py-3">
+                            <p className="text-sm text-slate-400">Departemen (otomatis dari GATE)</p>
+                            <p className="text-base font-semibold text-slate-700">{anggota.departemen?.nama ?? '-'}</p>
+                        </div>
+                        <div className="rounded-xl bg-slate-50 border border-slate-100 px-4 py-3">
+                            <p className="text-sm text-slate-400">Divisi (otomatis dari GATE)</p>
+                            <p className="text-base font-semibold text-slate-700">{anggota.divisiMaster?.nama ?? '-'}</p>
+                        </div>
+                        <div className="rounded-xl bg-slate-50 border border-slate-100 px-4 py-3">
+                            <p className="text-sm text-slate-400">Unit Bisnis</p>
+                            <p className="text-base font-semibold text-slate-700">{anggota.unit_bisnis ?? '-'}</p>
+                        </div>
+                    </div>
+
+                    <div className="rounded-xl bg-slate-50 border border-slate-100 px-4 py-3 mb-4">
+                        <p className="text-sm text-slate-400">Unit Bisnis (otomatis dari GATE)</p>
+                        <p className="text-base font-semibold text-slate-700">{anggota.unit_bisnis ?? '-'}</p>
+                    </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
                         <FormField label="Tanggal Mulai Kerja" error={errors.tanggal_mulai_kerja}>

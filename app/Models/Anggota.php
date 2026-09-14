@@ -18,6 +18,11 @@ class Anggota extends Model
 
     protected $fillable = [
         'user_id',
+        'gate_id',
+        'perusahaan_id',
+        'departemen_id',
+        'divisi_id',
+        'jabatan_id',
         'no_anggota',
         'no_karyawan',
         'no_ktp',
@@ -53,6 +58,26 @@ class Anggota extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function perusahaan(): BelongsTo
+    {
+        return $this->belongsTo(Perusahaan::class);
+    }
+
+    public function departemen(): BelongsTo
+    {
+        return $this->belongsTo(Departemen::class);
+    }
+
+    public function divisiMaster(): BelongsTo
+    {
+        return $this->belongsTo(Divisi::class, 'divisi_id');
+    }
+
+    public function jabatanMaster(): BelongsTo
+    {
+        return $this->belongsTo(Jabatan::class, 'jabatan_id');
     }
 
     public function simpanan(): HasMany

@@ -1,7 +1,7 @@
 import AppLayout from '@/Layouts/AppLayout';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
-import { Percent, HandCoins, CalendarRange, PiggyBank, Shield, UserCog, ChevronRight, QrCode, Activity } from 'lucide-react';
+import { Percent, HandCoins, CalendarRange, PiggyBank, Shield, UserCog, ChevronRight, QrCode, Activity, RefreshCw } from 'lucide-react';
 import Card from '@/Components/ui/Card';
 import Drawer from '@/Components/ui/Drawer';
 import TabBunga from './Partials/TabBunga';
@@ -35,10 +35,12 @@ export default function Index({
     tabelTenor,
     bungaSaatIni,
     settingSimpanan,
+    ringkasanMaster,
     auditLogs,
     filterAudit,
 }) {
     const [sheet, setSheet] = useState(panelAktif);
+    const sinkron = useForm({});
 
     function pindahTab(key) {
         if (key === tabAktif) {
@@ -137,6 +139,53 @@ export default function Index({
                             </button>
                         );
                     })}
+                </div>
+            </div>
+
+            {/* Sinkron GATE */}
+            <div className="mt-4 space-y-4">
+                <div className="bg-white rounded-2xl border border-slate-100 p-5 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 text-slate-600">
+                            <Shield size={20} />
+                        </div>
+                        <div className="min-w-0">
+                            <p className="text-base font-bold text-slate-800">Sinkron Master GATE</p>
+                            <p className="text-sm text-slate-400">
+                                {ringkasanMaster?.perusahaan ?? 0} perusahaan &bull; {ringkasanMaster?.departemen ?? 0} departemen &bull; {ringkasanMaster?.divisi ?? 0} divisi &bull; {ringkasanMaster?.jabatan ?? 0} jabatan &bull; {ringkasanMaster?.tanpaPerusahaan ?? 0} anggota tanpa perusahaan &bull; {ringkasanMaster?.tanpaDivisi ?? 0} tanpa divisi
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        disabled={sinkron.processing}
+                        onClick={() => sinkron.post(route('pengaturan.sinkron-master-gate'))}
+                        className="inline-flex items-center gap-2 px-5 py-3 text-base min-h-[48px] font-semibold rounded-xl border-2 border-brand-navy text-brand-navy hover:bg-slate-50 disabled:opacity-50 shrink-0"
+                    >
+                        <RefreshCw size={18} className={sinkron.processing ? 'animate-spin' : ''} />
+                        {sinkron.processing ? 'Menyinkron...' : 'Sinkron Master'}
+                    </button>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-slate-100 p-5 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-brand-green-light text-brand-green-dark">
+                            <RefreshCw size={20} />
+                        </div>
+                        <div className="min-w-0">
+                            <p className="text-base font-bold text-slate-800">Sinkron Karyawan GATE</p>
+                            <p className="text-sm text-slate-400">Tarik data karyawan GATE menjadi user + anggota (NIK sebagai no karyawan)</p>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        disabled={sinkron.processing}
+                        onClick={() => sinkron.post(route('pengaturan.sinkron-gate'))}
+                        className="inline-flex items-center gap-2 px-5 py-3 text-base min-h-[48px] font-semibold rounded-xl bg-brand-green text-white hover:bg-brand-green-dark disabled:opacity-50 shrink-0"
+                    >
+                        <RefreshCw size={18} className={sinkron.processing ? 'animate-spin' : ''} />
+                        {sinkron.processing ? 'Menyinkron...' : 'Sinkron Sekarang'}
+                    </button>
                 </div>
             </div>
 

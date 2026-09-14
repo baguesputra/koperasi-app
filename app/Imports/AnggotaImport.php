@@ -53,7 +53,7 @@ class AnggotaImport implements ToCollection, WithHeadingRow
                 'unit_bisnis' => trim((string) $row['unit_bisnis']),
                 'department' => trim((string) $row['department']),
                 'divisi' => trim((string) $row['divisi']),
-                'jabatan' => strtolower(trim((string) $row['jabatan'])),
+                'jabatan' => trim((string) $row['jabatan']),
                 'tanggal_mulai_kerja' => $this->parseTanggal($row['tanggal_mulai_kerja']),
                 'tanggal_jadi_anggota' => $this->parseTanggal($row['tanggal_jadi_anggota']),
                 'status' => 'aktif',
@@ -86,9 +86,9 @@ class AnggotaImport implements ToCollection, WithHeadingRow
             return "Baris {$baris}: No Karyawan '{$row['no_karyawan']}' sudah terdaftar.";
         }
 
-        $jabatan = strtolower(trim((string) ($row['jabatan'] ?? '')));
-        if (! in_array($jabatan, ['staff', 'hod'])) {
-            return "Baris {$baris}: Jabatan harus 'staff' atau 'hod'.";
+        $jabatan = trim((string) ($row['jabatan'] ?? ''));
+        if ($jabatan === '') {
+            return "Baris {$baris}: Jabatan wajib diisi.";
         }
 
         if (empty($row['tanggal_mulai_kerja']) || ! $this->parseTanggal($row['tanggal_mulai_kerja'])) {

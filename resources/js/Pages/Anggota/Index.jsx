@@ -16,8 +16,6 @@ import ResignDrawer from './Partials/ResignDrawer';
 import AktifkanKembaliDialog from './Partials/AktifkanKembaliDialog';
 import Pagination from '@/Components/ui/Pagination';
 
-const jabatanLabel = { staff: 'Staff', hod: 'HOD' };
-
 function formatLamaAnggota(tahun) {
     if (tahun < 1) {
         const bulan = Math.max(1, Math.round(tahun * 12));
@@ -26,7 +24,7 @@ function formatLamaAnggota(tahun) {
     return `${tahun} tahun`;
 }
 
-export default function Index({ anggota, statistik, filters, noAnggotaBerikutnya, daftarCabang }) {
+export default function Index({ anggota, statistik, filters, noAnggotaBerikutnya, daftarCabang, daftarPerusahaan = [], daftarDivisi = [] }) {
     const { props } = usePage();
     const permissions = props.auth?.user?.permissions ?? [];
 
@@ -211,7 +209,7 @@ anggota.data.map((a) => (
                                                 </div>
                                             </td>
                                             <td className="px-5 py-3.5 text-base text-slate-600">{a.cabang}</td>
-                                            <td className="hidden md:table-cell px-5 py-3.5 text-base text-slate-600">{jabatanLabel[a.jabatan]}</td>
+                                            <td className="hidden md:table-cell px-5 py-3.5 text-base text-slate-600">{a.jabatanMaster?.nama ?? a.jabatan}</td>
                                             <td className="hidden md:table-cell px-5 py-3.5 text-base text-slate-600">{formatLamaAnggota(a.lama_keanggotaan_tahun)}</td>
                                             <td className="px-5 py-3.5">
                                                 <StatusBadge status={a.status} />
@@ -262,6 +260,8 @@ anggota.data.map((a) => (
                     key={noAnggotaBerikutnya}
                     noAnggotaBerikutnya={noAnggotaBerikutnya}
                     daftarCabang={daftarCabang}
+                    daftarPerusahaan={daftarPerusahaan}
+                    daftarDivisi={daftarDivisi}
                     onClose={tutupCreate}
                 />
             </Drawer>

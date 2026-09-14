@@ -10,6 +10,8 @@ use App\Http\Requests\UpdateAnggotaRequest;
 use App\Imports\AnggotaImport;
 use App\Models\Anggota;
 use App\Models\AuditLog;
+use App\Models\Divisi;
+use App\Models\Perusahaan;
 use App\Models\SettingSimpanan;
 use App\Models\Simpanan;
 use App\Models\User;
@@ -46,7 +48,7 @@ class AnggotaController extends Controller
             $query->where('status', $request->string('status'));
         }
 
-        $anggota = $query->with('user')
+        $anggota = $query->with(['user', 'perusahaan', 'departemen', 'divisiMaster', 'jabatanMaster'])
             ->orderBy('nama')
             ->paginate(15)
             ->withQueryString()
@@ -57,6 +59,12 @@ class AnggotaController extends Controller
                 'cabang' => $a->cabang,
                 'unit_bisnis' => $a->unit_bisnis,
                 'jabatan' => $a->jabatan,
+                'perusahaan_id' => $a->perusahaan_id,
+                'perusahaan' => $a->getRelationValue('perusahaan') ? ['id' => $a->getRelationValue('perusahaan')->id, 'nama' => $a->getRelationValue('perusahaan')->nama] : null,
+                'departemen' => $a->getRelationValue('departemen') ? ['id' => $a->getRelationValue('departemen')->id, 'nama' => $a->getRelationValue('departemen')->nama] : null,
+                'divisi_id' => $a->divisi_id,
+                'divisiMaster' => $a->getRelationValue('divisiMaster') ? ['id' => $a->getRelationValue('divisiMaster')->id, 'nama' => $a->getRelationValue('divisiMaster')->nama] : null,
+                'jabatanMaster' => $a->getRelationValue('jabatanMaster') ? ['id' => $a->getRelationValue('jabatanMaster')->id, 'nama' => $a->getRelationValue('jabatanMaster')->nama] : null,
                 'status' => $a->status,
                 'lama_keanggotaan_tahun' => round($a->lama_keanggotaan_tahun, 1),
                 'tanggal_mulai_kerja' => $a->tanggal_mulai_kerja?->format('Y-m-d'),
@@ -93,6 +101,8 @@ class AnggotaController extends Controller
             'filters' => $request->only(['cari', 'cabang', 'status']),
             'noAnggotaBerikutnya' => Anggota::generateNoAnggota(),
             'daftarCabang' => Config::get('cabang'),
+            'daftarPerusahaan' => Perusahaan::orderBy('nama')->get(['id', 'nama']),
+            'daftarDivisi' => Divisi::orderBy('nama')->get(['id', 'nama']),
         ]);
     }
 
@@ -101,6 +111,8 @@ class AnggotaController extends Controller
         return Inertia::render('Anggota/Create', [
             'noAnggotaBerikutnya' => Anggota::generateNoAnggota(),
             'daftarCabang' => Config::get('cabang'),
+            'daftarPerusahaan' => Perusahaan::orderBy('nama')->get(['id', 'nama']),
+            'daftarDivisi' => Divisi::orderBy('nama')->get(['id', 'nama']),
         ]);
     }
 
@@ -139,9 +151,13 @@ class AnggotaController extends Controller
 
     public function edit(Anggota $anggota): Response
     {
+        $anggota->load(['perusahaan', 'departemen', 'divisiMaster', 'jabatanMaster']);
+
         return Inertia::render('Anggota/Edit', [
             'anggota' => $anggota,
             'daftarCabang' => Config::get('cabang'),
+            'daftarPerusahaan' => Perusahaan::orderBy('nama')->get(['id', 'nama']),
+            'daftarDivisi' => Divisi::orderBy('nama')->get(['id', 'nama']),
         ]);
     }
 

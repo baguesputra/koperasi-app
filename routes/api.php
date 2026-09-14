@@ -50,6 +50,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/dashboard/aktivitas', [DashboardController::class, 'aktivitas']);
 
     // Master Data (for forms/dropdowns)
+    Route::get('/master-data/perusahaan', [MasterDataController::class, 'perusahaan']);
     Route::get('/master-data/cabang', [MasterDataController::class, 'cabang']);
     Route::get('/master-data/unit-bisnis', [MasterDataController::class, 'unitBisnis']);
     Route::get('/master-data/jabatan', [MasterDataController::class, 'jabatan']);

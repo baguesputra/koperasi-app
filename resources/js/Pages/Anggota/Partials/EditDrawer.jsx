@@ -4,12 +4,6 @@ import FormField from '@/Components/ui/FormField';
 import Select from '@/Components/ui/Select';
 import TextField from '@/Components/ui/TextField';
 
-const daftarDepartment = [
-    'IT', 'Finance', 'HR', 'Operations', 'Marketing', 'Sales',
-    'Legal', 'Procurement', 'Engineering', 'Customer Service',
-    'Administration', 'Logistics', 'Quality Assurance', 'Research & Development',
-];
-
 export default function EditDrawer({ anggota, daftarCabang, onClose }) {
     const { data, setData, put, processing, errors } = useForm({
         nama: anggota.nama,
@@ -17,8 +11,6 @@ export default function EditDrawer({ anggota, daftarCabang, onClose }) {
         email: anggota.user?.email ?? '',
         cabang: anggota.cabang,
         unit_bisnis: anggota.unit_bisnis,
-        department: anggota.department ?? '',
-        jabatan: anggota.jabatan,
         tanggal_mulai_kerja: anggota.tanggal_mulai_kerja ?? '',
         tanggal_jadi_anggota: anggota.tanggal_jadi_anggota ?? '',
         status: anggota.status,
@@ -79,39 +71,29 @@ export default function EditDrawer({ anggota, daftarCabang, onClose }) {
                     </Select>
                 </FormField>
 
-                <FormField label="Department" error={errors.department}>
-                    <Select
-                        size="sm"
-                        value={data.department}
-                        onChange={(e) => setData('department', e.target.value)}
-                    >
-                        <option value="">Pilih department</option>
-                        {daftarDepartment.map((d) => (
-                            <option key={d} value={d}>{d}</option>
-                        ))}
-                    </Select>
-                </FormField>
+                <div className="rounded-xl bg-slate-50 border border-slate-100 px-4 py-3">
+                    <p className="text-sm text-slate-400">Departemen (otomatis dari GATE)</p>
+                    <p className="text-base font-semibold text-slate-700">{anggota.departemen?.nama ?? '-'}</p>
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
-                <FormField label="Jabatan" error={errors.jabatan}>
-                    <Select
-                        size="sm"
-                        value={data.jabatan}
-                        onChange={(e) => setData('jabatan', e.target.value)}
-                    >
-                        <option value="staff">Staff</option>
-                        <option value="hod">HOD</option>
-                    </Select>
-                </FormField>
-
-                <FormField label="Unit Bisnis" error={errors.unit_bisnis}>
-                    <TextField
-                        size="sm"
-                        value={data.unit_bisnis}
-                        onChange={(e) => setData('unit_bisnis', e.target.value)}
-                    />
-                </FormField>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div className="rounded-xl bg-slate-50 border border-slate-100 px-4 py-3">
+                    <p className="text-sm text-slate-400">Jabatan (otomatis dari GATE)</p>
+                    <p className="text-base font-semibold text-slate-700">{anggota.jabatanMaster?.nama ?? anggota.jabatan ?? '-'}</p>
+                </div>
+                <div className="rounded-xl bg-slate-50 border border-slate-100 px-4 py-3">
+                    <p className="text-sm text-slate-400">Unit Bisnis</p>
+                    <p className="text-base font-semibold text-slate-700">{anggota.unit_bisnis ?? '-'}</p>
+                </div>
+                <div className="rounded-xl bg-slate-50 border border-slate-100 px-4 py-3">
+                    <p className="text-sm text-slate-400">Perusahaan (otomatis dari GATE)</p>
+                    <p className="text-base font-semibold text-slate-700">{anggota.perusahaan?.nama ?? '-'}</p>
+                </div>
+                <div className="rounded-xl bg-slate-50 border border-slate-100 px-4 py-3">
+                    <p className="text-sm text-slate-400">Divisi (otomatis dari GATE)</p>
+                    <p className="text-base font-semibold text-slate-700">{anggota.divisiMaster?.nama ?? '-'}</p>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">

@@ -70,8 +70,6 @@ class AnggotaCrudTest extends TestCase
             'nama' => 'Nama Baru Hasil Update',
             'cabang' => 'Samarinda',
             'unit_bisnis' => 'Keuangan',
-            'jabatan' => 'hod',
-            'department' => 'Finance',
             'no_hp' => '081234567890',
             'tanggal_mulai_kerja' => now()->subYear()->format('Y-m-d'),
             'tanggal_jadi_anggota' => now()->format('Y-m-d'),
@@ -90,6 +88,15 @@ class AnggotaCrudTest extends TestCase
         $this->actingAs($tanpaRole);
 
         $this->get(route('anggota.index'))->assertForbidden();
+    }
+
+    public function test_index_merender_tanpa_error_saat_divisi_string_terisi(): void
+    {
+        $this->masuk('ADM-000001');
+        $anggota = Anggota::firstOrFail();
+        $anggota->update(['divisi' => 'Lapangan']);
+
+        $this->get(route('anggota.index'))->assertOk();
     }
 
     public function test_template_export_bisa_diunduh(): void

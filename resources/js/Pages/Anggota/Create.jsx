@@ -7,9 +7,11 @@ import FormField from '@/Components/ui/FormField';
 import Select from '@/Components/ui/Select';
 import TextField from '@/Components/ui/TextField';
 
-export default function Create({ noAnggotaBerikutnya, daftarCabang }) {
+export default function Create({ noAnggotaBerikutnya, daftarCabang, daftarPerusahaan = [], daftarDivisi = [] }) {
     const { data, setData, post, processing, errors } = useForm({
         nama: '',
+        perusahaan_id: '',
+        divisi_id: '',
         no_karyawan: '',
         email: '',
         cabang: '',
@@ -88,15 +90,12 @@ export default function Create({ noAnggotaBerikutnya, daftarCabang }) {
                         </FormField>
 
                         <FormField label="Jabatan" error={errors.jabatan}>
-                            <Select
+                            <TextField
                                 size="sm"
                                 value={data.jabatan}
                                 onChange={(e) => setData('jabatan', e.target.value)}
-                            >
-                                <option value="">Pilih jabatan</option>
-                                <option value="staff">Staff</option>
-                                <option value="hod">HOD</option>
-                            </Select>
+                                placeholder="Contoh: Fullstack Developer"
+                            />
                         </FormField>
                     </div>
 
@@ -108,6 +107,34 @@ export default function Create({ noAnggotaBerikutnya, daftarCabang }) {
                             placeholder="Contoh: Operasional"
                         />
                     </FormField>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+                        <FormField label="Perusahaan (manual)" error={errors.perusahaan_id}>
+                            <Select
+                                size="sm"
+                                value={data.perusahaan_id}
+                                onChange={(e) => setData('perusahaan_id', e.target.value)}
+                            >
+                                <option value="">Pilih perusahaan</option>
+                                {daftarPerusahaan.map((p) => (
+                                    <option key={p.id} value={p.id}>{p.nama}</option>
+                                ))}
+                            </Select>
+                        </FormField>
+
+                        <FormField label="Divisi (manual)" error={errors.divisi_id}>
+                            <Select
+                                size="sm"
+                                value={data.divisi_id}
+                                onChange={(e) => setData('divisi_id', e.target.value)}
+                            >
+                                <option value="">Pilih divisi</option>
+                                {daftarDivisi.map((d) => (
+                                    <option key={d.id} value={d.id}>{d.nama}</option>
+                                ))}
+                            </Select>
+                        </FormField>
+                    </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
                         <FormField label="Tanggal Mulai Kerja" error={errors.tanggal_mulai_kerja}>
