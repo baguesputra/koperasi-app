@@ -59,7 +59,7 @@ export default function AktifkanKembaliDialog({ anggota, onClose }) {
                             <p className="text-sm text-slate-500 text-center mb-4">
                                 {anggota.nama}
                                 <br />
-                                <span className="text-xs">{anggota.no_anggota}</span>
+                                <span className="text-xs">{anggota.no_karyawan}</span>
                             </p>
 
                             <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 flex gap-2 mb-4 text-xs text-amber-800">

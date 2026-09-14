@@ -293,7 +293,7 @@ export default function Dashboard({
 
                     <div className="text-left sm:text-right">
                         <p className="text-sm font-semibold text-slate-700">
-                            {anggota.no_anggota}
+                            {anggota.no_karyawan}
                         </p>
 
                         <p className="text-xs text-slate-500">

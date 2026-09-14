@@ -157,7 +157,7 @@ export default function Index({
               >
                 {a.nama}
               </button>
-              <p className="text-sm text-slate-400">{a.no_anggota}</p>
+              <p className="text-sm text-slate-400">{a.no_karyawan}</p>
             </div>
           </div>
         </td>
@@ -184,7 +184,7 @@ export default function Index({
                     <div>
                         <div className="mb-5">
                             <p className="text-base font-semibold text-slate-800">{detailAnggota.nama}</p>
-                            <p className="text-sm text-slate-400">{detailAnggota.no_anggota}</p>
+                            <p className="text-sm text-slate-400">{detailAnggota.no_karyawan}</p>
                         </div>
 
                         <Card className="mb-5">

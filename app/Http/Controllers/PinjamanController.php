@@ -68,6 +68,7 @@ class PinjamanController extends Controller
                     'id' => $p->id,
                     'nama' => $p->anggota->nama,
                     'no_anggota' => $p->anggota->no_anggota,
+                    'no_karyawan' => $p->anggota->no_karyawan,
                     'cabang' => $p->anggota->cabang,
                     'anggota_status' => $p->anggota->status,
                     'nominal' => (float) $p->nominal,
@@ -193,6 +194,7 @@ class PinjamanController extends Controller
                 'anggota_id' => $pinjaman->anggota_id,
                 'nama' => $pinjaman->anggota->nama,
                 'no_anggota' => $pinjaman->anggota->no_anggota,
+                'no_karyawan' => $pinjaman->anggota->no_karyawan,
                 'anggota_status' => $pinjaman->anggota->status,
                 'nominal' => (float) $pinjaman->nominal,
                 'tenor_bulan' => $pinjaman->tenor_bulan,
@@ -254,7 +256,8 @@ class PinjamanController extends Controller
 
         if ($request->query('download')) {
             $pdf = Pdf::loadView('pinjaman.cetak_bukti', $pinjaman->dataBukti());
-            return $pdf->download('pinjaman-' . $pinjaman->anggota->no_anggota . '.pdf');
+
+            return $pdf->download('pinjaman-'.$pinjaman->anggota->no_karyawan.'.pdf');
         }
 
         return Inertia::render('Pinjaman/CetakBukti', $pinjaman->dataBukti());

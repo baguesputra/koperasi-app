@@ -34,7 +34,7 @@ class AnggotaController extends Controller
             $cari = $request->string('cari');
             $query->where(function ($q) use ($cari) {
                 $q->where('nama', 'like', "%{$cari}%")
-                    ->orWhere('no_anggota', 'like', "%{$cari}%");
+                    ->orWhere('no_karyawan', 'like', "%{$cari}%");
             });
         }
 
@@ -172,6 +172,7 @@ class AnggotaController extends Controller
             'anggota' => [
                 'id' => $anggota->id,
                 'no_anggota' => $anggota->no_anggota,
+                'no_karyawan' => $anggota->no_karyawan,
                 'nama' => $anggota->nama,
                 'cabang' => $anggota->cabang,
                 'status' => $anggota->status,

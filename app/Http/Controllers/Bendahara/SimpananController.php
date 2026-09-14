@@ -26,6 +26,7 @@ class SimpananController extends Controller
                 'id' => $a->id,
                 'nama' => $a->nama,
                 'no_anggota' => $a->no_anggota,
+                'no_karyawan' => $a->no_karyawan,
                 'cabang' => $a->cabang,
             ]);
 

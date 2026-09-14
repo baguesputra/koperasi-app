@@ -46,7 +46,7 @@ export default function Index({ bulan, belumSimpanan, cabangAktif, daftarCabang,
     const kataCari = cari.trim().toLowerCase();
     const tampil = useMemo(
         () => belumSimpanan.filter((a) =>
-            !kataCari || a.nama.toLowerCase().includes(kataCari) || a.no_anggota.toLowerCase().includes(kataCari)
+            !kataCari || a.nama.toLowerCase().includes(kataCari) || (a.no_karyawan ?? '').toLowerCase().includes(kataCari)
         ),
         [belumSimpanan, kataCari]
     );
@@ -233,7 +233,7 @@ export default function Index({ bulan, belumSimpanan, cabangAktif, daftarCabang,
                                 />
                                 <div className="flex-1 min-w-0">
                                     <p className="text-base font-semibold text-slate-800">{a.nama}</p>
-                                    <p className="text-sm text-slate-400 mt-0.5">{a.no_anggota} &bull; {a.cabang}</p>
+                                    <p className="text-sm text-slate-400 mt-0.5">{a.no_karyawan} &bull; {a.cabang}</p>
                                 </div>
                                 <div className="text-right shrink-0 pl-2">
                                     <p className="text-base font-bold text-slate-800 whitespace-nowrap">{formatRupiah(nominalPerAnggota)}</p>

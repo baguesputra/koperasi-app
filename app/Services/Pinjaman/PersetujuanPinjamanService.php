@@ -44,7 +44,7 @@ class PersetujuanPinjamanService
         WaService::keAnggota(
             $pinjaman->anggota,
             'pinjaman_disetujui_bendahara',
-            WaPesan::susun($pinjaman->anggota->nama, $pinjaman->anggota->no_anggota, $isi)
+            WaPesan::susun($pinjaman->anggota->nama, $pinjaman->anggota->no_karyawan, $isi)
         );
     }
 
@@ -147,7 +147,7 @@ class PersetujuanPinjamanService
         WaService::keAnggotaDokumen(
             $pinjaman->anggota,
             'pinjaman_disetujui_ketua',
-            WaPesan::susun($pinjaman->anggota->nama, $pinjaman->anggota->no_anggota, $isi),
+            WaPesan::susun($pinjaman->anggota->nama, $pinjaman->anggota->no_karyawan, $isi),
             Pdf::loadView('wa.bukti-pinjaman', $pinjaman->dataBukti())->output(),
             "Bukti-Peminjaman-{$pinjaman->id}.pdf",
         );
@@ -185,6 +185,6 @@ class PersetujuanPinjamanService
             .($catatan ? "\n\nCatatan: {$catatan}" : '')
             ."\n\nApabila terdapat pertanyaan lebih lanjut, silakan menghubungi pengurus atau Bendahara Koperasi.";
 
-        return WaPesan::susun($pinjaman->anggota->nama, $pinjaman->anggota->no_anggota, $isi);
+        return WaPesan::susun($pinjaman->anggota->nama, $pinjaman->anggota->no_karyawan, $isi);
     }
 }

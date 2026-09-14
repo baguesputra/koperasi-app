@@ -95,6 +95,7 @@ class PercepatanController extends Controller
             'anggota' => [
                 'nama' => $p->pinjaman->anggota->nama,
                 'no_anggota' => $p->pinjaman->anggota->no_anggota,
+                'no_karyawan' => $p->pinjaman->anggota->no_karyawan,
                 'cabang' => $p->pinjaman->anggota->cabang,
                 'jabatan' => $p->pinjaman->anggota->jabatan,
                 'lama_keanggotaan_tahun' => round($p->pinjaman->anggota->lama_keanggotaan_tahun, 1),

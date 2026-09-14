@@ -83,7 +83,7 @@ export default function Index({ menungguTinjauan, riwayat }) {
                                                     </div>
                                                     <div className="min-w-0">
                                                         <p className="text-sm font-semibold text-slate-800 truncate">{p.anggota.nama}</p>
-                                                        <p className="text-xs text-slate-400">{p.anggota.no_anggota}</p>
+                                                        <p className="text-xs text-slate-400">{p.anggota.no_karyawan}</p>
                                                     </div>
                                                 </div>
                                             </td>
@@ -128,7 +128,7 @@ export default function Index({ menungguTinjauan, riwayat }) {
                                         <tr key={p.id} onClick={() => bukaDetail(p)} className="border-t border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer">
                                             <td className="px-5 py-3">
                                                 <p className="text-sm font-semibold text-slate-800 truncate">{p.anggota.nama}</p>
-                                                <p className="text-xs text-slate-400">{p.anggota.no_anggota}</p>
+                                                <p className="text-xs text-slate-400">{p.anggota.no_karyawan}</p>
                                             </td>
                                             <td className="px-5 py-3 text-sm text-slate-700">{formatRupiah(p.nominal)}</td>
                                             <td className="px-5 py-3 text-sm text-slate-600">{p.tenor_bulan} bulan</td>

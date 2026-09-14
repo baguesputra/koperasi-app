@@ -20,7 +20,7 @@ export default function Show({ anggota, riwayat, totalSimpanan, alokasiPelunasan
 
             <div className="mb-6">
                 <h1 className="text-2xl font-bold text-slate-800">{anggota.nama}</h1>
-                <p className="text-base text-slate-400 mt-1">{anggota.no_anggota}</p>
+                <p className="text-base text-slate-400 mt-1">{anggota.no_karyawan}</p>
             </div>
 
             <Card className="mb-5">

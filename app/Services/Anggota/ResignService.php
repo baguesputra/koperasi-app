@@ -255,7 +255,7 @@ class ResignService
 
             AuditLog::catat(
                 aksi: 'anggota_resign',
-                keterangan: "Resign anggota {$anggotaLocked->nama} ({$anggotaLocked->no_anggota}). ".
+                keterangan: "Resign anggota {$anggotaLocked->nama} ({$anggotaLocked->no_karyawan}). ".
                     'Pelunasan: Rp '.number_format($totalPelunasan, 0, ',', '.').
                     ', pengembalian simpanan: Rp '.number_format($kembaliPokok + $kembaliWajib, 0, ',', '.').
                     ', dana_sosial hangus: Rp '.number_format($danaSosial, 0, ',', '.').

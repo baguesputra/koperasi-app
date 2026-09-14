@@ -85,7 +85,7 @@ export default function Index({ anggota, statistik, filters, noAnggotaBerikutnya
                 const url = window.URL.createObjectURL(blob);
                 const el = document.createElement('a');
                 el.href = url;
-                el.download = `slip-resign-${a.no_anggota}.pdf`;
+                el.download = `slip-resign-${a.no_karyawan}.pdf`;
                 document.body.appendChild(el);
                 el.click();
                 el.remove();
@@ -206,7 +206,7 @@ anggota.data.map((a) => (
                                                     </div>
                                                     <div className="min-w-0">
                                                         <p className="text-base font-semibold text-slate-800 truncate">{a.nama}</p>
-                                                        <p className="text-sm text-slate-400">{a.no_anggota}</p>
+                                                        <p className="text-sm text-slate-400">{a.no_karyawan}</p>
                                                     </div>
                                                 </div>
                                             </td>

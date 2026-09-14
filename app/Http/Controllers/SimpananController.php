@@ -39,6 +39,7 @@ class SimpananController extends Controller
                     'id' => $a->id,
                     'nama' => $a->nama,
                     'no_anggota' => $a->no_anggota,
+                    'no_karyawan' => $a->no_karyawan,
                     'cabang' => $a->cabang,
                     'status' => $a->status,
                     'total_simpanan' => (float) ($a->total_pokok_wajib ?? 0),
@@ -105,6 +106,7 @@ class SimpananController extends Controller
             'anggota' => [
                 'nama' => $anggota->nama,
                 'no_anggota' => $anggota->no_anggota,
+                'no_karyawan' => $anggota->no_karyawan,
                 'status' => $anggota->status,
             ],
             'riwayat' => $riwayat,

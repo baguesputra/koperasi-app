@@ -321,7 +321,7 @@ class LaporanRegistry
                         ->get()
                         ->map(fn ($a) => [
                             $a->pinjaman->anggota->nama,
-                            $a->pinjaman->anggota->no_anggota,
+                            $a->pinjaman->anggota->no_karyawan,
                             $a->pinjaman->anggota->cabang,
                             $a->cicilan_ke,
                             $a->tanggal_jatuh_tempo->format('d M Y'),
@@ -330,7 +330,7 @@ class LaporanRegistry
                         ])->all();
 
                     return self::hasil(
-                        ['Nama', 'No. Anggota', 'Cabang', 'Cicilan Ke', 'Jatuh Tempo', 'Total Tagihan', 'Terlambat'],
+                        ['Nama', 'No. Karyawan', 'Cabang', 'Cicilan Ke', 'Jatuh Tempo', 'Total Tagihan', 'Terlambat'],
                         [5],
                         $rows,
                         [count($rows).' angsuran', null, null, null, null, array_sum(array_column($rows, 5)), null]
@@ -383,9 +383,9 @@ class LaporanRegistry
                 'data' => function (Request $r) {
                     $q = DB::table('simpanan')
                         ->join('anggota', 'anggota.id', '=', 'simpanan.anggota_id')
-                        ->groupBy('anggota.id', 'anggota.no_anggota', 'anggota.nama', 'anggota.cabang')
+                        ->groupBy('anggota.id', 'anggota.no_karyawan', 'anggota.nama', 'anggota.cabang')
                         ->orderBy('anggota.nama')
-                        ->selectRaw("anggota.no_anggota, anggota.nama, anggota.cabang,
+                        ->selectRaw("anggota.no_karyawan, anggota.nama, anggota.cabang,
                             SUM(CASE WHEN jenis='pokok' THEN jumlah ELSE 0 END) pokok,
                             SUM(CASE WHEN jenis='wajib' THEN jumlah ELSE 0 END) wajib,
                             SUM(CASE WHEN jenis='dana_sosial' THEN jumlah ELSE 0 END) sosial");
@@ -396,7 +396,7 @@ class LaporanRegistry
                         $q->where('anggota.cabang', $r->input('cabang'));
                     }
                     $rows = $q->get()->map(fn ($a) => [
-                        $a->no_anggota,
+                        $a->no_karyawan,
                         $a->nama,
                         $a->cabang,
                         (float) $a->pokok,
@@ -404,7 +404,7 @@ class LaporanRegistry
                         (float) $a->sosial,
                         (float) $a->pokok + (float) $a->wajib,
                     ])->all();
-                    $kolom = ['No. Anggota', 'Nama', 'Cabang', 'Pokok', 'Wajib', 'Dana Sosial', 'Pokok + Wajib'];
+                    $kolom = ['No. Karyawan', 'Nama', 'Cabang', 'Pokok', 'Wajib', 'Dana Sosial', 'Pokok + Wajib'];
 
                     return self::hasil(
                         $kolom,
@@ -483,7 +483,7 @@ class LaporanRegistry
                         $q->where('cabang', $r->input('cabang'));
                     }
                     $rows = $q->get()->map(fn ($a) => [
-                        $a->no_anggota,
+                        $a->no_karyawan,
                         $a->nama,
                         $a->cabang,
                         $a->unit_bisnis,
@@ -494,7 +494,7 @@ class LaporanRegistry
                     ])->all();
 
                     return self::hasil(
-                        ['No. Anggota', 'Nama', 'Cabang', 'Unit Bisnis', 'Jabatan', 'Sejak', 'Lama', 'Status'],
+                        ['No. Karyawan', 'Nama', 'Cabang', 'Unit Bisnis', 'Jabatan', 'Sejak', 'Lama', 'Status'],
                         [],
                         $rows,
                         [count($rows).' anggota', null, null, null, null, null, null, null]
@@ -519,7 +519,7 @@ class LaporanRegistry
                             $settlement = $a->resigned_settlement_json ?? [];
 
                             return [
-                                $a->no_anggota,
+                                $a->no_karyawan,
                                 $a->nama,
                                 $a->cabang,
                                 $a->tanggal_resign->format('d M Y'),
@@ -529,7 +529,7 @@ class LaporanRegistry
                         })->all();
 
                     return self::hasil(
-                        ['No. Anggota', 'Nama', 'Cabang', 'Tgl Resign', 'Alasan', 'Simpanan Dikembalikan'],
+                        ['No. Karyawan', 'Nama', 'Cabang', 'Tgl Resign', 'Alasan', 'Simpanan Dikembalikan'],
                         [5],
                         $rows,
                         [count($rows).' anggota', null, null, null, null, array_sum(array_column($rows, 5))]

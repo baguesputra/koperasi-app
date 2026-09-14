@@ -92,7 +92,7 @@ export default function Show({ pengajuan }) {
                     <p className="text-sm font-semibold text-slate-400 mb-3">Data Anggota</p>
                     <div className="space-y-3">
                         <div><p className="text-sm text-slate-400">Nama</p><p className="text-base font-semibold text-slate-800">{pengajuan.anggota.nama}</p></div>
-                        <div><p className="text-sm text-slate-400">No. Anggota</p><p className="text-base font-semibold text-slate-800">{pengajuan.anggota.no_anggota}</p></div>
+                        <div><p className="text-sm text-slate-400">No. Karyawan</p><p className="text-base font-semibold text-slate-800">{pengajuan.anggota.no_karyawan}</p></div>
                         <div><p className="text-sm text-slate-400">Sisa Angsuran</p><p className="text-base font-semibold text-slate-800">{pengajuan.pinjaman.sisa_angsuran}x</p></div>
                     </div>
                 </Card>

@@ -175,7 +175,7 @@ export default function Index({ pengguna, daftarRole, filters }) {
                                     </p>
                                     <p className="text-sm text-slate-400 truncate">
                                         {user.no_karyawan}{user.email ? ` \u2022 ${user.email}` : ''}
-                                        {user.anggota && ` \u2022 Anggota ${user.anggota.no_anggota}`}
+                                        {user.anggota && ` \u2022 Karyawan ${user.anggota.no_karyawan}`}
                                     </p>
                                 </div>
                                 <div className="hidden md:flex items-center gap-1.5">

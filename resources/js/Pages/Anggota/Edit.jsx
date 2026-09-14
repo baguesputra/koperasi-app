@@ -33,7 +33,7 @@ export default function Edit({ anggota, daftarCabang }) {
                 <BackLink href={route('anggota.index')}>Kembali ke daftar anggota</BackLink>
                 <h1 className="text-2xl font-bold text-slate-800">Edit Anggota</h1>
                 <p className="text-base text-slate-400 mt-1">
-                    Nomor anggota: <span className="font-semibold text-slate-600">{anggota.no_anggota}</span>
+                    Nomor karyawan: <span className="font-semibold text-slate-600">{anggota.no_karyawan}</span>
                 </p>
             </div>
 

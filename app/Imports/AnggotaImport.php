@@ -68,7 +68,7 @@ class AnggotaImport implements ToCollection, WithHeadingRow
                 'input_by' => $adminId,
             ]);
 
-            $this->berhasil[] = "{$anggota->nama} ({$anggota->no_anggota})";
+            $this->berhasil[] = "{$anggota->nama} ({$anggota->no_karyawan})";
         }
     }
 

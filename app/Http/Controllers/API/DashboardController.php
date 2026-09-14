@@ -29,6 +29,7 @@ class DashboardController extends Controller
                             properties: [
                                 new OA\Property(property: 'nama', type: 'string', example: 'Budi Santoso'),
                                 new OA\Property(property: 'no_anggota', type: 'string', example: 'ANG-2026-0001'),
+                                new OA\Property(property: 'no_karyawan', type: 'string', example: 'TOP-100001'),
                                 new OA\Property(property: 'lama_keanggotaan_label', type: 'string', example: '6 bulan'),
                             ]
                         ),
@@ -113,6 +114,7 @@ class DashboardController extends Controller
             'anggota' => [
                 'nama' => $anggota->nama,
                 'no_anggota' => $anggota->no_anggota,
+                'no_karyawan' => $anggota->no_karyawan,
                 'lama_keanggotaan_label' => $this->formatLamaKeanggotaan($anggota->tanggal_jadi_anggota),
             ],
             'totalSimpanan' => $totalSimpanan,

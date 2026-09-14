@@ -101,7 +101,7 @@ class PengajuanPinjamanService
         WaService::keAnggota(
             $anggota,
             'pinjaman_diajukan',
-            WaPesan::susun($anggota->nama, $anggota->no_anggota,
+            WaPesan::susun($anggota->nama, $anggota->no_karyawan,
                 'Pengajuan pinjaman Anda telah kami terima pada '.now()->translatedFormat('d F Y')." dengan rincian sebagai berikut:\n\n{$rincian}\n\n"
                 .'Status saat ini: *Menunggu verifikasi Bendahara*.'
                 .' Pemberitahuan selanjutnya akan kami sampaikan melalui WhatsApp ini.')
@@ -112,7 +112,7 @@ class PengajuanPinjamanService
             WaPesan::susun(null, null,
                 "Notifikasi Pengajuan Pinjaman\n\n"
                 ."Telah diterima pengajuan pinjaman baru dengan rincian sebagai berikut:\n\n"
-                ."- Pemohon: {$anggota->nama} (No. Anggota: {$anggota->no_anggota})\n"
+                ."- Pemohon: {$anggota->nama} (No. Karyawan: {$anggota->no_karyawan})\n"
                 ."- Nomor Referensi: #{$pinjaman->id}\n"
                 .'- Nominal: '.WaPesan::rupiah($nominal)."\n"
                 ."- Tenor: {$tenorBulan} bulan\n"

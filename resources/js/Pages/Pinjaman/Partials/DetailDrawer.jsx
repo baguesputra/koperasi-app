@@ -47,7 +47,7 @@ export default function DetailDrawer({ pinjaman, angsuran, pelunasan_resign, jur
             </div>
 
             <p className="text-sm text-slate-500 -mt-3">
-                {pinjaman.nama} &bull; {pinjaman.no_anggota}
+                {pinjaman.nama} &bull; {pinjaman.no_karyawan}
             </p>
 
             <div className="grid grid-cols-3 gap-3">

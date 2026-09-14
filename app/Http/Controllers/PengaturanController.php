@@ -83,6 +83,7 @@ class PengaturanController extends Controller
                 'harus_ganti_password' => (bool) $user->harus_ganti_password,
                 'anggota' => $user->anggota ? [
                     'no_anggota' => $user->anggota->no_anggota,
+                    'no_karyawan' => $user->anggota->no_karyawan,
                     'nama' => $user->anggota->nama,
                 ] : null,
                 'dilindungi' => $user->no_karyawan === 'ADM-000001',

@@ -44,7 +44,7 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                     <div>
                         <p className="text-xs text-slate-300 mb-1">Anggota</p>
                         <p className="text-xl font-bold">{pengajuan.anggota.nama}</p>
-                        <p className="text-sm text-slate-300 mt-0.5">{pengajuan.anggota.no_anggota}</p>
+                        <p className="text-sm text-slate-300 mt-0.5">{pengajuan.anggota.no_karyawan}</p>
                     </div>
                     <StatusBadge status={pengajuan.status} />
                 </div>
@@ -78,8 +78,8 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                 <p className="text-sm font-bold text-slate-700 mb-3">Data Anggota</p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3">
                     <div>
-                        <p className="text-xs text-slate-400 mb-1">No. Anggota</p>
-                        <p className="text-base font-semibold text-slate-800">{pengajuan.anggota.no_anggota}</p>
+                        <p className="text-xs text-slate-400 mb-1">No. Karyawan</p>
+                        <p className="text-base font-semibold text-slate-800">{pengajuan.anggota.no_karyawan}</p>
                     </div>
                     <div>
                         <p className="text-xs text-slate-400 mb-1">Cabang</p>

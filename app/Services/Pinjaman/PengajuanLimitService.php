@@ -40,7 +40,7 @@ class PengajuanLimitService
 
         AuditLog::catat(
             aksi: 'limit_diajukan',
-            keterangan: "Pengajuan kenaikan limit untuk {$anggota->nama} ({$anggota->no_anggota}) diajukan. Limit saat ini: ".WaPesan::rupiah($limitSaatIni).', diminta: '.WaPesan::rupiah($limitDiminta),
+            keterangan: "Pengajuan kenaikan limit untuk {$anggota->nama} ({$anggota->no_karyawan}) diajukan. Limit saat ini: ".WaPesan::rupiah($limitSaatIni).', diminta: '.WaPesan::rupiah($limitDiminta),
             dataLama: null,
             dataBaru: [
                 'pengajuan_id' => $pengajuan->id,
@@ -55,7 +55,7 @@ class PengajuanLimitService
         WaService::keAnggota(
             $anggota,
             'limit_diajukan',
-            WaPesan::susun($anggota->nama, $anggota->no_anggota,
+            WaPesan::susun($anggota->nama, $anggota->no_karyawan,
                 'Pengajuan kenaikan limit pinjaman Anda telah kami terima pada '.now()->translatedFormat('d F Y')." dengan rincian sebagai berikut:\n\n"
                 .'- Limit saat ini: '.WaPesan::rupiah($limitSaatIni)."\n"
                 .'- Limit diajukan: '.WaPesan::rupiah($limitDiminta)."\n"
@@ -69,7 +69,7 @@ class PengajuanLimitService
             WaPesan::susun(null, null,
                 "Notifikasi Pengajuan Kenaikan Limit\n\n"
                 ."Telah diterima pengajuan kenaikan limit pinjaman dengan rincian sebagai berikut:\n\n"
-                ."- Pemohon: {$anggota->nama} (No. Anggota: {$anggota->no_anggota})\n"
+                ."- Pemohon: {$anggota->nama} (No. Karyawan: {$anggota->no_karyawan})\n"
                 .'- Limit saat ini: '.WaPesan::rupiah($limitSaatIni)."\n"
                 .'- Limit diajukan: '.WaPesan::rupiah($limitDiminta)."\n"
                 ."- Keterangan: {$keterangan}\n\n"
@@ -98,7 +98,7 @@ class PengajuanLimitService
         WaService::keAnggota(
             $pengajuan->anggota,
             'limit_disetujui',
-            WaPesan::susun($pengajuan->anggota->nama, $pengajuan->anggota->no_anggota,
+            WaPesan::susun($pengajuan->anggota->nama, $pengajuan->anggota->no_karyawan,
                 "Selamat! Pengajuan kenaikan limit pinjaman Anda telah *DISETUJUI* oleh Ketua.\n\n"
                 .'- Limit sebelumnya: '.WaPesan::rupiah($pengajuan->limit_saat_ini)."\n"
                 .'- Limit berlaku saat ini: '.WaPesan::rupiah($pengajuan->limit_diminta)."\n\n"
@@ -116,7 +116,7 @@ class PengajuanLimitService
 
         AuditLog::catat(
             aksi: 'limit_ditolak',
-            keterangan: "Pengajuan kenaikan limit untuk {$pengajuan->anggota->nama} ({$pengajuan->anggota->no_anggota}) ditolak. Limit saat ini: ".WaPesan::rupiah($pengajuan->limit_saat_ini).', diminta: '.WaPesan::rupiah($pengajuan->limit_diminta),
+            keterangan: "Pengajuan kenaikan limit untuk {$pengajuan->anggota->nama} ({$pengajuan->anggota->no_karyawan}) ditolak. Limit saat ini: ".WaPesan::rupiah($pengajuan->limit_saat_ini).', diminta: '.WaPesan::rupiah($pengajuan->limit_diminta),
             dataLama: ['status' => $statusLama],
             dataBaru: ['status' => 'ditolak', 'catatan_ketua' => $catatan]
         );
@@ -130,7 +130,7 @@ class PengajuanLimitService
         WaService::keAnggota(
             $pengajuan->anggota,
             'limit_ditolak',
-            WaPesan::susun($pengajuan->anggota->nama, $pengajuan->anggota->no_anggota, $isi)
+            WaPesan::susun($pengajuan->anggota->nama, $pengajuan->anggota->no_karyawan, $isi)
         );
     }
 }

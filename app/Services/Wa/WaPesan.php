@@ -17,7 +17,7 @@ class WaPesan
     {
         $yth = '';
         if ($nama) {
-            $yth = "\nKepada Yth. Sdr/i. {$nama}".($noAnggota ? " (No. Anggota: {$noAnggota})" : '')."\n";
+            $yth = "\nKepada Yth. Sdr/i. {$nama}".($noAnggota ? " (No. Karyawan: {$noAnggota})" : '')."\n";
         }
 
         return "*KOPERASI KARYAWAN*\n{$yth}\n{$isi}\n\nHormat kami,\nPengurus Koperasi Karyawan\n\n_Pesan ini dikirim otomatis oleh sistem koperasi. Mohon tidak membalas pesan ini._";

@@ -18,6 +18,7 @@ class ProfilController extends Controller
             'anggota' => [
                 'nama' => $anggota->nama,
                 'no_anggota' => $anggota->no_anggota,
+                'no_karyawan' => $anggota->no_karyawan,
                 'cabang' => $anggota->cabang,
                 'unit_bisnis' => $anggota->unit_bisnis,
                 'jabatan' => $anggota->jabatan,

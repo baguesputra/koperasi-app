@@ -46,7 +46,7 @@ export default function Profil({ anggota, rekening }) {
 
             <div className="mb-6">
                 <h1 className="text-2xl font-bold text-slate-800">Profil Saya</h1>
-                <p className="text-base text-slate-400 mt-1">{anggota.no_anggota}</p>
+                <p className="text-base text-slate-400 mt-1">{anggota.no_karyawan}</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">

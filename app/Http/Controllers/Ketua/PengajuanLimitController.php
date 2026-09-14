@@ -99,6 +99,7 @@ class PengajuanLimitController extends Controller
                 'anggota' => [
                     'nama' => $anggota->nama,
                     'no_anggota' => $anggota->no_anggota,
+                    'no_karyawan' => $anggota->no_karyawan,
                     'cabang' => $anggota->cabang,
                     'lama_keanggotaan_tahun' => round($anggota->lama_keanggotaan_tahun, 1),
                 ],

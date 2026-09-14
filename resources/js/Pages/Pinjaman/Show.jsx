@@ -46,7 +46,7 @@ export default function Show({ pinjaman, angsuran, pelunasan_resign, jurnal_pelu
                     )}
                 </div>
                 <p className="text-base text-slate-400 mt-1">
-                    {pinjaman.nama} &bull; {pinjaman.no_anggota}
+                    {pinjaman.nama} &bull; {pinjaman.no_karyawan}
                 </p>
             </div>
 

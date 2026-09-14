@@ -46,7 +46,7 @@ export default function Index({ bulan, daftarAngsuran, cabangAktif, daftarCabang
     const kataCari = cari.trim().toLowerCase();
     const tampil = useMemo(
         () => daftarAngsuran.filter((a) =>
-            !kataCari || a.nama.toLowerCase().includes(kataCari) || a.no_anggota.toLowerCase().includes(kataCari)
+            !kataCari || a.nama.toLowerCase().includes(kataCari) || (a.no_karyawan ?? '').toLowerCase().includes(kataCari)
         ),
         [daftarAngsuran, kataCari]
     );
@@ -266,7 +266,7 @@ export default function Index({ bulan, daftarAngsuran, cabangAktif, daftarCabang
                                         )}
                                     </div>
                                     <p className="text-sm text-slate-400 mt-0.5">
-                                        {a.no_anggota} &bull; {a.cabang} &bull; Cicilan ke-{a.cicilan_ke} &bull; Jatuh tempo {a.tanggal_jatuh_tempo}
+                                        {a.no_karyawan} &bull; {a.cabang} &bull; Cicilan ke-{a.cicilan_ke} &bull; Jatuh tempo {a.tanggal_jatuh_tempo}
                                     </p>
                                 </div>
                                 <div className="text-right shrink-0 pl-2">

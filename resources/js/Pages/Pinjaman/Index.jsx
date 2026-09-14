@@ -73,7 +73,7 @@ function bukaCetak(e, p) {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `pinjaman-${p.no_anggota}.pdf`;
+            a.download = `pinjaman-${p.no_karyawan}.pdf`;
             document.body.appendChild(a);
             a.click();
             a.remove();
@@ -173,7 +173,7 @@ function bukaCetak(e, p) {
                                                         {p.nama}
                                                     </button>
                                                     <div className="flex items-center gap-2 mt-0.5">
-                                                        <p className="text-sm text-slate-400">{p.no_anggota}</p>
+                                                        <p className="text-sm text-slate-400">{p.no_karyawan}</p>
                                                         {p.cabang && (
                                                             <span className="inline-block px-2 py-0.5 text-[10px] font-semibold rounded-full bg-slate-100 text-slate-600">
                                                                 {p.cabang}

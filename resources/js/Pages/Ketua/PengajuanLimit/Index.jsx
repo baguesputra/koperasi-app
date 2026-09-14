@@ -81,7 +81,7 @@ export default function Index({ menunggu, riwayat }) {
                                                     </div>
                                                     <div className="min-w-0">
                                                         <p className="text-sm font-semibold text-slate-800 truncate">{p.anggota.nama}</p>
-                                                        <p className="text-xs text-slate-400">{p.anggota.no_anggota}</p>
+                                                        <p className="text-xs text-slate-400">{p.anggota.no_karyawan}</p>
                                                     </div>
                                                 </div>
                                             </td>
@@ -133,7 +133,7 @@ export default function Index({ menunggu, riwayat }) {
                                                     </div>
                                                     <div className="min-w-0">
                                                         <p className="text-sm font-semibold text-slate-800 truncate">{p.anggota.nama}</p>
-                                                        <p className="text-xs text-slate-400">{p.anggota.no_anggota}</p>
+                                                        <p className="text-xs text-slate-400">{p.anggota.no_karyawan}</p>
                                                     </div>
                                                 </div>
                                             </td>

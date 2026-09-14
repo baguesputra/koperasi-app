@@ -67,7 +67,7 @@ class PercepatanPinjamanService
         WaService::keAnggota(
             $pinjaman->anggota,
             'perubahan_tenor_diajukan',
-            WaPesan::susun($pinjaman->anggota->nama, $pinjaman->anggota->no_anggota,
+            WaPesan::susun($pinjaman->anggota->nama, $pinjaman->anggota->no_karyawan,
                 'Pengajuan perubahan jadwal angsuran Anda telah kami terima pada '.now()->translatedFormat('d F Y')." dengan rincian sebagai berikut:\n\n"
                 ."- Nomor Referensi Pinjaman: #{$pinjaman->id}\n"
                 .'- Nominal Pinjaman: '.WaPesan::rupiah($pinjaman->nominal)."\n"
@@ -83,7 +83,7 @@ class PercepatanPinjamanService
             WaPesan::susun(null, null,
                 "Notifikasi Pengajuan Perubahan Jadwal Angsuran\n\n"
                 ."Telah diterima pengajuan perubahan dengan rincian sebagai berikut:\n\n"
-                ."- Pemohon: {$pinjaman->anggota->nama} (No. Anggota: {$pinjaman->anggota->no_anggota})\n"
+                ."- Pemohon: {$pinjaman->anggota->nama} (No. Karyawan: {$pinjaman->anggota->no_karyawan})\n"
                 ."- Nomor Referensi Pinjaman: #{$pinjaman->id}\n"
                 .'- Nominal Pinjaman: '.WaPesan::rupiah($pinjaman->nominal)."\n"
                 ."- Jenis Pengajuan: {$labelTipe}\n"
@@ -146,7 +146,7 @@ class PercepatanPinjamanService
         WaService::keAnggota(
             $p->pinjaman->anggota,
             'perubahan_tenor_disetujui_bendahara',
-            WaPesan::susun($p->pinjaman->anggota->nama, $p->pinjaman->anggota->no_anggota,
+            WaPesan::susun($p->pinjaman->anggota->nama, $p->pinjaman->anggota->no_karyawan,
                 'Pengajuan '.self::labelTipe($p->tipe)." Anda untuk pinjaman #{$p->pinjaman->id} ("
                 .WaPesan::rupiah($p->pinjaman->nominal).') telah *Disetujui Bendahara* dan sedang menunggu persetujuan Ketua.'
                 .' Pemberitahuan selanjutnya akan kami sampaikan melalui WhatsApp ini.')
@@ -297,7 +297,7 @@ class PercepatanPinjamanService
         WaService::keAnggota(
             $pengajuan->pinjaman->anggota,
             'perubahan_tenor_disetujui_ketua',
-            WaPesan::susun($pengajuan->pinjaman->anggota->nama, $pengajuan->pinjaman->anggota->no_anggota, $isi)
+            WaPesan::susun($pengajuan->pinjaman->anggota->nama, $pengajuan->pinjaman->anggota->no_karyawan, $isi)
         );
     }
 
@@ -318,6 +318,6 @@ class PercepatanPinjamanService
             .($catatan ? "\n\nCatatan: {$catatan}" : '')
             ."\n\nApabila terdapat pertanyaan lebih lanjut, silakan menghubungi pengurus atau Bendahara Koperasi.";
 
-        return WaPesan::susun($p->pinjaman->anggota->nama, $p->pinjaman->anggota->no_anggota, $isi);
+        return WaPesan::susun($p->pinjaman->anggota->nama, $p->pinjaman->anggota->no_karyawan, $isi);
     }
 }

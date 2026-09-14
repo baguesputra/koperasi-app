@@ -68,7 +68,7 @@ class ReaktivasiService
             // Audit log.
             AuditLog::catat(
                 aksi: 'anggota_aktifkan_kembali',
-                keterangan: "Aktifkan kembali anggota {$anggotaLocked->nama} ({$anggotaLocked->no_anggota}). ".
+                keterangan: "Aktifkan kembali anggota {$anggotaLocked->nama} ({$anggotaLocked->no_karyawan}). ".
                     'Resign sebelumnya: '.($anggotaLocked->tanggal_resign?->format('Y-m-d') ?? '-').
                     ". Alasan reaktivasi: {$alasan}",
                 dataLama: $dataLama,
