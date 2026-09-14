@@ -14,6 +14,7 @@ use App\Models\SettingSimpanan;
 use App\Models\TabelTenor;
 use App\Models\User;
 use App\Models\WaLog;
+use App\Services\Gate\GateClient;
 use App\Services\Gate\SinkronisasiAnggotaService;
 use App\Services\Gate\SinkronisasiMasterService;
 use Illuminate\Http\Client\ConnectionException;
@@ -28,7 +29,7 @@ use Spatie\Permission\Models\Role;
 
 class PengaturanController extends Controller
 {
-    private const TAB_DIPERBOLEHKAN = ['bunga', 'limit', 'tenor', 'simpanan', 'wa', 'audit'];
+    private const TAB_DIPERBOLEHKAN = ['bunga', 'limit', 'tenor', 'simpanan', 'wa', 'akses', 'organisasi', 'audit'];
 
     private const PANEL_DIPERBOLEHKAN = ['kelola-pengguna', 'kelola-role'];
 
@@ -152,6 +153,7 @@ class PengaturanController extends Controller
                 'tanpaPerusahaan' => Anggota::whereNull('perusahaan_id')->count(),
                 'tanpaDivisi' => Anggota::whereNull('divisi_id')->count(),
             ],
+            'gateStatus' => $tabAktif === 'organisasi' ? $this->statusGate() : null,
             'auditLogs' => $auditLogs,
             'filterAudit' => $request->only(['search', 'date_from', 'date_to']),
         ]);
@@ -255,6 +257,30 @@ class PengaturanController extends Controller
         );
 
         return back()->with('status', 'Nominal simpanan berhasil diperbarui.');
+    }
+
+    private function statusGate(): array
+    {
+        $adaToken = (bool) config('services.gate.token');
+        $terhubung = false;
+
+        if ($adaToken) {
+            try {
+                app(GateClient::class)->ambilPerusahaan();
+                $terhubung = true;
+            } catch (\Throwable) {
+                $terhubung = false;
+            }
+        }
+
+        $syncTerakhir = static fn (string $aksi) => AuditLog::where('aksi', $aksi)->latest()->first()?->created_at?->format('d M Y H:i');
+
+        return [
+            'adaToken' => $adaToken,
+            'terhubung' => $terhubung,
+            'masterTerakhir' => $syncTerakhir('sinkron_master'),
+            'karyawanTerakhir' => $syncTerakhir('sinkron_gate'),
+        ];
     }
 
     public function sinkronMasterGate(Request $request, SinkronisasiMasterService $sinkron)

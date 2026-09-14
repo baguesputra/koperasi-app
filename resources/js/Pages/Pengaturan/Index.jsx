@@ -1,26 +1,20 @@
 import AppLayout from '@/Layouts/AppLayout';
-import { Head, router, useForm } from '@inertiajs/react';
-import { useState } from 'react';
-import { Percent, HandCoins, CalendarRange, PiggyBank, Shield, UserCog, ChevronRight, QrCode, Activity, RefreshCw } from 'lucide-react';
+import { Head, router } from '@inertiajs/react';
 import Card from '@/Components/ui/Card';
-import Drawer from '@/Components/ui/Drawer';
+import { SECTIONS } from './Sections';
 import TabBunga from './Partials/TabBunga';
 import TabLimit from './Partials/TabLimit';
 import TabTenor from './Partials/TabTenor';
 import TabSimpanan from './Partials/TabSimpanan';
 import TabWa from './Partials/TabWa';
 import TabAuditLog from './Partials/TabAuditLog';
-import SheetKelolaPengguna from './Partials/SheetKelolaPengguna';
-import SheetKelolaRole from './Partials/SheetKelolaRole';
+import SectionAkses from './Partials/SectionAkses';
+import SectionOrganisasi from './Partials/SectionOrganisasi';
 
-const tabs = [
-    { key: 'bunga', label: 'Bunga', icon: Percent },
-    { key: 'limit', label: 'Limit Pinjaman', icon: HandCoins },
-    { key: 'tenor', label: 'Tenor', icon: CalendarRange },
-    { key: 'simpanan', label: 'Simpanan', icon: PiggyBank },
-    { key: 'wa', label: 'WhatsApp', icon: QrCode },
-    { key: 'audit', label: 'Audit Log', icon: Activity },
-];
+const JUDUL = {
+    bunga: 'Bunga', limit: 'Limit Pinjaman', tenor: 'Tenor', simpanan: 'Simpanan',
+    wa: 'WhatsApp', akses: 'Akses', organisasi: 'Organisasi GATE', audit: 'Audit Log',
+};
 
 export default function Index({
     tabAktif,
@@ -30,39 +24,21 @@ export default function Index({
     daftarRole,
     roleList,
     semuaPermission,
-    permissionPerRole,
     limitPinjaman,
     tabelTenor,
     bungaSaatIni,
     settingSimpanan,
     ringkasanMaster,
+    gateStatus,
     auditLogs,
     filterAudit,
 }) {
-    const [sheet, setSheet] = useState(panelAktif);
-    const sinkron = useForm({});
-
     function pindahTab(key) {
         if (key === tabAktif) {
             return;
         }
-        router.get(route('pengaturan.index'), { tab: key }, { preserveState: true, replace: true });
+        router.get(route('pengaturan.index'), { tab: key, panel: panelAktif ?? undefined }, { preserveState: false, replace: true });
     }
-
-    const management = [
-        {
-            key: 'kelola-pengguna',
-            title: 'Kelola Pengguna',
-            desc: 'Akun login, role, dan status pengguna',
-            icon: UserCog,
-        },
-        {
-            key: 'kelola-role',
-            title: 'Kelola Role',
-            desc: 'Hak akses dan wewenang tiap role',
-            icon: Shield,
-        },
-    ];
 
     return (
         <AppLayout>
@@ -75,145 +51,97 @@ export default function Index({
                 </p>
             </div>
 
-            {/* Tab pengaturan umum */}
-            <div className="flex items-center gap-1 mb-5 bg-slate-100 p-1 rounded-xl w-fit overflow-x-auto">
-                {tabs.map((tab) => {
-                    const Icon = tab.icon;
-                    const isActive = tabAktif === tab.key;
-                    return (
-                        <button
-                            key={tab.key}
-                            onClick={() => pindahTab(tab.key)}
-                            className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors ${
-                                isActive ? 'bg-white text-brand-navy shadow-sm' : 'text-slate-500 hover:text-slate-700'
-                            }`}
-                        >
-                            <Icon size={16} />
-                            {tab.label}
-                        </button>
-                    );
-                })}
-            </div>
-
-            <Card padding="lg" className="max-h-[calc(100vh-280px)] overflow-y-auto">
-                {tabAktif === 'bunga' && <TabBunga bungaSaatIni={bungaSaatIni} />}
-                {tabAktif === 'limit' && <TabLimit limitPinjaman={limitPinjaman} />}
-                {tabAktif === 'tenor' && <TabTenor tabelTenor={tabelTenor} />}
-                {tabAktif === 'simpanan' && <TabSimpanan settingSimpanan={settingSimpanan} />}
-                {tabAktif === 'wa' && <TabWa />}
-                {tabAktif === 'audit' && <TabAuditLog auditLogs={auditLogs} filterAudit={filterAudit} />}
-            </Card>
-
-            {/* Manajemen akses */}
-            <div className="mt-6">
-                <p className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-3">
-                    Manajemen Akses
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {management.map((item) => {
+            {/* Mobile: navigasi horizontal */}
+            <div className="lg:hidden mb-4 -mx-1 px-1 overflow-x-auto">
+                <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-max min-w-full">
+                    {SECTIONS.flatMap((s) => s.items).map((item) => {
                         const Icon = item.icon;
-                        const active = sheet === item.key;
+                        const isActive = tabAktif === item.key;
                         return (
                             <button
                                 key={item.key}
-                                type="button"
-                                onClick={() => setSheet(active ? null : item.key)}
-                                className={`bg-white rounded-2xl border p-5 flex items-center justify-between gap-4 text-left transition-colors ${
-                                    active ? 'border-brand-green ring-1 ring-brand-green' : 'border-slate-100 hover:bg-slate-50'
+                                onClick={() => pindahTab(item.key)}
+                                className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors ${
+                                    isActive ? 'bg-white text-brand-navy shadow-sm' : 'text-slate-500 hover:text-slate-700'
                                 }`}
                             >
-                                <div className="flex items-center gap-3 min-w-0">
-                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                                        item.key === 'kelola-pengguna'
-                                            ? 'bg-brand-green-light text-brand-green-dark'
-                                            : 'bg-slate-100 text-slate-600'
-                                    }`}>
-                                        <Icon size={20} />
-                                    </div>
-                                    <div className="min-w-0">
-                                        <p className="text-base font-bold text-slate-800">{item.title}</p>
-                                        <p className="text-sm text-slate-400">{item.desc}</p>
-                                    </div>
-                                </div>
-                                <ChevronRight size={18} className={`shrink-0 transition-transform ${active ? 'rotate-90' : 'text-slate-300'}`} />
+                                <Icon size={16} />
+                                {item.label}
                             </button>
                         );
                     })}
                 </div>
             </div>
 
-            {/* Sinkron GATE */}
-            <div className="mt-4 space-y-4">
-                <div className="bg-white rounded-2xl border border-slate-100 p-5 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 text-slate-600">
-                            <Shield size={20} />
-                        </div>
-                        <div className="min-w-0">
-                            <p className="text-base font-bold text-slate-800">Sinkron Master GATE</p>
-                            <p className="text-sm text-slate-400">
-                                {ringkasanMaster?.perusahaan ?? 0} perusahaan &bull; {ringkasanMaster?.departemen ?? 0} departemen &bull; {ringkasanMaster?.divisi ?? 0} divisi &bull; {ringkasanMaster?.jabatan ?? 0} jabatan &bull; {ringkasanMaster?.tanpaPerusahaan ?? 0} anggota tanpa perusahaan &bull; {ringkasanMaster?.tanpaDivisi ?? 0} tanpa divisi
+            <Card padding="none" className="overflow-hidden">
+            <div className="grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)] items-start">
+                {/* Desktop: navigasi grup */}
+                <nav className="hidden lg:block p-3 space-y-5 border-r border-slate-100 self-stretch">
+                    {SECTIONS.map((section) => (
+                        <div key={section.grup}>
+                            <p className="px-2 mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                                {section.grup}
                             </p>
+                            <div className="space-y-0.5">
+                                {section.items.map((item) => {
+                                    const Icon = item.icon;
+                                    const isActive = tabAktif === item.key;
+                                    return (
+                                        <button
+                                            key={item.key}
+                                            onClick={() => pindahTab(item.key)}
+                                            title={item.desc}
+                                            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold text-left transition-colors ${
+                                                isActive ? 'bg-brand-navy text-white' : 'text-slate-600 hover:bg-slate-50'
+                                            }`}
+                                        >
+                                            <Icon size={17} className={`shrink-0 ${isActive ? 'text-brand-green' : ''}`} />
+                                            <span className="min-w-0">
+                                                <span className="block truncate">{item.label}</span>
+                                                <span className={`block text-xs font-normal truncate ${isActive ? 'text-slate-300' : 'text-slate-400'}`}>
+                                                    {item.desc}
+                                                </span>
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
-                    </div>
-                    <button
-                        type="button"
-                        disabled={sinkron.processing}
-                        onClick={() => sinkron.post(route('pengaturan.sinkron-master-gate'))}
-                        className="inline-flex items-center gap-2 px-5 py-3 text-base min-h-[48px] font-semibold rounded-xl border-2 border-brand-navy text-brand-navy hover:bg-slate-50 disabled:opacity-50 shrink-0"
-                    >
-                        <RefreshCw size={18} className={sinkron.processing ? 'animate-spin' : ''} />
-                        {sinkron.processing ? 'Menyinkron...' : 'Sinkron Master'}
-                    </button>
-                </div>
+                    ))}
+                </nav>
 
-                <div className="bg-white rounded-2xl border border-slate-100 p-5 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-brand-green-light text-brand-green-dark">
-                            <RefreshCw size={20} />
-                        </div>
-                        <div className="min-w-0">
-                            <p className="text-base font-bold text-slate-800">Sinkron Karyawan GATE</p>
-                            <p className="text-sm text-slate-400">Tarik data karyawan GATE menjadi user + anggota (NIK sebagai no karyawan)</p>
-                        </div>
+                {/* Konten aktif */}
+                <div className="p-6 sm:p-8 min-w-0">
+                    <div className="mb-5">
+                        <h2 className="text-lg font-bold text-slate-800">{JUDUL[tabAktif] ?? 'Pengaturan'}</h2>
+                        <p className="text-sm text-slate-400 mt-0.5">
+                            {SECTIONS.flatMap((s) => s.items).find((i) => i.key === tabAktif)?.desc ?? ''}
+                        </p>
                     </div>
-                    <button
-                        type="button"
-                        disabled={sinkron.processing}
-                        onClick={() => sinkron.post(route('pengaturan.sinkron-gate'))}
-                        className="inline-flex items-center gap-2 px-5 py-3 text-base min-h-[48px] font-semibold rounded-xl bg-brand-green text-white hover:bg-brand-green-dark disabled:opacity-50 shrink-0"
-                    >
-                        <RefreshCw size={18} className={sinkron.processing ? 'animate-spin' : ''} />
-                        {sinkron.processing ? 'Menyinkron...' : 'Sinkron Sekarang'}
-                    </button>
+
+                    {tabAktif === 'bunga' && <TabBunga bungaSaatIni={bungaSaatIni} />}
+                    {tabAktif === 'limit' && <TabLimit limitPinjaman={limitPinjaman} />}
+                    {tabAktif === 'tenor' && <TabTenor tabelTenor={tabelTenor} />}
+                    {tabAktif === 'simpanan' && <TabSimpanan settingSimpanan={settingSimpanan} />}
+                    {tabAktif === 'wa' && <TabWa />}
+                    {tabAktif === 'akses' && (
+                        <SectionAkses
+                            pengguna={pengguna}
+                            filterPengguna={filterPengguna}
+                            daftarRole={daftarRole}
+                            roleList={roleList}
+                            semuaPermission={semuaPermission}
+                            panelAktif={panelAktif}
+                            tabAktif={tabAktif}
+                        />
+                    )}
+                    {tabAktif === 'organisasi' && (
+                        <SectionOrganisasi ringkasanMaster={ringkasanMaster} gateStatus={gateStatus} />
+                    )}
+                    {tabAktif === 'audit' && <TabAuditLog auditLogs={auditLogs} filterAudit={filterAudit} />}
                 </div>
             </div>
-
-            <Drawer
-                show={sheet === 'kelola-pengguna'}
-                onClose={() => setSheet(null)}
-                maxWidth="3xl"
-                title="Kelola Pengguna"
-            >
-                <SheetKelolaPengguna
-                    pengguna={pengguna}
-                    filterPengguna={filterPengguna}
-                    daftarRole={daftarRole}
-                    tabAktif={tabAktif}
-                />
-            </Drawer>
-
-            <Drawer
-                show={sheet === 'kelola-role'}
-                onClose={() => setSheet(null)}
-                maxWidth="3xl"
-                title="Kelola Role"
-            >
-                <SheetKelolaRole
-                    roleList={roleList}
-                    semuaPermission={semuaPermission}
-                />
-            </Drawer>
+            </Card>
         </AppLayout>
     );
 }
