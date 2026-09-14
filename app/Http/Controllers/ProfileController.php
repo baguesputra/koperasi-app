@@ -2,62 +2,43 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\ProfileUpdateRequest;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ProfileController extends Controller
 {
     /**
-     * Display the user's profile form.
+     * Tampilkan info akun (read-only, akses dikelola GATE).
      */
     public function edit(Request $request): Response
     {
+        $user = $request->user()->loadMissing('anggota.perusahaan', 'anggota.departemen', 'anggota.divisiMaster', 'anggota.jabatanMaster');
+
         return Inertia::render('Profile/Edit', [
-            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
-            'status' => session('status'),
+            'pengguna' => [
+                'name' => $user->name,
+                'email' => $user->email,
+                'no_karyawan' => $user->no_karyawan,
+                'roles' => $user->getRoleNames()->values(),
+                'anggota' => $user->anggota ? [
+                    'nama' => $user->anggota->nama,
+                    'no_anggota' => $user->anggota->no_anggota,
+                    'no_karyawan' => $user->anggota->no_karyawan,
+                    'cabang' => $user->anggota->cabang,
+                    'unit_bisnis' => $user->anggota->unit_bisnis,
+                    'jabatan' => $user->anggota->getRelationValue('jabatanMaster')?->nama ?? $user->anggota->jabatan,
+                    'department' => $user->anggota->getRelationValue('departemen')?->nama ?? $user->anggota->department,
+                    'perusahaan' => $user->anggota->getRelationValue('perusahaan')?->nama,
+                    'divisi' => $user->anggota->getRelationValue('divisiMaster')?->nama,
+                    'status' => $user->anggota->status,
+                    'no_hp' => $user->anggota->no_hp,
+                    'alamat' => $user->anggota->alamat,
+                    'tanggal_mulai_kerja' => $user->anggota->tanggal_mulai_kerja?->format('d M Y'),
+                    'tanggal_jadi_anggota' => $user->anggota->tanggal_jadi_anggota?->format('d M Y'),
+                    'lama_keanggotaan_tahun' => round($user->anggota->lama_keanggotaan_tahun, 1),
+                ] : null,
+            ],
         ]);
-    }
-
-    /**
-     * Update the user's profile information.
-     */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
-    {
-        $request->user()->fill($request->validated());
-
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
-        }
-
-        $request->user()->save();
-
-        return Redirect::route('profile.edit');
-    }
-
-    /**
-     * Delete the user's account.
-     */
-    public function destroy(Request $request): RedirectResponse
-    {
-        $request->validate([
-            'password' => ['required', 'current_password'],
-        ]);
-
-        $user = $request->user();
-
-        Auth::logout();
-
-        $user->delete();
-
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return Redirect::to('/');
     }
 }

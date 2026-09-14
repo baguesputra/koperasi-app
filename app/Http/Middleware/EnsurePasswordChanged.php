@@ -13,10 +13,7 @@ class EnsurePasswordChanged
     {
         $user = $request->user();
 
-        if ($user && $user->harus_ganti_password && ! $request->routeIs('password.wajib-ganti', 'password.wajib-ganti.update', 'logout', 'sso.logout', 'sso.slo')) {
-            return redirect()->route('password.wajib-ganti');
-        }
-
+        // Wajib ganti password dinonaktifkan: akses dikelola GATE.
         // Blokir anggota yang sudah di-resign dari mengakses aplikasi.
         // Hanya cek untuk user yang punya relasi anggota (bukan admin/bendahara/ketua).
         if ($user && $user->anggota && $user->anggota->status === 'resign') {

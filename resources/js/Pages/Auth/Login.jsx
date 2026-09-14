@@ -1,10 +1,10 @@
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import Checkbox from '@/Components/Checkbox';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, useForm } from '@inertiajs/react';
 import { Lock, User } from 'lucide-react';
 
-export default function Login({ status, canResetPassword }) {
+export default function Login({ status }) {
     const { data, setData, post, processing, errors, reset } = useForm({
         no_karyawan: '',
         password: '',
@@ -85,14 +85,6 @@ export default function Login({ status, canResetPassword }) {
                         <div>
                             <div className="flex items-center justify-between">
                                 <InputLabel htmlFor="password" value="Password" className="text-base font-semibold text-slate-200" />
-                                {canResetPassword && (
-                                    <Link
-                                        href={route('password.request')}
-                                        className="text-sm text-brand-green font-semibold hover:text-brand-green-dark"
-                                    >
-                                        Lupa password?
-                                    </Link>
-                                )}
                             </div>
                             <div className="relative mt-1.5">
                                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />

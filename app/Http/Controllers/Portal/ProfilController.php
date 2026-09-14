@@ -13,6 +13,7 @@ class ProfilController extends Controller
     public function index(): Response
     {
         $anggota = auth()->user()->anggota;
+        $anggota->loadMissing(['perusahaan', 'departemen', 'divisiMaster', 'jabatanMaster']);
 
         return Inertia::render('Portal/Profil', [
             'anggota' => [
@@ -21,7 +22,10 @@ class ProfilController extends Controller
                 'no_karyawan' => $anggota->no_karyawan,
                 'cabang' => $anggota->cabang,
                 'unit_bisnis' => $anggota->unit_bisnis,
-                'jabatan' => $anggota->jabatan,
+                'jabatan' => $anggota->getRelationValue('jabatanMaster')?->nama ?? $anggota->jabatan,
+                'perusahaan' => $anggota->getRelationValue('perusahaan')?->nama,
+                'departemen' => $anggota->getRelationValue('departemen')?->nama ?? $anggota->department,
+                'divisi' => $anggota->getRelationValue('divisiMaster')?->nama,
                 'tanggal_mulai_kerja' => $anggota->tanggal_mulai_kerja->format('d M Y'),
                 'tanggal_jadi_anggota' => $anggota->tanggal_jadi_anggota->format('d M Y'),
                 'email' => auth()->user()->email,

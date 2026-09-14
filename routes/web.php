@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\AnggotaController;
-use App\Http\Controllers\Auth\GantiPasswordWajibController;
 use App\Http\Controllers\Auth\SsoController;
 use App\Http\Controllers\Bendahara\AngsuranController;
 use App\Http\Controllers\Bendahara\PercepatanController as BendaharaPercepatanController;
@@ -237,11 +236,8 @@ Route::middleware('auth')->prefix('ketua')->name('ketua.')->group(function () {
 // PROFILE (semua user login)
 // ==========================================
 Route::middleware('auth')->group(function () {
-    Route::get('/ganti-password-wajib', [GantiPasswordWajibController::class, 'index'])->name('password.wajib-ganti');
-    Route::post('/ganti-password-wajib', [GantiPasswordWajibController::class, 'update'])->name('password.wajib-ganti.update');
+    // Wajib ganti password dinonaktifkan: akses dikelola GATE.
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
 Route::middleware(['auth', 'permission:kas.lihat'])->group(function () {

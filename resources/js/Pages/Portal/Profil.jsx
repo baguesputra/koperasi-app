@@ -3,10 +3,8 @@ import { Head, useForm, router } from '@inertiajs/react';
 import { useState } from 'react';
 import {
     User, Building2, Briefcase, Calendar, Mail,
-    CreditCard, Plus, Star, Trash2,
+    CreditCard, Plus, Star, Trash2, Landmark, Network,
 } from 'lucide-react';
-
-const jabatanLabel = { staff: 'Staff', hod: 'HOD' };
 
 export default function Profil({ anggota, rekening }) {
     const [showForm, setShowForm] = useState(false);
@@ -35,7 +33,10 @@ export default function Profil({ anggota, rekening }) {
         { icon: User, label: 'Nama Lengkap', value: anggota.nama },
         { icon: Mail, label: 'Email', value: anggota.email },
         { icon: Building2, label: 'Cabang', value: anggota.cabang },
-        { icon: Briefcase, label: 'Unit Bisnis & Jabatan', value: `${anggota.unit_bisnis} \u2022 ${jabatanLabel[anggota.jabatan]}` },
+        { icon: Landmark, label: 'Perusahaan', value: anggota.perusahaan ?? '-' },
+        { icon: Network, label: 'Departemen', value: anggota.departemen ?? '-' },
+        { icon: Network, label: 'Divisi', value: anggota.divisi ?? '-' },
+        { icon: Briefcase, label: 'Unit Bisnis & Jabatan', value: `${anggota.unit_bisnis} • ${anggota.jabatan ?? '-'}` },
         { icon: Calendar, label: 'Tanggal Mulai Kerja', value: anggota.tanggal_mulai_kerja },
         { icon: Calendar, label: 'Tanggal Jadi Anggota', value: anggota.tanggal_jadi_anggota },
     ];
@@ -70,7 +71,7 @@ export default function Profil({ anggota, rekening }) {
                         })}
                     </div>
                     <p className="text-xs text-slate-400 mt-5 pt-4 border-t border-slate-100">
-                        Untuk perubahan data diri, silakan hubungi Admin koperasi.
+                        Data diri dikelola melalui GATE. Untuk perubahan, perbarui data di GATE lalu hubungi Admin koperasi untuk sinkron ulang.
                     </p>
                 </div>
 
