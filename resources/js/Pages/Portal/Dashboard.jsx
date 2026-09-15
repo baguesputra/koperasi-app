@@ -281,14 +281,28 @@ export default function Dashboard({
                     HEADER
                 ====================================================== */}
                 <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
-                    <div>
-                        <p className="text-sm text-slate-500">
-                            Selamat datang,
-                        </p>
+                    <div className="flex items-center gap-4">
+                        {anggota.foto_url ? (
+                            <img
+                                src={anggota.foto_url}
+                                alt={anggota.nama}
+                                className="w-20 h-20 rounded-full object-cover border border-slate-200 shrink-0"
+                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                            />
+                        ) : (
+                            <div className="w-20 h-20 rounded-full bg-brand-green text-white flex items-center justify-center text-2xl font-bold shrink-0">
+                                {anggota.nama.charAt(0).toUpperCase()}
+                            </div>
+                        )}
+                        <div className="min-w-0">
+                            <p className="text-sm text-slate-500">
+                                Selamat datang,
+                            </p>
 
-                        <h1 className="text-2xl font-bold text-slate-800">
-                            {anggota.nama.split(' ')[0]}
-                        </h1>
+                            <h1 className="text-2xl font-bold text-slate-800 leading-tight">
+                                {anggota.nama}
+                            </h1>
+                        </div>
                     </div>
 
                     <div className="text-left sm:text-right">

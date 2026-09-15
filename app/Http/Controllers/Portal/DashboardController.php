@@ -161,6 +161,7 @@ class DashboardController extends Controller
                 'nama' => $anggota->nama,
                 'no_anggota' => $anggota->no_anggota,
                 'no_karyawan' => $anggota->no_karyawan,
+                'foto_url' => $anggota->foto_url,
                 'lama_keanggotaan_label' => $this->formatLamaKeanggotaan($anggota->tanggal_jadi_anggota),
             ],
             'totalSimpanan' => (float) $totalSimpanan,

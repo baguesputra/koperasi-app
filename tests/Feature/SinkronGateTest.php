@@ -65,6 +65,25 @@ class SinkronGateTest extends TestCase
         $this->assertTrue(Simpanan::where('anggota_id', $anggota->id)->where('jenis', 'pokok')->exists());
     }
 
+    public function test_sinkron_menyimpan_foto(): void
+    {
+        $foto = 'https://gate.appdutamall.com/storage/photos/avatar-budi.jpg';
+        $this->fakeGate([$this->karyawanGate(['photo_url' => $foto])]);
+        $this->masuk('ADM-000001');
+
+        $this->post(route('pengaturan.sinkron-gate'))->assertRedirect();
+        $this->assertSame($foto, Anggota::where('no_karyawan', '6371012304950001')->sole()->foto_url);
+    }
+
+    public function test_sinkron_menolak_foto_url_tidak_aman(): void
+    {
+        $this->fakeGate([$this->karyawanGate(['photo_url' => 'javascript:alert(1)'])]);
+        $this->masuk('ADM-000001');
+
+        $this->post(route('pengaturan.sinkron-gate'))->assertRedirect();
+        $this->assertNull(Anggota::where('no_karyawan', '6371012304950001')->sole()->foto_url);
+    }
+
     public function test_sinkron_idempoten_dan_pratinjau_tidak_menyimpan(): void
     {
         $this->fakeGate([$this->karyawanGate()]);
@@ -107,6 +126,18 @@ class SinkronGateTest extends TestCase
 
         $this->post(route('pengaturan.sinkron-gate'))->assertRedirect();
         $this->assertFalse(Anggota::where('no_karyawan', '6371012304950001')->exists());
+    }
+
+    public function test_sinkron_menolak_nik_terdaftar_pada_gate_lain(): void
+    {
+        $ada = $this->buatAnggota('6371012304950001');
+        $ada->update(['gate_id' => 'uuid-lama']);
+
+        $this->fakeGate([$this->karyawanGate()]);
+        $this->masuk('ADM-000001');
+
+        $this->post(route('pengaturan.sinkron-gate'))->assertRedirect();
+        $this->assertSame('uuid-lama', $ada->fresh()->gate_id);
     }
 
     public function test_sinkron_butuh_permission_pengaturan(): void

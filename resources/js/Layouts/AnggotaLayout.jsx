@@ -1,6 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import { useState, useRef, useEffect } from 'react';
-import { User, LogOut, ChevronDown, HelpCircle, Home, History, FilePlus } from 'lucide-react';
+import { User, LogOut, ChevronDown, Home, History, FilePlus, Info } from 'lucide-react';
 import Panduan from '@/Pages/Portal/Panduan';
 
 export default function AnggotaLayout({ children }) {
@@ -43,15 +43,6 @@ export default function AnggotaLayout({ children }) {
                             <img src="/images/logo.png" alt="Koperasi App" className="w-8 h-8" />
                             <span className="font-bold text-base text-slate-800">Koperasi App</span>
                         </Link>
-
-                        <button
-                            type="button"
-                            onClick={() => setShowPanduan(true)}
-                            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg border border-slate-200 text-slate-600 hover:bg-brand-green-light hover:border-brand-green hover:text-brand-green-dark transition-colors min-h-[44px]"
-                        >
-                            <HelpCircle size={16} />
-                            <span>Tata Cara</span>
-                        </button>
                     </div>
 
                     <div className="relative" ref={dropdownRef}>
@@ -157,6 +148,22 @@ export default function AnggotaLayout({ children }) {
                     </Link>
                 </div>
             </nav>
+
+            {!showPanduan && (
+                <button
+                    type="button"
+                    onClick={() => setShowPanduan(true)}
+                    aria-label="Tata cara"
+                    title="Tata cara"
+                    className={`fixed right-4 sm:right-6 z-50 w-[52px] h-[52px] rounded-full bg-brand-navy text-white shadow-lg flex items-center justify-center hover:bg-brand-navy-light transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 ${
+                        isCurrentRoute('portal.pinjaman.create') || isCurrentRoute('portal.percepatan.create') || isCurrentRoute('portal.pengajuan-limit.create')
+                            ? 'bottom-[calc(10.5rem+env(safe-area-inset-bottom))] sm:bottom-8'
+                            : 'bottom-[calc(5rem+env(safe-area-inset-bottom))] sm:bottom-8'
+                    }`}
+                >
+                    <Info size={22} />
+                </button>
+            )}
 
             {showPanduan && <Panduan onClose={() => setShowPanduan(false)} />}
         </div>

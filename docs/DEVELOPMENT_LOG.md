@@ -239,7 +239,7 @@ Menambahkan automated test untuk berbagai skenario login SSO.
 Terapkan pola tab (Approval + Riwayat) ke 3 halaman Bendahara/Ketua — konsisten dengan Bendahara/Pinjaman, build & test pass.
 
 # Testing Checklist — Koperasi App
-**Tanggal:** senin 14 september 2026
+**Tanggal:** senin 14 - 16 september 2026
 - [ ] Perancangan data riil karyawan dan koperasi untuk di masukkan ke database
 
 

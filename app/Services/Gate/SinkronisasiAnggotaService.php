@@ -88,6 +88,7 @@ class SinkronisasiAnggotaService
             $nama = trim((string) $baris['name']);
             $email = trim((string) ($baris['email'] ?? ''));
             $noHp = $this->normalisasiHp($baris['whatsapp_number'] ?? null);
+            $fotoUrl = $this->normalisasiFoto($baris['photo_url'] ?? $baris['photo'] ?? null);
             $posisi = $baris['position'] ?? null;
             if (is_array($posisi)) {
                 $department = $posisi['department']['name'] ?? $posisi['department']['code'] ?? null;
@@ -143,10 +144,12 @@ class SinkronisasiAnggotaService
                 ]);
             }
 
-            $anggota = Anggota::where('gate_id', $baris['id'])
-                ->orWhere('no_karyawan', $nik)
-                ->lockForUpdate()
-                ->first();
+            $anggota = Anggota::where('gate_id', $baris['id'])->lockForUpdate()->first()
+                ?? Anggota::where('no_karyawan', $nik)->lockForUpdate()->first();
+
+            if ($anggota && $anggota->gate_id && $anggota->gate_id !== $baris['id']) {
+                throw new \RuntimeException("NIK {$nik} terdaftar pada data GATE lain.");
+            }
 
             $perusahaan = ! empty($compGateId)
                 ? Perusahaan::where('gate_id', $compGateId)->first()
@@ -175,6 +178,7 @@ class SinkronisasiAnggotaService
                     'tanggal_mulai_kerja' => now(),
                     'tanggal_jadi_anggota' => now(),
                     'no_hp' => $noHp,
+                    'foto_url' => $fotoUrl,
                     'status' => 'aktif',
                 ]);
                 $this->catatSimpananPokok($anggota, $aktorId);
@@ -192,11 +196,22 @@ class SinkronisasiAnggotaService
                     'department' => $department ?? $anggota->department,
                     'jabatan' => $namaJabatan ?: $anggota->jabatan,
                     'no_hp' => $noHp ?? $anggota->no_hp,
+                    'foto_url' => $fotoUrl ?? $anggota->foto_url,
                 ]);
             }
 
             return $baru ? 'baru' : 'diperbarui';
         });
+    }
+
+    private function normalisasiFoto(mixed $url): ?string
+    {
+        $url = trim((string) $url);
+        if ($url === '' || strlen($url) > 500) {
+            return null;
+        }
+
+        return preg_match('#^https?://#i', $url) ? $url : null;
     }
 
     private function normalisasiHp(mixed $nomor): ?string

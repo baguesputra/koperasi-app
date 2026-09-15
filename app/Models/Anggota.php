@@ -44,6 +44,7 @@ class Anggota extends Model
         'limit_custom_keterangan',
         'no_hp',
         'alamat',
+        'foto_url',
     ];
 
     protected $casts = [
