@@ -18,6 +18,7 @@ class RoleSeeder extends Seeder
             'kas.lihat', 'kas.topup',
             'laporan.lihat',
             'pengaturan.kelola', 'user.kelola',
+            'migrasi.kelola',
         ]);
 
         $bendahara = Role::firstOrCreate(['name' => 'bendahara']);

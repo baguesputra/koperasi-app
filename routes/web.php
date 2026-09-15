@@ -12,6 +12,7 @@ use App\Http\Controllers\Ketua\PengajuanLimitController as KetuaPengajuanLimitCo
 use App\Http\Controllers\Ketua\PercepatanController as KetuaPercepatanController;
 use App\Http\Controllers\Ketua\PinjamanController as KetuaPinjamanController;
 use App\Http\Controllers\LaporanController;
+use App\Http\Controllers\MigrasiController;
 use App\Http\Controllers\Pengaturan\PenggunaController;
 use App\Http\Controllers\PengaturanController;
 use App\Http\Controllers\PengeluaranController;
@@ -260,5 +261,15 @@ Route::get('/auth/sso/gagal', function () {
         'error' => session('error'),
     ]);
 })->middleware('guest')->name('sso.gagal');
+
+Route::middleware(['auth', 'permission:migrasi.kelola'])->prefix('migrasi')->name('migrasi.')->group(function () {
+    Route::get('/', [MigrasiController::class, 'index'])->name('index');
+    Route::get('/template-pinjaman', [MigrasiController::class, 'templatePinjaman'])->name('template-pinjaman');
+    Route::get('/template-simpanan', [MigrasiController::class, 'templateSimpanan'])->name('template-simpanan');
+    Route::post('/import-pinjaman', [MigrasiController::class, 'importPinjaman'])->name('import-pinjaman');
+    Route::post('/import-simpanan', [MigrasiController::class, 'importSimpanan'])->name('import-simpanan');
+    Route::get('/progres-pinjaman', [MigrasiController::class, 'progresPinjaman'])->name('progres-pinjaman');
+    Route::get('/progres-simpanan', [MigrasiController::class, 'progresSimpanan'])->name('progres-simpanan');
+});
 
 require __DIR__.'/auth.php';

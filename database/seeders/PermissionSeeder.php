@@ -25,6 +25,7 @@ class PermissionSeeder extends Seeder
             'pengaturan.kelola',
             'user.kelola',
             'portal.akses',
+            'migrasi.kelola',
         ];
 
         foreach ($permissions as $permission) {
