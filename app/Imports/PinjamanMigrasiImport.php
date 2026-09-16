@@ -5,6 +5,7 @@ namespace App\Imports;
 use App\Models\Anggota;
 use App\Services\Migrasi\MigrasiPinjamanService;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
@@ -17,7 +18,7 @@ class PinjamanMigrasiImport implements ToCollection, WithHeadingRow
 
     public function __construct(private MigrasiPinjamanService $migrasi) {}
 
-    public function collection($rows)
+    public function collection(Collection $rows): void
     {
         $userId = auth()->id();
 

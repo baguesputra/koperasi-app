@@ -2,7 +2,7 @@
     "openapi": "3.0.0",
     "info": {
         "title": "Koperasi App API",
-        "description": "RESTful API for Koperasi App mobile applications and integrations",
+        "description": "RESTful API untuk aplikasi mobile koperasi dan integrasi",
         "version": "1.0.0"
     },
     "paths": {
@@ -228,6 +228,10 @@
                                                 "no_anggota": {
                                                     "type": "string",
                                                     "example": "ANG-2026-0001"
+                                                },
+                                                "no_karyawan": {
+                                                    "type": "string",
+                                                    "example": "TOP-100001"
                                                 },
                                                 "lama_keanggotaan_label": {
                                                     "type": "string",
@@ -2466,12 +2470,16 @@
                     },
                     "resigned_settlement_json": {
                         "type": "array",
-                        "items": {},
+                        "items": {
+                            "type": "string"
+                        },
                         "nullable": true
                     },
                     "reaktivasi_history_json": {
                         "type": "array",
-                        "items": {},
+                        "items": {
+                            "type": "string"
+                        },
                         "nullable": true
                     },
                     "limit_custom": {
@@ -2608,10 +2616,6 @@
     },
     "tags": [
         {
-            "name": "Authentication",
-            "description": "Authentication endpoints"
-        },
-        {
             "name": "Dashboard",
             "description": "Dashboard endpoints for mobile app"
         },
@@ -2634,6 +2638,10 @@
         {
             "name": "Pinjaman",
             "description": "Loan management"
+        },
+        {
+            "name": "Authentication",
+            "description": "Endpoint autentikasi"
         }
     ],
     "security": [

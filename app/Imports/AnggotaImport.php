@@ -7,6 +7,7 @@ use App\Models\SettingSimpanan;
 use App\Models\Simpanan;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
@@ -18,7 +19,7 @@ class AnggotaImport implements ToCollection, WithHeadingRow
 
     public array $gagal = [];
 
-    public function collection($rows)
+    public function collection(Collection $rows): void
     {
         $nominalPokok = SettingSimpanan::where('jenis', 'pokok')->value('nominal') ?? 50_000;
         $adminId = auth()->id();
