@@ -64,6 +64,46 @@ class KasTopupPengeluaranTest extends TestCase
         $this->assertTrue(JurnalKas::where('kategori', 'pengeluaran_koperasi')->where('tipe', 'keluar')->exists());
     }
 
+    public function test_index_filter_cari_dan_bulan(): void
+    {
+        $this->masuk('BEN-000001');
+        $bulanIni = now()->format('Y-m');
+        $bulanLalu = now()->subMonth()->format('Y-m');
+
+        $this->post(route('pengeluaran.store'), [
+            'jenis' => 'koperasi',
+            'jumlah' => 250_000,
+            'keterangan' => 'Belanja spidol zebra qzx123',
+            'tanggal' => now()->format('Y-m-d'),
+        ])->assertStatus(302);
+
+        $this->post(route('pengeluaran.store'), [
+            'jenis' => 'koperasi',
+            'jumlah' => 100_000,
+            'keterangan' => 'Biaya lama beda bulan qzx123',
+            'tanggal' => now()->subMonth()->format('Y-m-d'),
+        ])->assertStatus(302);
+
+        $res = $this->get(route('pengeluaran.index', ['jenis' => 'koperasi', 'cari' => 'qzx123']))->assertOk();
+        $props = $res->viewData('page')['props'];
+        $this->assertSame(2, count($props['pengeluaran']['data']));
+        $this->assertEquals(350_000, (float) $props['totalTampil']);
+
+        $resBulan = $this->get(route('pengeluaran.index', ['jenis' => 'koperasi', 'cari' => 'qzx123', 'bulan' => $bulanLalu]))->assertOk();
+        $propsBulan = $resBulan->viewData('page')['props'];
+        $this->assertSame(1, count($propsBulan['pengeluaran']['data']));
+        $this->assertEquals(100_000, (float) $propsBulan['totalTampil']);
+
+        $resSemua = $this->get(route('pengeluaran.index', ['jenis' => 'koperasi', 'cari' => 'qzx123', 'bulan' => $bulanIni]))->assertOk();
+        $propsSemua = $resSemua->viewData('page')['props'];
+        $this->assertSame(1, count($propsSemua['pengeluaran']['data']));
+        $this->assertEquals(250_000, (float) $propsSemua['totalTampil']);
+
+        $resKosong = $this->get(route('pengeluaran.index', ['jenis' => 'dana_sosial', 'cari' => 'qzx123']))->assertOk();
+        $propsKosong = $resKosong->viewData('page')['props'];
+        $this->assertSame(0, count($propsKosong['pengeluaran']['data']));
+    }
+
     public function test_pengeluaran_dana_sosial_tak_bersentuhan_saldo_pinjaman(): void
     {
         $this->masuk('BEN-000001');

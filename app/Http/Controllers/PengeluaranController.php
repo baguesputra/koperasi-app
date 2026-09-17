@@ -16,9 +16,26 @@ class PengeluaranController extends Controller
     public function index(Request $request): Response
     {
         $jenis = $request->input('jenis', 'koperasi');
+        $bulan = $request->string('bulan');
 
-        $pengeluaran = Pengeluaran::with('inputOleh')
-            ->where('jenis', $jenis)
+        $query = Pengeluaran::with('inputOleh')->where('jenis', $jenis);
+
+        if ($request->filled('cari')) {
+            $cari = $request->string('cari');
+            $query->where(function ($q) use ($cari) {
+                $q->where('keterangan', 'like', "%{$cari}%")
+                    ->orWhereHas('inputOleh', fn ($r) => $r->where('name', 'like', "%{$cari}%"));
+            });
+        }
+
+        if ($bulan->isNotEmpty() && preg_match('/^\d{4}-\d{2}$/', $bulan->value())) {
+            $query->whereYear('tanggal', substr($bulan->value(), 0, 4))
+                ->whereMonth('tanggal', substr($bulan->value(), 5, 2));
+        }
+
+        $totalTampil = (clone $query)->sum('jumlah');
+
+        $pengeluaran = $query
             ->latest('tanggal')
             ->latest('id')
             ->paginate(15)
@@ -28,6 +45,7 @@ class PengeluaranController extends Controller
                 'jumlah' => (float) $p->jumlah,
                 'keterangan' => $p->keterangan,
                 'tanggal' => $p->tanggal->format('d M Y'),
+                'hari' => $p->tanggal->translatedFormat('l'),
                 'input_oleh' => $p->inputOleh->name,
             ]);
 
@@ -37,8 +55,10 @@ class PengeluaranController extends Controller
         return Inertia::render('Pengeluaran/Index', [
             'pengeluaran' => $pengeluaran,
             'jenisAktif' => $jenis,
+            'filters' => $request->only(['cari', 'bulan']),
             'totalKoperasi' => (float) $totalKoperasi,
             'totalDanaSosial' => (float) $totalDanaSosial,
+            'totalTampil' => (float) $totalTampil,
         ]);
     }
 
