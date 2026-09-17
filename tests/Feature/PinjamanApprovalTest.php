@@ -59,12 +59,7 @@ class PinjamanApprovalTest extends TestCase
         $this->actingAs($baru->user);
         $res = $this->ajukanPortal($baru);
 
-        try {
-            $res->assertSessionHasErrors();
-            file_put_contents('/tmp/opencode/trace.log', 'HAS-ERRORS');
-        } catch (\Throwable $e) {
-            file_put_contents('/tmp/opencode/trace.log', 'NO-SESSION-ERRORS: '.substr($e->getMessage(), 0, 200));
-        }
+        $res->assertSessionHasErrors();
 
         $this->assertSame(1, Pinjaman::where('anggota_id', $baru->id)->count());
     }
