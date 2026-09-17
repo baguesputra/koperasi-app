@@ -10,8 +10,6 @@ use App\Http\Requests\UpdateAnggotaRequest;
 use App\Imports\AnggotaImport;
 use App\Models\Anggota;
 use App\Models\AuditLog;
-use App\Models\Divisi;
-use App\Models\Perusahaan;
 use App\Models\SettingSimpanan;
 use App\Models\Simpanan;
 use App\Models\User;
@@ -99,20 +97,7 @@ class AnggotaController extends Controller
                 'resign' => (int) $statistik->resign,
             ],
             'filters' => $request->only(['cari', 'cabang', 'status']),
-            'noAnggotaBerikutnya' => Anggota::generateNoAnggota(),
             'daftarCabang' => Config::get('cabang'),
-            'daftarPerusahaan' => Perusahaan::orderBy('nama')->get(['id', 'nama']),
-            'daftarDivisi' => Divisi::orderBy('nama')->get(['id', 'nama']),
-        ]);
-    }
-
-    public function create(): Response
-    {
-        return Inertia::render('Anggota/Create', [
-            'noAnggotaBerikutnya' => Anggota::generateNoAnggota(),
-            'daftarCabang' => Config::get('cabang'),
-            'daftarPerusahaan' => Perusahaan::orderBy('nama')->get(['id', 'nama']),
-            'daftarDivisi' => Divisi::orderBy('nama')->get(['id', 'nama']),
         ]);
     }
 
@@ -147,18 +132,6 @@ class AnggotaController extends Controller
 
         return redirect()->route('anggota.index')
             ->with('status', 'Anggota berhasil ditambahkan beserta akun login (password awal = no karyawan).');
-    }
-
-    public function edit(Anggota $anggota): Response
-    {
-        $anggota->load(['perusahaan', 'departemen', 'divisiMaster', 'jabatanMaster']);
-
-        return Inertia::render('Anggota/Edit', [
-            'anggota' => $anggota,
-            'daftarCabang' => Config::get('cabang'),
-            'daftarPerusahaan' => Perusahaan::orderBy('nama')->get(['id', 'nama']),
-            'daftarDivisi' => Divisi::orderBy('nama')->get(['id', 'nama']),
-        ]);
     }
 
     public function update(UpdateAnggotaRequest $request, Anggota $anggota)

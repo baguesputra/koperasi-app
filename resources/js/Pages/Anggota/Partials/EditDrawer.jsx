@@ -1,23 +1,40 @@
 import { useForm } from '@inertiajs/react';
+import { Lock, CalendarDays, ToggleLeft, Wallet } from 'lucide-react';
 import Button from '@/Components/ui/Button';
 import FormField from '@/Components/ui/FormField';
 import Select from '@/Components/ui/Select';
 import TextField from '@/Components/ui/TextField';
 
-export default function EditDrawer({ anggota, daftarCabang, onClose }) {
+function Seksi({ ikon: Ikon, judul, deskripsi, children }) {
+    return (
+        <section className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-2.5 mb-1">
+                <span className="w-8 h-8 rounded-xl bg-slate-100 text-slate-500 inline-flex items-center justify-center shrink-0">
+                    <Ikon size={16} />
+                </span>
+                <h3 className="text-sm font-bold text-slate-800">{judul}</h3>
+            </div>
+            {deskripsi && <p className="text-xs text-slate-400 mb-3 ml-[42px]">{deskripsi}</p>}
+            <div className={deskripsi ? '' : 'mt-3'}>{children}</div>
+        </section>
+    );
+}
+
+function Info({ label, value }) {
+    return (
+        <div className="rounded-xl bg-slate-50/80 border border-slate-100 px-3 py-2 min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 truncate">{label}</p>
+            <p className="text-sm font-semibold text-slate-700 truncate mt-0.5" title={value ?? '-'}>{value ?? '-'}</p>
+        </div>
+    );
+}
+
+export default function EditDrawer({ anggota, onClose }) {
     const { data, setData, put, processing, errors } = useForm({
-        nama: anggota.nama,
-        no_karyawan: anggota.no_karyawan ?? '',
-        email: anggota.user?.email ?? '',
-        cabang: anggota.cabang,
-        unit_bisnis: anggota.unit_bisnis,
-        tanggal_mulai_kerja: anggota.tanggal_mulai_kerja ?? '',
         tanggal_jadi_anggota: anggota.tanggal_jadi_anggota ?? '',
         status: anggota.status,
         limit_custom: anggota.limit_custom ?? '',
         limit_custom_keterangan: anggota.limit_custom_keterangan ?? '',
-        no_hp: anggota.no_hp ?? '',
-        alamat: anggota.alamat ?? '',
     });
 
     function submit(e) {
@@ -29,156 +46,71 @@ export default function EditDrawer({ anggota, daftarCabang, onClose }) {
     }
 
     return (
-        <form onSubmit={submit}>
-            <FormField label="Nama Lengkap" error={errors.nama}>
-                <TextField
-                    size="sm"
-                    value={data.nama}
-                    onChange={(e) => setData('nama', e.target.value)}
-                    autoFocus
-                />
-            </FormField>
-
-            <FormField label="No. Karyawan" error={errors.no_karyawan} hint="Format: TOP-XXXXXX (contoh: TOP-123456)">
-                <TextField
-                    size="sm"
-                    value={data.no_karyawan}
-                    onChange={(e) => setData('no_karyawan', e.target.value)}
-                    placeholder="TOP-123456"
-                />
-            </FormField>
-
-            <FormField label="Email" error={errors.email} hint="Wajib diisi untuk notifikasi">
-                <TextField
-                    size="sm"
-                    type="email"
-                    value={data.email}
-                    onChange={(e) => setData('email', e.target.value)}
-                    placeholder="budi@company.com"
-                />
-            </FormField>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
-                <FormField label="Cabang" error={errors.cabang}>
-                    <Select
-                        size="sm"
-                        value={data.cabang}
-                        onChange={(e) => setData('cabang', e.target.value)}
-                    >
-                        {daftarCabang.map((c) => (
-                            <option key={c} value={c}>{c}</option>
-                        ))}
-                    </Select>
-                </FormField>
-
-                <div className="rounded-xl bg-slate-50 border border-slate-100 px-4 py-3">
-                    <p className="text-sm text-slate-400">Departemen (otomatis dari GATE)</p>
-                    <p className="text-base font-semibold text-slate-700">{anggota.departemen?.nama ?? '-'}</p>
+        <form onSubmit={submit} className="space-y-3">
+            <div className="flex items-center gap-3 rounded-2xl bg-gradient-to-r from-brand-navy to-brand-navy-light text-white px-4 py-3 shadow-md shadow-brand-navy/20">
+                <div className="w-11 h-11 rounded-full bg-white/15 flex items-center justify-center text-base font-bold shrink-0" aria-hidden="true">
+                    {anggota.nama.charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                    <p className="text-sm font-bold truncate">{anggota.nama}</p>
+                    <p className="text-xs text-white/70 truncate">{anggota.no_karyawan}{anggota.user?.email ? ` • ${anggota.user.email}` : ''}</p>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                <div className="rounded-xl bg-slate-50 border border-slate-100 px-4 py-3">
-                    <p className="text-sm text-slate-400">Jabatan (otomatis dari GATE)</p>
-                    <p className="text-base font-semibold text-slate-700">{anggota.jabatanMaster?.nama ?? anggota.jabatan ?? '-'}</p>
-                </div>
-                <div className="rounded-xl bg-slate-50 border border-slate-100 px-4 py-3">
-                    <p className="text-sm text-slate-400">Unit Bisnis</p>
-                    <p className="text-base font-semibold text-slate-700">{anggota.unit_bisnis ?? '-'}</p>
-                </div>
-                <div className="rounded-xl bg-slate-50 border border-slate-100 px-4 py-3">
-                    <p className="text-sm text-slate-400">Perusahaan (otomatis dari GATE)</p>
-                    <p className="text-base font-semibold text-slate-700">{anggota.perusahaan?.nama ?? '-'}</p>
-                </div>
-                <div className="rounded-xl bg-slate-50 border border-slate-100 px-4 py-3">
-                    <p className="text-sm text-slate-400">Divisi (otomatis dari GATE)</p>
-                    <p className="text-base font-semibold text-slate-700">{anggota.divisiMaster?.nama ?? '-'}</p>
-                </div>
+            <div className="flex items-start gap-2.5 rounded-2xl bg-amber-50 border border-amber-200 px-3.5 py-2.5 text-xs text-amber-800">
+                <Lock size={15} className="shrink-0 mt-0.5" />
+                <p>Data identitas, penempatan, dan kontak <strong>terkunci</strong> — sinkron otomatis dari GATE. Hubungi admin HR bila ada selisih.</p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
-                <FormField label="Tanggal Mulai Kerja" error={errors.tanggal_mulai_kerja}>
-                    <TextField
-                        size="sm"
-                        type="date"
-                        value={data.tanggal_mulai_kerja}
-                        onChange={(e) => setData('tanggal_mulai_kerja', e.target.value)}
-                    />
-                </FormField>
+            <Seksi ikon={Lock} judul="Data GATE" deskripsi="Read-only, diperbarui via sinkronisasi">
+                <div className="grid grid-cols-2 gap-2">
+                    <Info label="Nama" value={anggota.nama} />
+                    <Info label="No. Karyawan" value={anggota.no_karyawan} />
+                    <Info label="Cabang" value={anggota.cabang} />
+                    <Info label="Unit Bisnis" value={anggota.unit_bisnis} />
+                    <Info label="Perusahaan" value={anggota.perusahaan?.nama} />
+                    <Info label="Departemen" value={anggota.departemen?.nama} />
+                    <Info label="Divisi" value={anggota.divisiMaster?.nama} />
+                    <Info label="Jabatan" value={anggota.jabatanMaster?.nama ?? anggota.jabatan} />
+                    <Info label="Mulai Kerja" value={anggota.tanggal_mulai_kerja} />
+                    <Info label="No. HP" value={anggota.no_hp} />
+                    <div className="col-span-2">
+                        <Info label="Alamat" value={anggota.alamat} />
+                    </div>
+                </div>
+            </Seksi>
 
-                <FormField label="Tanggal Jadi Anggota" error={errors.tanggal_jadi_anggota}>
-                    <TextField
-                        size="sm"
-                        type="date"
-                        value={data.tanggal_jadi_anggota}
-                        onChange={(e) => setData('tanggal_jadi_anggota', e.target.value)}
-                    />
-                </FormField>
-            </div>
+            <Seksi ikon={CalendarDays} judul="Keanggotaan Koperasi" deskripsi="Satu-satunya data tanggal yang boleh diubah manual">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3">
+                    <FormField label="Tanggal Jadi Anggota" error={errors.tanggal_jadi_anggota} hint="Acuan lama keanggotaan & limit" required>
+                        <TextField size="sm" type="date" value={data.tanggal_jadi_anggota} onChange={(e) => setData('tanggal_jadi_anggota', e.target.value)} autoFocus required />
+                    </FormField>
+                    <FormField label="Status" error={errors.status} required>
+                        <div className="relative">
+                            <ToggleLeft size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                            <Select size="sm" value={data.status} onChange={(e) => setData('status', e.target.value)} className="pl-9" required>
+                                <option value="aktif">Aktif</option>
+                                <option value="nonaktif">Nonaktif</option>
+                            </Select>
+                        </div>
+                    </FormField>
+                </div>
+            </Seksi>
 
-            <FormField label="Status" error={errors.status}>
-                <Select
-                    size="sm"
-                    value={data.status}
-                    onChange={(e) => setData('status', e.target.value)}
-                >
-                    <option value="aktif">Aktif</option>
-                    <option value="nonaktif">Nonaktif</option>
-                </Select>
-            </FormField>
-
-            <FormField label="No. HP" error={errors.no_hp} hint="Format: 081234567890 atau +6281234567890">
-                <TextField
-                    size="sm"
-                    type="tel"
-                    value={data.no_hp}
-                    onChange={(e) => setData('no_hp', e.target.value)}
-                    placeholder="081234567890"
-                />
-            </FormField>
-
-            <FormField label="Alamat" error={errors.alamat}>
-                <TextField
-                    size="sm"
-                    as="textarea"
-                    rows={3}
-                    value={data.alamat}
-                    onChange={(e) => setData('alamat', e.target.value)}
-                    placeholder="Alamat lengkap"
-                />
-            </FormField>
-
-            <div className="mt-5 pt-5 border-t border-slate-100">
-                <p className="text-base font-bold text-slate-700 mb-1">Limit Pinjaman Khusus (Opsional)</p>
-                <p className="text-sm text-slate-400 mb-4">
-                    Isi jika anggota ini punya kebijakan limit berbeda dari aturan umum. Kosongkan untuk memakai aturan otomatis berdasarkan jabatan & lama keanggotaan.
-                </p>
-
+            <Seksi ikon={Wallet} judul="Limit Khusus" deskripsi="Kosongkan untuk pakai aturan otomatis jabatan & masa kerja">
                 <FormField label="Nominal Limit Khusus" error={errors.limit_custom} hint="Kosongkan untuk hapus limit khusus">
-                    <TextField
-                        size="sm"
-                        type="number"
-                        value={data.limit_custom}
-                        onChange={(e) => setData('limit_custom', e.target.value)}
-                        placeholder="Contoh: 10000000"
-                    />
+                    <TextField size="sm" type="number" min="0" value={data.limit_custom} onChange={(e) => setData('limit_custom', e.target.value)} placeholder="Contoh: 10000000" />
                 </FormField>
-
                 <FormField label="Alasan / Keterangan" error={errors.limit_custom_keterangan}>
-                    <TextField
-                        size="sm"
-                        value={data.limit_custom_keterangan}
-                        onChange={(e) => setData('limit_custom_keterangan', e.target.value)}
-                        placeholder="Contoh: Kebijakan khusus dari Ketua Koperasi, karyawan lama pindah cabang"
-                    />
+                    <TextField size="sm" value={data.limit_custom_keterangan} onChange={(e) => setData('limit_custom_keterangan', e.target.value)} placeholder="Contoh: Kebijakan khusus ketua" />
                 </FormField>
-            </div>
+            </Seksi>
 
-            <div className="flex items-center gap-3 mt-2 pt-4 border-t border-slate-100">
-                <Button type="submit" variant="primary" disabled={processing}>
+            <div className="flex items-center gap-2 pt-3 border-t border-slate-100 sticky bottom-0 bg-white pb-1">
+                <Button type="submit" size="sm" disabled={processing} className="rounded-full shadow-md shadow-brand-green/25">
                     {processing ? 'Menyimpan...' : 'Simpan Perubahan'}
                 </Button>
-                <Button type="button" variant="ghost" onClick={onClose}>
+                <Button type="button" variant="ghost" size="sm" className="rounded-full" onClick={onClose}>
                     Batal
                 </Button>
             </div>

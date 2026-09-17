@@ -38,3 +38,7 @@ body {
     z-index: 15;
     background: white;
 }
+
+.table-head-static thead th {
+    position: static;
+}

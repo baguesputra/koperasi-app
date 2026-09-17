@@ -60,7 +60,26 @@ class AnggotaCrudTest extends TestCase
         $this->post(route('anggota.store'), $data)->assertSessionHasErrors('cabang');
     }
 
-    public function test_update_mengubah_data_tanpa_mengubah_status(): void
+    public function test_update_hanya_ubah_field_non_gate(): void
+    {
+        $this->masuk('ADM-000001');
+        $this->post(route('anggota.store'), $this->payload())->assertRedirect();
+        $anggota = Anggota::whereHas('user', fn ($q) => $q->where('no_karyawan', 'TOP-930001'))->sole();
+
+        $this->put(route('anggota.update', $anggota), [
+            'tanggal_jadi_anggota' => now()->subMonth()->format('Y-m-d'),
+            'status' => 'nonaktif',
+            'limit_custom' => 8_000_000,
+            'limit_custom_keterangan' => 'Kebijakan khusus uji',
+        ])->assertRedirect();
+
+        $anggota->refresh();
+        $this->assertSame(now()->subMonth()->format('Y-m-d'), $anggota->tanggal_jadi_anggota->format('Y-m-d'));
+        $this->assertSame('nonaktif', $anggota->status);
+        $this->assertEquals(8_000_000, (float) $anggota->limit_custom);
+    }
+
+    public function test_update_menolak_field_gate(): void
     {
         $this->masuk('ADM-000001');
         $this->post(route('anggota.store'), $this->payload())->assertRedirect();
@@ -77,9 +96,10 @@ class AnggotaCrudTest extends TestCase
         ])->assertRedirect();
 
         $anggota->refresh();
-        $this->assertSame('Nama Baru Hasil Update', $anggota->nama);
-        $this->assertSame('Samarinda', $anggota->cabang);
-        $this->assertSame('aktif', $anggota->status); // update biasa tak menyentuh status
+        $this->assertSame('Anggota Baru Uji', $anggota->nama);
+        $this->assertSame('Banjarmasin', $anggota->cabang);
+        $this->assertSame('Operasional', $anggota->unit_bisnis);
+        $this->assertSame('aktif', $anggota->status);
     }
 
     public function test_index_butuh_permission(): void
