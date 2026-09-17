@@ -31,7 +31,9 @@ class PinjamanController extends Controller
 
         if ($request->filled('cari')) {
             $cari = $request->string('cari');
-            $query->whereHas('anggota', fn ($q) => $q->where('nama', 'like', "%{$cari}%"));
+            $query->whereHas('anggota', fn ($q) => $q
+                ->where('nama', 'like', "%{$cari}%")
+                ->orWhere('no_karyawan', 'like', "%{$cari}%"));
         }
 
         if ($cabangAktif->isNotEmpty()) {
