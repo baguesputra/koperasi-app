@@ -1,12 +1,16 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, usePage, useForm, router } from '@inertiajs/react';
-import { Wallet, HeartHandshake, PiggyBank, Landmark, ArrowDownCircle, ArrowUpCircle, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Wallet, HeartHandshake, PiggyBank, ArrowDownCircle, ArrowUpCircle, Plus, ChevronLeft, ChevronRight, ChevronDown, Landmark, ReceiptText, CalendarDays } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import Card from '@/Components/ui/Card';
 import Button from '@/Components/ui/Button';
 import Pagination from '@/Components/ui/Pagination';
 import PageHeader from '@/Components/ui/PageHeader';
-import { formatRupiah } from '@/Utils/formatCurrency';
+import StatWidget from '@/Components/ui/StatWidget';
+import TextField from '@/Components/ui/TextField';
+import FormField from '@/Components/ui/FormField';
+import { formatRupiah, formatRupiahSingkat } from '@/Utils/formatCurrency';
+import { withIdempotencyKey } from '@/Utils/idempotency';
 
 const fokusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/40';
 
@@ -36,6 +40,14 @@ const kantongLabel = {
     simpanan: 'Simpanan Anggota',
 };
 
+const kantongIkon = {
+    pinjaman: Wallet,
+    dana_sosial: HeartHandshake,
+    pengembalian_simpanan: PiggyBank,
+};
+
+const chipNominal = [500_000, 1_000_000, 2_500_000, 5_000_000, 10_000_000];
+
 export default function Index({
     saldoPinjaman,
     saldoDanaSosial,
@@ -50,6 +62,7 @@ export default function Index({
     const { auth } = usePage().props;
     const bisaTopup = auth.user?.permissions?.includes('kas.topup');
     const [showForm, setShowForm] = useState(false);
+    const [rincianTerbuka, setRincianTerbuka] = useState(false);
 
     const { data, setData, post, processing, errors, reset } = useForm({
         kantong: kantongAktif,
@@ -86,44 +99,17 @@ export default function Index({
 
     function submit(e) {
         e.preventDefault();
-        post(route('kas-koperasi.topup'), {
-            onSuccess: () => {
-                reset('jumlah', 'keterangan');
-                setShowForm(false);
-            },
-        });
+        post(
+            route('kas-koperasi.topup'),
+            withIdempotencyKey({
+                preserveScroll: true,
+                onSuccess: () => {
+                    reset('jumlah', 'keterangan');
+                    setShowForm(false);
+                },
+            })
+        );
     }
-
-    const widgets = [
-        {
-            label: 'Saldo Dana Pinjaman',
-            value: formatRupiah(saldoPinjaman),
-            icon: Wallet,
-            iconClass: 'bg-brand-green-light text-brand-green-dark',
-            highlight: false,
-        },
-        {
-            label: 'Saldo Dana Sosial',
-            value: formatRupiah(saldoDanaSosial),
-            icon: HeartHandshake,
-            iconClass: 'bg-amber-50 text-amber-700',
-            highlight: false,
-        },
-        {
-            label: 'Total Simpanan Anggota',
-            value: formatRupiah(totalSimpananOutstanding),
-            icon: PiggyBank,
-            iconClass: 'bg-brand-navy/5 text-brand-navy',
-            highlight: false,
-        },
-        {
-            label: 'Total Keseluruhan',
-            value: formatRupiah(totalKeseluruhan),
-            icon: Landmark,
-            iconClass: 'bg-white/10 text-brand-green',
-            highlight: true,
-        },
-    ];
 
     const tab = [
         { key: 'pinjaman', label: 'Dana Pinjaman' },
@@ -135,132 +121,149 @@ export default function Index({
         <AppLayout>
             <Head title="Kas Koperasi" />
 
-            <PageHeader title="Kas Koperasi" subtitle="Saldo dan riwayat mutasi keuangan koperasi">
-                <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex items-center rounded-xl border border-slate-300 bg-white overflow-hidden">
-                        <button
-                            onClick={() => geserBulan(-1)}
-                            aria-label={`Bulan sebelum ${labelBulan}`}
-                            className={`px-2.5 py-2.5 text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors ${fokusRing}`}
-                        >
-                            <ChevronLeft size={18} />
-                        </button>
-                        <input
-                            type="month"
-                            value={bulanFilter}
-                            onChange={(e) => e.target.value && ubahBulan(e.target.value)}
-                            aria-label="Pilih bulan"
-                            className="w-[9.5rem] px-2 py-2.5 text-sm font-semibold text-slate-700 border-x border-slate-300 bg-white focus:border-brand-green outline-none"
-                        />
-                        <button
-                            onClick={() => geserBulan(1)}
-                            aria-label={`Bulan setelah ${labelBulan}`}
-                            className={`px-2.5 py-2.5 text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors ${fokusRing}`}
-                        >
-                            <ChevronRight size={18} />
-                        </button>
-                    </div>
-                    {bulanFilter !== kunciBulanIni && (
-                        <button
-                            onClick={() => ubahBulan(kunciBulanIni)}
-                            className={`px-4 py-2.5 text-sm font-semibold text-brand-green-dark bg-brand-green-light rounded-xl hover:bg-brand-green/20 transition-colors ${fokusRing}`}
-                        >
-                            Bulan ini
-                        </button>
-                    )}
-                </div>
-            </PageHeader>
+            <PageHeader title="Kas Koperasi" subtitle="Saldo dan riwayat mutasi keuangan koperasi" />
 
-            {/* Widget ringkasan */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                {widgets.map((w) => (
-                    <div
-                        key={w.label}
-                        className={
-                            w.highlight
-                                ? 'bg-brand-navy rounded-2xl p-5 text-white'
-                                : 'bg-white rounded-2xl border border-slate-100 p-5'
-                        }
-                    >
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${w.iconClass}`}>
-                            <w.icon size={20} aria-hidden="true" />
-                        </div>
-                        <p className={`text-sm ${w.highlight ? 'text-slate-300' : 'text-slate-400'}`}>{w.label}</p>
-                        <p className="text-xl font-bold mt-0.5">{w.value}</p>
-                        {w.label === 'Total Simpanan Anggota' && (
-                            <p className="mt-2 text-xs text-slate-400">
-                                Gross akumulasi semua anggota:{' '}
-                                <span className="font-mono">{formatRupiah(totalAkumulasiSimpanan)}</span>
-                            </p>
-                        )}
+            <div className="rounded-2xl bg-gradient-to-r from-brand-navy to-brand-navy-light text-white px-5 py-4 mb-3 shadow-md shadow-brand-navy/20">
+                <div className="flex items-center gap-3">
+                    <span className="w-11 h-11 rounded-2xl bg-white/15 inline-flex items-center justify-center shrink-0">
+                        <Landmark size={22} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                        <p className="text-xs text-white/70">Total Keseluruhan Operasional</p>
+                        <p className="text-2xl font-bold tabular-nums leading-tight">{formatRupiah(totalKeseluruhan)}</p>
                     </div>
-                ))}
+                    <button
+                        type="button"
+                        onClick={() => setRincianTerbuka((v) => !v)}
+                        aria-expanded={rincianTerbuka}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-full px-3 py-1.5 transition-colors shrink-0"
+                    >
+                        Rincian
+                        <ChevronDown size={14} className={`transition-transform ${rincianTerbuka ? 'rotate-180' : ''}`} />
+                    </button>
+                </div>
+                {rincianTerbuka && (
+                    <dl className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-white/15 text-sm">
+                        <div className="rounded-xl bg-white/10 px-3 py-2">
+                            <dt className="text-xs text-white/70">Dana pinjaman</dt>
+                            <dd className="font-bold tabular-nums">{formatRupiah(saldoPinjaman)}</dd>
+                        </div>
+                        <div className="rounded-xl bg-white/10 px-3 py-2">
+                            <dt className="text-xs text-white/70">Dana sosial</dt>
+                            <dd className="font-bold tabular-nums">{formatRupiah(saldoDanaSosial)}</dd>
+                        </div>
+                        <div className="rounded-xl bg-white/10 px-3 py-2">
+                            <dt className="text-xs text-white/70">Simpanan outstanding</dt>
+                            <dd className="font-bold tabular-nums">{formatRupiah(totalSimpananOutstanding)}</dd>
+                        </div>
+                        <div className="rounded-xl bg-white/10 px-3 py-2">
+                            <dt className="text-xs text-white/70">Gross akumulasi (audit)</dt>
+                            <dd className="font-bold tabular-nums">{formatRupiah(totalAkumulasiSimpanan)}</dd>
+                        </div>
+                    </dl>
+                )}
             </div>
 
-            {/* Tab kantong + tombol topup */}
-            <div className="flex items-center justify-between gap-3 flex-wrap mb-5">
-                <div className="relative max-w-full">
-                    <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl w-fit max-w-full overflow-x-auto scrollbar-hide">
-                        {tab.map((t) => (
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+                <div className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
+                    <StatWidget compact label="Dana Pinjaman" value={formatRupiah(saldoPinjaman)} icon={Wallet} tone="green" />
+                </div>
+                <div className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
+                    <StatWidget compact label="Dana Sosial" value={formatRupiah(saldoDanaSosial)} icon={HeartHandshake} tone="amber" />
+                </div>
+                <div className="col-span-2 lg:col-span-1 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
+                    <StatWidget compact label="Simpanan Outstanding" value={formatRupiah(totalSimpananOutstanding)} icon={PiggyBank} tone="navy" />
+                </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+                <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-full w-fit max-w-full overflow-x-auto">
+                    {tab.map((t) => {
+                        const Ikon = kantongIkon[t.key] ?? Wallet;
+                        const aktif = kantongAktif === t.key;
+                        return (
                             <button
                                 key={t.key}
                                 onClick={() => pindahTab(t.key)}
-                                aria-current={kantongAktif === t.key ? 'true' : undefined}
-                                className={`px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors shrink-0 ${fokusRing} ${
-                                    kantongAktif === t.key ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                                aria-pressed={aktif}
+                                className={`inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-full whitespace-nowrap transition-all shrink-0 ${
+                                    aktif ? 'bg-white text-slate-800 shadow-md' : 'text-slate-500 hover:text-slate-700'
                                 }`}
                             >
+                                <Ikon size={15} />
                                 {t.label}
                             </button>
-                        ))}
-                    </div>
-                    <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-slate-100 to-transparent rounded-r-xl" />
+                        );
+                    })}
                 </div>
 
                 {bisaTopup && kantongAktif !== 'pengembalian_simpanan' && !showForm && (
-                    <Button variant="primary" onClick={bukaForm}>
-                        <Plus size={18} aria-hidden="true" />
+                    <Button size="sm" onClick={bukaForm} className="rounded-full shadow-md shadow-brand-green/25 hover:-translate-y-px active:translate-y-0">
+                        <Plus size={16} aria-hidden="true" />
                         Topup {kantongLabel[kantongAktif] ?? 'Kantong'}
                     </Button>
                 )}
             </div>
 
             {showForm && (
-                <Card className="mb-5">
-                    <form onSubmit={submit} className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-3">
-                        <div>
-                            <label htmlFor="topup-jumlah" className="block text-sm font-semibold text-slate-600 mb-1.5">
-                                Jumlah (Rp)
-                            </label>
-                            <input
-                                id="topup-jumlah"
-                                type="number"
-                                min="1"
-                                value={data.jumlah}
-                                onChange={(e) => setData('jumlah', e.target.value)}
-                                className={`w-full sm:w-44 px-3 py-2.5 text-base rounded-xl border border-slate-300 bg-white focus:border-brand-green outline-none ${fokusRing}`}
-                                autoFocus
-                            />
-                            {errors.jumlah && <p className="text-xs text-red-600 mt-1">{errors.jumlah}</p>}
+                <Card className="mb-4 border-brand-green/30 shadow-md">
+                    <form onSubmit={submit}>
+                        <div className="flex items-center gap-2 mb-3">
+                            <span className="w-8 h-8 rounded-xl bg-brand-green-light text-brand-green-dark inline-flex items-center justify-center shrink-0">
+                                <ReceiptText size={16} />
+                            </span>
+                            <div>
+                                <p className="text-sm font-bold text-slate-800">Topup {kantongLabel[kantongAktif]}</p>
+                                <p className="text-xs text-slate-400">Masuk jurnal kas sebagai topup bulanan</p>
+                            </div>
                         </div>
-                        <div className="flex-1 min-w-[220px]">
-                            <label htmlFor="topup-keterangan" className="block text-sm font-semibold text-slate-600 mb-1.5">
-                                Keterangan
-                            </label>
-                            <input
-                                id="topup-keterangan"
-                                type="text"
-                                value={data.keterangan}
-                                onChange={(e) => setData('keterangan', e.target.value)}
-                                placeholder={`Contoh: Topup ${labelBulan} dari keuntungan`}
-                                className={`w-full px-3 py-2.5 text-base rounded-xl border border-slate-300 bg-white placeholder:text-slate-400 focus:border-brand-green outline-none ${fokusRing}`}
-                            />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3">
+                            <FormField label="Jumlah (Rp)" error={errors.jumlah} required>
+                                <div className="relative">
+                                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400 pointer-events-none">Rp</span>
+                                    <TextField
+                                        size="sm"
+                                        type="number"
+                                        min="1"
+                                        value={data.jumlah}
+                                        onChange={(e) => setData('jumlah', e.target.value)}
+                                        placeholder="5000000"
+                                        autoFocus
+                                        required
+                                        className="pl-10 tabular-nums"
+                                    />
+                                </div>
+                                <div className="flex flex-wrap gap-1.5 mt-2">
+                                    {chipNominal.map((n) => (
+                                        <button
+                                            key={n}
+                                            type="button"
+                                            onClick={() => setData('jumlah', String(n))}
+                                            className={`px-2.5 py-1 text-xs font-bold rounded-full border transition-colors tabular-nums ${
+                                                String(data.jumlah) === String(n)
+                                                    ? 'bg-brand-navy text-white border-brand-navy'
+                                                    : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-brand-green/50 hover:text-brand-green-dark'
+                                            }`}
+                                        >
+                                            {formatRupiahSingkat(n)}
+                                        </button>
+                                    ))}
+                                </div>
+                            </FormField>
+                            <FormField label="Keterangan" error={errors.keterangan} hint={`Contoh: Topup ${labelBulan} dari keuntungan`}>
+                                <TextField
+                                    size="sm"
+                                    value={data.keterangan}
+                                    onChange={(e) => setData('keterangan', e.target.value)}
+                                    placeholder={`Topup ${labelBulan} dari keuntungan`}
+                                />
+                            </FormField>
                         </div>
                         <div className="flex items-center gap-2">
-                            <Button type="submit" variant="primary" disabled={processing}>
-                                {processing ? 'Menyimpan...' : 'Simpan'}
+                            <Button type="submit" size="sm" disabled={processing} className="rounded-full shadow-md shadow-brand-green/25">
+                                {processing ? 'Menyimpan...' : `Simpan • ${data.jumlah ? formatRupiah(Number(data.jumlah)) : 'Rp 0'}`}
                             </Button>
-                            <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>
+                            <Button type="button" variant="ghost" size="sm" className="rounded-full" onClick={() => setShowForm(false)}>
                                 Batal
                             </Button>
                         </div>
@@ -268,26 +271,60 @@ export default function Index({
                 </Card>
             )}
 
-            {/* Filter periode + ringkasan arus kas */}
-            <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
-                <p className="text-sm text-slate-500">
-                    Arus kas <span className="font-semibold text-slate-700">{labelBulan}</span>
-                </p>
-                <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold whitespace-nowrap bg-brand-green-light text-brand-green-dark">
-                        Masuk +{formatRupiah(ringkasanPeriode.total_masuk)}
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold whitespace-nowrap bg-red-50 text-red-700">
-                        Keluar -{formatRupiah(ringkasanPeriode.total_keluar)}
-                    </span>
+            <Card padding="sm" className="shadow-md border-slate-200/70 mb-4">
+                <div className="pb-3 mb-1 border-b border-slate-100">
+                    <div className="flex flex-col md:flex-row md:items-center gap-2">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                            <CalendarDays size={15} className="text-slate-400 shrink-0" />
+                            <p className="text-sm text-slate-500 truncate">
+                                Arus kas <span className="font-bold text-slate-800">{labelBulan}</span>
+                            </p>
+                            {bulanFilter !== kunciBulanIni && (
+                                <button
+                                    onClick={() => ubahBulan(kunciBulanIni)}
+                                    className="text-xs font-bold text-brand-green-dark bg-brand-green-light rounded-full px-2.5 py-1 hover:bg-brand-green/20 transition-colors shrink-0"
+                                >
+                                    Bulan ini
+                                </button>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-2 md:ml-auto">
+                            <div className="flex items-center rounded-full border border-slate-200 bg-slate-50/60 overflow-hidden">
+                                <button
+                                    onClick={() => geserBulan(-1)}
+                                    aria-label={`Bulan sebelum ${labelBulan}`}
+                                    className={`px-2.5 py-2 text-slate-500 hover:bg-white hover:text-slate-700 transition-colors ${fokusRing}`}
+                                >
+                                    <ChevronLeft size={16} />
+                                </button>
+                                <input
+                                    type="month"
+                                    value={bulanFilter}
+                                    onChange={(e) => e.target.value && ubahBulan(e.target.value)}
+                                    aria-label="Pilih bulan"
+                                    className="w-[8.5rem] px-1 py-2 text-sm font-semibold text-slate-700 border-x border-slate-200 bg-transparent focus:outline-none"
+                                />
+                                <button
+                                    onClick={() => geserBulan(1)}
+                                    aria-label={`Bulan setelah ${labelBulan}`}
+                                    className={`px-2.5 py-2 text-slate-500 hover:bg-white hover:text-slate-700 transition-colors ${fokusRing}`}
+                                >
+                                    <ChevronRight size={16} />
+                                </button>
+                            </div>
+                            <span className="inline-flex items-center px-2.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap bg-brand-green-light text-brand-green-dark tabular-nums">
+                                +{formatRupiahSingkat(ringkasanPeriode.total_masuk)}
+                            </span>
+                            <span className="inline-flex items-center px-2.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap bg-red-50 text-red-700 tabular-nums">
+                                -{formatRupiahSingkat(ringkasanPeriode.total_keluar)}
+                            </span>
+                        </div>
+                    </div>
                 </div>
-            </div>
-
-            <Card padding="none">
                 {riwayat.data.length === 0 ? (
                     <div className="text-center py-12 px-4">
                         <Wallet size={28} aria-hidden="true" className="mx-auto text-slate-300 mb-3" />
-                        <p className="text-base text-slate-500">
+                        <p className="text-sm font-semibold text-slate-600">
                             Belum ada mutasi di {kantongLabel[kantongAktif]} untuk {labelBulan}.
                         </p>
                         {bulanFilter !== kunciBulanIni && (
@@ -301,9 +338,9 @@ export default function Index({
                         )}
                     </div>
                 ) : (
-                    <div className="divide-y divide-slate-50">
+                    <ul className="divide-y divide-slate-50">
                         {riwayat.data.map((r) => (
-                            <div key={r.id} className="flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-4 hover:bg-slate-50 transition-colors">
+                            <li key={r.id} className="flex items-center gap-3 px-1 py-3 hover:bg-gradient-to-r hover:from-slate-50 hover:to-transparent rounded-xl transition-all">
                                 {r.tipe === 'masuk' ? (
                                     <ArrowDownCircle size={22} aria-hidden="true" className="text-brand-green shrink-0" />
                                 ) : (
@@ -311,31 +348,31 @@ export default function Index({
                                 )}
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 flex-wrap">
-                                        <p className="text-base font-semibold text-slate-700">
+                                        <p className="text-sm font-semibold text-slate-700">
                                             {kategoriLabel[r.kategori] ?? r.kategori}
                                         </p>
                                         {r.kantong !== kantongAktif && (
-                                            <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 whitespace-nowrap">
+                                            <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500 whitespace-nowrap">
                                                 dari {kantongLabel[r.kantong] ?? r.kantong}
                                             </span>
                                         )}
                                     </div>
                                     {r.sub_judul && (
-                                        <p className="text-xs italic text-slate-500 mt-0.5">{r.sub_judul}</p>
+                                        <p className="text-xs italic text-slate-500 mt-0.5 truncate">{r.sub_judul}</p>
                                     )}
-                                    <p className="text-sm text-slate-400 mt-0.5 break-words">
-                                        {r.tanggal}{r.keterangan ? ` \u2022 ${r.keterangan}` : ''}
+                                    <p className="text-xs text-slate-400 mt-0.5 truncate">
+                                        {r.tanggal}{r.keterangan ? ` • ${r.keterangan}` : ''}
                                     </p>
                                 </div>
                                 <div className="text-right shrink-0 pl-2">
-                                    <p className={`text-base font-bold whitespace-nowrap ${r.tipe === 'masuk' ? 'text-brand-green' : 'text-red-600'}`}>
+                                    <p className={`text-sm font-bold whitespace-nowrap tabular-nums ${r.tipe === 'masuk' ? 'text-brand-green-dark' : 'text-red-600'}`}>
                                         {r.tipe === 'masuk' ? '+' : '-'} {formatRupiah(r.jumlah)}
                                     </p>
-                                    <p className="text-xs text-slate-400 whitespace-nowrap">Saldo: {formatRupiah(r.saldo_setelah)}</p>
+                                    <p className="text-[11px] text-slate-400 whitespace-nowrap tabular-nums">Saldo: {formatRupiah(r.saldo_setelah)}</p>
                                 </div>
-                            </div>
+                            </li>
                         ))}
-                    </div>
+                    </ul>
                 )}
             </Card>
 
@@ -343,4 +380,3 @@ export default function Index({
         </AppLayout>
     );
 }
-
