@@ -1,12 +1,13 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, router } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
-import { TrendingUp, Wallet, Calendar, Check, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { TrendingUp, Wallet, Calendar, Check, ChevronLeft, ChevronRight, ChevronDown, Search, X, RefreshCw, MapPin, AlarmClock } from 'lucide-react';
 import Card from '@/Components/ui/Card';
 import StatWidget from '@/Components/ui/StatWidget';
 import Button from '@/Components/ui/Button';
 import PageHeader from '@/Components/ui/PageHeader';
-import { formatRupiah } from '@/Utils/formatCurrency';
+import TextField from '@/Components/ui/TextField';
+import { formatRupiah, formatRupiahSingkat } from '@/Utils/formatCurrency';
 import { withIdempotencyKey } from '@/Utils/idempotency';
 
 const fokusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/40';
@@ -15,6 +16,7 @@ export default function Index({ bulan, daftarAngsuran, cabangAktif, daftarCabang
     const [terpilih, setTerpilih] = useState([]);
     const [processing, setProcessing] = useState(false);
     const [cari, setCari] = useState('');
+    const [rincianTerbuka, setRincianTerbuka] = useState(false);
 
     useEffect(() => {
         setCari('');
@@ -41,6 +43,11 @@ export default function Index({ bulan, daftarAngsuran, cabangAktif, daftarCabang
 
     function pindahTab(cabang) {
         router.get(route('bendahara.angsuran.index'), { bulan, cabang }, { preserveState: true });
+    }
+
+    function resetFilter() {
+        setCari('');
+        router.get(route('bendahara.angsuran.index'), { bulan: kunciBulanIni, cabang: '' }, { preserveState: true });
     }
 
     const kataCari = cari.trim().toLowerCase();
@@ -80,26 +87,8 @@ export default function Index({ bulan, daftarAngsuran, cabangAktif, daftarCabang
         .filter((a) => terpilih.includes(a.id))
         .reduce((sum, a) => sum + a.total_bayar, 0);
 
-    const widgets = [
-        {
-            label: 'Total Tagihan Bulan Ini',
-            value: formatRupiah(totalTagihanBulanIni),
-            icon: Calendar,
-            tone: 'amber',
-        },
-        {
-            label: 'Keuntungan Bulan Ini',
-            value: formatRupiah(totalKeuntunganBulanIni),
-            icon: TrendingUp,
-            tone: 'green',
-        },
-        {
-            label: 'Total Keuntungan Keseluruhan',
-            value: formatRupiah(totalKeuntunganKeseluruhan),
-            icon: Wallet,
-            tone: 'navy',
-        },
-    ];
+    const jumlahTerlambat = daftarAngsuran.filter((a) => a.terlambat).length;
+    const filterAktif = Boolean(kataCari || bulan !== kunciBulanIni || cabangAktif);
 
     const tab = [
         { key: '', label: 'Semua Cabang', nominal: totalTagihanBulanIni },
@@ -114,107 +103,174 @@ export default function Index({ bulan, daftarAngsuran, cabangAktif, daftarCabang
         <AppLayout>
             <Head title="Konfirmasi Angsuran" />
 
-            <PageHeader title="Konfirmasi Angsuran" subtitle="Tandai angsuran yang sudah dipotong dari gaji anggota">
-                <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex items-center rounded-xl border border-slate-300 bg-white overflow-hidden">
-                        <button
-                            onClick={() => geserBulan(-1)}
-                            aria-label={`Bulan sebelum ${labelBulan}`}
-                            className={`px-2.5 py-2.5 text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors ${fokusRing}`}
-                        >
-                            <ChevronLeft size={18} />
-                        </button>
-                        <input
-                            type="month"
-                            value={bulan}
-                            onChange={(e) => e.target.value && ubahBulan(e.target.value)}
-                            aria-label="Pilih bulan"
-                            className="w-[9.5rem] px-2 py-2.5 text-sm font-semibold text-slate-700 border-x border-slate-300 bg-white focus:border-brand-green outline-none"
-                        />
-                        <button
-                            onClick={() => geserBulan(1)}
-                            aria-label={`Bulan setelah ${labelBulan}`}
-                            className={`px-2.5 py-2.5 text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors ${fokusRing}`}
-                        >
-                            <ChevronRight size={18} />
-                        </button>
-                    </div>
-                    {bulan !== kunciBulanIni && (
-                        <button
-                            onClick={() => ubahBulan(kunciBulanIni)}
-                            className={`px-4 py-2.5 text-sm font-semibold text-brand-green-dark bg-brand-green-light rounded-xl hover:bg-brand-green/20 transition-colors ${fokusRing}`}
-                        >
-                            Bulan ini
-                        </button>
-                    )}
-                </div>
-            </PageHeader>
+            <PageHeader title="Konfirmasi Angsuran" subtitle="Tandai angsuran yang sudah dipotong dari gaji anggota" />
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                {widgets.map((w) => (
-                    <StatWidget key={w.label} label={w.label} value={w.value} icon={w.icon} tone={w.tone} />
-                ))}
+            <div className="rounded-2xl bg-gradient-to-r from-brand-navy to-brand-navy-light text-white px-5 py-4 mb-3 shadow-md shadow-brand-navy/20">
+                <div className="flex items-center gap-3">
+                    <span className="w-11 h-11 rounded-2xl bg-white/15 inline-flex items-center justify-center shrink-0">
+                        <Calendar size={22} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                        <p className="text-xs text-white/70">Total Tagihan {labelBulan}</p>
+                        <p className="text-2xl font-bold tabular-nums leading-tight">{formatRupiah(totalTagihanBulanIni)}</p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setRincianTerbuka((v) => !v)}
+                        aria-expanded={rincianTerbuka}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-full px-3 py-1.5 transition-colors shrink-0"
+                    >
+                        Rincian
+                        <ChevronDown size={14} className={`transition-transform ${rincianTerbuka ? 'rotate-180' : ''}`} />
+                    </button>
+                </div>
+                {rincianTerbuka && (
+                    <dl className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-white/15 text-sm">
+                        <div className="rounded-xl bg-white/10 px-3 py-2">
+                            <dt className="text-xs text-white/70">Untung bulan ini</dt>
+                            <dd className="font-bold tabular-nums">{formatRupiah(totalKeuntunganBulanIni)}</dd>
+                        </div>
+                        <div className="rounded-xl bg-white/10 px-3 py-2">
+                            <dt className="text-xs text-white/70">Untung keseluruhan</dt>
+                            <dd className="font-bold tabular-nums">{formatRupiah(totalKeuntunganKeseluruhan)}</dd>
+                        </div>
+                        {Object.entries(tagihanPerCabang ?? {}).map(([c, nominal]) => (
+                            <div key={c} className="rounded-xl bg-white/10 px-3 py-2">
+                                <dt className="text-xs text-white/70">{c}</dt>
+                                <dd className="font-bold tabular-nums">{formatRupiah(nominal)}</dd>
+                            </div>
+                        ))}
+                        <div className="rounded-xl bg-white/10 px-3 py-2">
+                            <dt className="text-xs text-white/70">Jumlah angsuran</dt>
+                            <dd className="font-bold tabular-nums">{daftarAngsuran.length} tagihan</dd>
+                        </div>
+                    </dl>
+                )}
             </div>
 
-            <div className="relative mb-6">
-                <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl w-fit max-w-full overflow-x-auto scrollbar-hide">
-                    {tab.map((t) => (
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+                <div className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
+                    <StatWidget compact label="Terlambat" value={jumlahTerlambat} icon={AlarmClock} tone="rose" />
+                </div>
+                <div className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
+                    <StatWidget compact label="Menunggu" value={daftarAngsuran.length} icon={Wallet} tone="amber" />
+                </div>
+                <div className="col-span-2 lg:col-span-1 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
+                    <StatWidget compact label="Untung Bulan Ini" value={formatRupiah(totalKeuntunganBulanIni)} icon={TrendingUp} tone="green" />
+                </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-full w-fit max-w-full overflow-x-auto mb-4">
+                {tab.map((t) => {
+                    const aktif = cabangAktif === t.key;
+                    return (
                         <button
                             key={t.key}
                             onClick={() => pindahTab(t.key)}
-                            aria-current={cabangAktif === t.key ? 'true' : undefined}
-                            className={`flex flex-col items-start px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors shrink-0 ${fokusRing} ${
-                                cabangAktif === t.key ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                            aria-pressed={aktif}
+                            className={`inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-full whitespace-nowrap transition-all shrink-0 ${
+                                aktif ? 'bg-white text-slate-800 shadow-md' : 'text-slate-500 hover:text-slate-700'
                             }`}
                         >
-                            <span>{t.label}</span>
-                            <span className={`text-xs font-normal ${cabangAktif === t.key ? 'text-brand-green' : 'text-slate-400'}`}>
-                                {formatRupiah(t.nominal)}
+                            <MapPin size={15} />
+                            {t.label}
+                            <span className="text-xs tabular-nums text-slate-400">
+                                {formatRupiahSingkat(t.nominal)}
                             </span>
                         </button>
-                    ))}
-                </div>
-                <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-slate-100 to-transparent rounded-r-xl" />
+                    );
+                })}
             </div>
 
-            <Card padding="none">
-                <div className="p-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
-                    <h2 className="text-lg font-bold text-slate-800">
-                        Jatuh Tempo {labelBulan}
-                        <span className="ml-2 text-base font-normal text-slate-400">
-                            {tampil.length}{kataCari && daftarAngsuran.length > 0 ? ` dari ${daftarAngsuran.length}` : ''} angsuran belum dikonfirmasi
-                        </span>
-                    </h2>
-                    {tampil.length > 0 && (
-                        <button
-                            onClick={toggleSemua}
-                            className={`text-sm font-semibold text-brand-green hover:text-brand-green-dark ${fokusRing} rounded-md px-1`}
-                        >
-                            {semuaTampilTerpilih ? 'Batalkan semua' : 'Pilih semua'}
-                        </button>
-                    )}
-                </div>
-
-                {daftarCabang.length > 0 && (
-                    <div className="px-5 pt-4 pb-1">
-                        <div className="relative max-w-xs">
-                            <Search size={16} aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                            <input
-                                type="search"
-                                value={cari}
-                                onChange={(e) => setCari(e.target.value)}
-                                placeholder="Cari nama / no. anggota..."
-                                aria-label="Cari nama atau nomor anggota"
-                                className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-300 bg-white placeholder:text-slate-400 focus:border-brand-green outline-none"
-                            />
+            <Card padding="sm" className="shadow-md border-slate-200/70 mb-4">
+                <div className="pb-3 mb-1 border-b border-slate-100">
+                    <div className="flex flex-col md:flex-row md:items-center gap-2">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                            <p className="text-sm text-slate-500 truncate">
+                                Jatuh tempo <span className="font-bold text-slate-800">{labelBulan}</span>
+                                <span className="text-slate-400"> • {tampil.length}{kataCari && daftarAngsuran.length > 0 ? ` dari ${daftarAngsuran.length}` : ''} belum dikonfirmasi</span>
+                            </p>
+                            {bulan !== kunciBulanIni && (
+                                <button
+                                    onClick={() => ubahBulan(kunciBulanIni)}
+                                    className="text-xs font-bold text-brand-green-dark bg-brand-green-light rounded-full px-2.5 py-1 hover:bg-brand-green/20 transition-colors shrink-0"
+                                >
+                                    Bulan ini
+                                </button>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-2 md:ml-auto">
+                            <div className="flex items-center rounded-full border border-slate-200 bg-slate-50/60 overflow-hidden">
+                                <button
+                                    onClick={() => geserBulan(-1)}
+                                    aria-label={`Bulan sebelum ${labelBulan}`}
+                                    className={`px-2.5 py-2 text-slate-500 hover:bg-white hover:text-slate-700 transition-colors ${fokusRing}`}
+                                >
+                                    <ChevronLeft size={16} />
+                                </button>
+                                <input
+                                    type="month"
+                                    value={bulan}
+                                    onChange={(e) => e.target.value && ubahBulan(e.target.value)}
+                                    aria-label="Pilih bulan"
+                                    className="w-[8.5rem] px-1 py-2 text-sm font-semibold text-slate-700 border-x border-slate-200 bg-transparent focus:outline-none"
+                                />
+                                <button
+                                    onClick={() => geserBulan(1)}
+                                    aria-label={`Bulan setelah ${labelBulan}`}
+                                    className={`px-2.5 py-2 text-slate-500 hover:bg-white hover:text-slate-700 transition-colors ${fokusRing}`}
+                                >
+                                    <ChevronRight size={16} />
+                                </button>
+                            </div>
                         </div>
                     </div>
-                )}
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-2">
+                        <div className="flex-1 relative group">
+                            <Search size={16} aria-hidden="true" className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-green transition-colors pointer-events-none" />
+                            <TextField
+                                type="search"
+                                size="sm"
+                                value={cari}
+                                onChange={(e) => setCari(e.target.value)}
+                                placeholder="Cari nama atau no. karyawan..."
+                                aria-label="Cari nama atau nomor karyawan"
+                                className="pl-10 pr-8 text-sm rounded-full border-slate-200 bg-slate-50/60 focus:bg-white shadow-inner focus:shadow-md transition-all"
+                            />
+                            {cari && (
+                                <button
+                                    type="button"
+                                    onClick={() => setCari('')}
+                                    aria-label="Hapus pencarian"
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 inline-flex items-center justify-center rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-200/70"
+                                >
+                                    <X size={14} />
+                                </button>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                            {tampil.length > 0 && (
+                                <button
+                                    onClick={toggleSemua}
+                                    className={`text-sm font-semibold text-brand-green hover:text-brand-green-dark ${fokusRing} rounded-md px-1 shrink-0`}
+                                >
+                                    {semuaTampilTerpilih ? 'Batalkan semua' : 'Pilih semua'}
+                                </button>
+                            )}
+                            {filterAktif && (
+                                <Button type="button" variant="ghost" size="sm" className="shrink-0 rounded-full" onClick={resetFilter}>
+                                    <RefreshCw size={14} />
+                                    Reset
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                </div>
 
                 {daftarAngsuran.length === 0 ? (
                     <div className="text-center py-12 px-4">
                         <Calendar size={28} aria-hidden="true" className="mx-auto text-slate-300 mb-3" />
-                        <p className="text-base text-slate-500">Tidak ada angsuran jatuh tempo di {labelBulan}.</p>
+                        <p className="text-sm font-semibold text-slate-600">Tidak ada angsuran jatuh tempo di {labelBulan}.</p>
                         {(bulan !== kunciBulanIni || cabangAktif) && (
                             <p className="text-sm text-slate-400 mt-1">
                                 Coba{' '}
@@ -234,60 +290,69 @@ export default function Index({ bulan, daftarAngsuran, cabangAktif, daftarCabang
                         )}
                     </div>
                 ) : tampil.length === 0 ? (
-                    <p className="text-base text-slate-400 text-center py-10">
+                    <p className="text-sm text-slate-400 text-center py-10">
                         Tidak ada yang cocok dengan pencarian &ldquo;{cari}&rdquo;.
                     </p>
                 ) : (
-                    <div className="divide-y divide-slate-50">
-                        {tampil.map((a) => (
-                            <label
-                                key={a.id}
-                                className="flex items-start gap-3 sm:gap-4 px-4 sm:px-5 py-4 hover:bg-slate-50 has-[:focus-visible]:bg-slate-50 cursor-pointer transition-colors"
-                            >
-                                <input
-                                    type="checkbox"
-                                    checked={terpilih.includes(a.id)}
-                                    onChange={() => toggleSatu(a.id)}
-                                    aria-label={`Pilih angsuran ${a.nama}, cicilan ke-${a.cicilan_ke}`}
-                                    className="mt-1 w-5 h-5 rounded border-slate-300 text-brand-green focus:ring-brand-green/30"
-                                />
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                        <p className="text-base font-semibold text-slate-800">{a.nama}</p>
-                                        {a.terlambat && (
-                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-700">
-                                                Terlambat
-                                            </span>
-                                        )}
-                                        {a.ada_pengajuan_percepatan && (
-                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700">
-                                                Perubahan tenor diajukan
-                                            </span>
-                                        )}
-                                    </div>
-                                    <p className="text-sm text-slate-400 mt-0.5">
-                                        {a.no_karyawan} &bull; {a.cabang} &bull; Cicilan ke-{a.cicilan_ke} &bull; Jatuh tempo {a.tanggal_jatuh_tempo}
-                                    </p>
-                                </div>
-                                <div className="text-right shrink-0 pl-2">
-                                    <p className="text-base font-bold text-slate-800 whitespace-nowrap">{formatRupiah(a.total_bayar)}</p>
-                                    <p className="text-sm text-brand-green whitespace-nowrap">+{formatRupiah(a.nominal_bunga)} untung</p>
-                                </div>
-                            </label>
-                        ))}
-                    </div>
+                    <ul className="divide-y divide-slate-50">
+                        {tampil.map((a) => {
+                            const dipilih = terpilih.includes(a.id);
+                            return (
+                                <li key={a.id}>
+                                    <label
+                                        className={`flex items-start gap-3 px-2 py-3 rounded-xl cursor-pointer transition-all has-[:focus-visible]:bg-slate-50 ${
+                                            dipilih ? 'bg-brand-green-light/40 hover:bg-brand-green-light/60' : 'hover:bg-gradient-to-r hover:from-slate-50 hover:to-transparent'
+                                        }`}
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={dipilih}
+                                            onChange={() => toggleSatu(a.id)}
+                                            aria-label={`Pilih angsuran ${a.nama}, cicilan ke-${a.cicilan_ke}`}
+                                            className="mt-1 w-5 h-5 rounded-lg border-slate-300 text-brand-green focus:ring-brand-green/30 shrink-0"
+                                        />
+                                        <span className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-navy to-brand-navy-light text-white hidden sm:inline-flex items-center justify-center text-sm font-bold shrink-0 shadow-sm" aria-hidden="true">
+                                            {a.nama.charAt(0).toUpperCase()}
+                                        </span>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                <p className="text-sm font-semibold text-slate-800">{a.nama}</p>
+                                                {a.terlambat && (
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-50 text-red-700">
+                                                        Terlambat
+                                                    </span>
+                                                )}
+                                                {a.ada_pengajuan_percepatan && (
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700">
+                                                        Perubahan tenor
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className="text-xs text-slate-400 mt-0.5 truncate">
+                                                {a.no_karyawan} • {a.cabang} • Cicilan ke-{a.cicilan_ke} • Tempo {a.tanggal_jatuh_tempo}
+                                            </p>
+                                        </div>
+                                        <div className="text-right shrink-0 pl-2">
+                                            <p className="text-sm font-bold text-slate-800 whitespace-nowrap tabular-nums">{formatRupiah(a.total_bayar)}</p>
+                                            <p className="text-xs text-brand-green-dark whitespace-nowrap tabular-nums">+{formatRupiah(a.nominal_bunga)}</p>
+                                        </div>
+                                    </label>
+                                </li>
+                            );
+                        })}
+                    </ul>
                 )}
             </Card>
 
             {terpilih.length > 0 && (
-                <div className="sticky bottom-0 z-30 -mx-4 sm:-mx-6 lg:-mx-8 mt-6 bg-white border-t border-slate-200 shadow-lg px-4 sm:px-6 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:py-4">
-                    <div className="max-w-[1400px] mx-auto flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-                        <p className="text-base font-semibold text-slate-700 text-center sm:text-left">
-                            {terpilih.length} angsuran dipilih &middot;{' '}
-                            <span className="text-brand-green-dark">{formatRupiah(totalTerpilih)}</span>
+                <div className="sticky bottom-0 z-30 mt-4 bg-white border border-slate-200 shadow-xl rounded-t-2xl px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                        <p className="text-sm font-semibold text-slate-700 text-center sm:text-left tabular-nums">
+                            {terpilih.length} dipilih •{' '}
+                            <span className="text-brand-green-dark font-bold">{formatRupiah(totalTerpilih)}</span>
                         </p>
-                        <Button variant="primary" onClick={konfirmasi} disabled={processing} className="w-full sm:w-auto">
-                            <Check size={18} aria-hidden="true" />
+                        <Button variant="primary" size="sm" onClick={konfirmasi} disabled={processing} className="w-full sm:w-auto rounded-full shadow-md shadow-brand-green/25">
+                            <Check size={16} aria-hidden="true" />
                             {processing ? 'Memproses...' : 'Konfirmasi Terpilih'}
                         </Button>
                     </div>
