@@ -5,8 +5,16 @@ export default function Pagination({ links, routeName, params = {} }) {
     if (!links || links.length <= 3) return null;
 
     const renderLabel = (label) => {
-        if (label === '&laquo;' || label === '&lsaquo;') return <ChevronLeft size={14} />;
-        if (label === '&raquo;' || label === '&rsaquo;') return <ChevronRight size={14} />;
+        const teks = String(label ?? '').toLowerCase();
+
+        if (teks.includes('laquo') || teks.includes('lsaquo') || teks.includes('previous') || teks.includes('sebelumnya')) {
+            return <ChevronLeft size={14} />;
+        }
+
+        if (teks.includes('raquo') || teks.includes('rsaquo') || teks.includes('next') || teks.includes('berikutnya')) {
+            return <ChevronRight size={14} />;
+        }
+
         return label;
     };
 
