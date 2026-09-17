@@ -1,6 +1,7 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, router } from '@inertiajs/react';
 import Card from '@/Components/ui/Card';
+import PageHeader from '@/Components/ui/PageHeader';
 import { SECTIONS } from './Sections';
 import TabBunga from './Partials/TabBunga';
 import TabLimit from './Partials/TabLimit';
@@ -44,12 +45,7 @@ export default function Index({
         <AppLayout>
             <Head title="Pengaturan" />
 
-            <div className="mb-6">
-                <h1 className="text-2xl font-bold text-slate-800">Pengaturan</h1>
-                <p className="text-base text-slate-400 mt-1">
-                    Kelola nominal dan ketentuan yang berlaku di sistem
-                </p>
-            </div>
+            <PageHeader title="Pengaturan" subtitle="Kelola nominal dan ketentuan yang berlaku di sistem" />
 
             {/* Mobile: navigasi horizontal */}
             <div className="lg:hidden mb-4 -mx-1 px-1 overflow-x-auto">

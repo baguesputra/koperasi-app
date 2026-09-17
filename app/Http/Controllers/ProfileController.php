@@ -37,6 +37,7 @@ class ProfileController extends Controller
                     'tanggal_mulai_kerja' => $user->anggota->tanggal_mulai_kerja?->format('d M Y'),
                     'tanggal_jadi_anggota' => $user->anggota->tanggal_jadi_anggota?->format('d M Y'),
                     'lama_keanggotaan_tahun' => round($user->anggota->lama_keanggotaan_tahun, 1),
+                    'foto_url' => $user->anggota->foto_url,
                 ] : null,
             ],
         ]);

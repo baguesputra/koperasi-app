@@ -1,9 +1,14 @@
-import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import { Head, useForm } from '@inertiajs/react';
-import { Lock, ShieldAlert } from 'lucide-react';
+import { Head, useForm, usePage } from '@inertiajs/react';
+import { ShieldAlert, LogOut } from 'lucide-react';
+import FormField from '@/Components/ui/FormField';
+import KataSandi from '@/Components/ui/KataSandi';
+import Button from '@/Components/ui/Button';
 
 export default function ConfirmPassword() {
+    const { props } = usePage();
+    const csrfToken = typeof document !== 'undefined'
+        ? document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+        : null;
     const { data, setData, post, processing, errors, reset } = useForm({
         password: '',
     });
@@ -16,42 +21,58 @@ export default function ConfirmPassword() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-brand-navy/5 to-slate-50 px-4 py-10">
             <Head title="Konfirmasi Password" />
 
-            <div className="w-full max-w-sm bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4">
-                    <ShieldAlert size={24} />
+            <div className="w-full max-w-sm">
+                <div className="bg-white rounded-2xl border border-slate-200/70 shadow-md p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                        <span className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 text-white flex items-center justify-center shadow-md shadow-amber-500/25 shrink-0">
+                            <ShieldAlert size={24} />
+                        </span>
+                        <div className="min-w-0">
+                            <h1 className="text-xl font-bold text-slate-800 leading-tight">Area Sensitif</h1>
+                            <p className="text-xs text-slate-400">Pengaturan & kelola pengguna dikunci</p>
+                        </div>
+                    </div>
+
+                    <p className="text-sm text-slate-500 mb-5 leading-relaxed">
+                        Sesi konfirmasi kedaluwarsa atau belum dilakukan. Masukkan kembali password untuk membuka
+                        <strong> Pengaturan</strong> dan <strong>Kelola Pengguna</strong>.
+                    </p>
+
+                    <form onSubmit={submit}>
+                        <FormField label="Password Anda" error={errors.password} required>
+                            <KataSandi
+                                size="sm"
+                                value={data.password}
+                                onChange={(e) => setData('password', e.target.value)}
+                                placeholder="••••••••"
+                                autoFocus
+                                required
+                                autoComplete="current-password"
+                            />
+                        </FormField>
+
+                        <Button type="submit" disabled={processing} className="w-full rounded-full shadow-md shadow-brand-green/25 mt-1">
+                            {processing ? 'Memverifikasi...' : 'Buka Area Sensitif'}
+                        </Button>
+                    </form>
                 </div>
 
-                <h1 className="text-xl font-bold text-slate-800 mb-2">Area Sensitif</h1>
-                <p className="text-base text-slate-500 mb-6">
-                    Untuk melanjutkan ke halaman ini, masukkan kembali password Anda.
-                </p>
-
-                <form onSubmit={submit}>
-                    <InputLabel htmlFor="password" value="Password" className="text-base font-semibold text-slate-700" />
-                    <div className="relative mt-1.5">
-                        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                        <input
-                            id="password"
-                            type="password"
-                            value={data.password}
-                            onChange={(e) => setData('password', e.target.value)}
-                            className="block w-full pl-11 pr-4 py-3 text-base rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
-                            autoFocus
-                        />
-                    </div>
-                    <InputError message={errors.password} className="mt-2" />
-
+                <form method="POST" action={route('logout')} className="mt-3 text-center">
+                    <input type="hidden" name="_token" value={csrfToken} />
                     <button
                         type="submit"
-                        disabled={processing}
-                        className="w-full mt-5 py-3.5 text-base font-bold rounded-xl bg-brand-green text-white hover:bg-brand-green-dark transition-colors disabled:opacity-50"
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-slate-600 transition-colors"
                     >
-                        {processing ? 'Memverifikasi...' : 'Konfirmasi'}
+                        <LogOut size={13} />
+                        Bukan Anda? Keluar
                     </button>
                 </form>
+                {props.flash?.status && (
+                    <p className="text-xs text-brand-green-dark text-center mt-2">{props.flash.status}</p>
+                )}
             </div>
         </div>
     );

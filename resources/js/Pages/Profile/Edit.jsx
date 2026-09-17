@@ -2,6 +2,7 @@ import AppLayout from '@/Layouts/AppLayout';
 import { Head } from '@inertiajs/react';
 import { User, Building2, CalendarDays, Phone, MapPin } from 'lucide-react';
 import Card from '@/Components/ui/Card';
+import FotoAnggota from '@/Components/ui/FotoAnggota';
 import StatusBadge from '@/Components/ui/StatusBadge';
 
 const labelRole = { admin: 'Admin', bendahara: 'Bendahara', ketua_koperasi: 'Ketua', anggota: 'Anggota' };
@@ -23,11 +24,16 @@ export default function Edit({ pengguna }) {
         <AppLayout>
             <Head title="Profil Saya" />
 
-            <Card className="mb-5">
+            <Card className="mb-5 relative overflow-hidden">
+                <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-brand-navy via-brand-green to-brand-navy" aria-hidden="true" />
                 <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-brand-navy text-white flex items-center justify-center text-xl font-bold shrink-0">
-                        {inisial}
-                    </div>
+                    {a?.foto_url ? (
+                        <FotoAnggota nama={pengguna?.name} fotoUrl={a.foto_url} ukuran="lg" />
+                    ) : (
+                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-navy to-brand-navy-light text-white flex items-center justify-center text-xl font-bold shrink-0 shadow-sm">
+                            {inisial}
+                        </div>
+                    )}
                     <div className="min-w-0 flex-1">
                         <p className="text-xl font-bold text-slate-800 truncate">{pengguna?.name}</p>
                         <p className="text-sm text-slate-400">
