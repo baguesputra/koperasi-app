@@ -22,7 +22,10 @@ class SimpananController extends Controller
 
         if ($request->filled('cari')) {
             $cari = $request->string('cari');
-            $query->where('nama', 'like', "%{$cari}%");
+            $query->where(function ($q) use ($cari) {
+                $q->where('nama', 'like', "%{$cari}%")
+                    ->orWhere('no_karyawan', 'like', "%{$cari}%");
+            });
         }
 
         if ($cabangAktif->isNotEmpty()) {
