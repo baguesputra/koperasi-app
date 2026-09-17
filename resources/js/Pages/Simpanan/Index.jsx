@@ -1,7 +1,8 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, router } from '@inertiajs/react';
 import { Search, HeartHandshake, PiggyBank, Users, Wallet } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import useDebouncedValue from '@/Utils/useDebouncedValue';
 import Card from '@/Components/ui/Card';
 import Drawer from '@/Components/ui/Drawer';
 import StatWidget from '@/Components/ui/StatWidget';
@@ -21,6 +22,8 @@ export default function Index({
     totalSimpananTampil,
 }) {
     const [cari, setCari] = useState(filters.cari ?? '');
+    const cariDebounced = useDebouncedValue(cari);
+    const pertama = useRef(true);
     const [detailAnggota, setDetailAnggota] = useState(null);
     const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -37,13 +40,33 @@ export default function Index({
         );
     }
 
-    function cariSubmit(e) {
-        e.preventDefault();
+    function cariOtomatis(nilai) {
         router.get(
             route('simpanan.index'),
-            { cari, cabang: cabangAktif },
+            { cari: nilai, cabang: cabangAktif },
             { preserveState: true, replace: true }
         );
+    }
+
+    useEffect(() => {
+        if (pertama.current) {
+            pertama.current = false;
+
+            return;
+        }
+
+        if ((cariDebounced ?? '') !== (filters.cari ?? '')) {
+            cariOtomatis(cariDebounced ?? '');
+        }
+    }, [cariDebounced]);
+
+    useEffect(() => {
+        setCari(filters.cari ?? '');
+    }, [filters.cari]);
+
+    function cariSubmit(e) {
+        e.preventDefault();
+        cariOtomatis(cari);
     }
 
     function bukaDetail(a) {

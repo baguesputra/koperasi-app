@@ -1,7 +1,8 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, router, usePage } from '@inertiajs/react';
 import { Search, Plus, Upload, Users, UserCheck, UserX, UserMinus, RotateCcw, FileText, MoreVertical } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import useDebouncedValue from '@/Utils/useDebouncedValue';
 import ButtonLink from '@/Components/ui/ButtonLink';
 import Card from '@/Components/ui/Card';
 import StatWidget from '@/Components/ui/StatWidget';
@@ -29,6 +30,8 @@ export default function Index({ anggota, statistik, filters, noAnggotaBerikutnya
     const permissions = props.auth?.user?.permissions ?? [];
 
     const [cari, setCari] = useState(filters.cari ?? '');
+    const cariDebounced = useDebouncedValue(cari);
+    const pertama = useRef(true);
     const [createOpen, setCreateOpen] = useState(false);
     const [editAnggota, setEditAnggota] = useState(null);
     const [drawerOpen, setDrawerOpen] = useState(false);
@@ -102,10 +105,21 @@ export default function Index({ anggota, statistik, filters, noAnggotaBerikutnya
         );
     }
 
-    function handleCariSubmit(e) {
-        e.preventDefault();
-        terapkanFilter({ cari });
-    }
+    useEffect(() => {
+        if (pertama.current) {
+            pertama.current = false;
+
+            return;
+        }
+
+        if ((cariDebounced ?? '') !== (filters.cari ?? '')) {
+            terapkanFilter({ cari: cariDebounced ?? '' });
+        }
+    }, [cariDebounced]);
+
+    useEffect(() => {
+        setCari(filters.cari ?? '');
+    }, [filters.cari]);
 
     return (
         <AppLayout>
@@ -136,7 +150,7 @@ export default function Index({ anggota, statistik, filters, noAnggotaBerikutnya
 
             <Card className="mb-5">
                 <div className="flex flex-col sm:flex-row gap-3">
-                    <form onSubmit={handleCariSubmit} className="flex-1 relative">
+                    <div className="flex-1 relative">
                         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                         <TextField
                             type="text"
@@ -146,7 +160,7 @@ export default function Index({ anggota, statistik, filters, noAnggotaBerikutnya
                             placeholder="Cari nama atau nomor anggota..."
                             className="pl-11"
                         />
-                    </form>
+                    </div>
 
                     <Select
                         size="sm"

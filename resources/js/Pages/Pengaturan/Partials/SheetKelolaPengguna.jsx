@@ -1,5 +1,6 @@
 import { router, useForm } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import useDebouncedValue from '@/Utils/useDebouncedValue';
 import {
     Pencil, Trash2, KeyRound, Ban, CheckCircle2, Search, Lock, ArrowLeft, Plus,
 } from 'lucide-react';
@@ -14,6 +15,8 @@ export default function SheetKelolaPengguna({ pengguna, filterPengguna, daftarRo
     const [view, setView] = useState('list');
     const [target, setTarget] = useState(null);
     const [cari, setCari] = useState(filterPengguna.cari ?? '');
+    const cariDebounced = useDebouncedValue(cari);
+    const pertama = useRef(true);
 
     const tambah = useForm({ name: '', no_karyawan: '', email: '', role: '', password: '' });
     const edit = useForm({ name: '', no_karyawan: '', email: '', role: '', status: '' });
@@ -29,6 +32,22 @@ export default function SheetKelolaPengguna({ pengguna, filterPengguna, daftarRo
             page: params.page ?? 1,
         }, { preserveState: true, replace: true });
     }
+
+    useEffect(() => {
+        if (pertama.current) {
+            pertama.current = false;
+
+            return;
+        }
+
+        if ((cariDebounced ?? '') !== (filterPengguna.cari ?? '')) {
+            muat({ cari: cariDebounced ?? '' });
+        }
+    }, [cariDebounced]);
+
+    useEffect(() => {
+        setCari(filterPengguna.cari ?? '');
+    }, [filterPengguna.cari]);
 
     function submitTambah(e) {
         e.preventDefault();
@@ -240,7 +259,6 @@ export default function SheetKelolaPengguna({ pengguna, filterPengguna, daftarRo
                         type="text"
                         value={cari}
                         onChange={(e) => setCari(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && muat({ cari })}
                         placeholder="Cari nama / no karyawan / email..."
                         className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-slate-300 bg-white focus:border-brand-green outline-none"
                     />

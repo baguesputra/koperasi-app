@@ -1,6 +1,7 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, router, useForm } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import useDebouncedValue from '@/Utils/useDebouncedValue';
 import {
     Plus, Pencil, Trash2, KeyRound, Ban, CheckCircle2, Search, Lock,
 } from 'lucide-react';
@@ -20,6 +21,8 @@ export default function Index({ pengguna, daftarRole, filters }) {
     const [editUser, setEditUser] = useState(null);
     const [resetUser, setResetUser] = useState(null);
     const [cari, setCari] = useState(filters.cari ?? '');
+    const cariDebounced = useDebouncedValue(cari);
+    const pertama = useRef(true);
 
     const tambah = useForm({ name: '', no_karyawan: '', email: '', role: '', password: '' });
     const edit = useForm({ name: '', no_karyawan: '', email: '', role: '', status: '' });
@@ -32,6 +35,22 @@ export default function Index({ pengguna, daftarRole, filters }) {
             { preserveState: true, replace: true }
         );
     }
+
+    useEffect(() => {
+        if (pertama.current) {
+            pertama.current = false;
+
+            return;
+        }
+
+        if ((cariDebounced ?? '') !== (filters.cari ?? '')) {
+            terapkanFilter({ cari: cariDebounced ?? '' });
+        }
+    }, [cariDebounced]);
+
+    useEffect(() => {
+        setCari(filters.cari ?? '');
+    }, [filters.cari]);
 
     function submitTambah(e) {
         e.preventDefault();
@@ -120,7 +139,6 @@ export default function Index({ pengguna, daftarRole, filters }) {
                             type="text"
                             value={cari}
                             onChange={(e) => setCari(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && terapkanFilter({ cari })}
                             placeholder="Cari nama, no karyawan, atau email..."
                             className="w-full pl-10 pr-4 py-2.5 text-base rounded-xl border border-slate-300 bg-white focus:border-brand-green outline-none"
                         />

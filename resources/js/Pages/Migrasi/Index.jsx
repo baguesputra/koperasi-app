@@ -78,7 +78,8 @@ export default function Index() {
                     judul="1. Migrasi Pinjaman"
                     deskripsi="Satu baris = satu pinjaman. Jadwal angsuran dibuat otomatis, cicilan yang sudah dibayar ditandai lunas."
                     catatan={[
-                        'Kunci anggota: <code>No Karyawan</code> (harus sudah terdaftar & aktif)',
+                        'Kunci anggota: <code>No Karyawan</code> (harus sudah terdaftar & aktif), kolom <code>Nama</code> opsional sebagai pembanding',
+                        'Typo ringan 1 huruf (misal <code>Eka Yogi</code> vs <code>Eka Yogie</code>) otomatis ditempel bila kandidat tunggal',
                         'Kolom <code>Sudah Bayar Cicilan Ke</code>: jumlah cicilan yang sudah lunas, sisa dihitung otomatis',
                         'Tanggal: format <code>2024-01-15</code>, tanggal bayar tiap cicilan mengikuti jatuh tempo',
                     ]}

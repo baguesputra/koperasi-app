@@ -13,7 +13,7 @@ class TemplateMigrasiPinjamanExport implements FromArray, WithColumnFormatting, 
     {
         return [
             [
-                'TOP-100001', '2024-01-10', '2024-01-15',
+                'TOP-100001', 'Contoh Nama', '2024-01-10', '2024-01-15',
                 10000000, 10, 1, 4, '2024-05-15',
             ],
         ];
@@ -22,7 +22,7 @@ class TemplateMigrasiPinjamanExport implements FromArray, WithColumnFormatting, 
     public function headings(): array
     {
         return [
-            'No Karyawan', 'Tanggal Pengajuan', 'Tanggal Pencairan',
+            'No Karyawan', 'Nama', 'Tanggal Pengajuan', 'Tanggal Pencairan',
             'Nominal', 'Tenor Bulan', 'Bunga Persen', 'Sudah Bayar Cicilan Ke', 'Tanggal Bayar Terakhir',
         ];
     }

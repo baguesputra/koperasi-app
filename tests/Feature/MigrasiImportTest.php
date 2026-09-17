@@ -8,6 +8,7 @@ use App\Models\Pinjaman;
 use App\Models\Simpanan;
 use App\Services\Migrasi\MigrasiPinjamanService;
 use App\Services\Migrasi\MigrasiSimpananService;
+use App\Services\Migrasi\PencocokanNamaService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Permission;
 use Tests\Concerns\MembuatDataUji;
@@ -97,6 +98,24 @@ class MigrasiImportTest extends TestCase
 
         $this->expectException(\RuntimeException::class);
         $service->proses(...$argumen);
+    }
+
+    public function test_pencocokan_nama_typo_satu_huruf_otomatis_dan_ambigu_ditolak(): void
+    {
+        $this->buatAnggota('TOP-900016', ['nama' => 'Eka Yogie Basenda', 'no_karyawan' => 'TOP-900016']);
+
+        $layanan = app(PencocokanNamaService::class);
+        $layanan->lupakanCache();
+
+        $cocok = $layanan->cocokkan('Eka Yogi Basenda');
+        $this->assertNotNull($cocok);
+        $this->assertSame('TOP-900016', $cocok->no_karyawan);
+
+        $this->buatAnggota('TOP-900017', ['nama' => 'Budi Purnomo Wijaya', 'no_karyawan' => 'TOP-900017']);
+        $this->buatAnggota('TOP-900018', ['nama' => 'Budi Purnomo Wijoyo', 'no_karyawan' => 'TOP-900018']);
+        $layanan->lupakanCache();
+
+        $this->assertNull($layanan->cocokkan('Budi Purnomo Wijay'));
     }
 
     public function test_migrasi_simpanan_membuat_simpanan_dan_jurnal(): void

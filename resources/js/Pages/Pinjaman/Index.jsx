@@ -1,7 +1,8 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, router } from '@inertiajs/react';
 import { CheckCircle2, Clock, FileText, Search, ShieldCheck, XCircle, Wallet } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import useDebouncedValue from '@/Utils/useDebouncedValue';
 import Card from '@/Components/ui/Card';
 import StatWidget from '@/Components/ui/StatWidget';
 import StatusBadge from '@/Components/ui/StatusBadge';
@@ -29,6 +30,8 @@ const statusMap = {
 
 export default function Index({ pinjaman, filters, statistik, cabangAktif, daftarCabang }) {
     const [cari, setCari] = useState(filters.cari ?? '');
+    const cariDebounced = useDebouncedValue(cari);
+    const pertama = useRef(true);
     const [detailPinjaman, setDetailPinjaman] = useState(null);
     const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -52,6 +55,22 @@ export default function Index({ pinjaman, filters, statistik, cabangAktif, dafta
             { preserveState: true, replace: true }
         );
     }
+
+    useEffect(() => {
+        if (pertama.current) {
+            pertama.current = false;
+
+            return;
+        }
+
+        if ((cariDebounced ?? '') !== (filters.cari ?? '')) {
+            terapkanFilter({ cari: cariDebounced ?? '' });
+        }
+    }, [cariDebounced]);
+
+    useEffect(() => {
+        setCari(filters.cari ?? '');
+    }, [filters.cari]);
 
     function bukaDetail(p) {
         setDetailPinjaman(p);
@@ -121,7 +140,7 @@ function bukaCetak(e, p) {
 
             <Card className="mb-5">
                 <div className="flex flex-col sm:flex-row gap-3">
-                    <form onSubmit={(e) => { e.preventDefault(); terapkanFilter({ cari }); }} className="flex-1 relative">
+                    <div className="flex-1 relative">
                         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                         <input
                             type="text"
@@ -130,7 +149,7 @@ function bukaCetak(e, p) {
                             placeholder="Cari nama anggota..."
                             className="w-full pl-11 pr-4 py-2.5 text-base rounded-xl border border-slate-300 bg-white focus:border-brand-green outline-none"
                         />
-                    </form>
+                    </div>
 
                     <select
                         value={filters.status ?? ''}

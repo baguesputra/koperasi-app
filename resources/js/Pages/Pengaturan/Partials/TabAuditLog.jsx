@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { router } from '@inertiajs/react';
+import useDebouncedValue from '@/Utils/useDebouncedValue';
 import { Activity, ChevronDown, ChevronRight, Search, RotateCcw, ChevronLeft } from 'lucide-react';
 import Button from '@/Components/ui/Button';
 import { infoAksi, inisialNama, waktuRelatif } from '@/Utils/auditActions';
@@ -60,21 +61,29 @@ export default function TabAuditLog({ auditLogs, filterAudit }) {
     const [dateFrom, setDateFrom] = useState(filterAudit?.date_from ?? '');
     const [dateTo, setDateTo] = useState(filterAudit?.date_to ?? '');
     const [expandedId, setExpandedId] = useState(null);
-    const [debouncedSearch, setDebouncedSearch] = useState(search);
+    const cariDebounced = useDebouncedValue(search);
+    const pertama = useRef(true);
 
     useEffect(() => {
-        const timer = setTimeout(() => setDebouncedSearch(search), 300);
-        return () => clearTimeout(timer);
-    }, [search]);
+        if (pertama.current) {
+            pertama.current = false;
+
+            return;
+        }
+
+        if ((cariDebounced ?? '') !== (filterAudit?.search ?? '')) {
+            terapkanFilter({ search: cariDebounced ?? '' });
+        }
+    }, [cariDebounced]);
 
     useEffect(() => {
-        terapkanFilter();
-    }, [debouncedSearch]);
+        setSearch(filterAudit?.search ?? '');
+    }, [filterAudit?.search]);
 
     function terapkanFilter(overrides = {}) {
         const params = {
             tab: 'audit',
-            search: overrides.search ?? debouncedSearch,
+            search: overrides.search ?? cariDebounced ?? '',
             date_from: overrides.date_from ?? dateFrom,
             date_to: overrides.date_to ?? dateTo,
         };
@@ -90,7 +99,6 @@ export default function TabAuditLog({ auditLogs, filterAudit }) {
         setSearch('');
         setDateFrom('');
         setDateTo('');
-        setDebouncedSearch('');
         router.get(route('pengaturan.index'), { tab: 'audit' }, { preserveState: true, replace: true });
     }
 
