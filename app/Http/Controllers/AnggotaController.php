@@ -73,6 +73,7 @@ class AnggotaController extends Controller
                 'department' => $a->department,
                 'no_hp' => $a->no_hp,
                 'alamat' => $a->alamat,
+                'foto_url' => $a->foto_url,
                 'user' => $a->user ? [
                     'id' => $a->user->id,
                     'email' => $a->user->email,

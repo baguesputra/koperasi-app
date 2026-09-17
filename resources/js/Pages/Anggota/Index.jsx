@@ -6,6 +6,7 @@ import useDebouncedValue from '@/Utils/useDebouncedValue';
 import Button from '@/Components/ui/Button';
 import ButtonLink from '@/Components/ui/ButtonLink';
 import Card from '@/Components/ui/Card';
+import FotoAnggota from '@/Components/ui/FotoAnggota';
 import StatWidget from '@/Components/ui/StatWidget';
 import StatusBadge from '@/Components/ui/StatusBadge';
 import PageHeader from '@/Components/ui/PageHeader';
@@ -238,9 +239,7 @@ export default function Index({ anggota, statistik, filters, daftarCabang }) {
                                     <tr key={a.id} onClick={() => bukaEdit(a)} onKeyDown={(e) => { if (e.key === 'Enter') bukaEdit(a); }} tabIndex={0} title="Klik untuk ubah" className="group border-b border-slate-50 last:border-0 hover:bg-gradient-to-r hover:from-brand-green-light/40 hover:to-transparent transition-all cursor-pointer focus-visible:outline-none focus-visible:bg-brand-green-light/50">
                                         <td className="px-4 py-2.5">
                                             <div className="flex items-center gap-2.5 min-w-0">
-                                                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-green to-brand-green-dark text-white flex items-center justify-center text-sm font-bold shrink-0 shadow-sm" aria-hidden="true">
-                                                    {a.nama.charAt(0).toUpperCase()}
-                                                </div>
+                                                <FotoAnggota nama={a.nama} fotoUrl={a.foto_url} ukuran="sm" />
                                                 <div className="min-w-0">
                                                     <p className="text-sm font-semibold text-slate-800 truncate max-w-[180px] sm:max-w-[240px] group-hover:text-brand-navy transition-colors">{a.nama}</p>
                                                     <p className="text-xs text-slate-400 truncate">{a.no_karyawan}</p>

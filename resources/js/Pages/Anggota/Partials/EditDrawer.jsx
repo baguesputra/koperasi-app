@@ -1,6 +1,7 @@
 import { useForm } from '@inertiajs/react';
 import { Lock, CalendarDays, ToggleLeft, Wallet } from 'lucide-react';
 import Button from '@/Components/ui/Button';
+import FotoAnggota from '@/Components/ui/FotoAnggota';
 import FormField from '@/Components/ui/FormField';
 import Select from '@/Components/ui/Select';
 import TextField from '@/Components/ui/TextField';
@@ -48,9 +49,7 @@ export default function EditDrawer({ anggota, onClose }) {
     return (
         <form onSubmit={submit} className="space-y-3">
             <div className="flex items-center gap-3 rounded-2xl bg-gradient-to-r from-brand-navy to-brand-navy-light text-white px-4 py-3 shadow-md shadow-brand-navy/20">
-                <div className="w-11 h-11 rounded-full bg-white/15 flex items-center justify-center text-base font-bold shrink-0" aria-hidden="true">
-                    {anggota.nama.charAt(0).toUpperCase()}
-                </div>
+                <FotoAnggota nama={anggota.nama} fotoUrl={anggota.foto_url} ukuran="lg" className="bg-white/15 ring-white/20" />
                 <div className="min-w-0">
                     <p className="text-sm font-bold truncate">{anggota.nama}</p>
                     <p className="text-xs text-white/70 truncate">{anggota.no_karyawan}{anggota.user?.email ? ` • ${anggota.user.email}` : ''}</p>
