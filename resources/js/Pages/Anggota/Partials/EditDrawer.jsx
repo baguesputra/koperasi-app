@@ -61,7 +61,7 @@ export default function EditDrawer({ anggota, onClose }) {
                 <p>Data identitas, penempatan, dan kontak <strong>terkunci</strong> — sinkron otomatis dari GATE. Hubungi admin HR bila ada selisih.</p>
             </div>
 
-            <Seksi ikon={Lock} judul="Data GATE" deskripsi="Read-only, diperbarui via sinkronisasi">
+            <Seksi ikon={Lock} judul="Data Anggota" deskripsi="Read-only, diperbarui via sinkronisasi">
                 <div className="grid grid-cols-2 gap-2">
                     <Info label="Nama" value={anggota.nama} />
                     <Info label="No. Karyawan" value={anggota.no_karyawan} />
@@ -82,7 +82,7 @@ export default function EditDrawer({ anggota, onClose }) {
             <Seksi ikon={CalendarDays} judul="Keanggotaan Koperasi" deskripsi="Satu-satunya data tanggal yang boleh diubah manual">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3">
                     <FormField label="Tanggal Jadi Anggota" error={errors.tanggal_jadi_anggota} hint="Acuan lama keanggotaan & limit" required>
-                        <TextField size="sm" type="date" value={data.tanggal_jadi_anggota} onChange={(e) => setData('tanggal_jadi_anggota', e.target.value)} autoFocus required />
+                        <TextField size="sm" type="date" value={data.tanggal_jadi_anggota} onChange={(e) => setData('tanggal_jadi_anggota', e.target.value)} required />
                     </FormField>
                     <FormField label="Status" error={errors.status} required>
                         <div className="relative">
