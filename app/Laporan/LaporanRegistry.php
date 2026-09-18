@@ -229,8 +229,8 @@ class LaporanRegistry
                 },
             ],
 
-            'keuntungan-bunga' => [
-                'judul' => 'Laporan Keuntungan Bunga',
+            'pendapatan-bunga' => [
+                'judul' => 'Laporan Pendapatan Bunga',
                 'deskripsi' => 'Akumulasi bunga angsuran lunas per bulan — basis hitung SHU.',
                 'kategori' => 'Keuangan',
                 'ikon' => 'trending-up',

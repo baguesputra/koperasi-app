@@ -24,7 +24,7 @@ class DashboardController extends Controller
 
         $kas = KasKoperasi::first();
 
-        $keuntunganBulanIni = Angsuran::where('status', 'lunas')
+        $pendapatanBungaBulanIni = Angsuran::where('status', 'lunas')
             ->whereYear('tanggal_konfirmasi_bayar', now()->year)
             ->whereMonth('tanggal_konfirmasi_bayar', now()->month)
             ->sum('nominal_bunga');
@@ -190,7 +190,7 @@ class DashboardController extends Controller
                 'saldo_dana_pinjaman' => (float) $saldoDanaPinjaman,
                 'saldo_pengembalian_simpanan' => (float) $kas->saldo_pengembalian_simpanan,
                 'total_keseluruhan' => (float) $totalKeseluruhan,
-                'keuntungan_bulan_ini' => (float) $keuntunganBulanIni,
+                'pendapatan_bunga_bulan_ini' => (float) $pendapatanBungaBulanIni,
                 'saldo_dana_sosial' => (float) $saldoDanaSosial,
             ],
             'actionable' => [

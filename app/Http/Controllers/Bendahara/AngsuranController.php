@@ -86,14 +86,14 @@ class AngsuranController extends Controller
 
         $daftarCabang = Anggota::query()->whereNotNull('cabang')->distinct()->orderBy('cabang')->pluck('cabang');
 
-        $totalKeuntunganBulanIni = Angsuran::where('status', 'lunas')
+        $totalPendapatanBungaBulanIni = Angsuran::where('status', 'lunas')
             ->whereYear('tanggal_konfirmasi_bayar', $tahun)->whereMonth('tanggal_konfirmasi_bayar', $bulanAngka)
             ->sum('nominal_bunga')
             + AngsuranPercepatan::where('status', 'lunas')
                 ->whereYear('tanggal_konfirmasi_bayar', $tahun)->whereMonth('tanggal_konfirmasi_bayar', $bulanAngka)
                 ->sum('nominal_bunga');
 
-        $totalKeuntunganKeseluruhan = Angsuran::where('status', 'lunas')->sum('nominal_bunga')
+        $totalPendapatanBungaKeseluruhan = Angsuran::where('status', 'lunas')->sum('nominal_bunga')
             + AngsuranPercepatan::where('status', 'lunas')->sum('nominal_bunga');
 
         return Inertia::render('Bendahara/Angsuran/Index', [
@@ -103,8 +103,8 @@ class AngsuranController extends Controller
             'daftarCabang' => $daftarCabang,
             'tagihanPerCabang' => $tagihanPerCabang,
             'totalTagihanBulanIni' => (float) $totalTagihanBulanIni,
-            'totalKeuntunganBulanIni' => (float) $totalKeuntunganBulanIni,
-            'totalKeuntunganKeseluruhan' => (float) $totalKeuntunganKeseluruhan,
+            'totalPendapatanBungaBulanIni' => (float) $totalPendapatanBungaBulanIni,
+            'totalPendapatanBungaKeseluruhan' => (float) $totalPendapatanBungaKeseluruhan,
         ]);
     }
 

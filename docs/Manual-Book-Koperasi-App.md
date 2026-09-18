@@ -119,7 +119,7 @@ Jadwal angsuran dibuat otomatis saat pinjaman aktif, dengan **bunga menurun** (d
    - Kalau semua cicilan lunas → pinjaman otomatis jadi "Lunas"
 5. Bar bawah menampilkan jumlah terpilih + total rupiah
 
-Halaman ini juga menampilkan **keuntungan koperasi** dari bunga (per bulan dan akumulasi keseluruhan).
+Halaman ini juga menampilkan **pendapatan bunga** koperasi (per bulan dan akumulasi keseluruhan).
 
 Badge pada baris angsuran:
 - 🔴 **Terlambat** — tanggal jatuh tempo sudah lewat
@@ -224,7 +224,7 @@ Pesan menggunakan format resmi: kop `*KOPERASI KARYAWAN*`, salam Yth., rincian l
 **Keuangan:**
 1. **Laporan Arus Kas** — mutasi masuk/keluar per kantong, rentang bebas
 2. **Neraca Sederhana** — posisi saldo per tanggal cut-off
-3. **Keuntungan Bunga** — akumulasi bunga angsuran lunas per bulan/tahun (basis SHU)
+3. **Pendapatan Bunga** — akumulasi bunga angsuran lunas per bulan/tahun (basis SHU)
 
 **Pinjaman:**
 4. **Rekap Pinjaman per Status** — daftar pinjaman beserta statusnya

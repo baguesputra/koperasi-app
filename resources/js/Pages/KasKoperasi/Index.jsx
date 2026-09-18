@@ -250,12 +250,12 @@ export default function Index({
                                     ))}
                                 </div>
                             </FormField>
-                            <FormField label="Keterangan" error={errors.keterangan} hint={`Contoh: Topup ${labelBulan} dari keuntungan`}>
+                            <FormField label="Keterangan" error={errors.keterangan} hint={`Contoh: Topup ${labelBulan} dari pendapatan bunga`}>
                                 <TextField
                                     size="sm"
                                     value={data.keterangan}
                                     onChange={(e) => setData('keterangan', e.target.value)}
-                                    placeholder={`Topup ${labelBulan} dari keuntungan`}
+                                    placeholder={`Topup ${labelBulan} dari pendapatan bunga`}
                                 />
                             </FormField>
                         </div>

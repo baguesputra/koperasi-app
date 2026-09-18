@@ -135,15 +135,15 @@ Bendahara mencairkan → Status "Aktif", jadwal angsuran, jurnal pencairan, WA +
 ### 3.6 Modul Angsuran (`Realized`)
 - Jadwal auto saat `aktif`, **bunga menurun** (1% dari sisa pokok bulan berjalan, snapshot). Cicilan terakhir menyerap sisa pembulatan supaya Σpokok == nominal persis.
 - Konfirmasi massal (Bendahara): pilih bulan (navigasi ‹ › + "Bulan ini") → centang cicilan → konfirmasi → status lunas, saldo kas bertambah, jurnal tercatat; cicilan terakhir → pinjaman `lunas`.
-- Halaman menampilkan keuntungan koperasi dari bunga (per bulan & akumulasi).
+- Halaman menampilkan pendapatan bunga koperasi (per bulan & akumulasi).
 - Badge angsuran: 🔴 Terlambat (jatuh tempo lewat), 🟡 Perubahan tenor diajukan (pengajuan aktif).
 - Search nama/no. anggota live; selection bar sticky dengan total rupiah; empty state dinamis.
 
 **US-ANG-1:** Sebagai Bendahara, saya mengonfirmasi angsuran bulanan lintas anggota.
 - *Acceptance:* Centang + konfirmasi → status lunas; `saldo_pinjaman` bertambah; `jurnal_kas` tercatat; bila cicilan terakhir → pinjaman `lunas`.
 
-**US-ANG-2:** Sebagai Bendahara/Ketua, saya melihat keuntungan bunga.
-- *Acceptance:* Keuntungan bulan berjalan & akumulasi dihitung benar dari `nominal_bunga`.
+**US-ANG-2:** Sebagai Bendahara/Ketua, saya melihat pendapatan bunga.
+- *Acceptance:* Pendapatan bunga bulan berjalan & akumulasi dihitung benar dari `nominal_bunga`.
 
 ### 3.7 Kas Koperasi (4 Kantong) (`Realized`)
 | Kantong | Fungsi | Masuk | Keluar |
@@ -232,7 +232,7 @@ Anggota ajukan limit (`portal.pengajuan-limit`) → Ketua tinjau/approve (`ketua
 |---|---|---|
 | **Keuangan** | Arus Kas | Mutasi masuk/keluar per kantong, rentang bebas |
 | | Neraca Sederhana | Posisi saldo per tanggal cut-off |
-| | Keuntungan Bunga | Akumulasi bunga per bulan/tahun (basis SHU) |
+| | Pendapatan Bunga | Akumulasi bunga per bulan/tahun (basis SHU) |
 | **Pinjaman** | Rekap per Status | Daftar pinjaman beserta statusnya |
 | | Pinjaman Jatuh Tempo | Angsuran belum bayar bulan terpilih (follow-up) |
 | | Perubahan Tenor | Riwayat pengajuan percepatan/perpanjangan & hasilnya |

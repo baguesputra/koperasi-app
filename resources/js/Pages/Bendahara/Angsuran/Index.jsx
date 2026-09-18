@@ -12,7 +12,7 @@ import { withIdempotencyKey } from '@/Utils/idempotency';
 
 const fokusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/40';
 
-export default function Index({ bulan, daftarAngsuran, cabangAktif, daftarCabang, tagihanPerCabang, totalTagihanBulanIni, totalKeuntunganBulanIni, totalKeuntunganKeseluruhan }) {
+export default function Index({ bulan, daftarAngsuran, cabangAktif, daftarCabang, tagihanPerCabang, totalTagihanBulanIni, totalPendapatanBungaBulanIni, totalPendapatanBungaKeseluruhan }) {
     const [terpilih, setTerpilih] = useState([]);
     const [processing, setProcessing] = useState(false);
     const [cari, setCari] = useState('');
@@ -127,12 +127,12 @@ export default function Index({ bulan, daftarAngsuran, cabangAktif, daftarCabang
                 {rincianTerbuka && (
                     <dl className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-white/15 text-sm">
                         <div className="rounded-xl bg-white/10 px-3 py-2">
-                            <dt className="text-xs text-white/70">Untung bulan ini</dt>
-                            <dd className="font-bold tabular-nums">{formatRupiah(totalKeuntunganBulanIni)}</dd>
+                            <dt className="text-xs text-white/70">Pendapatan bunga bulan ini</dt>
+                            <dd className="font-bold tabular-nums">{formatRupiah(totalPendapatanBungaBulanIni)}</dd>
                         </div>
                         <div className="rounded-xl bg-white/10 px-3 py-2">
-                            <dt className="text-xs text-white/70">Untung keseluruhan</dt>
-                            <dd className="font-bold tabular-nums">{formatRupiah(totalKeuntunganKeseluruhan)}</dd>
+                            <dt className="text-xs text-white/70">Pendapatan bunga keseluruhan</dt>
+                            <dd className="font-bold tabular-nums">{formatRupiah(totalPendapatanBungaKeseluruhan)}</dd>
                         </div>
                         {Object.entries(tagihanPerCabang ?? {}).map(([c, nominal]) => (
                             <div key={c} className="rounded-xl bg-white/10 px-3 py-2">
@@ -156,7 +156,7 @@ export default function Index({ bulan, daftarAngsuran, cabangAktif, daftarCabang
                     <StatWidget compact label="Menunggu" value={daftarAngsuran.length} icon={Wallet} tone="amber" />
                 </div>
                 <div className="col-span-2 lg:col-span-1 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
-                    <StatWidget compact label="Untung Bulan Ini" value={formatRupiah(totalKeuntunganBulanIni)} icon={TrendingUp} tone="green" />
+                    <StatWidget compact label="Pendapatan Bunga Bulan Ini" value={formatRupiah(totalPendapatanBungaBulanIni)} icon={TrendingUp} tone="green" />
                 </div>
             </div>
 

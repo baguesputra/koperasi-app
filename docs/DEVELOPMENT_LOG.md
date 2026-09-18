@@ -18,7 +18,7 @@
 - [x] Logout berhasil dari semua role
 
 ## 2. Dashboard Koperasi (Admin/Bendahara/Ketua)
-- [x] 6 widget tampil dengan angka benar (Anggota Aktif, Simpanan, Pinjaman Outstanding, Saldo Kas, Keuntungan Bulan Ini, Dana Sosial)
+- [x] 6 widget tampil dengan angka benar (Anggota Aktif, Simpanan, Pinjaman Outstanding, Saldo Kas, Pendapatan Bunga Bulan Ini, Dana Sosial)
 - [x] Section "Perlu Ditindaklanjuti" — 4 kartu tampil dan bisa diklik ke halaman terkait
 - [x] Grafik tren Simpanan vs Pinjaman tampil tanpa error
 - [x] Aktivitas Terbaru tampil (gabungan pinjaman + angsuran)
@@ -60,7 +60,7 @@
 - [x] Halaman Angsuran (Bendahara) — pilih bulan, cicilan jatuh tempo tampil
 - [x] Centang massal + konfirmasi — status jadi lunas
 - [x] Saldo Kas Koperasi bertambah setelah konfirmasi
-- [ ] Keuntungan (bunga) bulan ini & keseluruhan terhitung benar
+- [ ] Pendapatan bunga bulan ini & keseluruhan terhitung benar
 - [ ] Cicilan terakhir dikonfirmasi — pinjaman otomatis jadi "Lunas"
 
 ## 8. Kas Koperasi

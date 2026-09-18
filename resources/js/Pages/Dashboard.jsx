@@ -39,7 +39,7 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
         { label: 'Pinjaman Outstanding', value: formatRupiah(stats.pinjaman_outstanding), icon: HandCoins, tone: 'amber' },
         { label: 'Saldo Dana Pinjaman', value: formatRupiah(stats.saldo_dana_pinjaman), icon: Wallet, tone: 'navy' },
         { label: 'Saldo Dana Sosial', value: formatRupiah(stats.saldo_dana_sosial), icon: HeartHandshake, tone: 'amber' },
-        { label: 'Keuntungan Bulan Ini', value: formatRupiah(stats.keuntungan_bulan_ini), icon: TrendingUp, tone: 'green' },
+        { label: 'Pendapatan Bunga Bulan Ini', value: formatRupiah(stats.pendapatan_bunga_bulan_ini), icon: TrendingUp, tone: 'green' },
     ];
 
     const actionItems = [
