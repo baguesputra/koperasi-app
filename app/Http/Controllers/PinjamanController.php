@@ -72,6 +72,7 @@ class PinjamanController extends Controller
                     'no_anggota' => $p->anggota->no_anggota,
                     'no_karyawan' => $p->anggota->no_karyawan,
                     'cabang' => $p->anggota->cabang,
+                    'foto_url' => $p->anggota->foto_url,
                     'anggota_status' => $p->anggota->status,
                     'nominal' => (float) $p->nominal,
                     'tenor_bulan' => $p->tenor_bulan,
@@ -191,12 +192,13 @@ class PinjamanController extends Controller
         $jurnalPelunasan = $this->ambilJurnalPelunasanResign($pinjaman);
 
         return Inertia::render('Pinjaman/Show', [
-            'pinjaman' => [
+                'pinjaman' => [
                 'id' => $pinjaman->id,
                 'anggota_id' => $pinjaman->anggota_id,
                 'nama' => $pinjaman->anggota->nama,
                 'no_anggota' => $pinjaman->anggota->no_anggota,
                 'no_karyawan' => $pinjaman->anggota->no_karyawan,
+                'foto_url' => $pinjaman->anggota->foto_url,
                 'anggota_status' => $pinjaman->anggota->status,
                 'nominal' => (float) $pinjaman->nominal,
                 'tenor_bulan' => $pinjaman->tenor_bulan,

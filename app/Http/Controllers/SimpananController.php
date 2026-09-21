@@ -44,6 +44,7 @@ class SimpananController extends Controller
                     'no_anggota' => $a->no_anggota,
                     'no_karyawan' => $a->no_karyawan,
                     'cabang' => $a->cabang,
+                    'foto_url' => $a->foto_url,
                     'status' => $a->status,
                     'total_simpanan' => (float) ($a->total_pokok_wajib ?? 0),
                     'alokasi_pelunasan_resign' => (float) ($settlement['tagihan_pelunasan'] ?? 0),

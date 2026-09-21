@@ -108,6 +108,7 @@ class PinjamanController extends Controller
                     'no_anggota' => $p->anggota->no_anggota,
                     'no_karyawan' => $p->anggota->no_karyawan,
                     'cabang' => $p->anggota->cabang,
+                    'foto_url' => $p->anggota->foto_url,
                     'jabatan' => $p->anggota->jabatan,
                     'lama_keanggotaan_tahun' => round($p->anggota->lama_keanggotaan_tahun, 1),
                 ],

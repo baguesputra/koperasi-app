@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import useDebouncedValue from '@/Utils/useDebouncedValue';
 import Button from '@/Components/ui/Button';
 import Card from '@/Components/ui/Card';
+import FotoAnggota from '@/Components/ui/FotoAnggota';
 import StatWidget from '@/Components/ui/StatWidget';
 import StatusBadge from '@/Components/ui/StatusBadge';
 import PageHeader from '@/Components/ui/PageHeader';
@@ -257,9 +258,7 @@ export default function Index({ pinjaman, filters, statistik, cabangAktif, dafta
                                         <tr key={p.id} onClick={() => bukaDetail(p)} onKeyDown={(e) => { if (e.key === 'Enter') bukaDetail(p); }} tabIndex={0} title="Klik untuk rincian" className="group border-b border-slate-50 last:border-0 hover:bg-gradient-to-r hover:from-brand-green-light/40 hover:to-transparent transition-all cursor-pointer focus-visible:outline-none focus-visible:bg-brand-green-light/50">
                                             <td className="px-4 py-2.5">
                                                 <div className="flex items-center gap-2.5 min-w-0">
-                                                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-navy to-brand-navy-light text-white flex items-center justify-center text-sm font-bold shrink-0 shadow-sm" aria-hidden="true">
-                                                        {p.nama.charAt(0).toUpperCase()}
-                                                    </div>
+                                                    <FotoAnggota nama={p.nama} fotoUrl={p.foto_url} ukuran="sm" />
                                                     <div className="min-w-0">
                                                         <p className="text-sm font-semibold text-slate-800 truncate max-w-[160px] sm:max-w-[200px] group-hover:text-brand-navy transition-colors">{p.nama}</p>
                                                         <p className="text-xs text-slate-400 truncate">{p.no_karyawan}{p.cabang ? ` • ${p.cabang}` : ''}</p>

@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import useDebouncedValue from '@/Utils/useDebouncedValue';
 import Button from '@/Components/ui/Button';
 import Card from '@/Components/ui/Card';
+import FotoAnggota from '@/Components/ui/FotoAnggota';
 import Drawer from '@/Components/ui/Drawer';
 import StatWidget from '@/Components/ui/StatWidget';
 import StatusBadge from '@/Components/ui/StatusBadge';
@@ -206,9 +207,7 @@ export default function Index({
                                     <tr key={a.id} onClick={() => bukaDetail(a)} onKeyDown={(e) => { if (e.key === 'Enter') bukaDetail(a); }} tabIndex={0} title="Klik untuk rincian" className="group border-b border-slate-50 last:border-0 hover:bg-gradient-to-r hover:from-brand-green-light/40 hover:to-transparent transition-all cursor-pointer focus-visible:outline-none focus-visible:bg-brand-green-light/50">
                                         <td className="px-4 py-2.5">
                                             <div className="flex items-center gap-2.5 min-w-0">
-                                                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-navy to-brand-navy-light text-white flex items-center justify-center text-sm font-bold shrink-0 shadow-sm" aria-hidden="true">
-                                                    {a.nama.charAt(0).toUpperCase()}
-                                                </div>
+                                                <FotoAnggota nama={a.nama} fotoUrl={a.foto_url} ukuran="sm" />
                                                 <div className="min-w-0">
                                                     <p className="text-sm font-semibold text-slate-800 truncate max-w-[180px] sm:max-w-[240px] group-hover:text-brand-navy transition-colors">{a.nama}</p>
                                                     <p className="text-xs text-slate-400 truncate">{a.no_karyawan}</p>
@@ -237,9 +236,7 @@ export default function Index({
                 {detailAnggota && (
                     <div className="space-y-3">
                         <div className="flex items-center gap-3 rounded-2xl bg-gradient-to-r from-brand-navy to-brand-navy-light text-white px-4 py-3 shadow-md shadow-brand-navy/20">
-                            <div className="w-11 h-11 rounded-full bg-white/15 flex items-center justify-center text-base font-bold shrink-0" aria-hidden="true">
-                                {detailAnggota.nama.charAt(0).toUpperCase()}
-                            </div>
+                            <FotoAnggota nama={detailAnggota.nama} fotoUrl={detailAnggota.foto_url} ukuran="md" className="bg-white/15 ring-white/20" />
                             <div className="min-w-0 flex-1">
                                 <p className="text-sm font-bold truncate">{detailAnggota.nama}</p>
                                 <p className="text-xs text-white/70 truncate">{detailAnggota.no_karyawan} • {detailAnggota.cabang}</p>

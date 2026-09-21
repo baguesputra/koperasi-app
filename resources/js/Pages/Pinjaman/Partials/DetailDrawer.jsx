@@ -1,5 +1,6 @@
 import { Printer, Wallet, CalendarDays } from 'lucide-react';
 import Card from '@/Components/ui/Card';
+import FotoAnggota from '@/Components/ui/FotoAnggota';
 import Button from '@/Components/ui/Button';
 import StatusBadge from '@/Components/ui/StatusBadge';
 import { formatRupiah } from '@/Utils/formatCurrency';
@@ -34,9 +35,7 @@ export default function DetailDrawer({ pinjaman, angsuran, pelunasan_resign, jur
     return (
         <div className="space-y-3">
             <div className="flex items-center gap-3 rounded-2xl bg-gradient-to-r from-brand-navy to-brand-navy-light text-white px-4 py-3 shadow-md shadow-brand-navy/20">
-                <div className="w-11 h-11 rounded-full bg-white/15 flex items-center justify-center text-base font-bold shrink-0" aria-hidden="true">
-                    {pinjaman.nama.charAt(0).toUpperCase()}
-                </div>
+                <FotoAnggota nama={pinjaman.nama} fotoUrl={pinjaman.foto_url} ukuran="md" className="bg-white/15 ring-white/20" />
                 <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold truncate">Pinjaman #{pinjaman.id} — {pinjaman.nama}</p>
                     <p className="text-xs text-white/70 truncate">{pinjaman.no_karyawan}{pinjaman.cabang ? ` • ${pinjaman.cabang}` : ''}</p>

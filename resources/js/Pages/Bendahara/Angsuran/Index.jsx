@@ -3,6 +3,7 @@ import { Head, router } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
 import { TrendingUp, Wallet, Calendar, Check, ChevronLeft, ChevronRight, ChevronDown, Search, X, RefreshCw, MapPin, AlarmClock } from 'lucide-react';
 import Card from '@/Components/ui/Card';
+import FotoAnggota from '@/Components/ui/FotoAnggota';
 import StatWidget from '@/Components/ui/StatWidget';
 import Button from '@/Components/ui/Button';
 import PageHeader from '@/Components/ui/PageHeader';
@@ -311,8 +312,8 @@ export default function Index({ bulan, daftarAngsuran, cabangAktif, daftarCabang
                                             aria-label={`Pilih angsuran ${a.nama}, cicilan ke-${a.cicilan_ke}`}
                                             className="mt-1 w-5 h-5 rounded-lg border-slate-300 text-brand-green focus:ring-brand-green/30 shrink-0"
                                         />
-                                        <span className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-navy to-brand-navy-light text-white hidden sm:inline-flex items-center justify-center text-sm font-bold shrink-0 shadow-sm" aria-hidden="true">
-                                            {a.nama.charAt(0).toUpperCase()}
+                                        <span className="hidden sm:inline-flex shrink-0">
+                                            <FotoAnggota nama={a.nama} fotoUrl={a.foto_url} ukuran="sm" />
                                         </span>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-1.5 flex-wrap">

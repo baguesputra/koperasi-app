@@ -3,6 +3,7 @@ import { Head } from '@inertiajs/react';
 import { ClipboardCheck } from 'lucide-react';
 import { useState } from 'react';
 import Card from '@/Components/ui/Card';
+import FotoAnggota from '@/Components/ui/FotoAnggota';
 import StatusBadge from '@/Components/ui/StatusBadge';
 import PageHeader from '@/Components/ui/PageHeader';
 import Drawer from '@/Components/ui/Drawer';
@@ -78,9 +79,7 @@ export default function Index({ menungguTinjauan, riwayat }) {
                                         <tr key={p.id} onClick={() => bukaDetail(p)} className="border-t border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer">
                                             <td className="px-5 py-3">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-9 h-9 rounded-full bg-brand-green text-white flex items-center justify-center text-sm font-bold shrink-0">
-                                                        {p.anggota.nama.charAt(0).toUpperCase()}
-                                                    </div>
+                                                    <FotoAnggota nama={p.anggota.nama} fotoUrl={p.anggota.foto_url} ukuran="sm" />
                                                     <div className="min-w-0">
                                                         <p className="text-sm font-semibold text-slate-800 truncate">{p.anggota.nama}</p>
                                                         <p className="text-xs text-slate-400">{p.anggota.no_karyawan}</p>

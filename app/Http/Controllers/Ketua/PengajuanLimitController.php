@@ -101,6 +101,7 @@ class PengajuanLimitController extends Controller
                     'no_anggota' => $anggota->no_anggota,
                     'no_karyawan' => $anggota->no_karyawan,
                     'cabang' => $anggota->cabang,
+                    'foto_url' => $anggota->foto_url,
                     'lama_keanggotaan_tahun' => round($anggota->lama_keanggotaan_tahun, 1),
                 ],
                 'pinjaman_aktif' => $pinjamanAktif,
