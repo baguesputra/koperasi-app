@@ -5,6 +5,7 @@ namespace App\Services\Pinjaman;
 use App\Models\Angsuran;
 use App\Models\AngsuranPercepatan;
 use App\Models\AuditLog;
+use App\Services\Anggota\ResignService;
 use App\Services\Keuangan\JurnalKasService;
 use Illuminate\Support\Facades\DB;
 
@@ -45,6 +46,7 @@ class KonfirmasiAngsuranService
                     );
 
                     $this->tandaiLunasJikaSelesai($angsuran->pinjaman);
+                    app(ResignService::class)->finalisasiJikaMenunggu($angsuran, $confirmedByUserId);
                     $jumlah++;
                     $totalBayar += (float) $angsuran->total_bayar;
                 }

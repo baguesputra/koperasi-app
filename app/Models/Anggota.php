@@ -233,6 +233,7 @@ class Anggota extends Model
         $alokasiDariPokok = min($simpananPokok, max(0, $totalSisaPinjaman));
         $sisaPokokSetelahPelunasan = $simpananPokok - $alokasiDariPokok;
         $sisaWajibSetelahPelunasan = max(0, $simpananWajib - max(0, $totalSisaPinjaman - $simpananPokok));
+        $shortfall = max(0, $totalSisaPinjaman - $totalSimpananKembali);
 
         return [
             'simpanan' => [
@@ -260,6 +261,7 @@ class Anggota extends Model
                 'total_dikembalikan' => $kembalianNeto,
                 'dana_sosial_hangus' => $danaSosial,
                 'cukup_untuk_pelunasan' => $totalSimpananKembali >= $totalSisaPinjaman,
+                'shortfall' => $shortfall,
             ],
         ];
     }

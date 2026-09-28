@@ -102,4 +102,85 @@ class AnggotaResignReaktivasiTest extends TestCase
 
         $this->assertSame('aktif', $anggota->refresh()->status);
     }
+
+    public function test_resign_shortfall_menjadi_menunggu_dan_final_saat_lunas(): void
+    {
+        $anggota = $this->buatAnggotaDenganSaldo();
+        $pinjaman = \App\Models\Pinjaman::create([
+            'anggota_id' => $anggota->id,
+            'pengaju_user_id' => $anggota->user_id,
+            'nominal' => 2_000_000,
+            'tenor_bulan' => 2,
+            'persentase_bunga' => 0,
+            'status' => 'aktif',
+            'tanggal_pengajuan' => now()->format('Y-m-d'),
+        ]);
+        \App\Models\Angsuran::create([
+            'pinjaman_id' => $pinjaman->id, 'cicilan_ke' => 1,
+            'nominal_pokok' => 1_000_000, 'nominal_bunga' => 0, 'total_bayar' => 1_000_000,
+            'tanggal_jatuh_tempo' => now()->format('Y-m-d'), 'status' => 'belum_bayar',
+        ]);
+        \App\Models\Angsuran::create([
+            'pinjaman_id' => $pinjaman->id, 'cicilan_ke' => 2,
+            'nominal_pokok' => 1_000_000, 'nominal_bunga' => 0, 'total_bayar' => 1_000_000,
+            'tanggal_jatuh_tempo' => now()->format('Y-m-d'), 'status' => 'belum_bayar',
+        ]);
+
+        $this->masuk('ADM-000001');
+        // Simpanan 600rb vs tagihan 2jt → shortfall 1,4jt menunggu
+        $this->post(route('anggota.resign', $anggota), [
+            'alasan_resign' => 'Resign dengan sisa tagihan cicilan.',
+            'tanggal_resign' => now()->format('Y-m-d'),
+            'konfirmasi_pelunasan' => '1',
+        ])->assertRedirect(route('anggota.index'));
+
+        $anggota->refresh();
+        $this->assertSame('resign_menunggu', $anggota->status);
+        $settlement = $anggota->resigned_settlement_json;
+        $this->assertSame('menunggu_pelunasan_akhir', $settlement['mode']);
+        $this->assertEquals(1_400_000, (float) $settlement['shortfall']);
+        $this->assertSame('aktif', $anggota->user->refresh()->status);
+
+        // Lunasi cicilan akhir via konfirmasi → final resign + user nonaktif
+        $cicilanAkhir = \App\Models\Angsuran::findOrFail($settlement['cicilan_akhir_id']);
+        $this->post(route('bendahara.angsuran.konfirmasi'), [
+            'angsuran_ids' => ['n-'.$cicilanAkhir->id],
+        ])->assertRedirect();
+
+        $this->assertSame('resign', $anggota->refresh()->status);
+        $this->assertSame('nonaktif', $anggota->user->refresh()->status);
+        $this->assertSame('selesai', $anggota->refresh()->resigned_settlement_json['mode']);
+    }
+
+    public function test_tautan_rincian_signed_kedaluwarsa(): void
+    {
+        $anggota = $this->buatAnggotaDenganSaldo();
+        $this->masuk('ADM-000001');
+        $this->post(route('anggota.resign', $anggota), [
+            'alasan_resign' => 'Resign untuk pengujian tautan rincian.',
+            'tanggal_resign' => now()->format('Y-m-d'),
+            'konfirmasi_pelunasan' => '1',
+        ])->assertRedirect();
+
+        $url = app(\App\Services\Anggota\ResignService::class)->tautanRincian($anggota->refresh());
+        $this->get($url)->assertOk();
+
+        // Signature rusak → 403
+        $rusak = preg_replace('/signature=[^&]+/', 'signature=rusak', $url);
+        $this->get($rusak)->assertForbidden();
+    }
+
+    public function test_tanggal_resign_boleh_bulan_depan(): void
+    {
+        $anggota = $this->buatAnggotaDenganSaldo();
+        $this->masuk('ADM-000001');
+
+        $this->post(route('anggota.resign', $anggota), [
+            'alasan_resign' => 'Resign bulan depan sesuai kontrak kerja.',
+            'tanggal_resign' => now()->addMonthNoOverflow()->format('Y-m-d'),
+            'konfirmasi_pelunasan' => '1',
+        ])->assertRedirect(route('anggota.index'));
+
+        $this->assertSame('resign', $anggota->refresh()->status);
+    }
 }

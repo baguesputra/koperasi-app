@@ -26,7 +26,7 @@ class ReaktivasiService
         DB::transaction(function () use ($anggota, $alasan, $aktor) {
             $anggotaLocked = Anggota::lockForUpdate()->findOrFail($anggota->id);
 
-            if ($anggotaLocked->status !== 'resign') {
+            if (! in_array($anggotaLocked->status, ['resign'], true)) {
                 throw new RuntimeException(
                     "Anggota {$anggotaLocked->nama} berstatus '{$anggotaLocked->status}', tidak bisa diaktifkan kembali."
                 );

@@ -11,6 +11,7 @@ const statusConfig = {
     approved_bendahara: { label: 'Disetujui Bendahara', color: 'bg-blue-50 text-blue-700', icon: Clock },
     nonaktif: { label: 'Nonaktif', color: 'bg-slate-100 text-slate-600', icon: XCircle },
     resign: { label: 'Resign', color: 'bg-rose-50 text-rose-700', icon: XCircle },
+    resign_menunggu: { label: 'Resign Menunggu', color: 'bg-amber-50 text-amber-700', icon: Clock },
 };
 
 export default function StatusBadge({ status }) {

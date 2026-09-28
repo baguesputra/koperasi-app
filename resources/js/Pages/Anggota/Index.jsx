@@ -259,9 +259,11 @@ export default function Index({ anggota, statistik, filters, daftarCabang }) {
                                                     {a.status === 'aktif' && (
                                                         <TombolAksi label={`Resign ${a.nama}`} title="Resign" tone="rose" onClick={() => { setResignAnggota(a); setResignDrawerOpen(true); }} />
                                                     )}
-                                                    {a.status === 'resign' && (
+                                                    {(a.status === 'resign' || a.status === 'resign_menunggu') && (
                                                         <>
-                                                            <TombolAksi label={`Aktifkan ${a.nama}`} title="Aktifkan kembali" tone="green" onClick={() => setReaktivasiAnggota(a)} />
+                                                            {a.status === 'resign' && (
+                                                                <TombolAksi label={`Aktifkan ${a.nama}`} title="Aktifkan kembali" tone="green" onClick={() => setReaktivasiAnggota(a)} />
+                                                            )}
                                                             <TombolAksi label={`Slip resign ${a.nama}`} title="Slip resign" tone="blue" onClick={() => bukaSlip(a)} />
                                                         </>
                                                     )}

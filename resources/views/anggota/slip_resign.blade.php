@@ -171,6 +171,18 @@ $rincian = $settlement['pinjaman_rincian'] ?? [];
         @endif
     </div>
 
+    @if(($settlement['mode'] ?? 'selesai') === 'menunggu_pelunasan_akhir')
+    <div class="section">
+        <div class="section-title">IV. Sisa Cicilan Akhir Terjadwal</div>
+        <div class="info">
+            <div><span class="lbl">Simpanan Terpakai Pelunasan</span><span class="titik">:</span><span class="val-normal">{{ formatRupiah($settlement['terpakai_pelunasan'] ?? 0) }}</span></div>
+            <div><span class="lbl"><strong>Sisa Cicilan Akhir</strong></span><span class="titik">:</span><span class="val">{{ formatRupiah($settlement['shortfall'] ?? 0) }}</span></div>
+            <div><span class="lbl">Jatuh Tempo Akhir</span><span class="titik">:</span><span class="val-normal">{{ tanggalIndonesia($settlement['cicilan_akhir_jatuh_tempo'] ?? null) }}</span></div>
+            <div><span class="lbl">Dikembalikan Sekarang</span><span class="titik">:</span><span class="val-normal">{{ formatRupiah(0) }}</span></div>
+        </div>
+        <div class="terbilang">Status: menunggu pelunasan cicilan akhir via Konfirmasi Angsuran.</div>
+    </div>
+    @else
     <div class="section">
         <div class="section-title">IV. Pengembalian Kepada Anggota</div>
         <div class="info">
@@ -180,6 +192,7 @@ $rincian = $settlement['pinjaman_rincian'] ?? [];
         </div>
         <div class="terbilang">Terbilang: {{ $settlement['terbilang_total'] ?? '-' }}</div>
     </div>
+    @endif
 
     <div class="section">
         <div class="notes">

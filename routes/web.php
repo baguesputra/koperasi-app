@@ -112,6 +112,8 @@ Route::middleware(['auth', 'permission:pinjaman.lihat'])->group(function () {
 // ==========================================
 Route::get('/verifikasi/bukti/{pinjaman}', [VerifikasiController::class, 'show'])
     ->name('verifikasi.bukti');
+Route::get('/verifikasi/resign/{anggota}', [VerifikasiController::class, 'resign'])
+    ->name('verifikasi.resign');
 
 Route::middleware(['auth', 'permission:simpanan.lihat'])->group(function () {
     Route::get('/simpanan', [SimpananController::class, 'index'])->name('simpanan.index');

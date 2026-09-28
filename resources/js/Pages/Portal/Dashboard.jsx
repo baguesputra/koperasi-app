@@ -178,6 +178,7 @@ export default function Dashboard({
     pengajuanBerjalan,
     pengajuanLimitBerjalan,
     pengajuanDitolak,
+    resignMenunggu,
     angsuranBerikutnya,
     bisaAjukan,
     alasanTidakBisa,
@@ -276,6 +277,22 @@ export default function Dashboard({
             )}
 
             <div className="space-y-5">
+
+                {resignMenunggu && (
+                    <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl p-4">
+                        <Clock size={20} className="text-amber-600 shrink-0 mt-0.5" />
+                        <div>
+                            <p className="text-sm font-bold text-amber-800">
+                                Penyelesaian resign menunggu pelunasan akhir {formatRupiah(resignMenunggu.shortfall)}
+                                {resignMenunggu.jatuh_tempo ? ` sebelum ${resignMenunggu.jatuh_tempo}` : ''}.
+                            </p>
+                            <p className="text-sm text-amber-700 mt-1">
+                                Selesaikan melalui Bendahara (menu Konfirmasi Angsuran).
+                                Pengajuan pinjaman dan limit baru dikunci sampai lunas.
+                            </p>
+                        </div>
+                    </div>
+                )}
 
                 {/* =====================================================
                     HEADER

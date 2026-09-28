@@ -85,7 +85,7 @@ class AnggotaController extends Controller
                 COUNT(*) as total,
                 SUM(CASE WHEN status = "aktif" THEN 1 ELSE 0 END) as aktif,
                 SUM(CASE WHEN status = "nonaktif" THEN 1 ELSE 0 END) as nonaktif,
-                SUM(CASE WHEN status = "resign" THEN 1 ELSE 0 END) as resign
+                SUM(CASE WHEN status IN ("resign", "resign_menunggu") THEN 1 ELSE 0 END) as resign
             ')
             ->first();
 
@@ -184,8 +184,12 @@ class AnggotaController extends Controller
             return back()->withErrors(['alasan_resign' => $e->getMessage()]);
         }
 
-        return redirect()->route('anggota.index')
-            ->with('status', "Anggota {$anggota->nama} berhasil di-resign. Slip pengembalian tersedia di detail.");
+        $anggota->refresh();
+        $pesan = $anggota->status === 'resign_menunggu'
+            ? "Resign {$anggota->nama} menunggu pelunasan cicilan akhir. Rincian dikirim via WhatsApp."
+            : "Anggota {$anggota->nama} berhasil di-resign. Slip pengembalian tersedia di detail.";
+
+        return redirect()->route('anggota.index')->with('status', $pesan);
     }
 
     public function aktifkanKembali(ReaktivasiAnggotaRequest $request, Anggota $anggota, ReaktivasiService $service)
@@ -206,7 +210,7 @@ class AnggotaController extends Controller
 
     public function slipResign(Anggota $anggota)
     {
-        abort_unless($anggota->status === 'resign', 404, 'Slip hanya tersedia untuk anggota yang sudah resign.');
+        abort_unless(in_array($anggota->status, ['resign', 'resign_menunggu'], true), 404, 'Slip hanya tersedia untuk anggota yang sudah resign.');
 
         $pdf = Pdf::loadView('anggota.slip_resign', $anggota->dataSlipResign());
 

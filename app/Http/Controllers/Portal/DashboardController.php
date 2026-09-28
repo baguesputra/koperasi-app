@@ -52,6 +52,19 @@ class DashboardController extends Controller
             ->latest('tanggal_pengajuan')
             ->first();
 
+        // Info resign menunggu pelunasan akhir (bila ada).
+        $resignMenunggu = null;
+        if ($anggota->status === 'resign_menunggu') {
+            $settlement = $anggota->resigned_settlement_json ?? [];
+            $resignMenunggu = [
+                'shortfall' => (float) ($settlement['shortfall'] ?? 0),
+                'jatuh_tempo' => isset($settlement['cicilan_akhir_jatuh_tempo'])
+                    ? \Carbon\Carbon::parse($settlement['cicilan_akhir_jatuh_tempo'])->format('d M Y')
+                    : null,
+                'tanggal_resign' => $anggota->tanggal_resign?->format('d M Y'),
+            ];
+        }
+
         $angsuranBerikutnya = null;
         if ($pinjamanAktif) {
             $terdekat = $pinjamanAktif->jadwalAktif()
@@ -194,6 +207,7 @@ class DashboardController extends Controller
                 'status' => $pengajuanLimitBerjalan->status,
                 'tanggal_pengajuan' => $pengajuanLimitBerjalan->tanggal_pengajuan->format('d M Y'),
             ] : null,
+            'resignMenunggu' => $resignMenunggu,
             'pengajuanDitolak' => $pengajuanDitolak ? [
                 'nominal' => (float) $pengajuanDitolak->nominal,
                 'catatan' => $pengajuanDitolak->catatan_ketua ?? $pengajuanDitolak->catatan_bendahara,

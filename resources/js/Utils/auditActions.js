@@ -75,6 +75,7 @@ const AKSI_MAP = {
 
     // Anggota
     anggota_resign: { label: 'Resign Anggota', outcome: 'merah', kategori: 'anggota' },
+    anggota_resign_menunggu: { label: 'Resign Menunggu Pelunasan', outcome: 'kuning', kategori: 'anggota' },
     anggota_aktifkan_kembali: { label: 'Aktifkan Kembali Anggota', outcome: 'hijau', kategori: 'anggota' },
     update_limit_custom_anggota: { label: 'Update Limit Custom Anggota', outcome: 'kuning', kategori: 'anggota' },
 

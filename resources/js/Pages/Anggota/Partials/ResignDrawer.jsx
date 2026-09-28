@@ -42,7 +42,17 @@ export default function ResignDrawer({ anggota, onClose }) {
         });
     }
 
-    const cukup = ringkasan?.estimasi_pengembalian?.cukup_untuk_pelunasan;
+    const cukup = ringkasan?.estimasi_pengembalian?.cukup_untuk_pelunasan ?? true;
+    const shortfall = ringkasan?.estimasi_pengembalian?.shortfall ?? 0;
+    const tanggalResign = data.tanggal_resign || new Date().toISOString().slice(0, 10);
+    const jatuhTempo = (() => {
+        try {
+            const d = new Date(`${tanggalResign}T00:00:00`);
+            return new Date(d.getFullYear(), d.getMonth() + 1, 0).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+        } catch {
+            return '-';
+        }
+    })();
 
     return (
         <form onSubmit={submit} className="space-y-3">
@@ -73,64 +83,82 @@ export default function ResignDrawer({ anggota, onClose }) {
                 <>
                     <RingkasanSimpanan simpanan={ringkasan.simpanan} />
                     <RingkasanPinjaman pinjaman={ringkasan.pinjaman} />
-                    <EstimasiPengembalian estimasi={ringkasan.estimasi_pengembalian} sisaTagihan={ringkasan.pinjaman.sisa_tagihan} totalPokokWajib={ringkasan.simpanan.total_pokok_wajib} />
+                    <EstimasiPengembalian
+                        estimasi={ringkasan.estimasi_pengembalian}
+                        sisaTagihan={ringkasan.pinjaman.sisa_tagihan}
+                        totalPokokWajib={ringkasan.simpanan.total_pokok_wajib}
+                        jatuhTempo={jatuhTempo}
+                    />
 
-                    {cukup && (
-                        <>
-                            <FormField label="Tanggal Resign" error={errors.tanggal_resign} required>
-                                <TextField
-                                    type="date"
-                                    size="sm"
-                                    value={data.tanggal_resign}
-                                    onChange={(e) => setData('tanggal_resign', e.target.value)}
-                                    max={new Date().toISOString().slice(0, 10)}
-                                    required
-                                />
-                            </FormField>
+                    <FormField label="Tanggal Resign" error={errors.tanggal_resign} required>
+                        <TextField
+                            type="date"
+                            size="sm"
+                            value={data.tanggal_resign}
+                            onChange={(e) => setData('tanggal_resign', e.target.value)}
+                            max={(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth() + 2, 0).toISOString().slice(0, 10); })()}
+                            required
+                        />
+                        <p className="text-xs text-slate-400 mt-1">Boleh sampai akhir bulan depan. Cicilan akhir jatuh tempo akhir bulan tanggal ini.</p>
+                    </FormField>
 
-                            <FormField label="Alasan Resign" error={errors.alasan_resign} required>
-                                <TextField
-                                    as="textarea"
-                                    value={data.alasan_resign}
-                                    onChange={(e) => setData('alasan_resign', e.target.value)}
-                                    rows={2}
-                                    placeholder="Contoh: Mengundurkan diri, habis kontrak, pindah cabang"
-                                    required
-                                />
-                            </FormField>
+                    <FormField label="Alasan Resign" error={errors.alasan_resign} required>
+                        <TextField
+                            as="textarea"
+                            value={data.alasan_resign}
+                            onChange={(e) => setData('alasan_resign', e.target.value)}
+                            rows={2}
+                            placeholder="Contoh: Mengundurkan diri, habis kontrak, pindah cabang"
+                            required
+                        />
+                    </FormField>
 
-                            <label className="flex items-start gap-2.5 cursor-pointer rounded-xl bg-slate-50 border border-slate-100 px-3 py-2.5">
-                                <input
-                                    type="checkbox"
-                                    checked={data.konfirmasi_pelunasan}
-                                    onChange={(e) => setData('konfirmasi_pelunasan', e.target.checked)}
-                                    className="mt-1 w-4 h-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500"
-                                />
-                                <span className="text-sm text-slate-700">
-                                    Saya memahami <strong>{formatRupiah(ringkasan.pinjaman.sisa_tagihan)}</strong> dilunasi
-                                    otomatis dan <strong>{formatRupiah(ringkasan.estimasi_pengembalian.total_dikembalikan)}</strong> dikembalikan.
-                                    Akun login dinonaktifkan.
-                                </span>
-                            </label>
-                            {errors.konfirmasi_pelunasan && (
-                                <p className="text-xs text-red-600">{errors.konfirmasi_pelunasan}</p>
-                            )}
-
-                            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 sticky bottom-0 bg-white pb-1">
-                                <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={processing}>
-                                    Batal
-                                </Button>
-                                <Button
-                                    type="submit"
-                                    variant="danger"
-                                    size="sm"
-                                    disabled={processing || !data.konfirmasi_pelunasan || !data.alasan_resign}
-                                >
-                                    {processing ? 'Memproses...' : 'Konfirmasi Resign'}
-                                </Button>
-                            </div>
-                        </>
+                    {cukup ? (
+                        <label className="flex items-start gap-2.5 cursor-pointer rounded-xl bg-slate-50 border border-slate-100 px-3 py-2.5">
+                            <input
+                                type="checkbox"
+                                checked={data.konfirmasi_pelunasan}
+                                onChange={(e) => setData('konfirmasi_pelunasan', e.target.checked)}
+                                className="mt-1 w-4 h-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500"
+                            />
+                            <span className="text-sm text-slate-700">
+                                Saya memahami <strong>{formatRupiah(ringkasan.pinjaman.sisa_tagihan)}</strong> dilunasi
+                                otomatis dan <strong>{formatRupiah(ringkasan.estimasi_pengembalian.total_dikembalikan)}</strong> dikembalikan.
+                                Akun login dinonaktifkan.
+                            </span>
+                        </label>
+                    ) : (
+                        <label className="flex items-start gap-2.5 cursor-pointer rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5">
+                            <input
+                                type="checkbox"
+                                checked={data.konfirmasi_pelunasan}
+                                onChange={(e) => setData('konfirmasi_pelunasan', e.target.checked)}
+                                className="mt-1 w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+                            />
+                            <span className="text-sm text-amber-800">
+                                Simpanan tidak cukup. Seluruh simpanan dialokasikan ke angsuran terawal,
+                                sisa <strong>{formatRupiah(shortfall)}</strong> menjadi cicilan akhir jatuh tempo{' '}
+                                <strong>{jatuhTempo}</strong>. Status menjadi menunggu sampai lunas via Konfirmasi Angsuran.
+                            </span>
+                        </label>
                     )}
+                    {errors.konfirmasi_pelunasan && (
+                        <p className="text-xs text-red-600">{errors.konfirmasi_pelunasan}</p>
+                    )}
+
+                    <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 sticky bottom-0 bg-white pb-1">
+                        <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={processing}>
+                            Batal
+                        </Button>
+                        <Button
+                            type="submit"
+                            variant="danger"
+                            size="sm"
+                            disabled={processing || !data.konfirmasi_pelunasan || !data.alasan_resign}
+                        >
+                            {processing ? 'Memproses...' : cukup ? 'Konfirmasi Resign' : 'Resign + Jadwalkan Cicilan Akhir'}
+                        </Button>
+                    </div>
                 </>
             )}
         </form>
@@ -203,13 +231,18 @@ function RingkasanPinjaman({ pinjaman }) {
     );
 }
 
-function EstimasiPengembalian({ estimasi, sisaTagihan, totalPokokWajib }) {
+function EstimasiPengembalian({ estimasi, sisaTagihan, totalPokokWajib, jatuhTempo }) {
     if (!estimasi.cukup_untuk_pelunasan) {
         return (
-            <div className="rounded-xl bg-red-50 border border-red-200 px-3 py-2.5 text-sm text-red-700">
-                <strong>Tidak bisa resign.</strong> Simpanan tidak cukup melunasi pinjaman.
-                Selisih: {formatRupiah(sisaTagihan - totalPokokWajib)}.
-                Lunasi sebagian via Konfirmasi Angsuran dulu.
+            <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5 text-sm text-amber-800">
+                <strong>Simpanan tidak cukup — tetap bisa resign.</strong>
+                <div className="mt-1.5 space-y-1">
+                    <div className="flex justify-between gap-3"><span>Simpanan terpakai pelunasan</span><strong>{formatRupiah(totalPokokWajib)}</strong></div>
+                    <div className="flex justify-between gap-3"><span>Sisa cicilan akhir</span><strong>{formatRupiah(estimasi.shortfall ?? (sisaTagihan - totalPokokWajib))}</strong></div>
+                    <div className="flex justify-between gap-3"><span>Jatuh tempo akhir</span><strong>{jatuhTempo}</strong></div>
+                    <div className="flex justify-between gap-3"><span>Dikembalikan sekarang</span><strong>{formatRupiah(0)}</strong></div>
+                </div>
+                <p className="mt-1.5 text-xs">Status menjadi menunggu sampai cicilan akhir lunas via Konfirmasi Angsuran.</p>
             </div>
         );
     }
