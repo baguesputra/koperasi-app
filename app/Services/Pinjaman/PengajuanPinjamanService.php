@@ -74,6 +74,8 @@ class PengajuanPinjamanService
                 'pengaju_user_id' => $pengaju->id,
                 'nominal' => $nominal,
                 'tenor_bulan' => $tenorBulan,
+                'nominal_diminta' => $nominal,
+                'tenor_diminta' => $tenorBulan,
                 'keperluan' => $keperluan,
                 'snapshot_bank' => $dataRekening['nama_bank'],
                 'snapshot_no_rekening' => $dataRekening['no_rekening'],

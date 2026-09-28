@@ -147,6 +147,13 @@ function RiwayatPinjaman({ pinjaman }) {
                                 <p className="text-sm text-slate-400 mt-0.5">
                                     {p.tenor_bulan} bulan &bull; Diajukan {p.tanggal_pengajuan}
                                 </p>
+                                {(p.nominal_diminta !== p.nominal || p.nominal_disetujui_bendahara || p.nominal_disetujui) && (
+                                    <p className="text-xs text-slate-400 mt-1">
+                                        Diminta {formatRupiah(p.nominal_diminta)}
+                                        {p.nominal_disetujui_bendahara ? ` → Bendahara ${formatRupiah(p.nominal_disetujui_bendahara)}` : ''}
+                                        {p.nominal_disetujui ? ` → Final ${formatRupiah(p.nominal_disetujui)}` : ''}
+                                    </p>
+                                )}
                                 {p.status === 'aktif' && (
                                     <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mt-2 max-w-xs">
                                         <div className="h-full bg-brand-green rounded-full" style={{ width: `${progress}%` }} />

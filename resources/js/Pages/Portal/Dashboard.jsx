@@ -574,6 +574,9 @@ export default function Dashboard({
 
                                 <p className="text-sm text-slate-300">
                                     {statusPengajuanLabel[pengajuanBerjalan.status].text}
+                                    {pengajuanBerjalan.nominal_disetujui_bendahara && (
+                                        <> &bull; Usulan Bendahara: {formatRupiah(pengajuanBerjalan.nominal_disetujui_bendahara)}</>
+                                    )}
                                 </p>
                             </Link>
                         ) : (

@@ -50,9 +50,9 @@ class PinjamanApprovalTest extends TestCase
 
         // 2. Cair hingga aktif
         $this->masuk('BEN-000001');
-        $this->post(route('bendahara.pinjaman.approve', $pinjaman), ['catatan' => 'Setuju, data lengkap.'])->assertStatus(302);
+        $this->post(route('bendahara.pinjaman.approve', $pinjaman), ['catatan' => 'Setuju, data lengkap.', 'nominal' => 1_000_000])->assertStatus(302);
         $this->masuk('KET-000001');
-        $this->post(route('ketua.pinjaman.approve', $pinjaman), ['catatan' => 'Disetujui Ketua.'])->assertStatus(302);
+        $this->post(route('ketua.pinjaman.approve', $pinjaman), ['catatan' => 'Disetujui Ketua.', 'nominal' => 1_000_000])->assertStatus(302);
         $this->assertSame('aktif', $pinjaman->refresh()->status);
 
         // 3. Ajukan kedua saat masih ada pinjaman aktif → ditolak aturan anggota baru (< 1 tahun)
@@ -79,13 +79,13 @@ class PinjamanApprovalTest extends TestCase
 
         // 2. Bendahara menyetujui
         $this->masuk('BEN-000001');
-        $this->post(route('bendahara.pinjaman.approve', $pinjaman), ['catatan' => 'Dokumen lengkap.'])->assertRedirect();
+        $this->post(route('bendahara.pinjaman.approve', $pinjaman), ['catatan' => 'Dokumen lengkap.', 'nominal' => 1_000_000])->assertRedirect();
         $this->assertSame('approved_bendahara', $pinjaman->refresh()->status);
 
         // 3. Ketua menyetujui → cair
         $saldoSebelum = (float) KasKoperasi::first()->saldo_pinjaman;
         $this->masuk('KET-000001');
-        $this->post(route('ketua.pinjaman.approve', $pinjaman), ['catatan' => 'Disetujui.'])->assertRedirect();
+        $this->post(route('ketua.pinjaman.approve', $pinjaman), ['catatan' => 'Disetujui.', 'nominal' => 1_000_000])->assertRedirect();
 
         $pinjaman->refresh();
         $this->assertSame('aktif', $pinjaman->status);
@@ -134,6 +134,68 @@ class PinjamanApprovalTest extends TestCase
         Queue::assertPushed(KirimWaJob::class, fn (KirimWaJob $job) => $this->propertiWa($job)['event'] === 'pinjaman_ditolak');
     }
 
+    public function test_nominal_editable_dua_tahap_dengan_jejak_kas(): void
+    {
+        $anggota = $this->buatAnggota('TOP-900010');
+        $this->actingAs($anggota->user);
+        $this->ajukanPortal($anggota, ['nominal' => 5_000_000, 'tenor_bulan' => 12])->assertStatus(302);
+        $pinjaman = Pinjaman::where('anggota_id', $anggota->id)->sole();
+
+        $this->assertEquals(5_000_000, (float) $pinjaman->nominal_diminta);
+        $this->assertSame(12, (int) $pinjaman->tenor_diminta);
+
+        $kasAwal = (float) KasKoperasi::first()->saldo_pinjaman;
+
+        // Bendahara turunkan ke 4jt, tenor ikut auto-clamp bila perlu
+        $this->masuk('BEN-000001');
+        $this->post(route('bendahara.pinjaman.approve', $pinjaman), [
+            'catatan' => 'Disesuaikan kemampuan kas.',
+            'nominal' => 4_000_000,
+        ])->assertRedirect();
+
+        $pinjaman->refresh();
+        $this->assertSame('approved_bendahara', $pinjaman->status);
+        $this->assertEquals(4_000_000, (float) $pinjaman->nominal_disetujui_bendahara);
+        $this->assertEquals($kasAwal, (float) $pinjaman->kas_saldo_bendahara);
+        // Kas belum berkurang di tahap bendahara
+        $this->assertEquals($kasAwal, (float) KasKoperasi::first()->saldo_pinjaman);
+
+        // Ketua naikkan lagi ke 4.5jt → cair final
+        $this->masuk('KET-000001');
+        $this->post(route('ketua.pinjaman.approve', $pinjaman), [
+            'catatan' => 'Final disetujui.',
+            'nominal' => 4_500_000,
+        ])->assertRedirect();
+
+        $pinjaman->refresh();
+        $this->assertSame('aktif', $pinjaman->status);
+        $this->assertEquals(4_500_000, (float) $pinjaman->nominal);
+        $this->assertEquals(4_500_000, (float) $pinjaman->nominal_disetujui);
+        $this->assertEquals($kasAwal - 4_500_000, (float) KasKoperasi::first()->saldo_pinjaman);
+        $this->assertEquals($kasAwal, (float) $pinjaman->kas_saldo_ketua);
+        $this->assertEquals($kasAwal - 4_500_000, (float) $pinjaman->kas_sisa_ketua);
+        // Jejak diminta awet
+        $this->assertEquals(5_000_000, (float) $pinjaman->nominal_diminta);
+        // Jadwal mengikuti final
+        $this->assertEquals(4_500_000, (float) $pinjaman->angsuran()->sum('nominal_pokok'));
+    }
+
+    public function test_nominal_ditolak_bila_melebihi_limit_tersedia(): void
+    {
+        $anggota = $this->buatAnggota('TOP-900011');
+        $this->actingAs($anggota->user);
+        $this->ajukanPortal($anggota, ['nominal' => 1_000_000, 'tenor_bulan' => 3])->assertStatus(302);
+        $pinjaman = Pinjaman::where('anggota_id', $anggota->id)->sole();
+
+        $this->masuk('BEN-000001');
+        $this->post(route('bendahara.pinjaman.approve', $pinjaman), [
+            'catatan' => 'Coba naikkan.',
+            'nominal' => 9_000_000,
+        ])->assertSessionHasErrors('keputusan');
+
+        $this->assertSame('diajukan', $pinjaman->refresh()->status);
+    }
+
     public function test_ketua_approve_gagal_bila_saldo_kantong_tidak_cukup(): void
     {
         Queue::fake();
@@ -145,10 +207,10 @@ class PinjamanApprovalTest extends TestCase
         $pinjaman = Pinjaman::where('anggota_id', $anggota->id)->sole();
 
         $this->masuk('BEN-000001');
-        $this->post(route('bendahara.pinjaman.approve', $pinjaman), ['catatan' => 'Dokumen lengkap, layak cair.'])->assertRedirect();
+        $this->post(route('bendahara.pinjaman.approve', $pinjaman), ['catatan' => 'Dokumen lengkap, layak cair.', 'nominal' => 1_000_000])->assertRedirect();
 
         $this->masuk('KET-000001');
-        $response = $this->post(route('ketua.pinjaman.approve', $pinjaman), ['catatan' => 'Cairkan.']);
+        $response = $this->post(route('ketua.pinjaman.approve', $pinjaman), ['catatan' => 'Cairkan.', 'nominal' => 1_000_000]);
         $response->assertSessionHasErrors();
 
         // Transaksi rollback: status tetap menunggu ketua, tidak ada jadwal/jurnal

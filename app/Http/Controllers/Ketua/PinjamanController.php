@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Ketua;
 
 use App\Helpers\TerbilangHelper;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\KeputusanPinjamanRequest;
+use App\Http\Requests\KeputusanPinjamanNominalRequest;
+use App\Models\KasKoperasi;
 use App\Models\Pinjaman;
+use App\Services\Pinjaman\EligibilitasPinjamanService;
 use App\Services\Pinjaman\PerhitunganBungaService;
 use App\Services\Pinjaman\PersetujuanPinjamanService;
 use Inertia\Inertia;
@@ -17,6 +19,7 @@ class PinjamanController extends Controller
     public function __construct(
         private PersetujuanPinjamanService $persetujuan,
         private PerhitunganBungaService $bunga,
+        private EligibilitasPinjamanService $eligibilitas,
     ) {}
 
     public function index(): Response
@@ -51,10 +54,15 @@ class PinjamanController extends Controller
         ]);
     }
 
-    public function approve(KeputusanPinjamanRequest $request, Pinjaman $pinjaman)
+    public function approve(KeputusanPinjamanNominalRequest $request, Pinjaman $pinjaman)
     {
         try {
-            $this->persetujuan->approveKetua($pinjaman, $request->catatan);
+            $this->persetujuan->approveKetua(
+                $pinjaman,
+                $request->catatan,
+                $request->nominal !== null ? (float) $request->nominal : null,
+                $request->tenor_bulan !== null ? (int) $request->tenor_bulan : null
+            );
         } catch (RuntimeException $e) {
             return back()->withErrors(['keputusan' => $e->getMessage()]);
         }
@@ -63,7 +71,46 @@ class PinjamanController extends Controller
             ->with('status', 'Pinjaman disetujui dan dana telah dicairkan.');
     }
 
-    public function reject(KeputusanPinjamanRequest $request, Pinjaman $pinjaman)
+    public function preview(Pinjaman $pinjaman)
+    {
+        $nominal = (float) request()->input(
+            'nominal',
+            $pinjaman->nominal_disetujui_bendahara ?? $pinjaman->nominal
+        );
+        $tenor = request()->input('tenor_bulan') !== null
+            ? (int) request()->input('tenor_bulan')
+            : null;
+
+        try {
+            $tenorFinal = $this->persetujuan->resolveTenor(
+                $pinjaman,
+                $nominal,
+                $tenor,
+                $pinjaman->tenor_disetujui_bendahara ?? $pinjaman->tenor_bulan
+            );
+        } catch (RuntimeException $e) {
+            return response()->json(['pesan' => $e->getMessage()], 422);
+        }
+
+        $jadwal = $this->bunga->buatJadwal($nominal, $tenorFinal, (float) $pinjaman->persentase_bunga);
+        $kasSaldo = (float) (KasKoperasi::first()?->saldo_pinjaman ?? 0);
+
+        return response()->json([
+            'nominal' => $nominal,
+            'tenor_bulan' => $tenorFinal,
+            'tenor_maksimal' => $this->eligibilitas->tenorMaksimal($nominal),
+            'jadwal' => array_slice($jadwal, 0, 6),
+            'total_cicilan' => count($jadwal),
+            'total_pokok' => array_sum(array_column($jadwal, 'nominal_pokok')),
+            'total_bunga' => array_sum(array_column($jadwal, 'nominal_bunga')),
+            'total_bayar' => array_sum(array_column($jadwal, 'total_bayar')),
+            'cicilan_pertama' => $jadwal[0] ?? null,
+            'kas_saldo' => $kasSaldo,
+            'kas_sisa' => $kasSaldo - $nominal,
+        ]);
+    }
+
+    public function reject(KeputusanPinjamanNominalRequest $request, Pinjaman $pinjaman)
     {
         $this->persetujuan->rejectKetua($pinjaman, $request->catatan);
 
@@ -88,6 +135,20 @@ class PinjamanController extends Controller
                 'nominal' => (float) $p->nominal,
                 'terbilang' => TerbilangHelper::angkaKeTerbilang($p->nominal),
                 'tenor_bulan' => $p->tenor_bulan,
+                'nominal_diminta' => $p->nominal_diminta !== null ? (float) $p->nominal_diminta : (float) $p->nominal,
+                'tenor_diminta' => $p->tenor_diminta ?? $p->tenor_bulan,
+                'nominal_disetujui_bendahara' => $p->nominal_disetujui_bendahara !== null ? (float) $p->nominal_disetujui_bendahara : null,
+                'tenor_disetujui_bendahara' => $p->tenor_disetujui_bendahara,
+                'nominal_disetujui' => $p->nominal_disetujui !== null ? (float) $p->nominal_disetujui : null,
+                'tenor_disetujui' => $p->tenor_disetujui,
+                'kas' => [
+                    'saldo_bendahara' => $p->kas_saldo_bendahara !== null ? (float) $p->kas_saldo_bendahara : null,
+                    'saldo_ketua' => $p->kas_saldo_ketua !== null ? (float) $p->kas_saldo_ketua : null,
+                    'sisa_ketua' => $p->kas_sisa_ketua !== null ? (float) $p->kas_sisa_ketua : null,
+                    'saldo_sekarang' => (float) (KasKoperasi::first()?->saldo_pinjaman ?? 0),
+                ],
+                'limit_tersedia' => (float) $this->eligibilitas->limitTersedia($p->anggota),
+                'tenor_maksimal_diminta' => $this->eligibilitas->tenorMaksimal((float) ($p->nominal_diminta ?? $p->nominal)),
                 'persentase_bunga' => (float) $p->persentase_bunga,
                 'keperluan' => $p->keperluan,
                 'rekening' => [

@@ -6,12 +6,20 @@ import Card from '@/Components/ui/Card';
 import Button from '@/Components/ui/Button';
 import { formatRupiah } from '@/Utils/formatCurrency';
 import { withIdempotencyKey } from '@/Utils/idempotency';
+import JejakNominal from '@/Pages/PinjamanApproval/JejakNominal';
+import KartuKas from '@/Pages/PinjamanApproval/KartuKas';
+import PreviewNominal from '@/Pages/PinjamanApproval/PreviewNominal';
 
 const jabatanLabel = { staff: 'Staff', hod: 'HOD' };
 
 export default function Show({ pinjaman }) {
     const [aksi, setAksi] = useState(null);
-    const { data, setData, post, processing, errors } = useForm({ catatan: '' });
+    const { data, setData, post, processing, errors } = useForm({
+        catatan: '',
+        nominal: String(pinjaman.nominal_disetujui_bendahara ?? pinjaman.nominal_diminta ?? pinjaman.nominal),
+        tenor_bulan: '',
+    });
+    const nominalFinal = Number(data.nominal) || 0;
 
     function submit(e) {
         e.preventDefault();
@@ -34,6 +42,8 @@ export default function Show({ pinjaman }) {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
                 <div className="lg:col-span-2 space-y-5">
+                    <JejakNominal pinjaman={pinjaman} finalLabel="Final (cair)" />
+                    <KartuKas kas={pinjaman.kas} nominalTahap={pinjaman.nominal_disetujui_bendahara ?? pinjaman.nominal_diminta} label="Nominal usulan Bendahara" />
                     <Card>
                         <p className="text-sm font-semibold text-slate-400 mb-1">Nominal Pengajuan</p>
                         <p className="text-3xl font-bold text-slate-800 mb-4">{formatRupiah(pinjaman.nominal)}</p>
@@ -97,6 +107,54 @@ export default function Show({ pinjaman }) {
                                 </div>
                             ) : (
                                 <form onSubmit={submit}>
+                                    {aksi === 'approve' && (
+                                        <div className="space-y-3 mb-4">
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-600 mb-2">
+                                                    Nominal Final Cair (maks {formatRupiah(pinjaman.limit_tersedia)})
+                                                </label>
+                                                <div className="relative">
+                                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-base font-semibold text-slate-400">Rp</span>
+                                                    <input
+                                                        type="number"
+                                                        min={1}
+                                                        value={data.nominal}
+                                                        onChange={(e) => setData('nominal', e.target.value)}
+                                                        className="w-full pl-12 pr-4 py-2.5 text-lg font-bold rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
+                                                        autoFocus
+                                                    />
+                                                </div>
+                                                {errors.nominal && <p className="text-sm text-red-600 mt-1.5">{errors.nominal}</p>}
+                                                {nominalFinal > (pinjaman.limit_tersedia ?? 0) && (
+                                                    <p className="text-sm text-amber-600 mt-1.5">Melebihi limit tersedia anggota — server akan menolak.</p>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-600 mb-2">
+                                                    Tenor Final (kosongkan = ikut usulan / auto-clamp)
+                                                </label>
+                                                <div className="relative">
+                                                    <input
+                                                        type="number"
+                                                        min={1}
+                                                        max={120}
+                                                        value={data.tenor_bulan}
+                                                        onChange={(e) => setData('tenor_bulan', e.target.value)}
+                                                        placeholder={`Default: ${pinjaman.tenor_disetujui_bendahara ?? pinjaman.tenor_bulan} bln`}
+                                                        className="w-full px-4 py-2.5 text-lg font-bold rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
+                                                    />
+                                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-base font-semibold text-slate-400">bln</span>
+                                                </div>
+                                                {errors.tenor_bulan && <p className="text-sm text-red-600 mt-1.5">{errors.tenor_bulan}</p>}
+                                            </div>
+                                            <PreviewNominal
+                                                routeName="ketua.pinjaman.preview"
+                                                pinjamanId={pinjaman.id}
+                                                nominal={data.nominal}
+                                                tenorBulan={data.tenor_bulan}
+                                            />
+                                        </div>
+                                    )}
                                     <label className="block text-sm font-semibold text-slate-600 mb-2">
                                         Catatan {aksi === 'approve' ? 'Persetujuan' : 'Penolakan'}
                                     </label>
@@ -106,7 +164,6 @@ export default function Show({ pinjaman }) {
                                         rows={3}
                                         placeholder={aksi === 'approve' ? 'Contoh: Disetujui, dana dicairkan.' : 'Contoh: Melebihi kapasitas kas bulan ini.'}
                                         className="w-full px-4 py-3 text-base rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
-                                        autoFocus
                                     />
                                     {errors.catatan && <p className="text-sm text-red-600 mt-1.5">{errors.catatan}</p>}
                                     {errors.keputusan && <p className="text-sm text-red-600 mt-1.5">{errors.keputusan}</p>}

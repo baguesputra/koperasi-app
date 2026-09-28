@@ -91,7 +91,7 @@ class PinjamanMandiriTest extends TestCase
 
         // Bendahara menyetujui
         $this->login('BEN-000001');
-        $this->post(route('bendahara.pinjaman.approve', $pinjaman), ['catatan' => 'Data lengkap.'])
+        $this->post(route('bendahara.pinjaman.approve', $pinjaman), ['catatan' => 'Data lengkap.', 'nominal' => 500_000])
             ->assertRedirect();
 
         $pinjaman->refresh();
@@ -115,7 +115,7 @@ class PinjamanMandiriTest extends TestCase
         $pinjaman = Pinjaman::where('pengaju_user_id', $ketua->id)->first();
 
         $this->login('BEN-000001');
-        $this->post(route('bendahara.pinjaman.approve', $pinjaman), ['catatan' => 'Data lengkap.']);
+        $this->post(route('bendahara.pinjaman.approve', $pinjaman), ['catatan' => 'Data lengkap.', 'nominal' => 500_000]);
 
         // Pinjaman milik Ketua (cair_oleh_bendahara=true) tidak boleh muncul di antrean
         // persetujuan Ketua, supaya Ketua tidak self-approve/cair.

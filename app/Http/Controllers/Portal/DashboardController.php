@@ -184,6 +184,8 @@ class DashboardController extends Controller
             'pengajuanPercepatanMenunggu' => $pengajuanPercepatanMenunggu,
             'pengajuanBerjalan' => $pengajuanBerjalan ? [
                 'nominal' => (float) $pengajuanBerjalan->nominal,
+                'nominal_diminta' => (float) ($pengajuanBerjalan->nominal_diminta ?? $pengajuanBerjalan->nominal),
+                'nominal_disetujui_bendahara' => $pengajuanBerjalan->nominal_disetujui_bendahara !== null ? (float) $pengajuanBerjalan->nominal_disetujui_bendahara : null,
                 'status' => $pengajuanBerjalan->status,
             ] : null,
             'pengajuanLimitBerjalan' => $pengajuanLimitBerjalan ? [

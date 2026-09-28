@@ -4,6 +4,10 @@ import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import Button from '@/Components/ui/Button';
 import StatusBadge from '@/Components/ui/StatusBadge';
 import { formatRupiah } from '@/Utils/formatCurrency';
+import { withIdempotencyKey } from '@/Utils/idempotency';
+import JejakNominal from '@/Pages/PinjamanApproval/JejakNominal';
+import KartuKas from '@/Pages/PinjamanApproval/KartuKas';
+import PreviewNominal from '@/Pages/PinjamanApproval/PreviewNominal';
 
 const jabatanLabel = { staff: 'Staff', hod: 'HOD' };
 
@@ -17,19 +21,24 @@ function calculateDueDate(tanggalPengajuan, cicilanKe) {
 export default function KeputusanDrawer({ pinjaman, onClose }) {
     const [aksi, setAksi] = useState(null);
     const [showTable, setShowTable] = useState(true);
-    const { data, setData, post, processing, errors } = useForm({ catatan: '' });
+    const { data, setData, post, processing, errors } = useForm({
+        catatan: '',
+        nominal: String(pinjaman.nominal_disetujui_bendahara ?? pinjaman.nominal_diminta ?? pinjaman.nominal),
+        tenor_bulan: '',
+    });
 
     const bisaDiproses = pinjaman.status === 'approved_bendahara';
+    const nominalFinal = Number(data.nominal) || 0;
 
     function submit(e) {
         e.preventDefault();
         const url = aksi === 'approve'
             ? route('ketua.pinjaman.approve', pinjaman.id)
             : route('ketua.pinjaman.reject', pinjaman.id);
-        post(url, {
+        post(url, withIdempotencyKey({
             preserveScroll: true,
             onSuccess: () => onClose(),
-        });
+        }));
     }
 
     return (
@@ -46,6 +55,9 @@ export default function KeputusanDrawer({ pinjaman, onClose }) {
                     </div>
                 </div>
             )}
+
+            <JejakNominal pinjaman={pinjaman} finalLabel="Final (cair)" />
+            <KartuKas kas={pinjaman.kas} nominalTahap={pinjaman.nominal_disetujui_bendahara ?? pinjaman.nominal_diminta} label="Nominal usulan Bendahara" />
 
             <div className="bg-brand-navy rounded-2xl p-5 text-white">
                 <p className="text-xs text-slate-300 mb-1">Nominal Pengajuan</p>
@@ -207,6 +219,54 @@ export default function KeputusanDrawer({ pinjaman, onClose }) {
                             </div>
                         ) : (
                             <form onSubmit={submit}>
+                                {aksi === 'approve' && (
+                                    <div className="space-y-3 mb-4">
+                                        <div>
+                                            <label className="block text-sm font-semibold text-slate-600 mb-2">
+                                                Nominal Final Cair (maks {formatRupiah(pinjaman.limit_tersedia)})
+                                            </label>
+                                            <div className="relative">
+                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-base font-semibold text-slate-400">Rp</span>
+                                                <input
+                                                    type="number"
+                                                    min={1}
+                                                    value={data.nominal}
+                                                    onChange={(e) => setData('nominal', e.target.value)}
+                                                    className="w-full pl-12 pr-4 py-2.5 text-lg font-bold rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
+                                                    autoFocus
+                                                />
+                                            </div>
+                                            {errors.nominal && <p className="text-sm text-red-600 mt-1.5">{errors.nominal}</p>}
+                                            {nominalFinal > (pinjaman.limit_tersedia ?? 0) && (
+                                                <p className="text-sm text-amber-600 mt-1.5">Melebihi limit tersedia anggota — server akan menolak.</p>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-semibold text-slate-600 mb-2">
+                                                Tenor Final (kosongkan = ikut usulan / auto-clamp)
+                                            </label>
+                                            <div className="relative">
+                                                <input
+                                                    type="number"
+                                                    min={1}
+                                                    max={120}
+                                                    value={data.tenor_bulan}
+                                                    onChange={(e) => setData('tenor_bulan', e.target.value)}
+                                                    placeholder={`Default: ${pinjaman.tenor_disetujui_bendahara ?? pinjaman.tenor_bulan} bln`}
+                                                    className="w-full px-4 py-2.5 text-lg font-bold rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
+                                                />
+                                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-base font-semibold text-slate-400">bln</span>
+                                            </div>
+                                            {errors.tenor_bulan && <p className="text-sm text-red-600 mt-1.5">{errors.tenor_bulan}</p>}
+                                        </div>
+                                        <PreviewNominal
+                                            routeName="ketua.pinjaman.preview"
+                                            pinjamanId={pinjaman.id}
+                                            nominal={data.nominal}
+                                            tenorBulan={data.tenor_bulan}
+                                        />
+                                    </div>
+                                )}
                                 <label className="block text-sm font-semibold text-slate-600 mb-2">
                                     Catatan {aksi === 'approve' ? 'Persetujuan' : 'Penolakan'}
                                 </label>
@@ -216,7 +276,6 @@ export default function KeputusanDrawer({ pinjaman, onClose }) {
                                     rows={3}
                                     placeholder={aksi === 'approve' ? 'Contoh: Layak dicairkan, saldo mencukupi.' : 'Contoh: Belum memenuhi ketentuan.'}
                                     className="w-full px-4 py-2.5 text-base rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
-                                    autoFocus
                                 />
                                 {errors.catatan && <p className="text-sm text-red-600 mt-1.5">{errors.catatan}</p>}
 

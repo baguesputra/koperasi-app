@@ -200,6 +200,7 @@ Route::middleware('auth')->prefix('bendahara')->name('bendahara.')->group(functi
     Route::middleware('permission:pinjaman.tinjau-bendahara')->group(function () {
         Route::get('/pinjaman', [BendaharaPinjamanController::class, 'index'])->name('pinjaman.index');
         Route::get('/pinjaman/{pinjaman}', [BendaharaPinjamanController::class, 'show'])->name('pinjaman.show');
+        Route::post('/pinjaman/{pinjaman}/preview', [BendaharaPinjamanController::class, 'preview'])->name('pinjaman.preview');
         Route::post('/pinjaman/{pinjaman}/approve', [BendaharaPinjamanController::class, 'approve'])->name('pinjaman.approve')->middleware('idempotent');
         Route::post('/pinjaman/{pinjaman}/reject', [BendaharaPinjamanController::class, 'reject'])->name('pinjaman.reject')->middleware('idempotent');
         Route::post('/pinjaman/{pinjaman}/cair', [BendaharaPinjamanController::class, 'cair'])->name('pinjaman.cair')->middleware('idempotent');
@@ -235,6 +236,7 @@ Route::middleware('auth')->prefix('ketua')->name('ketua.')->group(function () {
     Route::middleware('permission:pinjaman.approve-ketua')->group(function () {
         Route::get('/pinjaman', [KetuaPinjamanController::class, 'index'])->name('pinjaman.index');
         Route::get('/pinjaman/{pinjaman}', [KetuaPinjamanController::class, 'show'])->name('pinjaman.show');
+        Route::post('/pinjaman/{pinjaman}/preview', [KetuaPinjamanController::class, 'preview'])->name('pinjaman.preview');
         Route::post('/pinjaman/{pinjaman}/approve', [KetuaPinjamanController::class, 'approve'])->name('pinjaman.approve')->middleware('idempotent');
         Route::post('/pinjaman/{pinjaman}/reject', [KetuaPinjamanController::class, 'reject'])->name('pinjaman.reject')->middleware('idempotent');
         Route::get('/percepatan', [KetuaPercepatanController::class, 'index'])->name('percepatan.index');
