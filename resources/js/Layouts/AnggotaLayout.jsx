@@ -8,6 +8,7 @@ export default function AnggotaLayout({ children }) {
     const initial = auth.user?.name?.charAt(0)?.toUpperCase() ?? '?';
     const permissions = auth.user?.permissions ?? [];
     const bisaKembaliKeCoop = permissions.includes('portal.akses');
+    const anggotaAktif = (auth.user?.anggota_status ?? 'aktif') === 'aktif';
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [showPanduan, setShowPanduan] = useState(false);
     const dropdownRef = useRef(null);
@@ -105,6 +106,7 @@ export default function AnggotaLayout({ children }) {
             </main>
 
             {/* Mobile Bottom Navigation Bar */}
+            {anggotaAktif && (
             <nav className="sm:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-slate-200 pb-[env(safe-area-inset-bottom)] shadow-lg">
                 <div className="grid grid-cols-4 h-16">
                     <Link
@@ -148,8 +150,9 @@ export default function AnggotaLayout({ children }) {
                     </Link>
                 </div>
             </nav>
+            )}
 
-            {!showPanduan && (
+            {anggotaAktif && !showPanduan && (
                 <button
                     type="button"
                     onClick={() => setShowPanduan(true)}
@@ -165,7 +168,7 @@ export default function AnggotaLayout({ children }) {
                 </button>
             )}
 
-            {showPanduan && <Panduan onClose={() => setShowPanduan(false)} />}
+            {anggotaAktif && showPanduan && <Panduan onClose={() => setShowPanduan(false)} />}
         </div>
     );
 }

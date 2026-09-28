@@ -6,6 +6,7 @@ import Button from '@/Components/ui/Button';
 import Breadcrumb from '@/Components/ui/Breadcrumb';
 
 const kelompokLabel = {
+    aktivasi: 'Aktivasi Anggota',
     anggota: 'Anggota',
     simpanan: 'Simpanan',
     pinjaman: 'Pinjaman',
@@ -17,6 +18,7 @@ const kelompokLabel = {
 };
 
 const permissionLabel = {
+    'aktivasi.approve-ketua': 'Setujui aktivasi anggota (tahap Ketua)',
     'anggota.lihat': 'Lihat data anggota',
     'anggota.kelola': 'Tambah / ubah data anggota',
     'simpanan.lihat': 'Lihat data simpanan',

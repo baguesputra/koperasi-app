@@ -9,6 +9,7 @@ use App\Http\Controllers\Bendahara\PinjamanController as BendaharaPinjamanContro
 use App\Http\Controllers\Bendahara\SimpananController as BendaharaSimpananController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\KasKoperasiController;
+use App\Http\Controllers\Ketua\AktivasiController as KetuaAktivasiController;
 use App\Http\Controllers\Ketua\PengajuanLimitController as KetuaPengajuanLimitController;
 use App\Http\Controllers\Ketua\PercepatanController as KetuaPercepatanController;
 use App\Http\Controllers\Ketua\PinjamanController as KetuaPinjamanController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\Pengaturan\PenggunaController;
 use App\Http\Controllers\PengaturanController;
 use App\Http\Controllers\PengeluaranController;
 use App\Http\Controllers\PinjamanController;
+use App\Http\Controllers\Portal\AktivasiController as PortalAktivasiController;
 use App\Http\Controllers\Portal\DashboardController as PortalDashboardController;
 use App\Http\Controllers\Portal\PengajuanLimitController as PortalPengajuanLimitController;
 use App\Http\Controllers\Portal\PercepatanController as PortalPercepatanController;
@@ -52,30 +54,36 @@ Route::get('/', function () {
 // PORTAL ANGGOTA
 // ==========================================
 Route::middleware(['auth', 'permission:portal.akses'])->prefix('portal')->name('portal.')->group(function () {
+    // ------------ Aktivasi (anggota nonaktif, di luar guard aktif) ----------------
+    Route::get('/aktivasi', [PortalAktivasiController::class, 'create'])->name('aktivasi.create');
+    Route::post('/aktivasi', [PortalAktivasiController::class, 'store'])->name('aktivasi.store')->middleware('idempotent');
+
     // Menu Utama
-    Route::get('/dashboard', [PortalDashboardController::class, 'index'])->name('dashboard');
-    Route::get('/riwayat', [RiwayatController::class, 'index'])->name('riwayat');
+    Route::get('/dashboard', [PortalDashboardController::class, 'index'])->name('dashboard')->middleware('anggota.aktif');
+    Route::get('/riwayat', [RiwayatController::class, 'index'])->name('riwayat')->middleware('anggota.aktif');
 
-    // ------------ Pinjaman -----------------
-    Route::get('/pinjaman/ajukan', [PortalPinjamanController::class, 'create'])->name('pinjaman.create');
-    Route::post('/pinjaman/cek-nominal', [PortalPinjamanController::class, 'cekNominal'])->name('pinjaman.cek-nominal');
-    Route::post('/pinjaman/simulasi', [PortalPinjamanController::class, 'simulasi'])->name('pinjaman.simulasi');
-    Route::post('/pinjaman', [PortalPinjamanController::class, 'store'])->name('pinjaman.store')->middleware('idempotent');
+    Route::middleware('anggota.aktif')->group(function () {
+        // ------------ Pinjaman -----------------
+        Route::get('/pinjaman/ajukan', [PortalPinjamanController::class, 'create'])->name('pinjaman.create');
+        Route::post('/pinjaman/cek-nominal', [PortalPinjamanController::class, 'cekNominal'])->name('pinjaman.cek-nominal');
+        Route::post('/pinjaman/simulasi', [PortalPinjamanController::class, 'simulasi'])->name('pinjaman.simulasi');
+        Route::post('/pinjaman', [PortalPinjamanController::class, 'store'])->name('pinjaman.store')->middleware('idempotent');
 
-    // ------------ Profile ----------------
-    Route::get('/profil', [ProfilController::class, 'index'])->name('profil');
-    Route::post('/profil/rekening', [ProfilController::class, 'storeRekening'])->name('profil.rekening.store');
-    Route::put('/profil/rekening/{rekening}/default', [ProfilController::class, 'setDefaultRekening'])->name('profil.rekening.default');
-    Route::delete('/profil/rekening/{rekening}', [ProfilController::class, 'destroyRekening'])->name('profil.rekening.destroy');
+        // ------------ Profile ----------------
+        Route::get('/profil', [ProfilController::class, 'index'])->name('profil');
+        Route::post('/profil/rekening', [ProfilController::class, 'storeRekening'])->name('profil.rekening.store');
+        Route::put('/profil/rekening/{rekening}/default', [ProfilController::class, 'setDefaultRekening'])->name('profil.rekening.default');
+        Route::delete('/profil/rekening/{rekening}', [ProfilController::class, 'destroyRekening'])->name('profil.rekening.destroy');
 
-    // ------------ Pengajuan Limit ----------------
-    Route::get('/pengajuan-limit', [PortalPengajuanLimitController::class, 'create'])->name('pengajuan-limit.create');
-    Route::post('/pengajuan-limit', [PortalPengajuanLimitController::class, 'store'])->name('pengajuan-limit.store')->middleware('idempotent');
+        // ------------ Pengajuan Limit ----------------
+        Route::get('/pengajuan-limit', [PortalPengajuanLimitController::class, 'create'])->name('pengajuan-limit.create');
+        Route::post('/pengajuan-limit', [PortalPengajuanLimitController::class, 'store'])->name('pengajuan-limit.store')->middleware('idempotent');
 
-    // ------------ Perubahan Tenor ----------------
-    Route::get('/percepatan', [PortalPercepatanController::class, 'create'])->name('percepatan.create');
-    Route::post('/percepatan', [PortalPercepatanController::class, 'store'])->name('percepatan.store')->middleware('idempotent');
-    Route::post('/percepatan/preview', [PortalPercepatanController::class, 'preview'])->name('percepatan.preview');
+        // ------------ Perubahan Tenor ----------------
+        Route::get('/percepatan', [PortalPercepatanController::class, 'create'])->name('percepatan.create');
+        Route::post('/percepatan', [PortalPercepatanController::class, 'store'])->name('percepatan.store')->middleware('idempotent');
+        Route::post('/percepatan/preview', [PortalPercepatanController::class, 'preview'])->name('percepatan.preview');
+    });
 });
 
 // ==========================================
@@ -239,6 +247,12 @@ Route::middleware('auth')->prefix('ketua')->name('ketua.')->group(function () {
         Route::get('/pengajuan-limit/{pengajuanLimit}', [KetuaPengajuanLimitController::class, 'show'])->name('pengajuan-limit.show');
         Route::post('/pengajuan-limit/{pengajuanLimit}/approve', [KetuaPengajuanLimitController::class, 'approve'])->name('pengajuan-limit.approve')->middleware('idempotent');
         Route::post('/pengajuan-limit/{pengajuanLimit}/reject', [KetuaPengajuanLimitController::class, 'reject'])->name('pengajuan-limit.reject')->middleware('idempotent');
+    });
+
+    Route::middleware('permission:aktivasi.approve-ketua')->group(function () {
+        Route::get('/aktivasi', [KetuaAktivasiController::class, 'index'])->name('aktivasi.index');
+        Route::post('/aktivasi/{aktivasi}/approve', [KetuaAktivasiController::class, 'approve'])->name('aktivasi.approve')->middleware('idempotent');
+        Route::post('/aktivasi/{aktivasi}/reject', [KetuaAktivasiController::class, 'reject'])->name('aktivasi.reject')->middleware('idempotent');
     });
 });
 

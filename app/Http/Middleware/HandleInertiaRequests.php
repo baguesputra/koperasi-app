@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\PengajuanAktivasi;
 use App\Models\PengajuanLimit;
 use App\Models\PengajuanPercepatan;
 use App\Models\Pinjaman;
@@ -41,6 +42,7 @@ class HandleInertiaRequests extends Middleware
                     'email' => $request->user()->email,
                     'roles' => $request->user()->getRoleNames(),
                     'permissions' => $request->user()->getAllPermissions()->pluck('name'),
+                    'anggota_status' => $request->user()->anggota?->status,
                 ] : null,
             ],
             'flash' => [
@@ -79,6 +81,10 @@ class HandleInertiaRequests extends Middleware
 
                 if ($permissions->contains('limit.approve-ketua')) {
                     $notifications['menunggu_pengajuan_limit'] = PengajuanLimit::where('status', 'approved_bendahara')->count();
+                }
+
+                if ($permissions->contains('aktivasi.approve-ketua')) {
+                    $notifications['menunggu_aktivasi'] = PengajuanAktivasi::where('status', 'diajukan')->count();
                 }
 
                 return $notifications;

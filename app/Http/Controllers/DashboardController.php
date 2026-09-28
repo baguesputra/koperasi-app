@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Anggota;
 use App\Models\Angsuran;
+use App\Models\PengajuanAktivasi;
 use App\Models\JurnalKas;
 use App\Models\KasKoperasi;
 use App\Models\PengajuanLimit;
@@ -50,6 +51,7 @@ class DashboardController extends Controller
 
         $menungguPengajuanLimitBendahara = PengajuanLimit::where('status', 'diajukan')->count();
         $menungguPengajuanLimit = PengajuanLimit::where('status', 'approved_bendahara')->count();
+        $menungguAktivasi = PengajuanAktivasi::where('status', 'diajukan')->count();
 
         $anggotaBelumSimpananBulanIni = Anggota::where('status', 'aktif')
             ->whereDoesntHave('simpanan', fn ($q) => $q
@@ -200,6 +202,7 @@ class DashboardController extends Controller
                 'perubahan_tenor' => $menungguPerubahanTenor,
                 'pengajuan_limit' => $menungguPengajuanLimit,
                 'pengajuan_limit_bendahara' => $menungguPengajuanLimitBendahara,
+                'aktivasi_anggota' => $menungguAktivasi,
                 'anggota_belum_simpanan' => $anggotaBelumSimpananBulanIni,
                 'angsuran_jatuh_tempo' => $angsuranJatuhTempoBulanIni,
             ],

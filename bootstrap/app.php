@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureAnggotaAktif;
 use App\Http\Middleware\EnsurePasswordChanged;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\IdempotencyMiddleware;
@@ -35,6 +36,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,
             'idempotent' => IdempotencyMiddleware::class,
+            'anggota.aktif' => EnsureAnggotaAktif::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

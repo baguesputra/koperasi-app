@@ -58,6 +58,11 @@ const AKSI_MAP = {
     angsuran_konfirmasi_massal: { label: 'Konfirmasi Angsuran Massal', outcome: 'hijau', kategori: 'angsuran' },
     angsuran_konfirmasi_percepatan: { label: 'Konfirmasi Angsuran (Perubahan Tenor)', outcome: 'hijau', kategori: 'angsuran' },
 
+    // Aktivasi
+    aktivasi_diajukan: { label: 'Ajukan Aktivasi Anggota', outcome: 'biru', kategori: 'anggota' },
+    aktivasi_disetujui: { label: 'Setujui Aktivasi Anggota', outcome: 'hijau', kategori: 'anggota' },
+    aktivasi_ditolak: { label: 'Tolak Aktivasi Anggota', outcome: 'merah', kategori: 'anggota' },
+
     // Limit
     limit_diajukan: { label: 'Ajukan Kenaikan Limit', outcome: 'biru', kategori: 'limit' },
     limit_setujui_bendahara: { label: 'Setujui Kenaikan Limit (Bendahara)', outcome: 'hijau', kategori: 'limit' },

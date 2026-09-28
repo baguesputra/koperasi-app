@@ -6,6 +6,7 @@ import FormField from '@/Components/ui/FormField';
 import TextField from '@/Components/ui/TextField';
 
 const kelompokLabel = {
+    aktivasi: 'Aktivasi Anggota',
     anggota: 'Anggota',
     simpanan: 'Simpanan',
     pinjaman: 'Pinjaman',
@@ -18,6 +19,7 @@ const kelompokLabel = {
 };
 
 const permissionLabel = {
+    'aktivasi.approve-ketua': 'Setujui aktivasi anggota (tahap Ketua)',
     'anggota.lihat': 'Lihat data anggota',
     'anggota.kelola': 'Tambah / ubah data anggota',
     'simpanan.lihat': 'Lihat data simpanan',
