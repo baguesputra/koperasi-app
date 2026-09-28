@@ -21,6 +21,12 @@ export default function Create({ anggota, poinSyarat, versiSyarat, pengajuanBerj
     const terkirim = flash.status;
     const { data, setData, post, processing, errors } = useForm({ data_benar: false, setuju_syarat: false });
     const [showModal, setShowModal] = useState(false);
+    const [syaratDibaca, setSyaratDibaca] = useState(false);
+
+    function bukaSyarat() {
+        setSyaratDibaca(true);
+        setShowModal(true);
+    }
 
     function submit(e) {
         e.preventDefault();
@@ -143,24 +149,30 @@ export default function Create({ anggota, poinSyarat, versiSyarat, pengajuanBerj
                             </div>
                             <button
                                 type="button"
-                                onClick={() => setShowModal(true)}
+                                onClick={bukaSyarat}
                                 className={`w-full flex items-center justify-center gap-2 py-3 text-sm font-semibold rounded-xl border-2 border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors mb-3 ${focusRing}`}
                             >
                                 <FileText size={16} />
-                                Baca Syarat &amp; Ketentuan (Versi {versiSyarat})
+                                {syaratDibaca ? `Baca Ulang Syarat & Ketentuan (Versi ${versiSyarat})` : `Baca Syarat & Ketentuan Terlebih Dahulu (Versi ${versiSyarat})`}
                             </button>
-                            <label htmlFor="setuju-syarat" className="flex items-start gap-3 cursor-pointer">
+                            <label htmlFor="setuju-syarat" className={`flex items-start gap-3 ${syaratDibaca ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}>
                                 <input
                                     id="setuju-syarat"
                                     type="checkbox"
+                                    disabled={!syaratDibaca}
                                     checked={data.setuju_syarat}
                                     onChange={(e) => setData('setuju_syarat', e.target.checked)}
-                                    className="mt-0.5 w-5 h-5 rounded border-slate-300 text-brand-green focus:ring-2 focus:ring-brand-green/40 cursor-pointer shrink-0"
+                                    className="mt-0.5 w-5 h-5 rounded border-slate-300 text-brand-green focus:ring-2 focus:ring-brand-green/40 shrink-0 disabled:cursor-not-allowed"
                                 />
                                 <span className="text-sm text-slate-700 leading-relaxed">
                                     Demikian pengajuan ini saya isi dengan sebenarnya. Saya menyatakan <span className="font-semibold">tunduk dan patuh</span> terhadap
                                     Anggaran Dasar, Anggaran Rumah Tangga, peraturan khusus, serta seluruh kebijakan lain yang berlaku
                                     di Koperasi Karya Mandiri.
+                                    {!syaratDibaca && (
+                                        <span className="block text-xs text-amber-600 font-semibold mt-1">
+                                            Mohon buka dan baca Syarat &amp; Ketentuan di atas terlebih dahulu untuk mengaktifkan persetujuan ini.
+                                        </span>
+                                    )}
                                 </span>
                             </label>
                             {errors.setuju_syarat && <p className="text-sm text-red-600 mt-2">{errors.setuju_syarat}</p>}
@@ -228,10 +240,10 @@ export default function Create({ anggota, poinSyarat, versiSyarat, pengajuanBerj
                                 <div className="sticky bottom-0 bg-white border-t border-slate-100 px-6 py-5 rounded-b-2xl">
                                     <button
                                         type="button"
-                                        onClick={() => { setData('setuju_syarat', true); setShowModal(false); }}
+                                        onClick={() => setShowModal(false)}
                                         className={`w-full py-3.5 text-sm font-bold rounded-xl bg-brand-navy text-white hover:bg-brand-navy-light transition-colors ${focusRing}`}
                                     >
-                                        Saya Telah Membaca dan Memahami
+                                        Tutup — Saya Telah Membaca
                                     </button>
                                 </div>
                             </div>
