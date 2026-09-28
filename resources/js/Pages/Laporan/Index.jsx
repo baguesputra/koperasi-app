@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import {
     Wallet, Landmark, TrendingUp, HandCoins, CalendarClock, Repeat,
     PiggyBank, CalendarCheck, Users, UserMinus, Receipt, HeartHandshake,
-    ShieldCheck, Search, ChevronRight, X,
+    ShieldCheck, Search, ChevronRight, X, FileText,
 } from 'lucide-react';
 import PageHeader from '@/Components/ui/PageHeader';
 import TextField from '@/Components/ui/TextField';
@@ -26,6 +26,7 @@ const ikonMap = {
     receipt: Receipt,
     'heart-handshake': HeartHandshake,
     'shield-check': ShieldCheck,
+    'file-text': FileText,
 };
 
 export default function Index({ kelompok }) {

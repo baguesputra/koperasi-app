@@ -145,6 +145,45 @@ class LaporanTest extends TestCase
         $this->get(route('laporan.show', 'audit-log'))->assertOk();
     }
 
+    public function test_rekap_iuran_pinjaman_satu_baris_per_anggota(): void
+    {
+        $this->loginSebagai('BEN-000001');
+        $bulan = now()->format('Y-m');
+
+        $anggota = \App\Models\Anggota::create([
+            'user_id' => null, 'no_anggota' => 'ANG-LAP-001', 'nama' => 'Uji Rekap',
+            'cabang' => 'Banjarmasin', 'unit_bisnis' => 'Ops', 'jabatan' => 'staff',
+            'tanggal_mulai_kerja' => now()->subYears(2), 'tanggal_jadi_anggota' => now()->subYears(2),
+            'status' => 'aktif',
+        ]);
+        \App\Models\Simpanan::create([
+            'anggota_id' => $anggota->id, 'jenis' => 'wajib', 'jumlah' => 45_000,
+            'bulan_periode' => $bulan, 'tanggal_input' => now(), 'input_by' => 1,
+        ]);
+        \App\Models\Simpanan::create([
+            'anggota_id' => $anggota->id, 'jenis' => 'dana_sosial', 'jumlah' => 5_000,
+            'bulan_periode' => $bulan, 'tanggal_input' => now(), 'input_by' => 1,
+        ]);
+        $pinjaman = \App\Models\Pinjaman::create([
+            'anggota_id' => $anggota->id, 'nominal' => 1_000_000, 'tenor_bulan' => 3,
+            'persentase_bunga' => 1, 'status' => 'aktif', 'tanggal_pengajuan' => now()->format('Y-m-d'),
+        ]);
+        \App\Models\Angsuran::create([
+            'pinjaman_id' => $pinjaman->id, 'cicilan_ke' => 1,
+            'nominal_pokok' => 333_333, 'nominal_bunga' => 10_000, 'total_bayar' => 343_333,
+            'tanggal_jatuh_tempo' => now()->format('Y-m-d'), 'status' => 'belum_bayar',
+        ]);
+
+        $def = LaporanRegistry::ambil('iuran-pinjaman-rekap');
+        $hasil = $def['data'](request()->merge(['dari' => $bulan, 'sampai' => $bulan]));
+
+        $baris = collect($hasil['rows'])->firstWhere(fn ($r) => $r[2] === 'Uji Rekap');
+        $this->assertNotNull($baris);
+        $this->assertEquals(50_000, $baris[8]); // total iuran
+        $this->assertEquals(343_333, $baris[9]); // cicilan bulan ini
+        $this->assertEquals(393_333, $baris[10]); // total tagihan
+    }
+
     public function test_semua_laporan_dan_pdf_bisa_dirender(): void
     {
         $this->loginSebagai('ADM-000001');

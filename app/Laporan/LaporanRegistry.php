@@ -606,6 +606,86 @@ class LaporanRegistry
                 },
             ],
 
+            'iuran-pinjaman-rekap' => [
+                'judul' => 'Rekap Iuran & Pinjaman',
+                'deskripsi' => 'Satu baris per anggota: iuran bulan berjalan + cicilan jatuh tempo bulan berjalan + total tagihan untuk accounting.',
+                'kategori' => 'Accounting',
+                'ikon' => 'file-text',
+                'filter' => ['tipe' => 'bulan', 'ekstra' => ['cabang']],
+                'periodeDefault' => fn () => [now()->format('Y-m')],
+                'data' => function (Request $r) {
+                    [$dari, $sampai] = self::rentang($r);
+                    $bulanPeriode = $dari->format('Y-m');
+
+                    $anggota = Anggota::orderBy('nama');
+                    if ($r->filled('cabang')) {
+                        $anggota = $anggota->where('cabang', $r->input('cabang'));
+                    }
+                    $daftar = $anggota->get();
+
+                    $simpanan = DB::table('simpanan')
+                        ->where('bulan_periode', $bulanPeriode)
+                        ->whereIn('anggota_id', $daftar->pluck('id'))
+                        ->get()
+                        ->groupBy('anggota_id');
+
+                    $cicilan = Angsuran::with('pinjaman')
+                        ->where('status', 'belum_bayar')
+                        ->whereBetween('tanggal_jatuh_tempo', [$dari, $sampai])
+                        ->whereIn('pinjaman_id', Pinjaman::whereIn('anggota_id', $daftar->pluck('id'))->pluck('id'))
+                        ->get()
+                        ->groupBy(fn ($a) => $a->pinjaman->anggota_id);
+
+                    $cicilanPercepatan = AngsuranPercepatan::with('pengajuan.pinjaman')
+                        ->where('status', 'belum_bayar')
+                        ->whereBetween('tanggal_jatuh_tempo', [$dari, $sampai])
+                        ->whereIn('pengajuan_percepatan_id', PengajuanPercepatan::whereIn(
+                            'pinjaman_id',
+                            Pinjaman::whereIn('anggota_id', $daftar->pluck('id'))->pluck('id')
+                        )->where('status', 'aktif')->pluck('id'))
+                        ->get()
+                        ->groupBy(fn ($a) => $a->pengajuan->pinjaman->anggota_id);
+
+                    $rows = [];
+                    foreach ($daftar as $i => $a) {
+                        $setor = $simpanan->get($a->id, collect());
+                        $pokok = (float) $setor->where('jenis', 'pokok')->sum('jumlah');
+                        $wajib = (float) $setor->where('jenis', 'wajib')->sum('jumlah');
+                        $sosial = (float) $setor->where('jenis', 'dana_sosial')->sum('jumlah');
+                        $totalIuran = $pokok + $wajib + $sosial;
+
+                        $tagihan = (float) ($cicilan->get($a->id, collect())->sum('total_bayar') ?? 0)
+                            + (float) ($cicilanPercepatan->get($a->id, collect())->sum('total_bayar') ?? 0);
+
+                        $rows[] = [
+                            $i + 1,
+                            $a->no_karyawan,
+                            $a->nama,
+                            $a->cabang,
+                            ucfirst(str_replace('_', ' ', $a->status)),
+                            $pokok,
+                            $wajib,
+                            $sosial,
+                            $totalIuran,
+                            $tagihan,
+                            $totalIuran + $tagihan,
+                        ];
+                    }
+
+                    return self::hasil(
+                        ['No', 'No. Karyawan', 'Nama', 'Cabang', 'Status', 'Pokok', 'Wajib', 'Dana Sosial', 'Total Iuran', 'Cicilan Bulan Ini', 'Total Tagihan'],
+                        [5, 6, 7, 8, 9, 10],
+                        $rows,
+                        [count($rows).' anggota', null, null, null, null, array_sum(array_column($rows, 5)), array_sum(array_column($rows, 6)), array_sum(array_column($rows, 7)), array_sum(array_column($rows, 8)), array_sum(array_column($rows, 9)), array_sum(array_column($rows, 10))],
+                        ringkasan: [
+                            ['Total iuran bulan berjalan', self::rupiah(array_sum(array_column($rows, 8)))],
+                            ['Total cicilan bulan berjalan', self::rupiah(array_sum(array_column($rows, 9)))],
+                            ['Total tagihan', self::rupiah(array_sum(array_column($rows, 10)))],
+                        ]
+                    );
+                },
+            ],
+
             'audit-log' => [
                 'judul' => 'Laporan Audit',
                 'deskripsi' => 'Jejak aktivitas: siapa mengubah apa dan kapan.',
@@ -652,7 +732,7 @@ class LaporanRegistry
 
     public static function kelompok(): array
     {
-        $urut = ['Keuangan', 'Pinjaman', 'Simpanan', 'Anggota', 'Operasional'];
+        $urut = ['Accounting', 'Keuangan', 'Pinjaman', 'Simpanan', 'Anggota', 'Operasional'];
         $grup = array_fill_keys($urut, []);
         foreach (self::semua() as $slug => $def) {
             $grup[$def['kategori']][] = ['slug' => $slug, ...collect($def)->except(['data', 'filter', 'periodeDefault'])->all()];
