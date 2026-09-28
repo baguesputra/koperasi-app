@@ -270,7 +270,7 @@ export default function Dashboard({
                         { label: 'Limit Anda Saat Ini', value: formatRupiah(limitTerkirim.limit_saat_ini) },
                     ]}
                     paragraf="Pengajuan penambahan limit Anda telah kami terima dan diteruskan melalui WhatsApp Koperasi untuk diproses lebih lanjut."
-                    catatan="Penambahan limit ditinjau langsung oleh Ketua Koperasi. Apabila disetujui, pemberitahuan akan disampaikan melalui WhatsApp dan limit baru aktif untuk pinjaman berikutnya."
+                    catatan="Penambahan limit diverifikasi Bendahara lalu diputuskan final oleh Ketua Koperasi. Nominal final bisa berbeda dari yang Anda minta. Apabila disetujui, pemberitahuan akan disampaikan melalui WhatsApp dan limit baru aktif untuk pinjaman berikutnya."
                     onClose={() => setLimitDitutup(true)}
                 />
             )}
@@ -353,7 +353,9 @@ export default function Dashboard({
                             pengajuanLimitBerjalan ? (
                                 <span className="inline-flex items-center gap-1.5 text-amber-700 font-medium">
                                     <Clock size={12} />
-                                    Pengajuan limit sedang diproses
+                                    {pengajuanLimitBerjalan.status === 'approved_bendahara'
+                                        ? `Menunggu Ketua (${formatRupiah(pengajuanLimitBerjalan.limit_diminta)}${pengajuanLimitBerjalan.limit_disetujui_bendahara ? ` → ${formatRupiah(pengajuanLimitBerjalan.limit_disetujui_bendahara)}` : ''})`
+                                        : `Menunggu Bendahara (${formatRupiah(pengajuanLimitBerjalan.limit_diminta)})`}
                                 </span>
                             ) : (
                                 `dari limit ${formatRupiah(limitMaksimal)}`

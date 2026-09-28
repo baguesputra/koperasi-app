@@ -60,8 +60,10 @@ const AKSI_MAP = {
 
     // Limit
     limit_diajukan: { label: 'Ajukan Kenaikan Limit', outcome: 'biru', kategori: 'limit' },
-    setujui_pengajuan_limit: { label: 'Setujui Kenaikan Limit', outcome: 'hijau', kategori: 'limit' },
-    limit_ditolak: { label: 'Tolak Kenaikan Limit', outcome: 'merah', kategori: 'limit' },
+    limit_setujui_bendahara: { label: 'Setujui Kenaikan Limit (Bendahara)', outcome: 'hijau', kategori: 'limit' },
+    limit_tolak_bendahara: { label: 'Tolak Kenaikan Limit (Bendahara)', outcome: 'merah', kategori: 'limit' },
+    setujui_pengajuan_limit: { label: 'Setujui Kenaikan Limit (Ketua)', outcome: 'hijau', kategori: 'limit' },
+    limit_ditolak: { label: 'Tolak Kenaikan Limit (Ketua)', outcome: 'merah', kategori: 'limit' },
 
     // Keuangan
     pengeluaran_dicatat: { label: 'Catat Pengeluaran', outcome: 'kuning', kategori: 'pengeluaran' },

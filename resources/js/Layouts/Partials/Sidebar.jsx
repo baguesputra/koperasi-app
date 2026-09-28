@@ -32,7 +32,8 @@ const menuGroups = [
             { label: 'Persetujuan Perubahan Tenor', routeName: 'ketua.percepatan.index', icon: Repeat, permission: 'pinjaman.approve-ketua' },
             { label: 'Angsuran', routeName: 'bendahara.angsuran.index', icon: CalendarCheck, permission: 'angsuran.konfirmasi' },
             { label: 'Konfirmasi Simpanan', routeName: 'bendahara.simpanan.index', icon: HeartHandshake, permission: 'simpanan.konfirmasi' },
-            { label: 'Pengajuan Limit', routeName: 'ketua.pengajuan-limit.index', icon: TrendingUp, permission: 'pinjaman.approve-ketua' },
+            { label: 'Tinjau Limit', routeName: 'bendahara.pengajuan-limit.index', icon: TrendingUp, permission: 'limit.tinjau-bendahara' },
+            { label: 'Pengajuan Limit', routeName: 'ketua.pengajuan-limit.index', icon: TrendingUp, permission: 'limit.approve-ketua' },
         ],
     },
     {
@@ -59,6 +60,7 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
         'ketua.pinjaman.index': notifications?.menunggu_approval_ketua ?? 0,
         'bendahara.percepatan.index': notifications?.menunggu_perubahan_tenor_bendahara ?? 0,
         'ketua.percepatan.index': notifications?.menunggu_perubahan_tenor_ketua ?? 0,
+        'bendahara.pengajuan-limit.index': notifications?.menunggu_pengajuan_limit_bendahara ?? 0,
         'ketua.pengajuan-limit.index': notifications?.menunggu_pengajuan_limit ?? 0,
     };
 

@@ -27,8 +27,12 @@ class PengajuanLimitController extends Controller
             ->get()
             ->map(fn ($p) => [
                 'id' => $p->id,
+                'limit_saat_ini' => (float) $p->limit_saat_ini,
                 'limit_diminta' => (float) $p->limit_diminta,
+                'limit_disetujui_bendahara' => $p->limit_disetujui_bendahara !== null ? (float) $p->limit_disetujui_bendahara : null,
+                'limit_disetujui' => $p->limit_disetujui !== null ? (float) $p->limit_disetujui : null,
                 'status' => $p->status,
+                'catatan_bendahara' => $p->catatan_bendahara,
                 'catatan_ketua' => $p->catatan_ketua,
                 'tanggal_pengajuan' => $p->tanggal_pengajuan->format('d M Y'),
             ]);

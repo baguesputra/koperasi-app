@@ -3,12 +3,13 @@
 namespace App\Http\Controllers\Ketua;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\KeputusanPinjamanRequest;
+use App\Http\Requests\KeputusanLimitRequest;
 use App\Models\PengajuanLimit;
 use App\Models\Pinjaman;
 use App\Services\Pinjaman\PengajuanLimitService;
 use Inertia\Inertia;
 use Inertia\Response;
+use RuntimeException;
 
 class PengajuanLimitController extends Controller
 {
@@ -17,17 +18,17 @@ class PengajuanLimitController extends Controller
     public function index(): Response
     {
         $menunggu = PengajuanLimit::with('anggota')
-            ->where('status', 'diajukan')
+            ->where('status', 'approved_bendahara')
             ->latest('tanggal_pengajuan')
             ->get()
-            ->map($this->formatRingkas());
+            ->map(self::formatItem());
 
         $riwayat = PengajuanLimit::with('anggota')
             ->whereIn('status', ['disetujui', 'ditolak'])
             ->latest('updated_at')
             ->take(20)
             ->get()
-            ->map($this->formatRingkas());
+            ->map(self::formatItem());
 
         return Inertia::render('Ketua/PengajuanLimit/Index', [
             'menunggu' => $menunggu,
@@ -35,28 +36,44 @@ class PengajuanLimitController extends Controller
         ]);
     }
 
-    public function approve(KeputusanPinjamanRequest $request, PengajuanLimit $pengajuanLimit)
+    public function show(PengajuanLimit $pengajuanLimit): Response
     {
-        $this->service->setujui($pengajuanLimit, $request->catatan);
+        $pengajuanLimit->load('anggota');
+
+        return Inertia::render('Ketua/PengajuanLimit/Show', [
+            'pengajuan' => self::formatItem()($pengajuanLimit),
+        ]);
+    }
+
+    public function approve(KeputusanLimitRequest $request, PengajuanLimit $pengajuanLimit)
+    {
+        try {
+            $this->service->approveKetua($pengajuanLimit, (float) $request->limit_disetujui, $request->catatan);
+        } catch (RuntimeException $e) {
+            return back()->withErrors(['keputusan' => $e->getMessage()]);
+        }
 
         return redirect()->route('ketua.pengajuan-limit.index')
             ->with('status', 'Pengajuan limit disetujui.');
     }
 
-    public function reject(KeputusanPinjamanRequest $request, PengajuanLimit $pengajuanLimit)
+    public function reject(KeputusanLimitRequest $request, PengajuanLimit $pengajuanLimit)
     {
-        $this->service->tolak($pengajuanLimit, $request->catatan);
+        try {
+            $this->service->rejectKetua($pengajuanLimit, $request->catatan);
+        } catch (RuntimeException $e) {
+            return back()->withErrors(['keputusan' => $e->getMessage()]);
+        }
 
         return redirect()->route('ketua.pengajuan-limit.index')
             ->with('status', 'Pengajuan limit ditolak.');
     }
 
-    private function formatRingkas(): \Closure
+    public static function formatItem(): \Closure
     {
         return function ($p) {
             $anggota = $p->anggota;
 
-            // Pinjaman aktif anggota
             $pinjamanAktif = Pinjaman::where('anggota_id', $anggota->id)
                 ->where('status', 'aktif')
                 ->with('angsuran:pinjaman_id,cicilan_ke,nominal_pokok,nominal_bunga,total_bayar,status,tanggal_jatuh_tempo')
@@ -82,7 +99,6 @@ class PengajuanLimitController extends Controller
                         ->all(),
                 ]);
 
-            // Pinjaman yang sedang diajukan (belum aktif)
             $pinjamanPending = Pinjaman::where('anggota_id', $anggota->id)
                 ->whereIn('status', ['diajukan', 'approved_bendahara'])
                 ->latest('tanggal_pengajuan')
@@ -92,8 +108,11 @@ class PengajuanLimitController extends Controller
                 'id' => $p->id,
                 'limit_saat_ini' => (float) $p->limit_saat_ini,
                 'limit_diminta' => (float) $p->limit_diminta,
+                'limit_disetujui_bendahara' => $p->limit_disetujui_bendahara !== null ? (float) $p->limit_disetujui_bendahara : null,
+                'limit_disetujui' => $p->limit_disetujui !== null ? (float) $p->limit_disetujui : null,
                 'keterangan' => $p->keterangan,
                 'status' => $p->status,
+                'catatan_bendahara' => $p->catatan_bendahara,
                 'catatan_ketua' => $p->catatan_ketua,
                 'tanggal_pengajuan' => $p->tanggal_pengajuan->format('d M Y'),
                 'anggota' => [

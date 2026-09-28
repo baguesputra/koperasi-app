@@ -18,6 +18,8 @@ class PermissionSeeder extends Seeder
             'pinjaman.lihat',
             'pinjaman.tinjau-bendahara',
             'pinjaman.approve-ketua',
+            'limit.tinjau-bendahara',
+            'limit.approve-ketua',
             'angsuran.konfirmasi',
             'kas.lihat',
             'kas.topup',

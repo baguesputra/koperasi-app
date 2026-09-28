@@ -12,19 +12,20 @@ const focusRing =
 
 const statusStyle = {
     diajukan: 'bg-amber-50 text-amber-700',
+    approved_bendahara: 'bg-blue-50 text-blue-700',
     disetujui: 'bg-brand-green-light text-brand-green-dark',
     ditolak: 'bg-red-50 text-red-600',
 };
 
-const statusIcon = { diajukan: Clock, disetujui: CheckCircle2, ditolak: XCircle };
-const statusLabel = { diajukan: 'Menunggu', disetujui: 'Disetujui', ditolak: 'Ditolak' };
+const statusIcon = { diajukan: Clock, approved_bendahara: Clock, disetujui: CheckCircle2, ditolak: XCircle };
+const statusLabel = { diajukan: 'Menunggu Bendahara', approved_bendahara: 'Menunggu Ketua', disetujui: 'Disetujui', ditolak: 'Ditolak' };
 
 export default function Create({ limitSaatIni, riwayat }) {
     const { data, setData, post, processing, errors, reset } = useForm({
         limit_diminta: '', keterangan: '',
     });
 
-    const adaPengajuanMenunggu = riwayat.some((r) => r.status === 'diajukan');
+    const adaPengajuanMenunggu = riwayat.some((r) => ['diajukan', 'approved_bendahara'].includes(r.status));
 
     function submit(e) {
         e.preventDefault();
@@ -130,8 +131,18 @@ export default function Create({ limitSaatIni, riwayat }) {
                                             </span>
                                         </div>
                                         <p className="text-sm text-slate-400">{r.tanggal_pengajuan}</p>
+                                        {(r.limit_disetujui_bendahara || r.limit_disetujui) && (
+                                            <p className="text-sm text-slate-500 mt-1">
+                                                Diminta {formatRupiah(r.limit_diminta)}
+                                                {r.limit_disetujui_bendahara ? ` → Bendahara ${formatRupiah(r.limit_disetujui_bendahara)}` : ''}
+                                                {r.limit_disetujui ? ` → Final ${formatRupiah(r.limit_disetujui)}` : ''}
+                                            </p>
+                                        )}
+                                        {r.catatan_bendahara && (
+                                            <p className="text-sm text-slate-500 mt-1 italic">"Bendahara: {r.catatan_bendahara}"</p>
+                                        )}
                                         {r.catatan_ketua && (
-                                            <p className="text-sm text-slate-500 mt-1 italic">"{r.catatan_ketua}"</p>
+                                            <p className="text-sm text-slate-500 mt-1 italic">"Ketua: {r.catatan_ketua}"</p>
                                         )}
                                     </div>
                                 );

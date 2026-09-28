@@ -16,7 +16,7 @@ class PengajuanLimitService
     public function ajukan(Anggota $anggota, float $limitDiminta, string $keterangan): PengajuanLimit
     {
         $adaPengajuanMenunggu = PengajuanLimit::where('anggota_id', $anggota->id)
-            ->where('status', 'diajukan')
+            ->whereIn('status', ['diajukan', 'approved_bendahara'])
             ->exists();
 
         if ($adaPengajuanMenunggu) {
@@ -60,7 +60,7 @@ class PengajuanLimitService
                 .'- Limit saat ini: '.WaPesan::rupiah($limitSaatIni)."\n"
                 .'- Limit diajukan: '.WaPesan::rupiah($limitDiminta)."\n"
                 ."- Keterangan: {$keterangan}\n\n"
-                .'Status saat ini: *Menunggu persetujuan Ketua*.'
+                .'Status saat ini: *Menunggu verifikasi Bendahara*.'
                 .' Pemberitahuan selanjutnya akan kami sampaikan melalui WhatsApp ini.')
         );
 
@@ -73,26 +73,85 @@ class PengajuanLimitService
                 .'- Limit saat ini: '.WaPesan::rupiah($limitSaatIni)."\n"
                 .'- Limit diajukan: '.WaPesan::rupiah($limitDiminta)."\n"
                 ."- Keterangan: {$keterangan}\n\n"
-                .'Mohon lakukan peninjauan melalui sistem koperasi.')
+                .'Mohon lakukan verifikasi melalui sistem koperasi.')
         );
 
         return $pengajuan;
     }
 
-    public function setujui(PengajuanLimit $pengajuan, string $catatan): void
+    public function approveBendahara(PengajuanLimit $pengajuan, float $nominal, string $catatan): void
     {
+        if ($pengajuan->status !== 'diajukan') {
+            throw new RuntimeException('Hanya pengajuan berstatus Diajukan yang dapat diverifikasi Bendahara.');
+        }
+
+        $pengajuan->update([
+            'status' => 'approved_bendahara',
+            'limit_disetujui_bendahara' => $nominal,
+            'catatan_bendahara' => $catatan,
+        ]);
+
+        AuditLog::catat(
+            'limit_setujui_bendahara',
+            "Pengajuan limit #{$pengajuan->id} ({$pengajuan->anggota->nama}) disetujui Bendahara sebesar ".WaPesan::rupiah($nominal).' dari diminta '.WaPesan::rupiah($pengajuan->limit_diminta),
+            ['status' => 'diajukan'],
+            ['status' => 'approved_bendahara', 'limit_disetujui_bendahara' => $nominal, 'catatan_bendahara' => $catatan]
+        );
+
+        WaService::keAnggota(
+            $pengajuan->anggota,
+            'limit_disetujui_bendahara',
+            WaPesan::susun($pengajuan->anggota->nama, $pengajuan->anggota->no_karyawan,
+                'Pengajuan kenaikan limit Anda telah *Disetujui Bendahara* sebesar '.WaPesan::rupiah($nominal)
+                .' (diminta: '.WaPesan::rupiah($pengajuan->limit_diminta).') dan sedang menunggu keputusan final Ketua.'
+                .' Pemberitahuan selanjutnya akan kami sampaikan melalui WhatsApp ini.')
+        );
+    }
+
+    public function rejectBendahara(PengajuanLimit $pengajuan, string $catatan): void
+    {
+        if ($pengajuan->status !== 'diajukan') {
+            throw new RuntimeException('Hanya pengajuan berstatus Diajukan yang dapat ditolak Bendahara.');
+        }
+
+        $pengajuan->update(['status' => 'ditolak', 'catatan_bendahara' => $catatan]);
+
+        AuditLog::catat(
+            aksi: 'limit_tolak_bendahara',
+            keterangan: "Pengajuan kenaikan limit untuk {$pengajuan->anggota->nama} ({$pengajuan->anggota->no_karyawan}) ditolak Bendahara. Diminta: ".WaPesan::rupiah($pengajuan->limit_diminta),
+            dataLama: ['status' => 'diajukan'],
+            dataBaru: ['status' => 'ditolak', 'catatan_bendahara' => $catatan]
+        );
+
+        WaService::keAnggota(
+            $pengajuan->anggota,
+            'limit_ditolak',
+            WaPesan::susun($pengajuan->anggota->nama, $pengajuan->anggota->no_karyawan,
+                'Mohon maaf, pengajuan kenaikan limit pinjaman Anda sebesar '.WaPesan::rupiah($pengajuan->limit_diminta)
+                ." telah *DITOLAK* oleh Bendahara.\n\nCatatan: {$catatan}\n\nApabila terdapat pertanyaan lebih lanjut, silakan menghubungi pengurus Koperasi.")
+        );
+    }
+
+    public function approveKetua(PengajuanLimit $pengajuan, float $nominal, string $catatan): void
+    {
+        if ($pengajuan->status !== 'approved_bendahara') {
+            throw new RuntimeException('Hanya pengajuan berstatus Disetujui Bendahara yang dapat disetujui Ketua.');
+        }
+
+        $limitLama = $pengajuan->anggota->limit_custom;
         $pengajuan->update([
             'status' => 'disetujui',
+            'limit_disetujui' => $nominal,
             'catatan_ketua' => $catatan,
         ]);
 
-        $pengajuan->anggota->update(['limit_custom' => $pengajuan->limit_diminta]);
+        $pengajuan->anggota->update(['limit_custom' => $nominal]);
 
         AuditLog::catat(
             'setujui_pengajuan_limit',
-            "Limit khusus {$pengajuan->anggota->nama} disetujui menjadi Rp ".number_format($pengajuan->limit_diminta, 0, ',', '.'),
-            ['limit_custom' => $pengajuan->anggota->limit_custom],
-            ['limit_custom' => $pengajuan->limit_diminta]
+            "Limit khusus {$pengajuan->anggota->nama} disetujui menjadi Rp ".number_format($nominal, 0, ',', '.').' (diminta: '.WaPesan::rupiah($pengajuan->limit_diminta).', bendahara: '.WaPesan::rupiah($pengajuan->limit_disetujui_bendahara).')',
+            ['limit_custom' => $limitLama],
+            ['limit_custom' => $nominal]
         );
 
         WaService::keAnggota(
@@ -101,36 +160,48 @@ class PengajuanLimitService
             WaPesan::susun($pengajuan->anggota->nama, $pengajuan->anggota->no_karyawan,
                 "Selamat! Pengajuan kenaikan limit pinjaman Anda telah *DISETUJUI* oleh Ketua.\n\n"
                 .'- Limit sebelumnya: '.WaPesan::rupiah($pengajuan->limit_saat_ini)."\n"
-                .'- Limit berlaku saat ini: '.WaPesan::rupiah($pengajuan->limit_diminta)."\n\n"
+                .'- Diminta: '.WaPesan::rupiah($pengajuan->limit_diminta)."\n"
+                .'- Disetujui Bendahara: '.WaPesan::rupiah($pengajuan->limit_disetujui_bendahara)."\n"
+                .'- Limit berlaku saat ini: '.WaPesan::rupiah($nominal)."\n\n"
                 .'Anda kini dapat mengajukan pinjaman hingga batas limit yang berlaku. Terima kasih atas kepercayaan Anda.')
         );
     }
 
-    public function tolak(PengajuanLimit $pengajuan, string $catatan): void
+    public function rejectKetua(PengajuanLimit $pengajuan, string $catatan): void
     {
-        $statusLama = $pengajuan->status;
-        $pengajuan->update([
-            'status' => 'ditolak',
-            'catatan_ketua' => $catatan,
-        ]);
+        if ($pengajuan->status !== 'approved_bendahara') {
+            throw new RuntimeException('Hanya pengajuan berstatus Disetujui Bendahara yang dapat ditolak Ketua.');
+        }
+
+        $pengajuan->update(['status' => 'ditolak', 'catatan_ketua' => $catatan]);
 
         AuditLog::catat(
             aksi: 'limit_ditolak',
-            keterangan: "Pengajuan kenaikan limit untuk {$pengajuan->anggota->nama} ({$pengajuan->anggota->no_karyawan}) ditolak. Limit saat ini: ".WaPesan::rupiah($pengajuan->limit_saat_ini).', diminta: '.WaPesan::rupiah($pengajuan->limit_diminta),
-            dataLama: ['status' => $statusLama],
+            keterangan: "Pengajuan kenaikan limit untuk {$pengajuan->anggota->nama} ({$pengajuan->anggota->no_karyawan}) ditolak Ketua. Diminta: ".WaPesan::rupiah($pengajuan->limit_diminta).', bendahara: '.WaPesan::rupiah($pengajuan->limit_disetujui_bendahara),
+            dataLama: ['status' => 'approved_bendahara'],
             dataBaru: ['status' => 'ditolak', 'catatan_ketua' => $catatan]
         );
-
-        $isi = 'Mohon maaf, pengajuan kenaikan limit pinjaman Anda dari '
-            .WaPesan::rupiah($pengajuan->limit_saat_ini).' menjadi '.WaPesan::rupiah($pengajuan->limit_diminta)
-            .' telah *DITOLAK* oleh Ketua.'
-            .($catatan ? "\n\nCatatan: {$catatan}" : '')
-            ."\n\nApabila terdapat pertanyaan lebih lanjut, silakan menghubungi pengurus atau Bendahara Koperasi.";
 
         WaService::keAnggota(
             $pengajuan->anggota,
             'limit_ditolak',
-            WaPesan::susun($pengajuan->anggota->nama, $pengajuan->anggota->no_karyawan, $isi)
+            WaPesan::susun($pengajuan->anggota->nama, $pengajuan->anggota->no_karyawan,
+                'Mohon maaf, pengajuan kenaikan limit pinjaman Anda dari '
+                .WaPesan::rupiah($pengajuan->limit_saat_ini).' (diminta: '.WaPesan::rupiah($pengajuan->limit_diminta)
+                .', bendahara: '.WaPesan::rupiah($pengajuan->limit_disetujui_bendahara)
+                ." telah *DITOLAK* oleh Ketua.\n\nCatatan: {$catatan}"
+                ."\n\nApabila terdapat pertanyaan lebih lanjut, silakan menghubungi pengurus atau Bendahara Koperasi.")
         );
+    }
+
+    // ponytail: alias lama agar route/test lama tetap jalan selama transisi
+    public function setujui(PengajuanLimit $pengajuan, string $catatan, ?float $nominal = null): void
+    {
+        $this->approveKetua($pengajuan, $nominal ?? (float) $pengajuan->limit_disetujui_bendahara, $catatan);
+    }
+
+    public function tolak(PengajuanLimit $pengajuan, string $catatan): void
+    {
+        $this->rejectKetua($pengajuan, $catatan);
     }
 }

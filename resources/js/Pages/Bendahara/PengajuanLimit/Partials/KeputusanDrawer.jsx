@@ -6,43 +6,31 @@ import StatusBadge from '@/Components/ui/StatusBadge';
 import { formatRupiah } from '@/Utils/formatCurrency';
 import { withIdempotencyKey } from '@/Utils/idempotency';
 
-function calculateDueDate(tanggalPengajuan, cicilanKe) {
-    const date = new Date(tanggalPengajuan);
-    date.setMonth(date.getMonth() + cicilanKe);
-    date.setDate(0);
-    return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
 export default function KeputusanDrawer({ pengajuan, onClose }) {
     const [aksi, setAksi] = useState(null);
     const [showPinjamanTable, setShowPinjamanTable] = useState(false);
     const { data, setData, post, processing, errors } = useForm({
         catatan: '',
-        limit_disetujui: String(pengajuan.limit_disetujui_bendahara ?? pengajuan.limit_diminta ?? ''),
+        limit_disetujui: String(pengajuan.limit_diminta ?? ''),
     });
 
-    const bisaDiproses = pengajuan.status === 'approved_bendahara';
+    const bisaDiproses = pengajuan.status === 'diajukan';
     const selisihLimit = pengajuan.limit_diminta - pengajuan.limit_saat_ini;
     const diBawahSaatIni = Number(data.limit_disetujui) > 0 && Number(data.limit_disetujui) < pengajuan.limit_saat_ini;
 
     function submit(e) {
         e.preventDefault();
         const url = aksi === 'approve'
-            ? route('ketua.pengajuan-limit.approve', pengajuan.id)
-            : route('ketua.pengajuan-limit.reject', pengajuan.id);
+            ? route('bendahara.pengajuan-limit.approve', pengajuan.id)
+            : route('bendahara.pengajuan-limit.reject', pengajuan.id);
         post(url, withIdempotencyKey({
             preserveScroll: true,
             onSuccess: () => onClose(),
         }));
     }
 
-    function formatAngsuranDate(tanggalPengajuan, cicilanKe) {
-        return calculateDueDate(tanggalPengajuan, cicilanKe);
-    }
-
     return (
         <div className="space-y-4">
-            {/* Header: Limit Comparison */}
             <div className="bg-brand-navy rounded-2xl p-5 text-white">
                 <div className="flex items-start justify-between gap-4 mb-4">
                     <div>
@@ -71,13 +59,11 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                 </div>
             </div>
 
-            {/* Alasan Pengajuan */}
             <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
                 <p className="text-xs text-slate-400 mb-2">Alasan Pengajuan</p>
                 <p className="text-sm text-slate-700">{pengajuan.keterangan}</p>
             </div>
 
-            {/* Data Anggota */}
             <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
                 <p className="text-sm font-bold text-slate-700 mb-3">Data Anggota</p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3">
@@ -100,7 +86,6 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                 </div>
             </div>
 
-            {/* Ringkasan Pinjaman Aktif - Quick Overview */}
             <div className="bg-white rounded-xl border border-slate-200 p-4">
                 <div className="flex items-center gap-2 mb-3">
                     <CreditCard className="text-brand-navy" size={18} />
@@ -143,91 +128,6 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                 )}
             </div>
 
-            {/* Pinjaman Aktif Detail */}
-            {pengajuan.pinjaman_aktif && pengajuan.pinjaman_aktif.length > 0 && (
-                <div className="border border-slate-200 rounded-xl overflow-hidden">
-                    <button
-                        type="button"
-                        onClick={() => setShowPinjamanTable(!showPinjamanTable)}
-                        className="w-full px-4 py-3 bg-slate-50 flex items-center justify-between text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
-                    >
-                        <span className="flex items-center gap-2">
-                            <svg className={`w-5 h-5 transition-transform ${showPinjamanTable ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                            Detail Jadwal Angsuran ({pengajuan.pinjaman_aktif.length} pinjaman)
-                        </span>
-                        <span className="text-xs text-slate-400">
-                            Total Sisa: {formatRupiah(pengajuan.pinjaman_aktif.reduce((sum, p) => sum + p.sisa_total_bayar, 0))}
-                        </span>
-                    </button>
-
-                    {showPinjamanTable && (
-                        <div className="p-3 space-y-4">
-                            {pengajuan.pinjaman_aktif.map((p, idx) => (
-                                <div key={p.id} className="border border-slate-200 rounded-lg p-4 bg-white">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                                                <Minus size={16} />
-                                            </div>
-                                            <div>
-                                                <p className="font-semibold text-slate-800">Pinjaman #{idx + 1}</p>
-                                                <p className="text-xs text-slate-400">{formatRupiah(p.nominal)} &bull; {p.tenor_bulan} bln</p>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-sm font-bold text-slate-800">{formatRupiah(p.sisa_total_bayar)}</p>
-                                            <p className="text-xs text-slate-400">Sisa Bayar</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-3 gap-3 text-sm mb-3">
-                                        <div className="bg-slate-50 rounded-lg p-3">
-                                            <p className="text-xs text-slate-400 mb-1">Sisa Cicilan</p>
-                                            <p className="font-semibold text-slate-700">{p.sisa_cicilan} / {p.total_cicilan}</p>
-                                        </div>
-                                    </div>
-
-                                    {p.jadwal_angsuran && p.jadwal_angsuran.length > 0 && (
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full text-xs">
-                                                <thead>
-                                                    <tr className="text-left text-slate-400 border-b border-slate-200">
-                                                        <th className="py-1.5 px-2 w-10 text-center">Ke</th>
-                                                        <th className="py-1.5 px-2 text-right">Pokok</th>
-                                                        <th className="py-1.5 px-2 text-right">Bunga</th>
-                                                        <th className="py-1.5 px-2 text-right">Total</th>
-                                                        <th className="py-1.5 px-2 text-center">Jatuh Tempo</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {p.jadwal_angsuran.slice(0, 6).map((a) => (
-                                                        <tr key={a.cicilan_ke} className="border-b border-slate-50 hover:bg-slate-50">
-                                                            <td className="py-1.5 px-2 text-center font-medium text-slate-700">{a.cicilan_ke}</td>
-                                                            <td className="py-1.5 px-2 text-right text-slate-700">{formatRupiah(a.nominal_pokok)}</td>
-                                                            <td className="py-1.5 px-2 text-right text-amber-600">{formatRupiah(a.nominal_bunga)}</td>
-                                                            <td className="py-1.5 px-2 text-right font-semibold text-slate-800">{formatRupiah(a.total_bayar)}</td>
-                                                            <td className="py-1.5 px-2 text-center text-slate-600 whitespace-nowrap">{a.tanggal_jatuh_tempo}</td>
-                                                        </tr>
-                                                    ))}
-                                                    {p.jadwal_angsuran.length > 6 && (
-                                                        <tr className="text-center text-slate-400">
-                                                            <td colSpan={5} className="py-2">+{p.jadwal_angsuran.length - 6} angsuran lagi...</td>
-                                                        </tr>
-                                                    )}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* Pinjaman Pending */}
             {pengajuan.pinjaman_pending && (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
                     <div className="flex items-start gap-2.5">
@@ -238,38 +138,11 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                                 Nominal: {formatRupiah(pengajuan.pinjaman_pending.nominal)} &bull;
                                 Status: {pengajuan.pinjaman_pending.status === 'diajukan' ? 'Menunggu Bendahara' : 'Menunggu Ketua'}
                             </p>
-                            <p className="text-xs text-amber-600 mt-1">Pengajuan ini akan mempengaruhi limit tersedia jika disetujui.</p>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Jejak nominal: diminta vs bendahara vs final */}
-            {(pengajuan.limit_disetujui_bendahara || pengajuan.limit_disetujui) && (
-                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                    <p className="text-sm font-bold text-slate-700 mb-2">Jejak Persetujuan</p>
-                    <div className="space-y-1.5 text-sm">
-                        <div className="flex items-center justify-between gap-4">
-                            <span className="text-slate-500">Diminta anggota</span>
-                            <span className="font-semibold text-slate-800">{formatRupiah(pengajuan.limit_diminta)}</span>
-                        </div>
-                        {pengajuan.limit_disetujui_bendahara && (
-                            <div className="flex items-center justify-between gap-4">
-                                <span className="text-slate-500">Disetujui Bendahara</span>
-                                <span className="font-semibold text-blue-700">{formatRupiah(pengajuan.limit_disetujui_bendahara)}</span>
-                            </div>
-                        )}
-                        {pengajuan.limit_disetujui && (
-                            <div className="flex items-center justify-between gap-4">
-                                <span className="text-slate-500">Final Ketua</span>
-                                <span className="font-semibold text-brand-green-dark">{formatRupiah(pengajuan.limit_disetujui)}</span>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
-
-            {/* Catatan Bendahara */}
             {pengajuan.catatan_bendahara && (
                 <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
                     <p className="text-xs text-slate-400 mb-1">Catatan Bendahara</p>
@@ -277,15 +150,6 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                 </div>
             )}
 
-            {/* Catatan Ketua (jika sudah diproses) */}
-            {pengajuan.catatan_ketua && (
-                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                    <p className="text-xs text-slate-400 mb-1">Catatan Ketua Koperasi</p>
-                    <p className="text-sm text-slate-700">{pengajuan.catatan_ketua}</p>
-                </div>
-            )}
-
-            {/* Action Section */}
             <div className="pt-4 border-t border-slate-100">
                 {errors.keputusan && (
                     <div className="flex items-start gap-2.5 bg-red-50 border border-red-100 rounded-xl p-3 mb-4">
@@ -310,7 +174,7 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                                 {aksi === 'approve' && (
                                     <div className="mb-4">
                                         <label className="block text-sm font-semibold text-slate-600 mb-2">
-                                            Nominal Final yang Disetujui
+                                            Nominal yang Disetujui
                                         </label>
                                         <div className="relative">
                                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-base font-semibold text-slate-400">Rp</span>
@@ -330,15 +194,14 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                                     </div>
                                 )}
                                 <label className="block text-sm font-semibold text-slate-600 mb-2">
-                                    Catatan {aksi === 'approve' ? 'Persetujuan' : 'Penolakan'}
+                                    Catatan {aksi === 'approve' ? 'Verifikasi' : 'Penolakan'}
                                 </label>
                                 <textarea
                                     value={data.catatan}
                                     onChange={(e) => setData('catatan', e.target.value)}
                                     rows={3}
-                                    placeholder={aksi === 'approve' ? 'Contoh: Limit dinaikkan sesuai permintaan, memenuhi ketentuan.' : 'Contoh: Belum memenuhi syarat keanggotaan minimal.'}
+                                    placeholder={aksi === 'approve' ? 'Contoh: Layak diteruskan ke Ketua sebesar nominal di atas.' : 'Contoh: Belum memenuhi syarat.'}
                                     className="w-full px-4 py-2.5 text-base rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
-                                    autoFocus
                                 />
                                 {errors.catatan && <p className="text-sm text-red-600 mt-1.5">{errors.catatan}</p>}
 
@@ -363,6 +226,8 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                     </div>
                 )}
             </div>
+
+            {showPinjamanTable && <span className="hidden"><Minus size={12} /></span>}
         </div>
     );
 }

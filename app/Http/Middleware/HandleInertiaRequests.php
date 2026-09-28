@@ -66,12 +66,19 @@ class HandleInertiaRequests extends Middleware
                     $notifications['menunggu_perubahan_tenor_bendahara'] = PengajuanPercepatan::where('status', 'diajukan')->count();
                 }
 
+                if ($permissions->contains('limit.tinjau-bendahara')) {
+                    $notifications['menunggu_pengajuan_limit_bendahara'] = PengajuanLimit::where('status', 'diajukan')->count();
+                }
+
                 if ($permissions->contains('pinjaman.approve-ketua')) {
                     $notifications['menunggu_approval_ketua'] = Pinjaman::where('status', 'approved_bendahara')
                         ->where('cair_oleh_bendahara', false)
                         ->count();
                     $notifications['menunggu_perubahan_tenor_ketua'] = PengajuanPercepatan::where('status', 'approved_bendahara')->count();
-                    $notifications['menunggu_pengajuan_limit'] = PengajuanLimit::where('status', 'diajukan')->count();
+                }
+
+                if ($permissions->contains('limit.approve-ketua')) {
+                    $notifications['menunggu_pengajuan_limit'] = PengajuanLimit::where('status', 'approved_bendahara')->count();
                 }
 
                 return $notifications;

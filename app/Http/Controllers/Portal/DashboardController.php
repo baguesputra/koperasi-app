@@ -46,9 +46,9 @@ class DashboardController extends Controller
             ->latest('updated_at')
             ->first();
 
-        // Pengajuan limit yang sedang berjalan (status diajukan)
+        // Pengajuan limit yang sedang berjalan (diajukan ke bendahara / approved_bendahara ke ketua)
         $pengajuanLimitBerjalan = $anggota->pengajuanLimit()
-            ->where('status', 'diajukan')
+            ->whereIn('status', ['diajukan', 'approved_bendahara'])
             ->latest('tanggal_pengajuan')
             ->first();
 
@@ -188,6 +188,7 @@ class DashboardController extends Controller
             ] : null,
             'pengajuanLimitBerjalan' => $pengajuanLimitBerjalan ? [
                 'limit_diminta' => (float) $pengajuanLimitBerjalan->limit_diminta,
+                'limit_disetujui_bendahara' => $pengajuanLimitBerjalan->limit_disetujui_bendahara !== null ? (float) $pengajuanLimitBerjalan->limit_disetujui_bendahara : null,
                 'status' => $pengajuanLimitBerjalan->status,
                 'tanggal_pengajuan' => $pengajuanLimitBerjalan->tanggal_pengajuan->format('d M Y'),
             ] : null,

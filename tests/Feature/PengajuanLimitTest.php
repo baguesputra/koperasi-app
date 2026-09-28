@@ -42,28 +42,85 @@ class PengajuanLimitTest extends TestCase
         $this->ajukan($anggota, 9_000_000);
     }
 
-    public function test_setujui_menaikkan_limit_custom_dan_tercatat_audit(): void
+    public function test_bendahara_setujui_teruskan_ke_ketua_dengan_nominal_edit(): void
     {
         $anggota = $this->buatAnggota();
-        $pengajuan = $this->ajukan($anggota, 8_000_000);
+        $pengajuan = $this->ajukan($anggota, 10_000_000);
+
+        $this->masuk('BEN-000001');
+        $this->post(route('bendahara.pengajuan-limit.approve', $pengajuan), [
+            'catatan' => 'Layak diteruskan ke Ketua.',
+            'limit_disetujui' => 8_000_000,
+        ])->assertStatus(302);
+
+        $pengajuan->refresh();
+        $this->assertSame('approved_bendahara', $pengajuan->status);
+        $this->assertEquals(8_000_000, (float) $pengajuan->limit_disetujui_bendahara);
+        $this->assertNull($anggota->refresh()->limit_custom);
+    }
+
+    public function test_ketua_setujui_final_nominal_bisa_diubah_lagi(): void
+    {
+        $anggota = $this->buatAnggota();
+        $pengajuan = $this->ajukan($anggota, 10_000_000);
+
+        $this->masuk('BEN-000001');
+        $this->post(route('bendahara.pengajuan-limit.approve', $pengajuan), [
+            'catatan' => 'Layak diteruskan ke Ketua.',
+            'limit_disetujui' => 8_000_000,
+        ])->assertStatus(302);
 
         $this->masuk('KET-000001');
-        $this->post(route('ketua.pengajuan-limit.approve', $pengajuan), ['catatan' => 'Layak dinaikkan.'])
-            ->assertStatus(302);
+        $this->post(route('ketua.pengajuan-limit.approve', $pengajuan), [
+            'catatan' => 'Final disetujui naik.',
+            'limit_disetujui' => 9_000_000,
+        ])->assertStatus(302);
 
         $pengajuan->refresh();
         $this->assertSame('disetujui', $pengajuan->status);
-        $this->assertEquals(8_000_000, (float) $anggota->refresh()->limit_custom);
+        $this->assertEquals(9_000_000, (float) $pengajuan->limit_disetujui);
+        $this->assertEquals(9_000_000, (float) $anggota->refresh()->limit_custom);
 
         $this->assertTrue(
             AuditLog::where('aksi', 'setujui_pengajuan_limit')->where('keterangan', 'like', '%'.$anggota->nama.'%')->exists()
         );
     }
 
-    public function test_tolak_tidak_mengubah_limit(): void
+    public function test_bendahara_tolak_final_tidak_mengubah_limit(): void
     {
         $anggota = $this->buatAnggota();
         $pengajuan = $this->ajukan($anggota, 8_000_000);
+
+        $this->masuk('BEN-000001');
+        $this->post(route('bendahara.pengajuan-limit.reject', $pengajuan), ['catatan' => 'Belum memadai.'])
+            ->assertStatus(302);
+
+        $this->assertSame('ditolak', $pengajuan->refresh()->status);
+        $this->assertNull($anggota->refresh()->limit_custom);
+    }
+
+    public function test_approve_tanpa_nominal_ditolak_validasi(): void
+    {
+        $anggota = $this->buatAnggota();
+        $pengajuan = $this->ajukan($anggota, 8_000_000);
+
+        $this->masuk('BEN-000001');
+        $this->post(route('bendahara.pengajuan-limit.approve', $pengajuan), ['catatan' => 'Layak diteruskan ke Ketua.'])
+            ->assertSessionHasErrors('limit_disetujui');
+
+        $this->assertSame('diajukan', $pengajuan->refresh()->status);
+    }
+
+    public function test_ketua_tolak_tidak_mengubah_limit(): void
+    {
+        $anggota = $this->buatAnggota();
+        $pengajuan = $this->ajukan($anggota, 8_000_000);
+
+        $this->masuk('BEN-000001');
+        $this->post(route('bendahara.pengajuan-limit.approve', $pengajuan), [
+            'catatan' => 'Diteruskan.',
+            'limit_disetujui' => 7_000_000,
+        ])->assertStatus(302);
 
         $this->masuk('KET-000001');
         $this->post(route('ketua.pengajuan-limit.reject', $pengajuan), ['catatan' => 'Belum memadai.'])

@@ -33,13 +33,12 @@ export default function Index({ menunggu, riwayat }) {
         <AppLayout>
             <Head title="Pengajuan Limit" />
 
-            <PageHeader title="Pengajuan Tambah Limit" subtitle={`${menunggu.length} pengajuan menunggu keputusan final Anda`} />
+            <PageHeader title="Verifikasi Pengajuan Limit" subtitle={`${menunggu.length} pengajuan menunggu tinjauan Anda`} />
 
             <Card padding="none">
-                {/* Tab lembaran dokumen */}
                 <div className="flex items-end gap-1 px-3 pt-2 border-b border-slate-200">
                     <button onClick={() => setTab('baru')} className={tab === 'baru' ? tabAktif : tabNonAktif}>
-                        Menunggu Keputusan
+                        Menunggu Tinjauan
                         {menunggu.length > 0 && (
                             <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[11px] font-bold">
                                 {menunggu.length}
@@ -51,14 +50,13 @@ export default function Index({ menunggu, riwayat }) {
                     </button>
                 </div>
 
-                {/* Tabel dalam kartu yang sama */}
                 <div className="overflow-x-auto">
                     {tab === 'baru' ? (
                         <table className="w-full table-sticky-first">
                             <thead>
                                 <tr className="text-left sticky top-0 bg-white z-10">
                                     <th className="px-5 py-3 text-sm font-semibold text-slate-500">Anggota</th>
-                                    <th className="px-5 py-3 text-sm font-semibold text-slate-500">Diminta → Bendahara</th>
+                                    <th className="px-5 py-3 text-sm font-semibold text-slate-500">Limit Saat Ini → Diminta</th>
                                     <th className="hidden md:table-cell px-5 py-3 text-sm font-semibold text-slate-500">Cabang</th>
                                     <th className="px-5 py-3 text-sm font-semibold text-slate-500">Tanggal</th>
                                     <th className="px-5 py-3 text-sm font-semibold text-slate-500">Status</th>
@@ -69,7 +67,7 @@ export default function Index({ menunggu, riwayat }) {
                                 {menunggu.length === 0 ? (
                                     <tr>
                                         <td colSpan={6} className="px-5 py-8 text-center text-base text-slate-400">
-                                            Tidak ada pengajuan yang menunggu keputusan.
+                                            Tidak ada pengajuan yang menunggu tinjauan.
                                         </td>
                                     </tr>
                                 ) : (
@@ -85,11 +83,11 @@ export default function Index({ menunggu, riwayat }) {
                                                 </div>
                                             </td>
                                             <td className="px-5 py-3 text-sm text-slate-700">
-                                                {formatRupiah(p.limit_diminta)} → {p.limit_disetujui_bendahara ? formatRupiah(p.limit_disetujui_bendahara) : '-'}
+                                                {formatRupiah(p.limit_saat_ini)} → {formatRupiah(p.limit_diminta)}
                                             </td>
                                             <td className="hidden md:table-cell px-5 py-3 text-sm text-slate-600">{p.anggota.cabang}</td>
                                             <td className="px-5 py-3 text-sm text-slate-600">{p.tanggal_pengajuan}</td>
-                                            <td className="px-5 py-3"><StatusBadge status={p.status} /></td>
+                                            <td className="px-5 py-3"><StatusBadge status="pending" /></td>
                                             <td className="px-5 py-3 text-right">
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); bukaDetail(p); }}
@@ -109,7 +107,7 @@ export default function Index({ menunggu, riwayat }) {
                             <thead>
                                 <tr className="text-left sticky top-0 bg-white z-10">
                                     <th className="px-5 py-3 text-sm font-semibold text-slate-500">Anggota</th>
-                                    <th className="px-5 py-3 text-sm font-semibold text-slate-500">Diminta → Final</th>
+                                    <th className="px-5 py-3 text-sm font-semibold text-slate-500">Diminta → Bendahara</th>
                                     <th className="hidden md:table-cell px-5 py-3 text-sm font-semibold text-slate-500">Cabang</th>
                                     <th className="px-5 py-3 text-sm font-semibold text-slate-500">Tanggal</th>
                                     <th className="px-5 py-3 text-sm font-semibold text-slate-500">Status</th>
@@ -135,11 +133,11 @@ export default function Index({ menunggu, riwayat }) {
                                                 </div>
                                             </td>
                                             <td className="px-5 py-3 text-sm text-slate-700">
-                                                {formatRupiah(p.limit_diminta)} → {p.limit_disetujui ? formatRupiah(p.limit_disetujui) : '-'}
+                                                {formatRupiah(p.limit_diminta)} → {p.limit_disetujui_bendahara ? formatRupiah(p.limit_disetujui_bendahara) : '-'}
                                             </td>
                                             <td className="hidden md:table-cell px-5 py-3 text-sm text-slate-600">{p.anggota.cabang}</td>
                                             <td className="px-5 py-3 text-sm text-slate-600">{p.tanggal_pengajuan}</td>
-                                            <td className="px-5 py-3"><StatusBadge status={p.status === 'ditolak' ? 'ditolak' : 'disetujui'} /></td>
+                                            <td className="px-5 py-3"><StatusBadge status={p.status} /></td>
                                         </tr>
                                     ))
                                 )}

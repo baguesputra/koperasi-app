@@ -3,6 +3,7 @@
 use App\Http\Controllers\AnggotaController;
 use App\Http\Controllers\Auth\SsoController;
 use App\Http\Controllers\Bendahara\AngsuranController;
+use App\Http\Controllers\Bendahara\PengajuanLimitController as BendaharaPengajuanLimitController;
 use App\Http\Controllers\Bendahara\PercepatanController as BendaharaPercepatanController;
 use App\Http\Controllers\Bendahara\PinjamanController as BendaharaPinjamanController;
 use App\Http\Controllers\Bendahara\SimpananController as BendaharaSimpananController;
@@ -199,6 +200,13 @@ Route::middleware('auth')->prefix('bendahara')->name('bendahara.')->group(functi
         Route::post('/percepatan/{percepatan}/reject', [BendaharaPercepatanController::class, 'reject'])->name('percepatan.reject')->middleware('idempotent');
     });
 
+    Route::middleware('permission:limit.tinjau-bendahara')->group(function () {
+        Route::get('/pengajuan-limit', [BendaharaPengajuanLimitController::class, 'index'])->name('pengajuan-limit.index');
+        Route::get('/pengajuan-limit/{pengajuanLimit}', [BendaharaPengajuanLimitController::class, 'show'])->name('pengajuan-limit.show');
+        Route::post('/pengajuan-limit/{pengajuanLimit}/approve', [BendaharaPengajuanLimitController::class, 'approve'])->name('pengajuan-limit.approve')->middleware('idempotent');
+        Route::post('/pengajuan-limit/{pengajuanLimit}/reject', [BendaharaPengajuanLimitController::class, 'reject'])->name('pengajuan-limit.reject')->middleware('idempotent');
+    });
+
     Route::middleware('permission:angsuran.konfirmasi')->group(function () {
         Route::get('/angsuran', [AngsuranController::class, 'index'])->name('angsuran.index');
         Route::post('/angsuran/konfirmasi', [AngsuranController::class, 'konfirmasi'])->name('angsuran.konfirmasi')->middleware('idempotent');
@@ -220,14 +228,17 @@ Route::middleware('auth')->prefix('ketua')->name('ketua.')->group(function () {
         Route::get('/pinjaman/{pinjaman}', [KetuaPinjamanController::class, 'show'])->name('pinjaman.show');
         Route::post('/pinjaman/{pinjaman}/approve', [KetuaPinjamanController::class, 'approve'])->name('pinjaman.approve')->middleware('idempotent');
         Route::post('/pinjaman/{pinjaman}/reject', [KetuaPinjamanController::class, 'reject'])->name('pinjaman.reject')->middleware('idempotent');
-        Route::get('/pengajuan-limit', [KetuaPengajuanLimitController::class, 'index'])->name('pengajuan-limit.index');
-        Route::get('/pengajuan-limit/{pengajuanLimit}', [KetuaPengajuanLimitController::class, 'show'])->name('pengajuan-limit.show');
-        Route::post('/pengajuan-limit/{pengajuanLimit}/approve', [KetuaPengajuanLimitController::class, 'approve'])->name('pengajuan-limit.approve')->middleware('idempotent');
-        Route::post('/pengajuan-limit/{pengajuanLimit}/reject', [KetuaPengajuanLimitController::class, 'reject'])->name('pengajuan-limit.reject')->middleware('idempotent');
         Route::get('/percepatan', [KetuaPercepatanController::class, 'index'])->name('percepatan.index');
         Route::get('/percepatan/{percepatan}', [KetuaPercepatanController::class, 'show'])->name('percepatan.show');
         Route::post('/percepatan/{percepatan}/approve', [KetuaPercepatanController::class, 'approve'])->name('percepatan.approve')->middleware('idempotent');
         Route::post('/percepatan/{percepatan}/reject', [KetuaPercepatanController::class, 'reject'])->name('percepatan.reject')->middleware('idempotent');
+    });
+
+    Route::middleware('permission:limit.approve-ketua')->group(function () {
+        Route::get('/pengajuan-limit', [KetuaPengajuanLimitController::class, 'index'])->name('pengajuan-limit.index');
+        Route::get('/pengajuan-limit/{pengajuanLimit}', [KetuaPengajuanLimitController::class, 'show'])->name('pengajuan-limit.show');
+        Route::post('/pengajuan-limit/{pengajuanLimit}/approve', [KetuaPengajuanLimitController::class, 'approve'])->name('pengajuan-limit.approve')->middleware('idempotent');
+        Route::post('/pengajuan-limit/{pengajuanLimit}/reject', [KetuaPengajuanLimitController::class, 'reject'])->name('pengajuan-limit.reject')->middleware('idempotent');
     });
 });
 

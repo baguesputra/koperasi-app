@@ -48,7 +48,8 @@ class DashboardController extends Controller
 
         $menungguPerubahanTenor = PengajuanPercepatan::whereIn('status', ['diajukan', 'approved_bendahara'])->count();
 
-        $menungguPengajuanLimit = PengajuanLimit::where('status', 'diajukan')->count();
+        $menungguPengajuanLimitBendahara = PengajuanLimit::where('status', 'diajukan')->count();
+        $menungguPengajuanLimit = PengajuanLimit::where('status', 'approved_bendahara')->count();
 
         $anggotaBelumSimpananBulanIni = Anggota::where('status', 'aktif')
             ->whereDoesntHave('simpanan', fn ($q) => $q
@@ -198,6 +199,7 @@ class DashboardController extends Controller
                 'menunggu_approval_ketua' => $menungguApprovalKetua,
                 'perubahan_tenor' => $menungguPerubahanTenor,
                 'pengajuan_limit' => $menungguPengajuanLimit,
+                'pengajuan_limit_bendahara' => $menungguPengajuanLimitBendahara,
                 'anggota_belum_simpanan' => $anggotaBelumSimpananBulanIni,
                 'angsuran_jatuh_tempo' => $angsuranJatuhTempoBulanIni,
             ],

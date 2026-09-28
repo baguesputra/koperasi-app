@@ -243,7 +243,7 @@ const TATA_CARA = [
         key: 'limit',
         label: 'Tambah Limit',
         icon: Gauge,
-        intro: 'Limit kategori belum cukup? Ajukan penambahan limit langsung ke Ketua Koperasi.',
+        intro: 'Limit kategori belum cukup? Ajukan penambahan limit, diverifikasi Bendahara lalu diputuskan final oleh Ketua Koperasi.',
         langkah: [
             {
                 judul: 'Temukan tombolnya di Beranda',
@@ -262,7 +262,7 @@ const TATA_CARA = [
             },
             {
                 judul: 'Kirim pengajuan',
-                deskripsi: 'Klik "Kirim Pengajuan". Anda dibawa kembali ke Beranda beserta kuitansi konfirmasi, dan konfirmasi dikirim melalui WhatsApp Koperasi. Tahapannya lebih pendek daripada pinjaman: hanya Ketua Koperasi yang meninjau, tanpa tahap Bendahara.',
+                deskripsi: 'Klik "Kirim Pengajuan". Anda dibawa kembali ke Beranda beserta kuitansi konfirmasi, dan konfirmasi dikirim melalui WhatsApp Koperasi. Bendahara memverifikasi dahulu (boleh menyesuaikan nominal), lalu Ketua menetapkan nominal final (boleh beda dari usulan Bendahara).',
                 mockup: <MiniButton label="Kirim Pengajuan" icon={ArrowRight} />,
             },
             {
@@ -275,7 +275,7 @@ const TATA_CARA = [
         ],
         catatan: [
             'Satu waktu hanya boleh ada satu pengajuan limit aktif.',
-            'Keputusan sepenuhnya wewenang Ketua Koperasi, dengan mempertimbangkan kemampuan keuangan koperasi dan riwayat pembayaran Anda.',
+            'Keputusan final wewenang Ketua Koperasi; Bendahara boleh menolak final atau meneruskan dengan nominal usulan. Keduanya mempertimbangkan kemampuan keuangan koperasi dan riwayat pembayaran Anda.',
             'Limit baru berlaku untuk pinjaman berikutnya dan tidak mengubah pinjaman yang sedang berjalan.',
         ],
     },
@@ -341,11 +341,15 @@ const FAQ = [
             },
             {
                 q: 'Apakah limit baru langsung berlaku setelah disetujui?',
-                a: 'Ya, langsung berlaku untuk pinjaman berikutnya. Limit baru tidak mengubah pinjaman yang sedang berjalan.',
+                a: 'Ya, nominal final dari Ketua langsung berlaku untuk pinjaman berikutnya. Limit baru tidak mengubah pinjaman yang sedang berjalan.',
+            },
+            {
+                q: 'Kenapa nominal yang disetujui beda dari yang saya minta?',
+                a: 'Bendahara memverifikasi lalu mengusulkan nominal, Ketua menetapkan nominal final. Keduanya boleh menyesuaikan di bawah atau di atas permintaan Anda sesuai penilaian. Jejak tiga nominal (diminta, bendahara, final) tampil di riwayat.',
             },
             {
                 q: 'Kenapa pengajuan tambah limit saya ditolak?',
-                a: 'Alasannya dicatat Ketua Koperasi dan tampil di riwayat halaman Ajukan Tambah Limit. Yang umum: pertimbangan kemampuan keuangan koperasi, riwayat pembayaran Anda, atau limit dinilai sudah cukup.',
+                a: 'Bendahara boleh menolak final, atau Ketua menolak setelah verifikasi Bendahara. Alasannya tampil di riwayat halaman Ajukan Tambah Limit. Yang umum: pertimbangan kemampuan keuangan koperasi, riwayat pembayaran Anda, atau limit dinilai sudah cukup.',
             },
         ],
     },
