@@ -646,12 +646,19 @@ class LaporanRegistry
                         ->get()
                         ->groupBy(fn ($a) => $a->pengajuan->pinjaman->anggota_id);
 
+                    $tagihanWajib = (float) (\App\Models\SettingSimpanan::where('jenis', 'wajib')->value('nominal') ?? 45_000);
+                    $tagihanSosial = (float) (\App\Models\SettingSimpanan::where('jenis', 'dana_sosial')->value('nominal') ?? 5_000);
+
                     $rows = [];
                     foreach ($daftar as $i => $a) {
                         $setor = $simpanan->get($a->id, collect());
                         $pokok = (float) $setor->where('jenis', 'pokok')->sum('jumlah');
-                        $wajib = (float) $setor->where('jenis', 'wajib')->sum('jumlah');
-                        $sosial = (float) $setor->where('jenis', 'dana_sosial')->sum('jumlah');
+                        $setorWajib = (float) $setor->where('jenis', 'wajib')->sum('jumlah');
+                        $setorSosial = (float) $setor->where('jenis', 'dana_sosial')->sum('jumlah');
+                        // Belum konfirmasi bulan ini → tampilkan tagihan tetap (contoh accounting).
+                        // Anggota resign final tak punya tagihan berjalan.
+                        $wajib = $setorWajib > 0 ? $setorWajib : ($a->status === 'aktif' ? $tagihanWajib : 0);
+                        $sosial = $setorSosial > 0 ? $setorSosial : ($a->status === 'aktif' ? $tagihanSosial : 0);
 
                         $cicilanBiasa = $cicilan->get($a->id, collect());
                         $cicilanSusulan = $cicilanPercepatan->get($a->id, collect());
