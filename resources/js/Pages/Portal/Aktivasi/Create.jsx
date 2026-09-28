@@ -48,9 +48,10 @@ export default function Create({ anggota, poinSyarat, versiSyarat, pengajuanBerj
                     <div className="w-14 h-14 rounded-2xl bg-brand-navy text-white flex items-center justify-center mx-auto mb-3">
                         <UserCheck size={26} />
                     </div>
-                    <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Form Pengajuan Aktivasi</h1>
+                    <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Formulir Pengajuan Aktivasi</h1>
                     <p className="text-sm text-slate-500 mt-1">
-                        Periksa data di bawah, centang kedua pernyataan, lalu kirim pengajuan.
+                        Bapak/Ibu dimohon memeriksa kesesuaian data di bawah ini, memberikan persetujuan
+                        pada kedua pernyataan, kemudian mengirimkan pengajuan.
                     </p>
                 </div>
 
@@ -66,10 +67,10 @@ export default function Create({ anggota, poinSyarat, versiSyarat, pengajuanBerj
                         <Clock className="text-amber-600 shrink-0 mt-0.5" size={20} />
                         <div>
                             <p className="text-sm font-semibold text-amber-800">
-                                Pengajuan tertanggal {pengajuanBerjalan.tanggal_pengajuan} sedang menunggu persetujuan Ketua.
+                                Pengajuan tertanggal {pengajuanBerjalan.tanggal_pengajuan} sedang dalam proses persetujuan Ketua.
                             </p>
                             <p className="text-sm text-amber-700 mt-1">
-                                Keputusan akan disampaikan melalui WhatsApp. Tidak perlu mengajukan ulang.
+                                Keputusan akan disampaikan melalui WhatsApp. Bapak/Ibu tidak perlu mengajukan ulang.
                             </p>
                         </div>
                     </div>
@@ -80,12 +81,12 @@ export default function Create({ anggota, poinSyarat, versiSyarat, pengajuanBerj
                         <AlertCircle className="text-red-500 shrink-0 mt-0.5" size={20} />
                         <div>
                             <p className="text-sm font-semibold text-red-700">
-                                Pengajuan sebelumnya ditolak ({ditolakTerakhir.tanggal}).
+                                Pengajuan sebelumnya belum dapat disetujui ({ditolakTerakhir.tanggal}).
                             </p>
                             {ditolakTerakhir.catatan && (
                                 <p className="text-sm text-red-600 mt-1 italic">&ldquo;{ditolakTerakhir.catatan}&rdquo;</p>
                             )}
-                            <p className="text-sm text-red-600 mt-1">Perbaiki data lalu ajukan ulang di bawah.</p>
+                            <p className="text-sm text-red-600 mt-1">Bapak/Ibu dapat memperbaiki data dan mengajukan ulang melalui formulir di bawah ini.</p>
                         </div>
                     </div>
                 )}
@@ -96,7 +97,7 @@ export default function Create({ anggota, poinSyarat, versiSyarat, pengajuanBerj
                         <BadgeCheck size={18} className="text-brand-navy" />
                         <div>
                             <p className="text-base font-bold text-slate-800">Data Keanggotaan</p>
-                            <p className="text-xs text-slate-500">Bersumber dari data karyawan (GATE), tidak dapat diubah di sini</p>
+                            <p className="text-xs text-slate-500">Bersumber dari data kepegawaian (GATE) dan tidak dapat diubah pada halaman ini</p>
                         </div>
                     </div>
                     <div className="px-5 py-3">
@@ -128,7 +129,8 @@ export default function Create({ anggota, poinSyarat, versiSyarat, pengajuanBerj
                                     className="mt-0.5 w-5 h-5 rounded border-slate-300 text-brand-green focus:ring-2 focus:ring-brand-green/40 cursor-pointer shrink-0"
                                 />
                                 <span className="text-sm text-slate-700 leading-relaxed">
-                                    Data keanggotaan di atas adalah <span className="font-semibold">benar</span> sesuai data diri saya.
+                                    Dengan ini saya menyatakan bahwa data keanggotaan di atas adalah <span className="font-semibold">benar</span> dan
+                                    sesuai dengan data diri saya.
                                 </span>
                             </label>
                             {errors.data_benar && <p className="text-sm text-red-600 mt-2">{errors.data_benar}</p>}
@@ -156,8 +158,8 @@ export default function Create({ anggota, poinSyarat, versiSyarat, pengajuanBerj
                                     className="mt-0.5 w-5 h-5 rounded border-slate-300 text-brand-green focus:ring-2 focus:ring-brand-green/40 cursor-pointer shrink-0"
                                 />
                                 <span className="text-sm text-slate-700 leading-relaxed">
-                                    Demikian pengajuan ini saya isi dengan benar. Saya <span className="font-semibold">tunduk dan patuh</span> pada
-                                    Anggaran Dasar, Anggaran Rumah Tangga, peraturan khusus, dan kebijakan lainnya yang berlaku
+                                    Demikian pengajuan ini saya isi dengan sebenarnya. Saya menyatakan <span className="font-semibold">tunduk dan patuh</span> terhadap
+                                    Anggaran Dasar, Anggaran Rumah Tangga, peraturan khusus, serta seluruh kebijakan lain yang berlaku
                                     di Koperasi Karya Mandiri.
                                 </span>
                             </label>
@@ -176,7 +178,7 @@ export default function Create({ anggota, poinSyarat, versiSyarat, pengajuanBerj
                             disabled={!bisaKirim}
                             className={`w-full py-3.5 text-base font-bold rounded-2xl bg-brand-green text-white hover:bg-brand-green-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${focusRing}`}
                         >
-                            {processing ? 'Mengirim...' : 'Kirim Pengajuan Aktivasi'}
+                            {processing ? 'Mengirim...' : 'Kirim Pengajuan'}
                         </button>
                     </form>
                 )}
@@ -229,7 +231,7 @@ export default function Create({ anggota, poinSyarat, versiSyarat, pengajuanBerj
                                         onClick={() => { setData('setuju_syarat', true); setShowModal(false); }}
                                         className={`w-full py-3.5 text-sm font-bold rounded-xl bg-brand-navy text-white hover:bg-brand-navy-light transition-colors ${focusRing}`}
                                     >
-                                        Saya Sudah Membaca &amp; Memahami
+                                        Saya Telah Membaca dan Memahami
                                     </button>
                                 </div>
                             </div>

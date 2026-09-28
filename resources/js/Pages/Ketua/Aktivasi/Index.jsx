@@ -80,7 +80,7 @@ function KeputusanDrawer({ pengajuan, onClose }) {
                                 value={data.catatan}
                                 onChange={(e) => setData('catatan', e.target.value)}
                                 rows={3}
-                                placeholder={aksi === 'approve' ? 'Contoh: Data valid, aktivasi disetujui.' : 'Contoh: Data belum lengkap.'}
+                                placeholder={aksi === 'approve' ? 'Contoh: Data telah sesuai, pengajuan disetujui.' : 'Contoh: Data belum lengkap, mohon dilengkapi.'}
                                 className="w-full px-4 py-2.5 text-base rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
                                 autoFocus
                             />
@@ -112,7 +112,7 @@ export default function Index({ menunggu, riwayat }) {
     return (
         <AppLayout>
             <Head title="Aktivasi Anggota" />
-            <PageHeader title="Pengajuan Aktivasi Anggota" subtitle={`${menunggu.length} pengajuan menunggu keputusan Anda`} />
+            <PageHeader title="Pengajuan Aktivasi Anggota" subtitle={`${menunggu.length} pengajuan menunggu keputusan`} />
 
             <Card padding="none">
                 <div className="flex items-end gap-1 px-3 pt-2 border-b border-slate-200">

@@ -6,37 +6,37 @@
  */
 
 return [
-    'versi' => 'v1.0-2026-09-28',
+    'versi' => 'v1.1-2026-09-28',
 
     'poin' => [
         [
-            'judul' => 'Simpanan Pokok Sekali Bayar',
-            'deskripsi' => 'Simpanan Pokok sebesar Rp 50.000 dibayar satu kali pada saat aktivasi keanggotaan disetujui.',
+            'judul' => 'Simpanan Pokok',
+            'deskripsi' => 'Simpanan Pokok dibayarkan satu kali pada saat aktivasi keanggotaan disetujui. Nominal mengikuti ketentuan yang ditetapkan pengurus.',
             'wajib_contreng' => false,
         ],
         [
-            'judul' => 'Simpanan Wajib Bulanan',
-            'deskripsi' => 'Simpanan Wajib sebesar Rp 50.000 setiap bulan, dengan rincian Rp 45.000 sebagai simpanan dan Rp 5.000 disumbangkan untuk Dana Sosial koperasi.',
+            'judul' => 'Simpanan Wajib dan Dana Sosial',
+            'deskripsi' => 'Simpanan Wajib dibayarkan setiap bulan. Sebagian dari iuran bulanan disalurkan sebagai Dana Sosial koperasi.',
             'wajib_contreng' => false,
         ],
         [
-            'judul' => 'Limit Pinjaman Awal',
-            'deskripsi' => 'Pada tahun pertama keanggotaan, batas maksimal pinjaman adalah Rp 1.000.000. Limit bertambah mengikuti lama keanggotaan atau pengajuan limit yang disetujui.',
+            'judul' => 'Batas Maksimal Pinjaman Awal',
+            'deskripsi' => 'Pada tahun pertama keanggotaan berlaku batas maksimal pinjaman awal. Batas tersebut dapat bertambah mengikuti masa keanggotaan atau melalui pengajuan penambahan limit yang disetujui.',
             'wajib_contreng' => false,
         ],
         [
-            'judul' => 'Alur Persetujuan Aktivasi',
-            'deskripsi' => 'Pengajuan aktivasi diverifikasi oleh pengurus dan disetujui final oleh Ketua Koperasi. Keputusan disampaikan melalui WhatsApp dan halaman portal ini.',
+            'judul' => 'Tahapan Persetujuan Aktivasi',
+            'deskripsi' => 'Pengajuan aktivasi ditinjau oleh pengurus dan diputuskan oleh Ketua Koperasi. Keputusan atas pengajuan disampaikan melalui WhatsApp dan halaman portal.',
             'wajib_contreng' => false,
         ],
         [
-            'judul' => 'Kepatuhan Anggaran dan Peraturan',
-            'deskripsi' => 'Saya tunduk dan patuh pada seluruh ketentuan yang tertera dalam Anggaran Dasar, Anggaran Rumah Tangga, peraturan khusus, dan kebijakan lainnya yang berlaku di Koperasi Karya Mandiri.',
+            'judul' => 'Kepatuhan terhadap Anggaran dan Peraturan',
+            'deskripsi' => 'Saya menyatakan tunduk dan patuh terhadap seluruh ketentuan yang tercantum dalam Anggaran Dasar, Anggaran Rumah Tangga, peraturan khusus, serta seluruh kebijakan lain yang berlaku di Koperasi Karya Mandiri.',
             'wajib_contreng' => true,
         ],
         [
-            'judul' => 'Kebenaran Data',
-            'deskripsi' => 'Demikian pengajuan ini saya isi dengan benar. Apabila di kemudian hari ditemukan ketidakbenaran data, saya bersedia menerima sanksi sesuai peraturan yang berlaku.',
+            'judul' => 'Kebenaran Data Pengajuan',
+            'deskripsi' => 'Demikian pengajuan ini saya isi dengan sebenarnya. Apabila di kemudian hari ditemukan ketidakbenaran data, saya bersedia menerima sanksi sesuai peraturan yang berlaku.',
             'wajib_contreng' => true,
         ],
     ],

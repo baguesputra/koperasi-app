@@ -63,9 +63,9 @@ class PengajuanAktivasiService
             $anggota,
             'aktivasi_diajukan',
             WaPesan::susun($anggota->nama, $anggota->no_karyawan,
-                'Pengajuan aktivasi keanggotaan Anda telah kami terima pada '.now()->translatedFormat('d F Y').".\n\n"
-                .'Status saat ini: *Menunggu persetujuan Ketua*.'
-                .' Pemberitahuan selanjutnya akan kami sampaikan melalui WhatsApp ini.')
+                'Pengajuan aktivasi keanggotaan Bapak/Ibu telah kami terima pada '.now()->translatedFormat('d F Y').".\n\n"
+                .'Status saat ini: *Menunggu persetujuan Ketua Koperasi*.'
+                .' Perkembangan selanjutnya akan kami sampaikan melalui WhatsApp ini.')
         );
 
         WaService::kePengurus(
@@ -117,8 +117,8 @@ class PengajuanAktivasiService
             $pengajuan->anggota,
             'aktivasi_disetujui',
             WaPesan::susun($pengajuan->anggota->nama, $pengajuan->anggota->no_karyawan,
-                "Selamat! Pengajuan aktivasi keanggotaan Anda telah *DISETUJUI* oleh Ketua.\n\n"
-                .'Simpanan Pokok Anda telah tercatat. Kini Anda dapat mengakses seluruh layanan koperasi, termasuk pengajuan pinjaman. Terima kasih telah bergabung.')
+                "Dengan hormat,\n\nPengajuan aktivasi keanggotaan Bapak/Ibu telah *DISETUJUI* oleh Ketua Koperasi.\n\n"
+                .'Simpanan Pokok telah tercatat. Bapak/Ibu kini dapat menggunakan seluruh layanan koperasi, termasuk pengajuan pinjaman. Terima kasih atas kepercayaan Bapak/Ibu.')
         );
     }
 
@@ -142,8 +142,8 @@ class PengajuanAktivasiService
             $pengajuan->anggota,
             'aktivasi_ditolak',
             WaPesan::susun($pengajuan->anggota->nama, $pengajuan->anggota->no_karyawan,
-                "Mohon maaf, pengajuan aktivasi keanggotaan Anda telah *DITOLAK* oleh Ketua.\n\nCatatan: {$catatan}\n\n"
-                .'Anda dapat memperbaiki data lalu mengajukan ulang melalui portal. Apabila ada pertanyaan, silakan menghubungi pengurus Koperasi.')
+                "Dengan hormat,\n\nMohon maaf, pengajuan aktivasi keanggotaan Bapak/Ibu belum dapat disetujui oleh Ketua Koperasi.\n\nCatatan: {$catatan}\n\n"
+                .'Bapak/Ibu dapat memperbaiki data dan mengajukan ulang melalui portal. Apabila memerlukan informasi lebih lanjut, silakan menghubungi pengurus Koperasi.')
         );
     }
 
