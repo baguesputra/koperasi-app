@@ -51,6 +51,7 @@ class PinjamanController extends Controller
             'menungguTinjauan' => $menungguTinjauan,
             'menungguPencairan' => $menungguPencairan,
             'riwayat' => $riwayat,
+            'ringkasanKas' => $this->ringkasanKas(),
         ]);
     }
 
@@ -60,7 +61,25 @@ class PinjamanController extends Controller
 
         return Inertia::render('Bendahara/Pinjaman/Show', [
             'pinjaman' => $this->formatLengkap()($pinjaman),
+            'ringkasanKas' => $this->ringkasanKas(),
         ]);
+    }
+
+    private function ringkasanKas(): array
+    {
+        $saldo = (float) (KasKoperasi::first()?->saldo_pinjaman ?? 0);
+        $agregat = Pinjaman::where('status', 'diajukan')
+            ->selectRaw('COUNT(*) as jumlah, SUM(COALESCE(nominal_diminta, nominal)) as total')
+            ->first();
+        $total = (float) ($agregat->total ?? 0);
+        $jumlah = (int) ($agregat->jumlah ?? 0);
+
+        return [
+            'total_menunggu' => $total,
+            'jumlah_menunggu' => $jumlah,
+            'saldo' => $saldo,
+            'sisa_proyeksi' => $saldo - $total,
+        ];
     }
 
     public function approve(KeputusanPinjamanNominalRequest $request, Pinjaman $pinjaman)

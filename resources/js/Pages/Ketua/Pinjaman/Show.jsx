@@ -9,10 +9,11 @@ import { withIdempotencyKey } from '@/Utils/idempotency';
 import JejakNominal from '@/Pages/PinjamanApproval/JejakNominal';
 import KartuKas from '@/Pages/PinjamanApproval/KartuKas';
 import PreviewNominal from '@/Pages/PinjamanApproval/PreviewNominal';
+import RingkasanKas from '@/Pages/PinjamanApproval/RingkasanKas';
 
 const jabatanLabel = { staff: 'Staff', hod: 'HOD' };
 
-export default function Show({ pinjaman }) {
+export default function Show({ pinjaman, ringkasanKas }) {
     const [aksi, setAksi] = useState(null);
     const { data, setData, post, processing, errors } = useForm({
         catatan: '',
@@ -39,6 +40,8 @@ export default function Show({ pinjaman }) {
                 <ArrowLeft size={16} />
                 Kembali
             </Link>
+
+            <RingkasanKas ringkasan={ringkasanKas} judul="Potensi Pencairan Bulan Ini" />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
                 <div className="lg:col-span-2 space-y-5">

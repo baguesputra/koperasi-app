@@ -218,4 +218,61 @@ class PinjamanApprovalTest extends TestCase
         $this->assertSame(0, $pinjaman->angsuran()->count());
         $this->assertSame(0, JurnalKas::where('kategori', 'pencairan_pinjaman')->where('referensi_id', $pinjaman->id)->count());
     }
+
+    public function test_ringkasan_kas_agregat_di_halaman_approval(): void
+    {
+        $a1 = $this->buatAnggota('TOP-900020');
+        $a2 = $this->buatAnggota('TOP-900021');
+
+        $this->actingAs($a1->user);
+        $this->ajukanPortal($a1, ['nominal' => 2_000_000, 'tenor_bulan' => 4])->assertStatus(302);
+        $this->actingAs($a2->user);
+        $this->ajukanPortal($a2, ['nominal' => 3_000_000, 'tenor_bulan' => 6])->assertStatus(302);
+
+        $saldo = (float) KasKoperasi::first()->saldo_pinjaman;
+
+        $ukurBendahara = function () {
+            $this->masuk('BEN-000001');
+            $res = $this->get(route('bendahara.pinjaman.index'))->assertOk();
+
+            return $res->original->getData()['page']['props']['ringkasanKas'];
+        };
+
+        $sebelum = $ukurBendahara();
+        $this->assertGreaterThanOrEqual(5_000_000, $sebelum['total_menunggu']);
+        $this->assertGreaterThanOrEqual(2, $sebelum['jumlah_menunggu']);
+        $this->assertEquals($saldo, $sebelum['saldo']);
+        $this->assertEquals($saldo - $sebelum['total_menunggu'], $sebelum['sisa_proyeksi']);
+
+        $p1 = Pinjaman::where('anggota_id', $a1->id)->sole();
+        $this->masuk('BEN-000001');
+        $this->post(route('bendahara.pinjaman.approve', $p1), ['catatan' => 'Usulan disesuaikan.', 'nominal' => 1_500_000])
+            ->assertRedirect();
+
+        // p1 keluar dari antrean bendahara (berkurang 2jt), masuk antrean ketua (1,5jt)
+        $sesudah = $ukurBendahara();
+        $this->assertEquals($sebelum['total_menunggu'] - 2_000_000, $sesudah['total_menunggu']);
+        $this->assertSame($sebelum['jumlah_menunggu'] - 1, $sesudah['jumlah_menunggu']);
+
+        $ukurKetua = function () {
+            $this->masuk('KET-000001');
+            $res = $this->get(route('ketua.pinjaman.index'))->assertOk();
+
+            return $res->original->getData()['page']['props']['ringkasanKas'];
+        };
+
+        $ketuaSebelum = $ukurKetua();
+        $this->assertGreaterThanOrEqual(1_500_000, $ketuaSebelum['total_menunggu']);
+
+        $this->masuk('KET-000001');
+        $this->get(route('ketua.pinjaman.show', $p1))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->has('ringkasanKas'));
+
+        $this->post(route('ketua.pinjaman.approve', $p1), ['catatan' => 'Cairkan final.', 'nominal' => 1_500_000])
+            ->assertRedirect();
+
+        $ketuaSesudah = $ukurKetua();
+        $this->assertEquals($ketuaSebelum['total_menunggu'] - 1_500_000, $ketuaSesudah['total_menunggu']);
+    }
 }
