@@ -28,19 +28,11 @@ export default function Landing({ anggota, simpananPokok, simpananWajib, danaSos
                     <p className="text-sm text-slate-300 mt-2 max-w-xl mx-auto leading-relaxed">
                         Aktifkan keanggotaan untuk mengakses pinjaman, simpanan, dan seluruh layanan Koperasi Karya Mandiri.
                     </p>
-                    {pengajuanBerjalan ? (
+                    {pengajuanBerjalan && (
                         <p className={`inline-flex items-center gap-1.5 mt-4 px-4 py-2 rounded-xl bg-amber-400/15 border border-amber-300/30 text-sm font-semibold text-amber-200`}>
                             <Clock size={15} />
                             Pengajuan sedang menunggu persetujuan Ketua
                         </p>
-                    ) : (
-                        <Link
-                            href={route('portal.aktivasi.create')}
-                            className={`inline-flex items-center gap-2 mt-4 px-6 py-3 rounded-xl bg-brand-green text-white text-sm font-bold hover:bg-brand-green-dark transition-colors ${focusRing}`}
-                        >
-                            Ajukan Aktivasi Sekarang
-                            <ArrowRight size={16} />
-                        </Link>
                     )}
                 </div>
 
@@ -112,13 +104,18 @@ export default function Landing({ anggota, simpananPokok, simpananWajib, danaSos
                 </div>
 
                 {!pengajuanBerjalan && (
-                    <Link
-                        href={route('portal.aktivasi.create')}
-                        className={`flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-brand-green text-white text-base font-bold hover:bg-brand-green-dark transition-colors ${focusRing}`}
-                    >
-                        Lanjut ke Form Pengajuan
-                        <ArrowRight size={16} />
-                    </Link>
+                    <div className="bg-white rounded-2xl border border-slate-200 p-5">
+                        <p className="text-sm text-slate-500 mb-3 text-center">
+                            Sudah membaca informasi di atas dan siap mengajukan?
+                        </p>
+                        <Link
+                            href={route('portal.aktivasi.create')}
+                            className={`flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-brand-green text-white text-base font-bold hover:bg-brand-green-dark transition-colors ${focusRing}`}
+                        >
+                            Ajukan Aktivasi Sekarang
+                            <ArrowRight size={16} />
+                        </Link>
+                    </div>
                 )}
             </div>
         </AnggotaLayout>
