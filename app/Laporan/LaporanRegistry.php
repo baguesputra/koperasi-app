@@ -662,10 +662,19 @@ class LaporanRegistry
 
                         $cicilanBiasa = $cicilan->get($a->id, collect());
                         $cicilanSusulan = $cicilanPercepatan->get($a->id, collect());
-                        $pinjamanPokok = (float) $cicilanBiasa->sum('nominal_pokok')
-                            + (float) $cicilanSusulan->sum('nominal_pokok');
-                        $pinjamanBunga = (float) $cicilanBiasa->sum('nominal_bunga')
-                            + (float) $cicilanSusulan->sum('nominal_bunga');
+                        // Samakan tampilan sistem (formatRupiah 0 desimal): bulatkan per baris,
+                        // total dijumlah dari nilai yang sudah dibulatkan.
+                        $pokok = round($pokok);
+                        $wajib = round($wajib);
+                        $sosial = round($sosial);
+                        $pinjamanPokok = round(
+                            (float) $cicilanBiasa->sum('nominal_pokok')
+                            + (float) $cicilanSusulan->sum('nominal_pokok')
+                        );
+                        $pinjamanBunga = round(
+                            (float) $cicilanBiasa->sum('nominal_bunga')
+                            + (float) $cicilanSusulan->sum('nominal_bunga')
+                        );
                         $total = $pokok + $wajib + $sosial + $pinjamanPokok + $pinjamanBunga;
 
                         $rows[] = [
