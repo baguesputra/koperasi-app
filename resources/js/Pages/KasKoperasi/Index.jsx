@@ -54,6 +54,9 @@ export default function Index({
     totalSimpananOutstanding,
     totalAkumulasiSimpanan,
     totalKeseluruhan,
+    kasOperasional,
+    infoPagu,
+    klasifikasi,
     kantongAktif,
     bulanFilter,
     ringkasanPeriode,
@@ -129,8 +132,13 @@ export default function Index({
                         <Landmark size={22} />
                     </span>
                     <div className="min-w-0 flex-1">
-                        <p className="text-xs text-white/70">Total Keseluruhan Operasional</p>
-                        <p className="text-2xl font-bold tabular-nums leading-tight">{formatRupiah(totalKeseluruhan)}</p>
+                        <p className="text-xs text-white/70">Kas Operasional Gabungan</p>
+                        <p className="text-2xl font-bold tabular-nums leading-tight">{formatRupiah(kasOperasional ?? totalKeseluruhan)}</p>
+                        {infoPagu && (
+                            <p className="text-xs text-white/70 mt-0.5">
+                                Layak cair {labelBulan}: {formatRupiah(infoPagu.layak)} &bull; Pagu {formatRupiah(infoPagu.pagu)} &bull; Cadangan {formatRupiah(infoPagu.cadangan)}
+                            </p>
+                        )}
                     </div>
                     <button
                         type="button"
@@ -160,6 +168,18 @@ export default function Index({
                             <dt className="text-xs text-white/70">Gross akumulasi (audit)</dt>
                             <dd className="font-bold tabular-nums">{formatRupiah(totalAkumulasiSimpanan)}</dd>
                         </div>
+                        {klasifikasi && (
+                            <>
+                                <div className="rounded-xl bg-white/10 px-3 py-2">
+                                    <dt className="text-xs text-white/70">Pinjaman keluar bln ini</dt>
+                                    <dd className="font-bold tabular-nums">{formatRupiah(klasifikasi.pinjaman_keluar)}</dd>
+                                </div>
+                                <div className="rounded-xl bg-white/10 px-3 py-2">
+                                    <dt className="text-xs text-white/70">Iuran masuk bln ini</dt>
+                                    <dd className="font-bold tabular-nums">{formatRupiah(klasifikasi.iuran_masuk)}</dd>
+                                </div>
+                            </>
+                        )}
                     </dl>
                 )}
             </div>

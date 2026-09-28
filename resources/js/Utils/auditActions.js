@@ -81,6 +81,7 @@ const AKSI_MAP = {
 
     // Pengaturan
     update_limit_pinjaman: { label: 'Update Limit Pinjaman', outcome: 'kuning', kategori: 'pengaturan' },
+    update_setting_kas: { label: 'Update Pagu Kas', outcome: 'kuning', kategori: 'pengaturan' },
     tambah_tenor: { label: 'Tambah Rentang Tenor', outcome: 'biru', kategori: 'pengaturan' },
     update_tenor: { label: 'Update Rentang Tenor', outcome: 'kuning', kategori: 'pengaturan' },
     hapus_tenor: { label: 'Hapus Rentang Tenor', outcome: 'merah', kategori: 'pengaturan' },

@@ -138,6 +138,9 @@ class KasKoperasiController extends Controller
             'totalSimpananOutstanding' => $totalSimpananOutstanding,
             'totalAkumulasiSimpanan' => $totalAkumulasiSimpanan,
             'totalKeseluruhan' => (float) $totalKeseluruhan,
+            'kasOperasional' => $this->jurnalKas->saldoOperasional($kas),
+            'infoPagu' => $this->jurnalKas->sisaPaguBulan($kas, $bulanFilter ?: null),
+            'klasifikasi' => $this->jurnalKas->klasifikasiBulan($bulanFilter ?: null),
             'kantongAktif' => $kantongAktif,
             'bulanFilter' => $bulanFilter,
             'ringkasanPeriode' => [
@@ -271,6 +274,9 @@ class KasKoperasiController extends Controller
             'totalSimpananOutstanding' => $totalSimpananOutstanding,
             'totalAkumulasiSimpanan' => $totalAkumulasiSimpanan,
             'totalKeseluruhan' => (float) $totalKeseluruhan,
+            'kasOperasional' => $this->jurnalKas->saldoOperasional($kas),
+            'infoPagu' => $this->jurnalKas->sisaPaguBulan($kas, $bulanFilter ?: null),
+            'klasifikasi' => $this->jurnalKas->klasifikasiBulan($bulanFilter ?: null),
             'kantongAktif' => 'pengembalian_simpanan',
             'bulanFilter' => $bulanFilter,
             'ringkasanPeriode' => [

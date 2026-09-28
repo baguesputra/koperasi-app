@@ -67,7 +67,8 @@ class PinjamanController extends Controller
 
     private function ringkasanKas(): array
     {
-        $saldo = (float) (KasKoperasi::first()?->saldo_pinjaman ?? 0);
+        $jurnal = app(\App\Services\Keuangan\JurnalKasService::class);
+        $pagu = $jurnal->sisaPaguBulan();
         $agregat = Pinjaman::where('status', 'diajukan')
             ->selectRaw('COUNT(*) as jumlah, SUM(COALESCE(nominal_diminta, nominal)) as total')
             ->first();
@@ -77,8 +78,10 @@ class PinjamanController extends Controller
         return [
             'total_menunggu' => $total,
             'jumlah_menunggu' => $jumlah,
-            'saldo' => $saldo,
-            'sisa_proyeksi' => $saldo - $total,
+            'saldo' => $pagu['saldo_operasional'],
+            'sisa_proyeksi' => $pagu['saldo_operasional'] - $total,
+            'pagu' => $pagu,
+            'klasifikasi' => $jurnal->klasifikasiBulan(),
         ];
     }
 
@@ -121,7 +124,8 @@ class PinjamanController extends Controller
         }
 
         $jadwal = $this->bunga->buatJadwal($nominal, $tenorFinal, (float) $pinjaman->persentase_bunga);
-        $kasSaldo = (float) (KasKoperasi::first()?->saldo_pinjaman ?? 0);
+        $pagu = app(\App\Services\Keuangan\JurnalKasService::class)->sisaPaguBulan();
+        $klasifikasi = app(\App\Services\Keuangan\JurnalKasService::class)->klasifikasiBulan();
 
         return response()->json([
             'nominal' => $nominal,
@@ -133,8 +137,10 @@ class PinjamanController extends Controller
             'total_bunga' => array_sum(array_column($jadwal, 'nominal_bunga')),
             'total_bayar' => array_sum(array_column($jadwal, 'total_bayar')),
             'cicilan_pertama' => $jadwal[0] ?? null,
-            'kas_saldo' => $kasSaldo,
-            'kas_sisa' => $kasSaldo - $nominal,
+            'kas_saldo' => $pagu['saldo_operasional'],
+            'kas_sisa' => $pagu['saldo_operasional'] - $nominal,
+            'pagu' => $pagu,
+            'klasifikasi' => $klasifikasi,
         ]);
     }
 
@@ -177,7 +183,7 @@ class PinjamanController extends Controller
                     'saldo_bendahara' => $p->kas_saldo_bendahara !== null ? (float) $p->kas_saldo_bendahara : null,
                     'saldo_ketua' => $p->kas_saldo_ketua !== null ? (float) $p->kas_saldo_ketua : null,
                     'sisa_ketua' => $p->kas_sisa_ketua !== null ? (float) $p->kas_sisa_ketua : null,
-                    'saldo_sekarang' => (float) (KasKoperasi::first()?->saldo_pinjaman ?? 0),
+                    'saldo_sekarang' => app(\App\Services\Keuangan\JurnalKasService::class)->saldoOperasional(),
                 ],
                 'limit_tersedia' => (float) $this->eligibilitas->limitTersedia($p->anggota),
                 'tenor_maksimal_diminta' => $this->eligibilitas->tenorMaksimal((float) ($p->nominal_diminta ?? $p->nominal)),

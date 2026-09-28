@@ -9,11 +9,11 @@ export default function KartuKas({ kas, nominalTahap, label = 'Nominal tahap ini
         <div className="bg-white rounded-xl border border-slate-200 p-4">
             <div className="flex items-center gap-2 mb-3">
                 <Wallet size={18} className="text-brand-navy" />
-                <p className="text-sm font-bold text-slate-700">Kas Dana Pinjaman</p>
+                <p className="text-sm font-bold text-slate-700">Kas Operasional Gabungan</p>
             </div>
             <div className="space-y-1.5 text-sm">
                 <div className="flex items-center justify-between gap-4">
-                    <span className="text-slate-500">Saldo kas saat ini</span>
+                    <span className="text-slate-500">Saldo operasional saat ini</span>
                     <span className="font-semibold text-slate-800">{formatRupiah(kas?.saldo_sekarang ?? 0)}</span>
                 </div>
                 {snapshot !== null && (

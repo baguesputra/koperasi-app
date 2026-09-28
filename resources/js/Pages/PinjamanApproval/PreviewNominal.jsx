@@ -53,11 +53,27 @@ export default function PreviewNominal({ routeName, pinjamanId, nominal, tenorBu
                 <span className="font-bold text-brand-navy">{formatRupiah(preview.total_bayar)}</span>
             </div>
             <div className="flex items-center justify-between gap-4 mt-1.5 pt-1.5 border-t border-slate-200">
-                <span className="text-slate-500">Proyeksi sisa kas</span>
+                <span className="text-slate-500">Proyeksi sisa kas operasional</span>
                 <span className={`font-bold ${preview.kas_sisa < 0 ? 'text-red-600' : 'text-brand-green-dark'}`}>
                     {formatRupiah(preview.kas_sisa)}
                 </span>
             </div>
+            {preview.pagu && (
+                <>
+                    <div className="flex items-center justify-between gap-4 mt-1.5">
+                        <span className="text-slate-500">Layak cair (pagu {preview.pagu.bulan})</span>
+                        <span className={`font-bold ${preview.pagu.layak < preview.nominal ? 'text-red-600' : 'text-brand-green-dark'}`}>
+                            {formatRupiah(preview.pagu.layak)}
+                        </span>
+                    </div>
+                    {preview.pagu.layak < preview.nominal && (
+                        <p className="text-xs text-red-600 mt-1.5">
+                            Melebihi pagu: sudah cair {formatRupiah(preview.pagu.sudah_cair)} dari {formatRupiah(preview.pagu.pagu)},
+                            cadangan sosial {formatRupiah(preview.pagu.cadangan)}. Server akan menolak.
+                        </p>
+                    )}
+                </>
+            )}
         </div>
     );
 }

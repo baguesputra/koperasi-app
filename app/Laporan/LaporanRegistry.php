@@ -153,13 +153,20 @@ class LaporanRegistry
                     $baris('Arus bersih (masuk − keluar)', $bersih, 'subtotal');
                     $baris('Saldo akhir periode (awal + bersih)', $akhir, 'subtotal');
 
+                    $bagian('E. Pagu pinjaman bulan berjalan');
+                    $paguInfo = app(\App\Services\Keuangan\JurnalKasService::class)->sisaPaguBulan();
+                    $baris('Pagu pinjaman bulanan', $paguInfo['pagu']);
+                    $baris('Sudah dicairkan bulan ini', $paguInfo['sudah_cair']);
+                    $baris('Cadangan sosial (tidak boleh dipakai)', $paguInfo['cadangan']);
+                    $baris('Layak dicairkan', $paguInfo['layak'], 'subtotal');
+
                     if (! $kantongFilter || $kantongFilter === $transit) {
                         $tAwal = $saldoSebelum($transit);
                         $tMasuk = array_sum($masuk[$transit] ?? []);
                         $tKeluar = array_sum($keluar[$transit] ?? []);
                         $tAkhir = $tAwal + $tMasuk - $tKeluar;
 
-                        $bagian('E. Kantong transit — Pengembalian Simpanan (terpisah, di luar total operasional)');
+                        $bagian('F. Kantong transit — Pengembalian Simpanan (terpisah, di luar total operasional)');
                         $baris('Saldo awal transit', $tAwal);
                         foreach ($masuk[$transit] ?? [] as $kategori => $nilai) {
                             $baris('Masuk — '.(self::KATEGORI_LABEL[$kategori] ?? $kategori), $nilai);

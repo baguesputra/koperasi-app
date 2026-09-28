@@ -7,13 +7,14 @@ import TabBunga from './Partials/TabBunga';
 import TabLimit from './Partials/TabLimit';
 import TabTenor from './Partials/TabTenor';
 import TabSimpanan from './Partials/TabSimpanan';
+import TabKas from './Partials/TabKas';
 import TabWa from './Partials/TabWa';
 import TabAuditLog from './Partials/TabAuditLog';
 import SectionAkses from './Partials/SectionAkses';
 import SectionOrganisasi from './Partials/SectionOrganisasi';
 
 const JUDUL = {
-    bunga: 'Bunga', limit: 'Limit Pinjaman', tenor: 'Tenor', simpanan: 'Simpanan',
+    bunga: 'Bunga', limit: 'Limit Pinjaman', tenor: 'Tenor', simpanan: 'Simpanan', kas: 'Kas Operasional',
     wa: 'WhatsApp', akses: 'Akses', organisasi: 'Organisasi GATE', audit: 'Audit Log',
 };
 
@@ -29,6 +30,7 @@ export default function Index({
     tabelTenor,
     bungaSaatIni,
     settingSimpanan,
+    settingKas,
     ringkasanMaster,
     gateStatus,
     auditLogs,
@@ -119,6 +121,7 @@ export default function Index({
                     {tabAktif === 'limit' && <TabLimit limitPinjaman={limitPinjaman} />}
                     {tabAktif === 'tenor' && <TabTenor tabelTenor={tabelTenor} />}
                     {tabAktif === 'simpanan' && <TabSimpanan settingSimpanan={settingSimpanan} />}
+                    {tabAktif === 'kas' && <TabKas settingKas={settingKas} />}
                     {tabAktif === 'wa' && <TabWa />}
                     {tabAktif === 'akses' && (
                         <SectionAkses

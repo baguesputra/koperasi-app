@@ -177,6 +177,97 @@ class JurnalKasService
         });
     }
 
+    /**
+     * Saldo operasional gabungan (Opsi B): pinjaman + dana sosial + simpanan.
+     * Transit pengembalian_simpanan tidak ikut (dalam proses, kembali ke 0).
+     */
+    public function saldoOperasional(?KasKoperasi $kas = null): float
+    {
+        $kas ??= KasKoperasi::first();
+
+        if (! $kas) {
+            return 0.0;
+        }
+
+        return (float) $kas->saldo_pinjaman + (float) $kas->saldo_dana_sosial + (float) $kas->saldo_simpanan;
+    }
+
+    /**
+     * Sisa pagu pinjaman bulan kalender berjalan:
+     * layak = saldo_operasional − cadangan − sudah_cair_bulan_ini.
+     */
+    public function sisaPaguBulan(?KasKoperasi $kas = null, ?string $bulan = null): array
+    {
+        $bulan ??= now()->format('Y-m');
+        [$tahun, $bln] = explode('-', $bulan);
+
+        $saldo = $this->saldoOperasional($kas);
+        $cadangan = $this->nilaiSettingKas(
+            \App\Models\SettingKas::CADANGAN,
+            (float) config('koperasi.cadangan_sosial_bulan', 5_000_000)
+        );
+        $pagu = $this->nilaiSettingKas(
+            \App\Models\SettingKas::PAGU,
+            (float) config('koperasi.pagu_pinjaman_bulanan', 50_000_000)
+        );
+
+        $sudahCair = (float) JurnalKas::where('kategori', 'pencairan_pinjaman')
+            ->where('tipe', 'keluar')
+            ->whereYear('tanggal', $tahun)
+            ->whereMonth('tanggal', $bln)
+            ->sum('jumlah');
+
+        $layak = min($pagu - $sudahCair, $saldo - $cadangan - $sudahCair);
+        $layak = max(0.0, $layak);
+
+        return [
+            'bulan' => $bulan,
+            'pagu' => $pagu,
+            'cadangan' => $cadangan,
+            'saldo_operasional' => $saldo,
+            'sudah_cair' => $sudahCair,
+            'layak' => $layak,
+        ];
+    }
+
+    /**
+     * Klasifikasi operasional bulan berjalan dari jurnal: pinjaman keluar
+     * vs iuran masuk (simpanan + dana sosial). Untuk transparansi UI/laporan.
+     */
+    public function klasifikasiBulan(?string $bulan = null): array
+    {
+        $bulan ??= now()->format('Y-m');
+        [$tahun, $bln] = explode('-', $bulan);
+
+        $keluarPinjaman = (float) JurnalKas::where('kategori', 'pencairan_pinjaman')
+            ->where('tipe', 'keluar')
+            ->whereYear('tanggal', $tahun)
+            ->whereMonth('tanggal', $bln)
+            ->sum('jumlah');
+
+        $masukIuran = (float) JurnalKas::whereIn('kategori', ['simpanan_pokok_masuk', 'simpanan_wajib_masuk', 'dana_sosial_bulanan'])
+            ->where('tipe', 'masuk')
+            ->whereYear('tanggal', $tahun)
+            ->whereMonth('tanggal', $bln)
+            ->sum('jumlah');
+
+        return [
+            'bulan' => $bulan,
+            'pinjaman_keluar' => $keluarPinjaman,
+            'iuran_masuk' => $masukIuran,
+        ];
+    }
+
+    private function nilaiSettingKas(string $kunci, float $default): float
+    {
+        try {
+            return \App\Models\SettingKas::nilai($kunci, $default);
+        } catch (\Throwable) {
+            // Tabel belum termigrasi (mis. environment lama): pakai default config.
+            return $default;
+        }
+    }
+
     public function catatSaldoAwal(string $kantong, float $jumlah, int $userId): JurnalKas
     {
         return $this->catat(

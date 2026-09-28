@@ -1,4 +1,4 @@
-import { Percent, HandCoins, CalendarRange, PiggyBank, QrCode, UserCog, RefreshCw, Activity } from 'lucide-react';
+import { Percent, HandCoins, CalendarRange, PiggyBank, Wallet, QrCode, UserCog, RefreshCw, Activity } from 'lucide-react';
 
 export const SECTIONS = [
     {
@@ -13,6 +13,7 @@ export const SECTIONS = [
         grup: 'Operasional',
         items: [
             { key: 'simpanan', label: 'Simpanan', desc: 'Nominal pokok, wajib, dana sosial', icon: PiggyBank },
+            { key: 'kas', label: 'Kas', desc: 'Pagu pinjaman & cadangan sosial bulanan', icon: Wallet },
             { key: 'wa', label: 'WhatsApp', desc: 'Koneksi perangkat & riwayat pesan', icon: QrCode },
         ],
     },

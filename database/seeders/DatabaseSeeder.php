@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             SettingBungaSeeder::class,
             SettingLimitPinjamanSeeder::class,
             SettingSimpananSeeder::class,
+            SettingKasSeeder::class,
             KasKoperasiSeeder::class,
             AnggotaSeeder::class,
             SimpananSeeder::class,

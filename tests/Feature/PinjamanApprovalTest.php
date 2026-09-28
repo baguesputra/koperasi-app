@@ -144,7 +144,8 @@ class PinjamanApprovalTest extends TestCase
         $this->assertEquals(5_000_000, (float) $pinjaman->nominal_diminta);
         $this->assertSame(12, (int) $pinjaman->tenor_diminta);
 
-        $kasAwal = (float) KasKoperasi::first()->saldo_pinjaman;
+        $kasAwal = app(\App\Services\Keuangan\JurnalKasService::class)->saldoOperasional();
+        $kantongAwal = (float) KasKoperasi::first()->saldo_pinjaman;
 
         // Bendahara turunkan ke 4jt, tenor ikut auto-clamp bila perlu
         $this->masuk('BEN-000001');
@@ -158,7 +159,7 @@ class PinjamanApprovalTest extends TestCase
         $this->assertEquals(4_000_000, (float) $pinjaman->nominal_disetujui_bendahara);
         $this->assertEquals($kasAwal, (float) $pinjaman->kas_saldo_bendahara);
         // Kas belum berkurang di tahap bendahara
-        $this->assertEquals($kasAwal, (float) KasKoperasi::first()->saldo_pinjaman);
+        $this->assertEquals($kasAwal, app(\App\Services\Keuangan\JurnalKasService::class)->saldoOperasional());
 
         // Ketua naikkan lagi ke 4.5jt → cair final
         $this->masuk('KET-000001');
@@ -171,7 +172,8 @@ class PinjamanApprovalTest extends TestCase
         $this->assertSame('aktif', $pinjaman->status);
         $this->assertEquals(4_500_000, (float) $pinjaman->nominal);
         $this->assertEquals(4_500_000, (float) $pinjaman->nominal_disetujui);
-        $this->assertEquals($kasAwal - 4_500_000, (float) KasKoperasi::first()->saldo_pinjaman);
+        $this->assertEquals($kantongAwal - 4_500_000, (float) KasKoperasi::first()->saldo_pinjaman);
+        $this->assertEquals($kasAwal - 4_500_000, app(\App\Services\Keuangan\JurnalKasService::class)->saldoOperasional());
         $this->assertEquals($kasAwal, (float) $pinjaman->kas_saldo_ketua);
         $this->assertEquals($kasAwal - 4_500_000, (float) $pinjaman->kas_sisa_ketua);
         // Jejak diminta awet
@@ -229,7 +231,7 @@ class PinjamanApprovalTest extends TestCase
         $this->actingAs($a2->user);
         $this->ajukanPortal($a2, ['nominal' => 3_000_000, 'tenor_bulan' => 6])->assertStatus(302);
 
-        $saldo = (float) KasKoperasi::first()->saldo_pinjaman;
+        $saldo = app(\App\Services\Keuangan\JurnalKasService::class)->saldoOperasional();
 
         $ukurBendahara = function () {
             $this->masuk('BEN-000001');

@@ -9,6 +9,7 @@ use App\Models\Divisi;
 use App\Models\Jabatan;
 use App\Models\Perusahaan;
 use App\Models\SettingBunga;
+use App\Models\SettingKas;
 use App\Models\SettingLimitPinjaman;
 use App\Models\SettingSimpanan;
 use App\Models\TabelTenor;
@@ -29,7 +30,7 @@ use Spatie\Permission\Models\Role;
 
 class PengaturanController extends Controller
 {
-    private const TAB_DIPERBOLEHKAN = ['bunga', 'limit', 'tenor', 'simpanan', 'wa', 'akses', 'organisasi', 'audit'];
+    private const TAB_DIPERBOLEHKAN = ['bunga', 'limit', 'tenor', 'simpanan', 'kas', 'wa', 'akses', 'organisasi', 'audit'];
 
     private const PANEL_DIPERBOLEHKAN = ['kelola-pengguna', 'kelola-role'];
 
@@ -145,6 +146,7 @@ class PengaturanController extends Controller
             'tabelTenor' => TabelTenor::orderBy('nominal_min')->get(),
             'bungaSaatIni' => SettingBunga::orderByDesc('berlaku_dari_tanggal')->first(),
             'settingSimpanan' => SettingSimpanan::orderBy('id')->get(),
+            'settingKas' => SettingKas::orderBy('id')->get(),
             'ringkasanMaster' => [
                 'perusahaan' => Perusahaan::count(),
                 'departemen' => Departemen::count(),
@@ -257,6 +259,23 @@ class PengaturanController extends Controller
         );
 
         return back()->with('status', 'Nominal simpanan berhasil diperbarui.');
+    }
+
+    public function updateKas(Request $request, SettingKas $setting)
+    {
+        $request->validate(['nominal' => ['required', 'numeric', 'min:0']]);
+
+        $nilaiLama = $setting->nominal;
+        $setting->update(['nominal' => $request->nominal]);
+
+        AuditLog::catat(
+            'update_setting_kas',
+            "Nominal '{$setting->label}' diubah dari Rp ".number_format($nilaiLama, 0, ',', '.').' menjadi Rp '.number_format($request->nominal, 0, ',', '.'),
+            ['nominal' => $nilaiLama],
+            ['nominal' => $request->nominal]
+        );
+
+        return back()->with('status', 'Pagu kas berhasil diperbarui.');
     }
 
     private function statusGate(): array

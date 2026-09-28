@@ -14,6 +14,7 @@ class KasKoperasi extends Model
 
     protected $fillable = [
         'saldo_saat_ini', 'saldo_pinjaman', 'saldo_dana_sosial', 'saldo_pengembalian_simpanan',
+        'saldo_simpanan',
     ];
 
     protected $casts = [

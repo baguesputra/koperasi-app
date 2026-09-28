@@ -68,7 +68,7 @@ class PersetujuanPinjamanService
         $nominalFinal = $nominal ?? (float) $pinjaman->nominal;
         $this->validasiNominal($pinjaman, $nominalFinal);
         $tenorFinal = $this->resolveTenor($pinjaman, $nominalFinal, $tenorBulan);
-        $kasSaldo = (float) (KasKoperasi::first()?->saldo_pinjaman ?? 0);
+        $kasSaldo = $this->jurnalKas->saldoOperasional();
 
         $pinjaman->update([
             'status' => 'approved_bendahara',
@@ -80,7 +80,7 @@ class PersetujuanPinjamanService
 
         AuditLog::catat(
             aksi: 'pinjaman_setujui_bendahara',
-            keterangan: "Pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) disetujui oleh Bendahara. Diminta: ".WaPesan::rupiah($pinjaman->nominal_diminta ?? $pinjaman->nominal).", usulan: ".WaPesan::rupiah($nominalFinal)." ({$tenorFinal} bln). Kas pinjaman saat itu: ".WaPesan::rupiah($kasSaldo).', proyeksi sisa: '.WaPesan::rupiah($kasSaldo - $nominalFinal),
+            keterangan: "Pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) disetujui oleh Bendahara. Diminta: ".WaPesan::rupiah($pinjaman->nominal_diminta ?? $pinjaman->nominal).", usulan: ".WaPesan::rupiah($nominalFinal)." ({$tenorFinal} bln). Kas operasional saat itu: ".WaPesan::rupiah($kasSaldo).', proyeksi sisa: '.WaPesan::rupiah($kasSaldo - $nominalFinal),
             dataLama: ['status' => 'diajukan'],
             dataBaru: ['status' => 'approved_bendahara', 'nominal_disetujui_bendahara' => $nominalFinal, 'tenor_disetujui_bendahara' => $tenorFinal, 'kas_saldo_bendahara' => $kasSaldo, 'catatan_bendahara' => $catatan]
         );
@@ -174,8 +174,28 @@ class PersetujuanPinjamanService
                 PenomoranDokumenService::JENIS_PINJAMAN,
                 now()
             );
-        DB::transaction(function () use ($pinjaman, $catatan, $nomorDokumen, $nominalFinal, $tenorFinal, &$kasSebelum) {
-            $kasSebelum = (float) (KasKoperasi::lockForUpdate()->firstOrFail()->saldo_pinjaman);
+        $infoPagu = [];
+        DB::transaction(function () use ($pinjaman, $catatan, $nomorDokumen, $nominalFinal, $tenorFinal, &$kasSebelum, &$infoPagu) {
+            $kas = KasKoperasi::lockForUpdate()->firstOrFail();
+            $kasSebelum = $this->jurnalKas->saldoOperasional($kas);
+            $infoPagu = $this->jurnalKas->sisaPaguBulan($kas);
+
+            if ($nominalFinal > $infoPagu['layak']) {
+                throw new \RuntimeException(
+                    'Melebihi pagu pinjaman bulan '.now()->translatedFormat('F Y').'. '
+                    .'Pagu: '.WaPesan::rupiah($infoPagu['pagu'])
+                    .', sudah cair: '.WaPesan::rupiah($infoPagu['sudah_cair'])
+                    .', cadangan sosial: '.WaPesan::rupiah($infoPagu['cadangan'])
+                    .', layak: '.WaPesan::rupiah($infoPagu['layak']).'.'
+                );
+            }
+
+            if ($kasSebelum - $nominalFinal < $infoPagu['cadangan']) {
+                throw new \RuntimeException(
+                    'Pencairan menyisakan kas di bawah cadangan sosial ('.WaPesan::rupiah($infoPagu['cadangan']).'). '
+                    .'Sisa bila cair: '.WaPesan::rupiah($kasSebelum - $nominalFinal).'.'
+                );
+            }
 
             $pinjaman->update([
                 'status' => 'aktif',
@@ -214,9 +234,9 @@ class PersetujuanPinjamanService
 
         AuditLog::catat(
             aksi: $aksi,
-            keterangan: "Pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) {$deskripsi}. {$trail}. Kas sebelum: ".WaPesan::rupiah($kasSebelum).', sisa: '.WaPesan::rupiah($kasSebelum - $nominalFinal),
+            keterangan: "Pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) {$deskripsi}. {$trail}. Kas operasional sebelum: ".WaPesan::rupiah($kasSebelum).', sisa: '.WaPesan::rupiah($kasSebelum - $nominalFinal).', pagu bulan: '.WaPesan::rupiah($infoPagu['pagu'] ?? 0),
             dataLama: ['status' => $statusLama],
-            dataBaru: ['status' => 'aktif', 'nominal' => $nominalFinal, 'tenor_bulan' => $tenorFinal, 'kas_saldo_ketua' => $kasSebelum, 'kas_sisa_ketua' => $kasSebelum - $nominalFinal, 'catatan_ketua' => $catatan, 'tanggal_pencairan' => now()->toDateTimeString()]
+            dataBaru: ['status' => 'aktif', 'nominal' => $nominalFinal, 'tenor_bulan' => $tenorFinal, 'kas_saldo_ketua' => $kasSebelum, 'kas_sisa_ketua' => $kasSebelum - $nominalFinal, 'pagu' => $infoPagu, 'catatan_ketua' => $catatan, 'tanggal_pencairan' => now()->toDateTimeString()]
         );
 
         $isi = "Dengan hormat,\n\nSelamat! Pengajuan pinjaman Anda telah *DISETUJUI* oleh Ketua dan dana telah dicairkan pada "
