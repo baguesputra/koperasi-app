@@ -24,19 +24,17 @@ export default function Create({
 }) {
     const { flash } = usePage().props;
     const terkirim = flash.status;
-    const { post, processing, errors } = useForm({ data_benar: false, setuju_syarat: false });
-    const [form, setForm] = useState({ data_benar: false, setuju_syarat: false });
+    const { data, setData, post, processing, errors } = useForm({ data_benar: false, setuju_syarat: false });
     const [showModal, setShowModal] = useState(false);
 
     function submit(e) {
         e.preventDefault();
         post(route('portal.aktivasi.store'), withIdempotencyKey({
-            data: form,
             onSuccess: () => setShowModal(false),
         }));
     }
 
-    const bisaKirim = form.data_benar && form.setuju_syarat && !pengajuanBerjalan && !processing;
+    const bisaKirim = data.data_benar && data.setuju_syarat && !pengajuanBerjalan && !processing;
 
     return (
         <AnggotaLayout>
@@ -159,8 +157,8 @@ export default function Create({
                             <input
                                 id="data-benar"
                                 type="checkbox"
-                                checked={form.data_benar}
-                                onChange={(e) => setForm({ ...form, data_benar: e.target.checked })}
+                                checked={data.data_benar}
+                                onChange={(e) => setData('data_benar', e.target.checked)}
                                 className="mt-0.5 w-5 h-5 rounded border-slate-300 text-brand-green focus:ring-2 focus:ring-brand-green/40 cursor-pointer shrink-0"
                             />
                             <span className="text-sm text-slate-700 leading-relaxed">
@@ -181,8 +179,8 @@ export default function Create({
                             <input
                                 id="setuju-syarat"
                                 type="checkbox"
-                                checked={form.setuju_syarat}
-                                onChange={(e) => setForm({ ...form, setuju_syarat: e.target.checked })}
+                                checked={data.setuju_syarat}
+                                onChange={(e) => setData('setuju_syarat', e.target.checked)}
                                 className="mt-0.5 w-5 h-5 rounded border-slate-300 text-brand-green focus:ring-2 focus:ring-brand-green/40 cursor-pointer shrink-0"
                             />
                             <span className="text-sm text-slate-700 leading-relaxed">
@@ -258,7 +256,7 @@ export default function Create({
                                 <div className="sticky bottom-0 bg-white border-t border-slate-100 px-6 py-5 rounded-b-2xl">
                                     <button
                                         type="button"
-                                        onClick={() => { setForm({ ...form, setuju_syarat: true }); setShowModal(false); }}
+                                        onClick={() => { setData('setuju_syarat', true); setShowModal(false); }}
                                         className={`w-full py-3.5 text-sm font-bold rounded-xl bg-brand-navy text-white hover:bg-brand-navy-light transition-colors ${focusRing}`}
                                     >
                                         Saya Sudah Membaca &amp; Memahami
