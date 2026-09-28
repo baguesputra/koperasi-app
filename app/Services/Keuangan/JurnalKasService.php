@@ -232,7 +232,8 @@ class JurnalKasService
 
     /**
      * Klasifikasi operasional bulan berjalan dari jurnal: pinjaman keluar
-     * vs iuran masuk (simpanan + dana sosial). Untuk transparansi UI/laporan.
+     * vs arus iuran (masuk: simpanan + dana sosial; keluar: pengembalian
+     * ke anggota + pelunasan dari simpanan). Untuk transparansi UI/laporan.
      */
     public function klasifikasiBulan(?string $bulan = null): array
     {
@@ -251,10 +252,18 @@ class JurnalKasService
             ->whereMonth('tanggal', $bln)
             ->sum('jumlah');
 
+        $keluarIuran = (float) JurnalKas::whereIn('kategori', ['return_simpanan_pokok', 'return_simpanan_wajib', 'pelunasan_resign_simpanan'])
+            ->where('tipe', 'keluar')
+            ->whereYear('tanggal', $tahun)
+            ->whereMonth('tanggal', $bln)
+            ->sum('jumlah');
+
         return [
             'bulan' => $bulan,
             'pinjaman_keluar' => $keluarPinjaman,
             'iuran_masuk' => $masukIuran,
+            'iuran_keluar' => $keluarIuran,
+            'iuran_bersih' => $masukIuran - $keluarIuran,
         ];
     }
 

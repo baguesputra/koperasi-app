@@ -36,6 +36,7 @@ const kategoriLabel = {
 const kantongLabel = {
     pinjaman: 'Dana Pinjaman',
     dana_sosial: 'Dana Sosial',
+    iuran: 'Dana Iuran',
     pengembalian_simpanan: 'Pengembalian Simpanan',
     simpanan: 'Simpanan Anggota',
 };
@@ -43,6 +44,7 @@ const kantongLabel = {
 const kantongIkon = {
     pinjaman: Wallet,
     dana_sosial: HeartHandshake,
+    iuran: PiggyBank,
     pengembalian_simpanan: PiggyBank,
 };
 
@@ -116,7 +118,7 @@ export default function Index({
 
     const tab = [
         { key: 'pinjaman', label: 'Dana Pinjaman' },
-        { key: 'dana_sosial', label: 'Dana Sosial' },
+        { key: 'iuran', label: 'Dana Iuran' },
         { key: 'pengembalian_simpanan', label: 'Pengembalian Simpanan' },
     ];
 
@@ -157,8 +159,8 @@ export default function Index({
                             <dd className="font-bold tabular-nums">{formatRupiah(saldoPinjaman)}</dd>
                         </div>
                         <div className="rounded-xl bg-white/10 px-3 py-2">
-                            <dt className="text-xs text-white/70">Dana sosial</dt>
-                            <dd className="font-bold tabular-nums">{formatRupiah(saldoDanaSosial)}</dd>
+                            <dt className="text-xs text-white/70">Dana iuran (sosial + simpanan)</dt>
+                            <dd className="font-bold tabular-nums">{formatRupiah(saldoDanaSosial + totalSimpananOutstanding)}</dd>
                         </div>
                         <div className="rounded-xl bg-white/10 px-3 py-2">
                             <dt className="text-xs text-white/70">Simpanan outstanding</dt>
@@ -175,8 +177,8 @@ export default function Index({
                                     <dd className="font-bold tabular-nums">{formatRupiah(klasifikasi.pinjaman_keluar)}</dd>
                                 </div>
                                 <div className="rounded-xl bg-white/10 px-3 py-2">
-                                    <dt className="text-xs text-white/70">Iuran masuk bln ini</dt>
-                                    <dd className="font-bold tabular-nums">{formatRupiah(klasifikasi.iuran_masuk)}</dd>
+                                    <dt className="text-xs text-white/70">Arus kas iuran bln ini</dt>
+                                    <dd className="font-bold tabular-nums">{formatRupiah(klasifikasi.iuran_masuk)} / -{formatRupiah(klasifikasi.iuran_keluar ?? 0)}</dd>
                                 </div>
                             </>
                         )}
@@ -189,7 +191,7 @@ export default function Index({
                     <StatWidget compact label="Dana Pinjaman" value={formatRupiah(saldoPinjaman)} icon={Wallet} tone="green" />
                 </div>
                 <div className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
-                    <StatWidget compact label="Dana Sosial" value={formatRupiah(saldoDanaSosial)} icon={HeartHandshake} tone="amber" />
+                    <StatWidget compact label="Dana Iuran" value={formatRupiah(saldoDanaSosial + totalSimpananOutstanding)} icon={HeartHandshake} tone="amber" />
                 </div>
                 <div className="col-span-2 lg:col-span-1 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
                     <StatWidget compact label="Simpanan Outstanding" value={formatRupiah(totalSimpananOutstanding)} icon={PiggyBank} tone="navy" />

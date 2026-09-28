@@ -30,11 +30,16 @@ class KasKoperasiController extends Controller
         //   rekening transit). Saldo berjalan = akumulasi simpanan anggota aktif (gross − return).
         //   Ditangani di branch khusus di bawah (bukan via scopeKantong).
         // - 'pinjaman': semua jurnal kantong pinjaman (termasuk pelunasan_resign_pinjaman).
-        // - 'dana_sosial': semua jurnal kantong dana_sosial.
+        // - 'iuran': gabungan arus iuran — kantong simpanan + dana_sosial (masuk iuran,
+        //   keluar pengembalian/pelunasan). Label konsisten "Dana Iuran".
         $scopeKantong = match ($kantongAktif) {
             'pengembalian_simpanan' => null,
             'pinjaman' => [
                 ['kantong' => 'pinjaman'],
+            ],
+            'iuran' => [
+                ['kantong' => 'simpanan'],
+                ['kantong' => 'dana_sosial'],
             ],
             default => [['kantong' => $kantongAktif]],
         };
