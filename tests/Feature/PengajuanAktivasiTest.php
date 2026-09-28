@@ -31,13 +31,14 @@ class PengajuanAktivasiTest extends TestCase
         return app(PengajuanAktivasiService::class)->ajukan($anggota, true, true, $anggota->user_id);
     }
 
-    public function test_nonaktif_dashboard_dialihkan_ke_form_aktivasi(): void
+    public function test_nonaktif_dashboard_dialihkan_ke_landing_aktivasi(): void
     {
         $anggota = $this->buatNonaktif();
         $this->actingAs($anggota->user);
 
-        $this->get(route('portal.dashboard'))->assertRedirect(route('portal.aktivasi.create'));
-        $this->get(route('portal.pinjaman.create'))->assertRedirect(route('portal.aktivasi.create'));
+        $this->get(route('portal.dashboard'))->assertRedirect(route('portal.aktivasi.landing'));
+        $this->get(route('portal.pinjaman.create'))->assertRedirect(route('portal.aktivasi.landing'));
+        $this->get(route('portal.aktivasi.landing'))->assertOk();
         $this->get(route('portal.aktivasi.create'))->assertOk();
     }
 

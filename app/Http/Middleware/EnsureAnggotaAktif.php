@@ -13,7 +13,7 @@ class EnsureAnggotaAktif
         $user = $request->user();
 
         if ($user && $user->anggota && $user->anggota->status === 'nonaktif' && ! $request->routeIs('portal.aktivasi.*')) {
-            return redirect()->route('portal.aktivasi.create');
+            return redirect()->route('portal.aktivasi.landing');
         }
 
         return $next($request);

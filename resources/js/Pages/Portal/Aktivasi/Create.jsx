@@ -1,8 +1,7 @@
 import AnggotaLayout from '@/Layouts/AnggotaLayout';
-import { Head, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
-import { AlertCircle, BadgeCheck, CheckCircle2, Clock, FileText, ShieldCheck, UserCheck, X } from 'lucide-react';
-import { formatRupiah } from '@/Utils/formatCurrency';
+import { AlertCircle, ArrowLeft, BadgeCheck, CheckCircle2, Clock, FileText, UserCheck, X } from 'lucide-react';
 import { withIdempotencyKey } from '@/Utils/idempotency';
 
 const focusRing =
@@ -17,11 +16,7 @@ function DataRow({ label, value }) {
     );
 }
 
-export default function Create({
-    anggota, poinSyarat, versiSyarat,
-    simpananPokok, simpananWajib, danaSosial, limitAwal,
-    pengajuanBerjalan, ditolakTerakhir,
-}) {
+export default function Create({ anggota, poinSyarat, versiSyarat, pengajuanBerjalan, ditolakTerakhir }) {
     const { flash } = usePage().props;
     const terkirim = flash.status;
     const { data, setData, post, processing, errors } = useForm({ data_benar: false, setuju_syarat: false });
@@ -41,14 +36,21 @@ export default function Create({
             <Head title="Pengajuan Aktivasi Keanggotaan" />
 
             <div className="max-w-3xl mx-auto">
+                <Link
+                    href={route('portal.aktivasi.landing')}
+                    className={`inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-brand-navy mb-5 rounded ${focusRing}`}
+                >
+                    <ArrowLeft size={16} />
+                    Kembali ke Informasi Keanggotaan
+                </Link>
+
                 <div className="text-center mb-6">
                     <div className="w-14 h-14 rounded-2xl bg-brand-navy text-white flex items-center justify-center mx-auto mb-3">
                         <UserCheck size={26} />
                     </div>
-                    <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Pengajuan Aktivasi Keanggotaan</h1>
+                    <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Form Pengajuan Aktivasi</h1>
                     <p className="text-sm text-slate-500 mt-1">
-                        Akun Anda terdaftar di sistem, namun status keanggotaan belum aktif.
-                        Lengkapi pengajuan di bawah agar dapat menggunakan seluruh layanan koperasi.
+                        Periksa data di bawah, centang kedua pernyataan, lalu kirim pengajuan.
                     </p>
                 </div>
 
@@ -110,94 +112,62 @@ export default function Create({
                     </div>
                 </div>
 
-                {/* Ringkasan iuran */}
-                <div className="bg-brand-navy rounded-2xl p-5 text-white mb-5">
-                    <p className="text-base font-bold mb-3">Ringkasan Kewajiban Iuran</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                            <p className="text-xs text-slate-300 mb-1">Simpanan Pokok (sekali)</p>
-                            <p className="text-xl font-bold">{formatRupiah(simpananPokok)}</p>
-                        </div>
-                        <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                            <p className="text-xs text-slate-300 mb-1">Simpanan Wajib / bulan</p>
-                            <p className="text-xl font-bold">{formatRupiah(simpananWajib + danaSosial)}</p>
-                            <p className="text-xs text-slate-300 mt-1">
-                                {formatRupiah(simpananWajib)} simpanan + {formatRupiah(danaSosial)} dana sosial
-                            </p>
-                        </div>
-                        <div className="bg-brand-green/20 rounded-xl p-4 border border-brand-green/30">
-                            <p className="text-xs text-brand-green/80 mb-1">Limit pinjaman awal</p>
-                            <p className="text-xl font-bold text-brand-green-light">{formatRupiah(limitAwal)}</p>
-                            <p className="text-xs text-brand-green/70 mt-1">Tahun pertama keanggotaan</p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Alur persetujuan */}
-                <div className="bg-white rounded-2xl border border-slate-200 p-5 mb-5">
-                    <div className="flex items-center gap-2 mb-3">
-                        <ShieldCheck size={18} className="text-brand-navy" />
-                        <p className="text-base font-bold text-slate-800">Alur Persetujuan</p>
-                    </div>
-                    <div className="space-y-2.5">
-                        {['Pengajuan terkirim beserta pernyataan persetujuan di bawah', 'Ditinjau dan diputuskan final oleh Ketua Koperasi', 'Keputusan disampaikan via WhatsApp; bila disetujui, simpanan pokok tercatat otomatis dan akun aktif'].map((t, i) => (
-                            <div key={i} className="flex gap-3">
-                                <div className="w-6 h-6 rounded-full bg-brand-navy/10 text-brand-navy flex items-center justify-center text-xs font-bold shrink-0">{i + 1}</div>
-                                <p className="text-sm text-slate-600">{t}</p>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
                 {!pengajuanBerjalan && (
-                    <form onSubmit={submit} className="bg-white rounded-2xl border border-slate-200 p-5">
-                        <p className="text-base font-bold text-slate-800 mb-3">Pernyataan Pengajuan</p>
+                    <form onSubmit={submit} className="space-y-4">
+                        <div className={`bg-white rounded-2xl border-2 p-5 transition-colors ${errors.data_benar ? 'border-red-300' : 'border-slate-200'}`}>
+                            <div className="flex items-center gap-2.5 mb-3">
+                                <div className="w-7 h-7 rounded-lg bg-brand-navy text-white flex items-center justify-center text-sm font-bold shrink-0">1</div>
+                                <p className="text-base font-bold text-slate-800">Konfirmasi Data</p>
+                            </div>
+                            <label htmlFor="data-benar" className="flex items-start gap-3 cursor-pointer">
+                                <input
+                                    id="data-benar"
+                                    type="checkbox"
+                                    checked={data.data_benar}
+                                    onChange={(e) => setData('data_benar', e.target.checked)}
+                                    className="mt-0.5 w-5 h-5 rounded border-slate-300 text-brand-green focus:ring-2 focus:ring-brand-green/40 cursor-pointer shrink-0"
+                                />
+                                <span className="text-sm text-slate-700 leading-relaxed">
+                                    Data keanggotaan di atas adalah <span className="font-semibold">benar</span> sesuai data diri saya.
+                                </span>
+                            </label>
+                            {errors.data_benar && <p className="text-sm text-red-600 mt-2">{errors.data_benar}</p>}
+                        </div>
 
-                        <label htmlFor="data-benar" className="flex items-start gap-3 cursor-pointer p-3.5 rounded-xl border-2 border-slate-200 has-checked:border-brand-green has-checked:bg-brand-green-light/40 transition-colors mb-3">
-                            <input
-                                id="data-benar"
-                                type="checkbox"
-                                checked={data.data_benar}
-                                onChange={(e) => setData('data_benar', e.target.checked)}
-                                className="mt-0.5 w-5 h-5 rounded border-slate-300 text-brand-green focus:ring-2 focus:ring-brand-green/40 cursor-pointer shrink-0"
-                            />
-                            <span className="text-sm text-slate-700 leading-relaxed">
-                                Data keanggotaan di atas adalah <span className="font-semibold">benar</span> sesuai data diri saya.
-                            </span>
-                        </label>
+                        <div className={`bg-white rounded-2xl border-2 p-5 transition-colors ${errors.setuju_syarat ? 'border-red-300' : 'border-slate-200'}`}>
+                            <div className="flex items-center gap-2.5 mb-3">
+                                <div className="w-7 h-7 rounded-lg bg-brand-navy text-white flex items-center justify-center text-sm font-bold shrink-0">2</div>
+                                <p className="text-base font-bold text-slate-800">Persetujuan Syarat</p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowModal(true)}
+                                className={`w-full flex items-center justify-center gap-2 py-3 text-sm font-semibold rounded-xl border-2 border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors mb-3 ${focusRing}`}
+                            >
+                                <FileText size={16} />
+                                Baca Syarat &amp; Ketentuan (Versi {versiSyarat})
+                            </button>
+                            <label htmlFor="setuju-syarat" className="flex items-start gap-3 cursor-pointer">
+                                <input
+                                    id="setuju-syarat"
+                                    type="checkbox"
+                                    checked={data.setuju_syarat}
+                                    onChange={(e) => setData('setuju_syarat', e.target.checked)}
+                                    className="mt-0.5 w-5 h-5 rounded border-slate-300 text-brand-green focus:ring-2 focus:ring-brand-green/40 cursor-pointer shrink-0"
+                                />
+                                <span className="text-sm text-slate-700 leading-relaxed">
+                                    Demikian pengajuan ini saya isi dengan benar. Saya <span className="font-semibold">tunduk dan patuh</span> pada
+                                    Anggaran Dasar, Anggaran Rumah Tangga, peraturan khusus, dan kebijakan lainnya yang berlaku
+                                    di Koperasi Karya Mandiri.
+                                </span>
+                            </label>
+                            {errors.setuju_syarat && <p className="text-sm text-red-600 mt-2">{errors.setuju_syarat}</p>}
+                        </div>
 
-                        <button
-                            type="button"
-                            onClick={() => setShowModal(true)}
-                            className={`w-full flex items-center justify-center gap-2 py-3 text-sm font-semibold rounded-xl border-2 border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors mb-3 ${focusRing}`}
-                        >
-                            <FileText size={16} />
-                            Baca Syarat &amp; Ketentuan (Versi {versiSyarat})
-                        </button>
-
-                        <label htmlFor="setuju-syarat" className="flex items-start gap-3 cursor-pointer p-3.5 rounded-xl border-2 border-slate-200 has-checked:border-brand-green has-checked:bg-brand-green-light/40 transition-colors mb-4">
-                            <input
-                                id="setuju-syarat"
-                                type="checkbox"
-                                checked={data.setuju_syarat}
-                                onChange={(e) => setData('setuju_syarat', e.target.checked)}
-                                className="mt-0.5 w-5 h-5 rounded border-slate-300 text-brand-green focus:ring-2 focus:ring-brand-green/40 cursor-pointer shrink-0"
-                            />
-                            <span className="text-sm text-slate-700 leading-relaxed">
-                                Demikian pengajuan ini saya isi dengan benar. Saya <span className="font-semibold">tunduk dan patuh</span> pada
-                                Anggaran Dasar, Anggaran Rumah Tangga, peraturan khusus, dan kebijakan lainnya yang berlaku
-                                di Koperasi Karya Mandiri.
-                            </span>
-                        </label>
-
-                        {(errors.data_benar || errors.setuju_syarat || errors.pengajuan) && (
-                            <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-xl p-3.5 mb-4">
+                        {errors.pengajuan && (
+                            <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-xl p-3.5">
                                 <AlertCircle size={18} className="text-red-500 shrink-0 mt-0.5" />
-                                <div className="text-sm font-medium text-red-700 space-y-1">
-                                    {errors.data_benar && <p>{errors.data_benar}</p>}
-                                    {errors.setuju_syarat && <p>{errors.setuju_syarat}</p>}
-                                    {errors.pengajuan && <p>{errors.pengajuan}</p>}
-                                </div>
+                                <p className="text-sm font-medium text-red-700">{errors.pengajuan}</p>
                             </div>
                         )}
 

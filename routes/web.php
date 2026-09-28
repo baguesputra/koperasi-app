@@ -55,7 +55,8 @@ Route::get('/', function () {
 // ==========================================
 Route::middleware(['auth', 'permission:portal.akses'])->prefix('portal')->name('portal.')->group(function () {
     // ------------ Aktivasi (anggota nonaktif, di luar guard aktif) ----------------
-    Route::get('/aktivasi', [PortalAktivasiController::class, 'create'])->name('aktivasi.create');
+    Route::get('/aktivasi', [PortalAktivasiController::class, 'landing'])->name('aktivasi.landing');
+    Route::get('/aktivasi/form', [PortalAktivasiController::class, 'create'])->name('aktivasi.create');
     Route::post('/aktivasi', [PortalAktivasiController::class, 'store'])->name('aktivasi.store')->middleware('idempotent');
 
     // Menu Utama
