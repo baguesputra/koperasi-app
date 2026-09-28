@@ -177,11 +177,14 @@ class LaporanTest extends TestCase
         $def = LaporanRegistry::ambil('iuran-pinjaman-rekap');
         $hasil = $def['data'](request()->merge(['dari' => $bulan, 'sampai' => $bulan]));
 
-        $baris = collect($hasil['rows'])->firstWhere(fn ($r) => $r[2] === 'Uji Rekap');
+        $baris = collect($hasil['rows'])->firstWhere(fn ($r) => $r[1] === 'Uji Rekap');
         $this->assertNotNull($baris);
-        $this->assertEquals(50_000, $baris[8]); // total iuran
-        $this->assertEquals(343_333, $baris[9]); // cicilan bulan ini
-        $this->assertEquals(393_333, $baris[10]); // total tagihan
+        $this->assertEquals(0, $baris[2]); // iuran pokok
+        $this->assertEquals(45_000, $baris[3]); // iuran wajib
+        $this->assertEquals(5_000, $baris[4]); // asuransi sosial
+        $this->assertEquals(333_333, $baris[5]); // pinjaman (pokok cicilan)
+        $this->assertEquals(10_000, $baris[6]); // bunga
+        $this->assertEquals(393_333, $baris[7]); // total
     }
 
     public function test_semua_laporan_dan_pdf_bisa_dirender(): void

@@ -617,7 +617,7 @@ class LaporanRegistry
                     [$dari, $sampai] = self::rentang($r);
                     $bulanPeriode = $dari->format('Y-m');
 
-                    $anggota = Anggota::orderBy('nama');
+                    $anggota = Anggota::with('divisiMaster')->orderBy('nama');
                     if ($r->filled('cabang')) {
                         $anggota = $anggota->where('cabang', $r->input('cabang'));
                     }
@@ -652,35 +652,37 @@ class LaporanRegistry
                         $pokok = (float) $setor->where('jenis', 'pokok')->sum('jumlah');
                         $wajib = (float) $setor->where('jenis', 'wajib')->sum('jumlah');
                         $sosial = (float) $setor->where('jenis', 'dana_sosial')->sum('jumlah');
-                        $totalIuran = $pokok + $wajib + $sosial;
 
-                        $tagihan = (float) ($cicilan->get($a->id, collect())->sum('total_bayar') ?? 0)
-                            + (float) ($cicilanPercepatan->get($a->id, collect())->sum('total_bayar') ?? 0);
+                        $cicilanBiasa = $cicilan->get($a->id, collect());
+                        $cicilanSusulan = $cicilanPercepatan->get($a->id, collect());
+                        $pinjamanPokok = (float) $cicilanBiasa->sum('nominal_pokok')
+                            + (float) $cicilanSusulan->sum('nominal_pokok');
+                        $pinjamanBunga = (float) $cicilanBiasa->sum('nominal_bunga')
+                            + (float) $cicilanSusulan->sum('nominal_bunga');
+                        $total = $pokok + $wajib + $sosial + $pinjamanPokok + $pinjamanBunga;
 
                         $rows[] = [
                             $i + 1,
-                            $a->no_karyawan,
                             $a->nama,
-                            $a->cabang,
-                            ucfirst(str_replace('_', ' ', $a->status)),
                             $pokok,
                             $wajib,
                             $sosial,
-                            $totalIuran,
-                            $tagihan,
-                            $totalIuran + $tagihan,
+                            $pinjamanPokok,
+                            $pinjamanBunga,
+                            $total,
+                            $a->getRelationValue('divisiMaster')?->nama ?? $a->divisi ?? '-',
                         ];
                     }
 
                     return self::hasil(
-                        ['No', 'No. Karyawan', 'Nama', 'Cabang', 'Status', 'Pokok', 'Wajib', 'Dana Sosial', 'Total Iuran', 'Cicilan Bulan Ini', 'Total Tagihan'],
-                        [5, 6, 7, 8, 9, 10],
+                        ['No', 'Nama', 'Iuran Pokok', 'Iuran Wajib', 'Asuransi Sosial', 'Pinjaman', 'Bunga', 'Total', 'Divisi'],
+                        [2, 3, 4, 5, 6, 7],
                         $rows,
-                        [count($rows).' anggota', null, null, null, null, array_sum(array_column($rows, 5)), array_sum(array_column($rows, 6)), array_sum(array_column($rows, 7)), array_sum(array_column($rows, 8)), array_sum(array_column($rows, 9)), array_sum(array_column($rows, 10))],
+                        [count($rows).' anggota', null, array_sum(array_column($rows, 2)), array_sum(array_column($rows, 3)), array_sum(array_column($rows, 4)), array_sum(array_column($rows, 5)), array_sum(array_column($rows, 6)), array_sum(array_column($rows, 7)), null],
                         ringkasan: [
-                            ['Total iuran bulan berjalan', self::rupiah(array_sum(array_column($rows, 8)))],
-                            ['Total cicilan bulan berjalan', self::rupiah(array_sum(array_column($rows, 9)))],
-                            ['Total tagihan', self::rupiah(array_sum(array_column($rows, 10)))],
+                            ['Total iuran bulan berjalan', self::rupiah(array_sum(array_column($rows, 2)) + array_sum(array_column($rows, 3)) + array_sum(array_column($rows, 4)))],
+                            ['Total cicilan bulan berjalan', self::rupiah(array_sum(array_column($rows, 5)) + array_sum(array_column($rows, 6)))],
+                            ['Total tagihan', self::rupiah(array_sum(array_column($rows, 7)))],
                         ]
                     );
                 },
