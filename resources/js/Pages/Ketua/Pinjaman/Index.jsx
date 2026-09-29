@@ -35,7 +35,7 @@ export default function Index({ menungguApproval, riwayat, ringkasanKas }) {
 
             <PageHeader title="Approval Pinjaman" subtitle={`${menungguApproval.length} pengajuan menunggu approval final Anda`} />
 
-            <RingkasanKas ringkasan={ringkasanKas} judul="Potensi Pencairan Bulan Ini" />
+            <RingkasanKas ringkasan={ringkasanKas} judul="Beban Persetujuan Bulan Ini" />
 
             <Card padding="none">
                 {/* Tab lembaran dokumen */}

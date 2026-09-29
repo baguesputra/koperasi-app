@@ -24,6 +24,10 @@ class DashboardController extends Controller
         }
 
         $kas = KasKoperasi::first();
+        $jurnal = app(\App\Services\Keuangan\JurnalKasService::class);
+        $kasOperasional = $jurnal->saldoOperasional($kas);
+        $infoPagu = $jurnal->sisaPaguBulan($kas);
+        $klasifikasi = $jurnal->klasifikasiBulan();
 
         $pendapatanBungaBulanIni = Angsuran::where('status', 'lunas')
             ->whereYear('tanggal_konfirmasi_bayar', now()->year)
@@ -38,8 +42,8 @@ class DashboardController extends Controller
 
         $saldoDanaPinjaman = $kas->saldo_pinjaman;
 
-        // saldo_pengembalian_simpanan tidak dimasukkan di total karena hanya "dalam proses"
-        $totalKeseluruhan = $saldoDanaPinjaman + $kas->saldo_dana_sosial + $totalSimpananOutstanding;
+        // Total = operasional gabungan + outstanding (transit dikecualikan, samakan halaman Kas).
+        $totalKeseluruhan = $kasOperasional + $totalSimpananOutstanding;
 
         $saldoDanaSosial = $kas->saldo_dana_sosial;
 
@@ -47,11 +51,41 @@ class DashboardController extends Controller
         $menungguTinjauanBendahara = Pinjaman::where('status', 'diajukan')->count();
         $menungguApprovalKetua = Pinjaman::where('status', 'approved_bendahara')->count();
 
-        $menungguPerubahanTenor = PengajuanPercepatan::whereIn('status', ['diajukan', 'approved_bendahara'])->count();
+        $menungguPerubahanTenorBendahara = PengajuanPercepatan::where('status', 'diajukan')->count();
+        $menungguPerubahanTenorKetua = PengajuanPercepatan::where('status', 'approved_bendahara')->count();
+        $menungguPerubahanTenor = $menungguPerubahanTenorBendahara + $menungguPerubahanTenorKetua;
 
         $menungguPengajuanLimitBendahara = PengajuanLimit::where('status', 'diajukan')->count();
         $menungguPengajuanLimit = PengajuanLimit::where('status', 'approved_bendahara')->count();
         $menungguAktivasi = PengajuanAktivasi::where('status', 'diajukan')->count();
+
+        // Ringkasan kas global: nominal hanya pinjaman (tahap berjalan),
+        // jenis lain hanya hitung jumlah.
+        $totalDiajukan = (float) (Pinjaman::where('status', 'diajukan')
+            ->selectRaw('SUM(COALESCE(nominal_diminta, nominal)) as total')->first()->total ?? 0);
+        $agregatApproved = Pinjaman::where('status', 'approved_bendahara')
+            ->selectRaw('COUNT(*) as jumlah, SUM(COALESCE(nominal_disetujui_bendahara, nominal_diminta, nominal)) as total')->first();
+        $totalApproved = (float) ($agregatApproved->total ?? 0);
+        $jumlahApproved = (int) ($agregatApproved->jumlah ?? 0);
+        $jumlahDiajukan = $menungguTinjauanBendahara;
+        $totalMenungguPinjaman = $totalDiajukan + $totalApproved;
+
+        $ringkasanKas = [
+            'total_menunggu' => $totalMenungguPinjaman,
+            'jumlah_menunggu' => $jumlahDiajukan + $jumlahApproved,
+            'saldo' => $infoPagu['saldo_operasional'],
+            'sisa_proyeksi' => $infoPagu['saldo_operasional'] - $totalMenungguPinjaman,
+            'pagu' => $infoPagu,
+            'klasifikasi' => $klasifikasi,
+        ];
+
+        $rincianAntrean = [
+            'limit_bendahara' => $menungguPengajuanLimitBendahara,
+            'limit_ketua' => $menungguPengajuanLimit,
+            'percepatan_bendahara' => $menungguPerubahanTenorBendahara,
+            'percepatan_ketua' => $menungguPerubahanTenorKetua,
+            'aktivasi' => $menungguAktivasi,
+        ];
 
         $anggotaBelumSimpananBulanIni = Anggota::where('status', 'aktif')
             ->whereDoesntHave('simpanan', fn ($q) => $q
@@ -195,11 +229,19 @@ class DashboardController extends Controller
                 'total_keseluruhan' => (float) $totalKeseluruhan,
                 'pendapatan_bunga_bulan_ini' => (float) $pendapatanBungaBulanIni,
                 'saldo_dana_sosial' => (float) $saldoDanaSosial,
+                'kas_operasional' => (float) $kasOperasional,
+                'saldo_simpanan' => (float) $kas->saldo_simpanan,
             ],
+            'infoPagu' => $infoPagu,
+            'klasifikasi' => $klasifikasi,
+            'ringkasanKas' => $ringkasanKas,
+            'rincianAntrean' => $rincianAntrean,
             'actionable' => [
                 'menunggu_tinjauan_bendahara' => $menungguTinjauanBendahara,
                 'menunggu_approval_ketua' => $menungguApprovalKetua,
                 'perubahan_tenor' => $menungguPerubahanTenor,
+                'perubahan_tenor_bendahara' => $menungguPerubahanTenorBendahara,
+                'perubahan_tenor_ketua' => $menungguPerubahanTenorKetua,
                 'pengajuan_limit' => $menungguPengajuanLimit,
                 'pengajuan_limit_bendahara' => $menungguPengajuanLimitBendahara,
                 'aktivasi_anggota' => $menungguAktivasi,

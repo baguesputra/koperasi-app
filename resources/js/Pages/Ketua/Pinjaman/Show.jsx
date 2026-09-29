@@ -41,7 +41,7 @@ export default function Show({ pinjaman, ringkasanKas }) {
                 Kembali
             </Link>
 
-            <RingkasanKas ringkasan={ringkasanKas} judul="Potensi Pencairan Bulan Ini" />
+            <RingkasanKas ringkasan={ringkasanKas} judul="Beban Persetujuan Bulan Ini" />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
                 <div className="lg:col-span-2 space-y-5">

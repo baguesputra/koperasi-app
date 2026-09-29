@@ -24,7 +24,7 @@ export default function RingkasanKas({ ringkasan, judul = 'Beban Persetujuan Bul
                     <p className="text-xl font-bold">{formatRupiah(total_menunggu)}</p>
                 </div>
                 <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                    <p className="text-xs text-slate-300 mb-1">Kas Pinjaman (Batas Limit)</p>
+                    <p className="text-xs text-slate-300 mb-1">Layak Cair</p>
                     <p className="text-xl font-bold">{formatRupiah(limit)}</p>
                     {pagu && (
                         <p className="text-xs text-slate-300 mt-1">

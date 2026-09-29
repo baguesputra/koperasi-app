@@ -2,7 +2,7 @@ import AppLayout from '@/Layouts/AppLayout';
 import { Head, Link, usePage } from '@inertiajs/react';
 import {
     Users, PiggyBank, HandCoins, Wallet, TrendingUp, HeartHandshake, Landmark,
-    ClipboardCheck, ShieldCheck, AlertCircle, CalendarClock, FileClock, Gauge,
+    ClipboardCheck, ShieldCheck, AlertCircle, FileClock, Gauge,
     ChevronRight,
     HandCoins as PinjamanIcon, CheckCircle2,
 } from 'lucide-react';
@@ -10,6 +10,7 @@ import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, R
 import Card from '@/Components/ui/Card';
 import StatWidget from '@/Components/ui/StatWidget';
 import PageHeader from '@/Components/ui/PageHeader';
+import RingkasanKas from '@/Pages/PinjamanApproval/RingkasanKas';
 import { formatRupiah, formatRupiahSingkat } from '@/Utils/formatCurrency';
 import { statusStyle } from '@/Utils/status';
 
@@ -25,7 +26,7 @@ const kasSeries = [
     { key: 'pencairan', name: 'Pencairan Pinjaman', color: '#64748B', stack: 'keluar', radius: [4, 4, 0, 0] },
 ];
 
-export default function Dashboard({ stats, actionable, grafikTren, grafikKas, aktivitasTerbaru }) {
+export default function Dashboard({ stats, actionable, grafikTren, grafikKas, aktivitasTerbaru, ringkasanKas, rincianAntrean, infoPagu }) {
     const { auth } = usePage().props;
     const userPermissions = auth.user?.permissions ?? [];
 
@@ -37,20 +38,20 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
         { label: 'Total Anggota Aktif', value: stats.total_anggota_aktif, icon: Users, tone: 'navy' },
         { label: 'Total Simpanan (Aktif)', value: formatRupiah(stats.total_simpanan_outstanding), icon: PiggyBank, tone: 'green' },
         { label: 'Pinjaman Outstanding', value: formatRupiah(stats.pinjaman_outstanding), icon: HandCoins, tone: 'amber' },
-        { label: 'Saldo Dana Pinjaman', value: formatRupiah(stats.saldo_dana_pinjaman), icon: Wallet, tone: 'navy' },
-        { label: 'Saldo Dana Sosial', value: formatRupiah(stats.saldo_dana_sosial), icon: HeartHandshake, tone: 'amber' },
+        { label: 'Kas Operasional Gabungan', value: formatRupiah(stats.kas_operasional ?? stats.total_keseluruhan), icon: Wallet, tone: 'navy' },
+        { label: 'Layak Cair Bulan Ini', value: formatRupiah(infoPagu?.layak ?? 0), icon: HeartHandshake, tone: 'amber' },
         { label: 'Pendapatan Bunga Bulan Ini', value: formatRupiah(stats.pendapatan_bunga_bulan_ini), icon: TrendingUp, tone: 'green' },
     ];
 
     const actionItems = [
-        { label: 'Tinjauan Bendahara', value: actionable.menunggu_tinjauan_bendahara, icon: ClipboardCheck, href: route('bendahara.pinjaman.index'), urgent: actionable.menunggu_tinjauan_bendahara > 0, permission: 'pinjaman.tinjau-bendahara' },
-        { label: 'Approval Ketua', value: actionable.menunggu_approval_ketua, icon: ShieldCheck, href: route('ketua.pinjaman.index'), urgent: actionable.menunggu_approval_ketua > 0, permission: 'pinjaman.approve-ketua' },
-        { label: 'Perubahan Tenor (Bendahara)', value: actionable.perubahan_tenor, icon: FileClock, href: route('bendahara.percepatan.index'), urgent: actionable.perubahan_tenor > 0, permission: 'pinjaman.tinjau-bendahara' },
-        { label: 'Perubahan Tenor (Ketua)', value: actionable.perubahan_tenor, icon: FileClock, href: route('ketua.percepatan.index'), urgent: actionable.perubahan_tenor > 0, permission: 'pinjaman.approve-ketua' },
+        { label: 'Tinjau Pinjaman', value: actionable.menunggu_tinjauan_bendahara, icon: ClipboardCheck, href: route('bendahara.pinjaman.index'), urgent: actionable.menunggu_tinjauan_bendahara > 0, permission: 'pinjaman.tinjau-bendahara' },
+        { label: 'Persetujuan Pinjaman', value: actionable.menunggu_approval_ketua, icon: ShieldCheck, href: route('ketua.pinjaman.index'), urgent: actionable.menunggu_approval_ketua > 0, permission: 'pinjaman.approve-ketua' },
+        { label: 'Tinjau Perubahan Tenor', value: actionable.perubahan_tenor_bendahara ?? actionable.perubahan_tenor, icon: FileClock, href: route('bendahara.percepatan.index'), urgent: (actionable.perubahan_tenor_bendahara ?? actionable.perubahan_tenor) > 0, permission: 'pinjaman.tinjau-bendahara' },
+        { label: 'Persetujuan Perubahan Tenor', value: actionable.perubahan_tenor_ketua ?? actionable.perubahan_tenor, icon: FileClock, href: route('ketua.percepatan.index'), urgent: (actionable.perubahan_tenor_ketua ?? actionable.perubahan_tenor) > 0, permission: 'pinjaman.approve-ketua' },
         { label: 'Aktivasi Anggota', value: actionable.aktivasi_anggota, icon: Users, href: route('ketua.aktivasi.index'), urgent: actionable.aktivasi_anggota > 0, permission: 'aktivasi.approve-ketua' },
-        { label: 'Tinjau Limit (Bendahara)', value: actionable.pengajuan_limit_bendahara, icon: Gauge, href: route('bendahara.pengajuan-limit.index'), urgent: actionable.pengajuan_limit_bendahara > 0, permission: 'limit.tinjau-bendahara' },
+        { label: 'Tinjau Limit', value: actionable.pengajuan_limit_bendahara, icon: Gauge, href: route('bendahara.pengajuan-limit.index'), urgent: actionable.pengajuan_limit_bendahara > 0, permission: 'limit.tinjau-bendahara' },
         { label: 'Pengajuan Limit', value: actionable.pengajuan_limit, icon: Gauge, href: route('ketua.pengajuan-limit.index'), urgent: actionable.pengajuan_limit > 0, permission: 'limit.approve-ketua' },
-        { label: 'Belum Setor Simpanan', value: actionable.anggota_belum_simpanan, icon: AlertCircle, href: route('bendahara.simpanan.index'), urgent: actionable.anggota_belum_simpanan > 0, permission: 'simpanan.konfirmasi' },
+        { label: 'Konfirmasi Simpanan', value: actionable.anggota_belum_simpanan, icon: AlertCircle, href: route('bendahara.simpanan.index'), urgent: actionable.anggota_belum_simpanan > 0, permission: 'simpanan.konfirmasi' },
     ].filter((item) => bisaAkses(item.permission));
 
     const jumlahMenunggu = actionItems.filter((item) => item.value > 0).length;
@@ -118,10 +119,21 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                             <p className="text-sm text-slate-300">Saldo Total</p>
                             <p className="text-3xl font-bold mt-1 leading-tight">{formatRupiah(stats.total_keseluruhan)}</p>
                         </div>
-                        <p className="text-xs text-slate-300 mt-4 leading-snug">Dana pinjaman + dana sosial + simpanan anggota</p>
+                        <p className="text-xs text-slate-300 mt-4 leading-snug">Kas operasional + simpanan anggota aktif</p>
                     </div>
                 </div>
             </div>
+
+            <RingkasanKas ringkasan={ringkasanKas} judul="Beban Persetujuan Bulan Ini" />
+
+            {rincianAntrean && (
+                <p className="text-xs text-slate-400 mb-6 -mt-3">
+                    Di luar pinjaman: Limit {rincianAntrean.limit_bendahara + rincianAntrean.limit_ketua} antrean
+                    &bull; Perubahan tenor {rincianAntrean.percepatan_bendahara + rincianAntrean.percepatan_ketua} antrean
+                    &bull; Aktivasi {rincianAntrean.aktivasi} antrean
+                    (hitung jumlah, tidak masuk proyeksi kas).
+                </p>
+            )}
 
             {/* Perlu Ditindaklanjuti */}
             <div className="mb-6">
