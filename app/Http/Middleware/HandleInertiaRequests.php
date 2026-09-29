@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\KlaimDanaSosial;
 use App\Models\PengajuanAktivasi;
 use App\Models\PengajuanLimit;
 use App\Models\PengajuanPercepatan;
@@ -85,6 +86,14 @@ class HandleInertiaRequests extends Middleware
 
                 if ($permissions->contains('aktivasi.approve-ketua')) {
                     $notifications['menunggu_aktivasi'] = PengajuanAktivasi::where('status', 'diajukan')->count();
+                }
+
+                if ($permissions->contains('klaim.tinjau-bendahara')) {
+                    $notifications['menunggu_klaim_bendahara'] = KlaimDanaSosial::where('status', 'diajukan')->count();
+                }
+
+                if ($permissions->contains('klaim.approve-ketua')) {
+                    $notifications['menunggu_klaim_ketua'] = KlaimDanaSosial::where('status', 'approved_bendahara')->count();
                 }
 
                 return $notifications;

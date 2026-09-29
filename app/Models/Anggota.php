@@ -96,6 +96,11 @@ class Anggota extends Model
         return $this->hasMany(PengajuanLimit::class);
     }
 
+    public function klaimDanaSosial(): HasMany
+    {
+        return $this->hasMany(KlaimDanaSosial::class);
+    }
+
     public function rekening(): HasMany
     {
         return $this->hasMany(RekeningAnggota::class);

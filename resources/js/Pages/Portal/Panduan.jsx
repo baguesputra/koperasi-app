@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-    Wallet, Repeat, Gauge, HelpCircle,
+    Wallet, Repeat, Gauge, HelpCircle, HeartHandshake,
     ArrowRight, ChevronDown, AlertCircle, CheckCircle2, Info, Check, X,
 } from 'lucide-react';
 
@@ -279,6 +279,48 @@ const TATA_CARA = [
             'Limit baru berlaku untuk pinjaman berikutnya dan tidak mengubah pinjaman yang sedang berjalan.',
         ],
     },
+    {
+        key: 'santunan',
+        label: 'Santunan Sosial',
+        icon: HeartHandshake,
+        intro: 'Santunan kemanusiaan bagi anggota: sakit, kelahiran/khitan, duka, dan pernikahan. Besaran santunan ditetapkan Bendahara dan diputuskan final oleh Ketua Koperasi.',
+        langkah: [
+            {
+                judul: 'Buka formulir pengajuan',
+                deskripsi: 'Di Beranda, bagian kartu "Santunan Dana Sosial", klik kartu tersebut untuk membuka halaman formulir pengajuan.',
+                mockup: <MiniButton label="Santunan Dana Sosial" icon={HeartHandshake} />,
+            },
+            {
+                judul: 'Pilih jenis santunan',
+                deskripsi: 'Empat pilihan: Santunan Sakit, Kelahiran/Khitan, Duka, atau Pernikahan. Sakit wajib memilih jenis perawatan (Rawat Jalan minimal 3 hari / Rawat Inap minimal 1 hari) beserta lama perawatan. Duka wajib memilih hubungan keluarga.',
+                mockup: <MiniList items={[
+                    { label: 'Sakit', value: 'rajal / opname' },
+                    { label: 'Duka', value: 'ortu / suami / istri / anak' },
+                    { label: 'Pernikahan', value: 'setelah acara' },
+                ]} />,
+            },
+            {
+                judul: 'Isi tanggal dan keterangan',
+                deskripsi: 'Tanggal kejadian tidak boleh melebihi hari ini. Pernikahan diajukan setelah acara dilaksanakan. Keterangan minimal 10 karakter, mohon dijelaskan secara rinci.',
+                mockup: null,
+            },
+            {
+                judul: 'Unggah dokumen pendukung',
+                deskripsi: 'Wajib untuk semua jenis. Sakit: foto surat keterangan rumah sakit. Format JPG/PNG maksimal 5 MB.',
+                mockup: null,
+            },
+            {
+                judul: 'Kirim dan pantau statusnya',
+                deskripsi: 'Klik "Kirim Pengajuan". Bendahara memverifikasi dahulu sekaligus mengusulkan besaran santunan, lalu Ketua menetapkan nominal final. Perkembangan disampaikan melalui WhatsApp dan dapat dipantau pada riwayat.',
+                mockup: <MiniTimeline steps={['Bendahara', 'Ketua', 'Santunan Cair']} />,
+            },
+        ],
+        catatan: [
+            'Satu waktu hanya boleh ada satu pengajuan santunan aktif.',
+            'Dokumen pendukung wajib untuk seluruh jenis pengajuan.',
+            'Santunan yang disetujui dicatat sebagai pengeluaran dana sosial koperasi.',
+        ],
+    },
 ];
 
 const FAQ = [
@@ -350,6 +392,27 @@ const FAQ = [
             {
                 q: 'Kenapa pengajuan tambah limit saya ditolak?',
                 a: 'Bendahara boleh menolak final, atau Ketua menolak setelah verifikasi Bendahara. Alasannya tampil di riwayat halaman Ajukan Tambah Limit. Yang umum: pertimbangan kemampuan keuangan koperasi, riwayat pembayaran Anda, atau limit dinilai sudah cukup.',
+            },
+        ],
+    },
+    {
+        kategori: 'Santunan Dana Sosial',
+        items: [
+            {
+                q: 'Santunan apa saja yang tersedia?',
+                a: 'Empat jenis: Santunan Sakit (rawat jalan minimal 3 hari / rawat inap minimal 1 hari), Kelahiran/Khitan, Duka (orang tua, suami, istri, atau anak), dan Pernikahan (diajukan setelah acara dilaksanakan).',
+            },
+            {
+                q: 'Dokumen apa yang wajib dilampirkan?',
+                a: 'Dokumen pendukung wajib untuk semua jenis (JPG/PNG, maksimal 5 MB). Untuk sakit, lampirkan foto surat keterangan rumah sakit yang memuat lama perawatan.',
+            },
+            {
+                q: 'Siapa yang menetapkan besaran santunan?',
+                a: 'Bendahara memverifikasi sekaligus mengusulkan besaran santunan, Ketua menetapkan nominal final yang boleh berbeda dari usulan. Jejak nominal tampil di riwayat.',
+            },
+            {
+                q: 'Berapa lama proses persetujuan santunan?',
+                a: 'Ada 2 tahap seperti pengajuan lainnya: verifikasi Bendahara lalu keputusan final Ketua. Perkembangan disampaikan melalui WhatsApp.',
             },
         ],
     },
@@ -476,7 +539,7 @@ export default function Panduan({ onClose }) {
                             </div>
                             <div className="min-w-0">
                                 <h2 id="panduan-title" className="text-lg font-bold text-slate-800">Tata Cara &amp; FAQ</h2>
-                                <p className="text-xs text-slate-500 mt-0.5">Langkah mengajukan pinjaman, mengubah tenor, dan menambah limit.</p>
+                                <p className="text-xs text-slate-500 mt-0.5">Langkah mengajukan pinjaman, mengubah tenor, menambah limit, dan santunan sosial.</p>
                             </div>
                         </div>
                         <button

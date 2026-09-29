@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Portal;
 
 use App\Http\Controllers\Controller;
 use App\Models\Angsuran;
+use App\Models\KlaimDanaSosial;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -82,9 +83,25 @@ class RiwayatController extends Controller
         $totalPinjamanLunas = $anggota->pinjaman()->where('status', 'lunas')->count();
         $totalSimpananTerkumpul = $anggota->simpanan()->whereIn('jenis', ['pokok', 'wajib'])->sum('jumlah');
 
+        $klaim = KlaimDanaSosial::where('anggota_id', $anggota->id)
+            ->latest('tanggal_pengajuan')
+            ->get()
+            ->map(fn ($k) => [
+                'id' => $k->id,
+                'jenis_label' => app(\App\Services\DanaSosial\KlaimDanaSosialService::class)->labelJenis($k->jenis),
+                'tanggal_kejadian' => $k->tanggal_kejadian->format('d M Y'),
+                'nominal_bendahara' => $k->nominal_bendahara !== null ? (float) $k->nominal_bendahara : null,
+                'nominal_final' => $k->nominal_final !== null ? (float) $k->nominal_final : null,
+                'status' => $k->status,
+                'catatan_bendahara' => $k->catatan_bendahara,
+                'catatan_ketua' => $k->catatan_ketua,
+                'tanggal_pengajuan' => $k->tanggal_pengajuan->format('d M Y'),
+            ]);
+
         return Inertia::render('Portal/Riwayat', [
             'pinjaman' => $pinjaman,
             'simpanan' => $simpanan,
+            'klaim' => $klaim,
             'daftarBulanTersedia' => $daftarBulanTersedia,
             'bulanFilter' => $bulanFilter,
             'ringkasan' => [

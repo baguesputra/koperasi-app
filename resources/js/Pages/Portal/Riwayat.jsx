@@ -33,7 +33,7 @@ const statusIcon = {
 
 const jenisSimpananLabel = { pokok: 'Simpanan Pokok', wajib: 'Simpanan Wajib', dana_sosial: 'Dana Sosial' };
 
-export default function Riwayat({ pinjaman, simpanan, daftarBulanTersedia, bulanFilter, ringkasan }) {
+export default function Riwayat({ pinjaman, simpanan, klaim = [], daftarBulanTersedia, bulanFilter, ringkasan }) {
     const [tab, setTab] = useState('pinjaman');
 
     return (
@@ -93,6 +93,14 @@ export default function Riwayat({ pinjaman, simpanan, daftarBulanTersedia, bulan
                 >
                     Simpanan
                 </button>
+                <button
+                    onClick={() => setTab('klaim')}
+                    className={`px-5 py-2 text-sm font-semibold rounded-lg transition-colors ${
+                        tab === 'klaim' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'
+                    }`}
+                >
+                    Santunan
+                </button>
             </div>
 
             {tab === 'pinjaman' && <RiwayatPinjaman pinjaman={pinjaman} />}
@@ -103,6 +111,7 @@ export default function Riwayat({ pinjaman, simpanan, daftarBulanTersedia, bulan
                     bulanFilter={bulanFilter}
                 />
             )}
+            {tab === 'klaim' && <RiwayatKlaim klaim={klaim} />}
         </AnggotaLayout>
     );
 }
@@ -300,6 +309,60 @@ function RiwayatSimpanan({ simpanan, daftarBulanTersedia, bulanFilter }) {
                     ))}
                 </div>
             )}
+        </div>
+    );
+}
+
+const klaimStatusLabel = {
+    diajukan: 'Menunggu Verifikasi Bendahara',
+    approved_bendahara: 'Menunggu Keputusan Ketua',
+    disetujui: 'Disetujui',
+    ditolak: 'Ditolak',
+};
+
+const klaimStatusStyle = {
+    diajukan: 'bg-amber-50 text-amber-700',
+    approved_bendahara: 'bg-blue-50 text-blue-700',
+    disetujui: 'bg-brand-green-light text-brand-green-dark',
+    ditolak: 'bg-red-50 text-red-600',
+};
+
+function RiwayatKlaim({ klaim }) {
+    if (klaim.length === 0) {
+        return (
+            <div className="bg-white rounded-2xl border border-slate-100 p-10 text-center">
+                <p className="text-base text-slate-400">Belum ada riwayat pengajuan santunan.</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-3">
+            {klaim.map((k) => (
+                <div key={k.id} className="bg-white rounded-2xl border border-slate-100 p-5">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                        <p className="text-lg font-bold text-slate-800">{k.jenis_label}</p>
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold shrink-0 ${klaimStatusStyle[k.status]}`}>
+                            {klaimStatusLabel[k.status]}
+                        </span>
+                    </div>
+                    <p className="text-sm text-slate-400">
+                        Kejadian {k.tanggal_kejadian} &bull; Diajukan {k.tanggal_pengajuan}
+                    </p>
+                    {(k.nominal_bendahara || k.nominal_final) && (
+                        <p className="text-sm font-semibold text-slate-700 mt-1.5">
+                            {k.nominal_final ? formatRupiah(k.nominal_final) : formatRupiah(k.nominal_bendahara)}
+                            <span className="font-normal text-slate-400"> {k.nominal_final ? '(santunan disetujui)' : '(usulan Bendahara)'}</span>
+                        </p>
+                    )}
+                    {k.catatan_bendahara && (
+                        <p className="text-sm text-slate-500 mt-1 italic">"Bendahara: {k.catatan_bendahara}"</p>
+                    )}
+                    {k.catatan_ketua && (
+                        <p className="text-sm text-slate-500 mt-1 italic">"Ketua: {k.catatan_ketua}"</p>
+                    )}
+                </div>
+            ))}
         </div>
     );
 }

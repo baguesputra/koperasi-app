@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Anggota;
 use App\Models\Angsuran;
+use App\Models\KlaimDanaSosial;
 use App\Models\PengajuanAktivasi;
 use App\Models\JurnalKas;
 use App\Models\KasKoperasi;
@@ -58,6 +59,8 @@ class DashboardController extends Controller
         $menungguPengajuanLimitBendahara = PengajuanLimit::where('status', 'diajukan')->count();
         $menungguPengajuanLimit = PengajuanLimit::where('status', 'approved_bendahara')->count();
         $menungguAktivasi = PengajuanAktivasi::where('status', 'diajukan')->count();
+        $menungguKlaimBendahara = KlaimDanaSosial::where('status', 'diajukan')->count();
+        $menungguKlaimKetua = KlaimDanaSosial::where('status', 'approved_bendahara')->count();
 
         // Ringkasan kas global: nominal hanya pinjaman (tahap berjalan),
         // jenis lain hanya hitung jumlah.
@@ -85,6 +88,8 @@ class DashboardController extends Controller
             'percepatan_bendahara' => $menungguPerubahanTenorBendahara,
             'percepatan_ketua' => $menungguPerubahanTenorKetua,
             'aktivasi' => $menungguAktivasi,
+            'klaim_bendahara' => $menungguKlaimBendahara,
+            'klaim_ketua' => $menungguKlaimKetua,
         ];
 
         $anggotaBelumSimpananBulanIni = Anggota::where('status', 'aktif')
@@ -244,6 +249,8 @@ class DashboardController extends Controller
                 'perubahan_tenor_ketua' => $menungguPerubahanTenorKetua,
                 'pengajuan_limit' => $menungguPengajuanLimit,
                 'pengajuan_limit_bendahara' => $menungguPengajuanLimitBendahara,
+                'klaim_bendahara' => $menungguKlaimBendahara,
+                'klaim_ketua' => $menungguKlaimKetua,
                 'aktivasi_anggota' => $menungguAktivasi,
                 'anggota_belum_simpanan' => $anggotaBelumSimpananBulanIni,
                 'angsuran_jatuh_tempo' => $angsuranJatuhTempoBulanIni,

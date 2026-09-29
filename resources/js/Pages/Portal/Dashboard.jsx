@@ -177,6 +177,7 @@ export default function Dashboard({
     pengajuanPercepatanMenunggu,
     pengajuanBerjalan,
     pengajuanLimitBerjalan,
+    klaimBerjalan,
     pengajuanDitolak,
     resignMenunggu,
     angsuranBerikutnya,
@@ -701,6 +702,47 @@ export default function Dashboard({
                                     </p>
                                 </div>
                             )}
+
+                        {/* =================================================
+                            SANTUNAN DANA SOSIAL
+                        ================================================== */}
+                        {klaimBerjalan ? (
+                            <Link
+                                href={route('portal.klaim-dana-sosial.create')}
+                                className={`flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3.5 hover:bg-blue-100/60 transition-colors ${focusRing}`}
+                            >
+                                <Clock className="text-blue-600 shrink-0 mt-0.5" size={17} />
+                                <div className="min-w-0">
+                                    <p className="text-sm font-semibold text-blue-800">
+                                        Pengajuan {klaimBerjalan.jenis_label} dalam proses
+                                    </p>
+                                    <p className="text-xs text-blue-700 mt-0.5">
+                                        {klaimBerjalan.status === 'approved_bendahara'
+                                            ? 'Menunggu keputusan Ketua Koperasi'
+                                            : 'Menunggu verifikasi Bendahara'}
+                                        {' \u2022 '}Diajukan {klaimBerjalan.tanggal_pengajuan}
+                                    </p>
+                                </div>
+                            </Link>
+                        ) : (
+                            <Link
+                                href={route('portal.klaim-dana-sosial.create')}
+                                className={`flex items-center gap-3 bg-white rounded-xl border border-slate-100 px-4 py-3.5 hover:border-brand-green/40 transition-colors ${focusRing}`}
+                            >
+                                <div className="w-9 h-9 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center shrink-0">
+                                    <ShieldCheck size={18} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-bold text-slate-700">
+                                        Santunan Dana Sosial
+                                    </p>
+                                    <p className="text-xs text-slate-400 mt-0.5">
+                                        Sakit, kelahiran/khitan, duka, dan pernikahan
+                                    </p>
+                                </div>
+                                <ArrowRight size={16} className="text-slate-300 shrink-0" />
+                            </Link>
+                        )}
 
                         {/* =================================================
                             AKTIVITAS TERBARU

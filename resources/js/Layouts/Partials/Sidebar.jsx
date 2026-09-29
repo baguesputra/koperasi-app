@@ -34,6 +34,8 @@ const menuGroups = [
             { label: 'Konfirmasi Simpanan', routeName: 'bendahara.simpanan.index', icon: HeartHandshake, permission: 'simpanan.konfirmasi' },
             { label: 'Tinjau Limit', routeName: 'bendahara.pengajuan-limit.index', icon: TrendingUp, permission: 'limit.tinjau-bendahara' },
             { label: 'Pengajuan Limit', routeName: 'ketua.pengajuan-limit.index', icon: TrendingUp, permission: 'limit.approve-ketua' },
+            { label: 'Tinjau Santunan', routeName: 'bendahara.klaim-dana-sosial.index', icon: HeartHandshake, permission: 'klaim.tinjau-bendahara' },
+            { label: 'Persetujuan Santunan', routeName: 'ketua.klaim-dana-sosial.index', icon: HeartHandshake, permission: 'klaim.approve-ketua' },
             { label: 'Aktivasi Anggota', routeName: 'ketua.aktivasi.index', icon: Users, permission: 'aktivasi.approve-ketua' },
         ],
     },
@@ -63,6 +65,8 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
         'ketua.percepatan.index': notifications?.menunggu_perubahan_tenor_ketua ?? 0,
         'bendahara.pengajuan-limit.index': notifications?.menunggu_pengajuan_limit_bendahara ?? 0,
         'ketua.pengajuan-limit.index': notifications?.menunggu_pengajuan_limit ?? 0,
+        'bendahara.klaim-dana-sosial.index': notifications?.menunggu_klaim_bendahara ?? 0,
+        'ketua.klaim-dana-sosial.index': notifications?.menunggu_klaim_ketua ?? 0,
         'ketua.aktivasi.index': notifications?.menunggu_aktivasi ?? 0,
     };
 

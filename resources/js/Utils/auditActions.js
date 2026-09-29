@@ -7,6 +7,7 @@ const KATEGORI = {
     simpanan: 'Simpanan',
     angsuran: 'Angsuran',
     limit: 'Limit',
+    klaim: 'Santunan Dana Sosial',
     pengeluaran: 'Pengeluaran',
     anggota: 'Anggota',
     pengaturan: 'Pengaturan',
@@ -20,6 +21,7 @@ const KATEGORI_STYLE = {
     simpanan: 'bg-pink-50 text-pink-700',
     angsuran: 'bg-cyan-50 text-cyan-700',
     limit: 'bg-violet-50 text-violet-700',
+    klaim: 'bg-teal-50 text-teal-700',
     pengeluaran: 'bg-orange-50 text-orange-700',
     anggota: 'bg-teal-50 text-teal-700',
     pengaturan: 'bg-slate-100 text-slate-600',
@@ -69,6 +71,13 @@ const AKSI_MAP = {
     limit_tolak_bendahara: { label: 'Tolak Kenaikan Limit (Bendahara)', outcome: 'merah', kategori: 'limit' },
     setujui_pengajuan_limit: { label: 'Setujui Kenaikan Limit (Ketua)', outcome: 'hijau', kategori: 'limit' },
     limit_ditolak: { label: 'Tolak Kenaikan Limit (Ketua)', outcome: 'merah', kategori: 'limit' },
+
+    // Santunan dana sosial
+    klaim_diajukan: { label: 'Ajukan Santunan Dana Sosial', outcome: 'biru', kategori: 'klaim' },
+    klaim_setujui_bendahara: { label: 'Verifikasi Santunan (Bendahara)', outcome: 'hijau', kategori: 'klaim' },
+    klaim_tolak_bendahara: { label: 'Tolak Santunan (Bendahara)', outcome: 'merah', kategori: 'klaim' },
+    klaim_disetujui: { label: 'Setujui Santunan (Ketua)', outcome: 'hijau', kategori: 'klaim' },
+    klaim_ditolak: { label: 'Tolak Santunan (Ketua)', outcome: 'merah', kategori: 'klaim' },
 
     // Keuangan
     pengeluaran_dicatat: { label: 'Catat Pengeluaran', outcome: 'kuning', kategori: 'pengeluaran' },
