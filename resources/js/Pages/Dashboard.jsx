@@ -2,7 +2,7 @@ import AppLayout from '@/Layouts/AppLayout';
 import { Head, Link, usePage } from '@inertiajs/react';
 import {
     Users, PiggyBank, HandCoins, Wallet, TrendingUp, HeartHandshake, Landmark,
-    ClipboardCheck, ShieldCheck, AlertCircle, FileClock, Gauge,
+    ClipboardCheck, FileClock, Gauge,
     ChevronRight,
     HandCoins as PinjamanIcon, CheckCircle2,
 } from 'lucide-react';
@@ -43,20 +43,48 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
         { label: 'Pendapatan Bunga Bulan Ini', value: formatRupiah(stats.pendapatan_bunga_bulan_ini), icon: TrendingUp, tone: 'green' },
     ];
 
-    const actionItems = [
-        { label: 'Tinjau Pinjaman', value: actionable.menunggu_tinjauan_bendahara, icon: ClipboardCheck, href: route('bendahara.pinjaman.index'), urgent: actionable.menunggu_tinjauan_bendahara > 0, permission: 'pinjaman.tinjau-bendahara' },
-        { label: 'Persetujuan Pinjaman', value: actionable.menunggu_approval_ketua, icon: ShieldCheck, href: route('ketua.pinjaman.index'), urgent: actionable.menunggu_approval_ketua > 0, permission: 'pinjaman.approve-ketua' },
-        { label: 'Tinjau Perubahan Tenor', value: actionable.perubahan_tenor_bendahara ?? actionable.perubahan_tenor, icon: FileClock, href: route('bendahara.percepatan.index'), urgent: (actionable.perubahan_tenor_bendahara ?? actionable.perubahan_tenor) > 0, permission: 'pinjaman.tinjau-bendahara' },
-        { label: 'Persetujuan Perubahan Tenor', value: actionable.perubahan_tenor_ketua ?? actionable.perubahan_tenor, icon: FileClock, href: route('ketua.percepatan.index'), urgent: (actionable.perubahan_tenor_ketua ?? actionable.perubahan_tenor) > 0, permission: 'pinjaman.approve-ketua' },
-        { label: 'Aktivasi Anggota', value: actionable.aktivasi_anggota, icon: Users, href: route('ketua.aktivasi.index'), urgent: actionable.aktivasi_anggota > 0, permission: 'aktivasi.approve-ketua' },
-        { label: 'Tinjau Santunan', value: actionable.klaim_bendahara, icon: HeartHandshake, href: route('bendahara.klaim-dana-sosial.index'), urgent: actionable.klaim_bendahara > 0, permission: 'klaim.tinjau-bendahara' },
-        { label: 'Persetujuan Santunan', value: actionable.klaim_ketua, icon: HeartHandshake, href: route('ketua.klaim-dana-sosial.index'), urgent: actionable.klaim_ketua > 0, permission: 'klaim.approve-ketua' },
-        { label: 'Tinjau Limit', value: actionable.pengajuan_limit_bendahara, icon: Gauge, href: route('bendahara.pengajuan-limit.index'), urgent: actionable.pengajuan_limit_bendahara > 0, permission: 'limit.tinjau-bendahara' },
-        { label: 'Pengajuan Limit', value: actionable.pengajuan_limit, icon: Gauge, href: route('ketua.pengajuan-limit.index'), urgent: actionable.pengajuan_limit > 0, permission: 'limit.approve-ketua' },
-        { label: 'Konfirmasi Simpanan', value: actionable.anggota_belum_simpanan, icon: AlertCircle, href: route('bendahara.simpanan.index'), urgent: actionable.anggota_belum_simpanan > 0, permission: 'simpanan.konfirmasi' },
-    ].filter((item) => bisaAkses(item.permission));
+    const grupAksi = [
+        {
+            label: 'Pinjaman', icon: ClipboardCheck,
+            aksi: [
+                { label: 'Verifikasi', value: actionable.menunggu_tinjauan_bendahara, href: route('bendahara.pinjaman.index'), permission: 'pinjaman.tinjau-bendahara' },
+                { label: 'Persetujuan', value: actionable.menunggu_approval_ketua, href: route('ketua.pinjaman.index'), permission: 'pinjaman.approve-ketua' },
+            ],
+        },
+        {
+            label: 'Perubahan Tenor', icon: FileClock,
+            aksi: [
+                { label: 'Verifikasi', value: actionable.perubahan_tenor_bendahara ?? actionable.perubahan_tenor, href: route('bendahara.percepatan.index'), permission: 'pinjaman.tinjau-bendahara' },
+                { label: 'Persetujuan', value: actionable.perubahan_tenor_ketua ?? actionable.perubahan_tenor, href: route('ketua.percepatan.index'), permission: 'pinjaman.approve-ketua' },
+            ],
+        },
+        {
+            label: 'Limit', icon: Gauge,
+            aksi: [
+                { label: 'Verifikasi', value: actionable.pengajuan_limit_bendahara, href: route('bendahara.pengajuan-limit.index'), permission: 'limit.tinjau-bendahara' },
+                { label: 'Persetujuan', value: actionable.pengajuan_limit, href: route('ketua.pengajuan-limit.index'), permission: 'limit.approve-ketua' },
+            ],
+        },
+        {
+            label: 'Santunan', icon: HeartHandshake,
+            aksi: [
+                { label: 'Verifikasi', value: actionable.klaim_bendahara, href: route('bendahara.klaim-dana-sosial.index'), permission: 'klaim.tinjau-bendahara' },
+                { label: 'Persetujuan', value: actionable.klaim_ketua, href: route('ketua.klaim-dana-sosial.index'), permission: 'klaim.approve-ketua' },
+            ],
+        },
+        {
+            label: 'Anggota', icon: Users,
+            aksi: [
+                { label: 'Aktivasi', value: actionable.aktivasi_anggota, href: route('ketua.aktivasi.index'), permission: 'aktivasi.approve-ketua' },
+                { label: 'Simpanan', value: actionable.anggota_belum_simpanan, href: route('bendahara.simpanan.index'), permission: 'simpanan.konfirmasi' },
+            ],
+        },
+    ]
+        .map((g) => ({ ...g, tampil: g.aksi.filter((a) => bisaAkses(a.permission) && a.value > 0) }))
+        .filter((g) => g.tampil.length > 0)
+        .sort((a, b) => b.tampil.reduce((s, a) => s + a.value, 0) - a.tampil.reduce((s, a) => s + a.value, 0));
 
-    const jumlahMenunggu = actionItems.filter((item) => item.value > 0).length;
+    const jumlahMenunggu = grupAksi.length;
 
     return (
         <AppLayout>
@@ -128,57 +156,59 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
 
             <RingkasanKas ringkasan={ringkasanKas} judul="Beban Persetujuan Bulan Ini" />
 
-            {rincianAntrean && (
-                <p className="text-xs text-slate-400 mb-6 -mt-3">
-                    Di luar pinjaman: Limit {rincianAntrean.limit_bendahara + rincianAntrean.limit_ketua} antrean
-                    &bull; Perubahan tenor {rincianAntrean.percepatan_bendahara + rincianAntrean.percepatan_ketua} antrean
-                    &bull; Aktivasi {rincianAntrean.aktivasi} antrean
-                    (hitung jumlah, tidak masuk proyeksi kas).
-                </p>
-            )}
-
             {/* Perlu Ditindaklanjuti */}
             <div className="mb-6">
                 <div className="flex items-center justify-between mb-3">
                     <p className="text-base font-bold text-slate-700">Perlu Ditindaklanjuti</p>
                     <p className="text-xs text-slate-400">
-                        {jumlahMenunggu > 0 ? `${jumlahMenunggu} menunggu aksi • klik untuk ke menu` : 'Semua beres'}
+                        {jumlahMenunggu > 0 ? `${jumlahMenunggu} domain menunggu aksi` : 'Semua beres'}
                     </p>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {actionItems.map((item) => {
-                        const Icon = item.icon;
-                        return (
-                            <Link
-                                key={item.label}
-                                href={item.href}
-                                title={item.label}
-                                className={`relative flex items-center gap-2.5 rounded-xl border px-3.5 py-3 transition-colors ${focusRing} ${
-                                    item.urgent
-                                        ? 'bg-amber-50 border-amber-200 hover:bg-amber-100/70'
-                                        : 'bg-white border-slate-200 hover:bg-slate-50'
-                                }`}
-                            >
-                                {item.urgent && (
+                {grupAksi.length === 0 ? (
+                    <div className="flex items-center gap-3 bg-brand-green-light/40 border border-brand-green/20 rounded-xl px-4 py-3.5">
+                        <CheckCircle2 size={18} aria-hidden="true" className="text-brand-green-dark shrink-0" />
+                        <p className="text-sm font-semibold text-brand-green-dark">Semua antrean sudah ditangani. Tidak ada aksi menunggu.</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {grupAksi.map((grup) => {
+                            const Icon = grup.icon;
+                            const total = grup.tampil.reduce((s, a) => s + a.value, 0);
+                            return (
+                                <div
+                                    key={grup.label}
+                                    className="relative flex items-center gap-2.5 rounded-xl border px-3.5 py-3 bg-amber-50 border-amber-200"
+                                >
                                     <span className="absolute top-2 right-2 flex h-1.5 w-1.5">
                                         <span className="absolute inline-flex h-full w-full animate-ping motion-reduce:hidden rounded-full bg-red-400 opacity-75" />
                                         <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-red-500" />
                                     </span>
-                                )}
-                                <Icon size={18} aria-hidden="true" className={`shrink-0 ${item.urgent ? 'text-amber-600' : 'text-slate-400'}`} />
-                                <div className="min-w-0 flex-1">
-                                    <p className={`text-xl font-bold leading-none ${item.urgent ? 'text-amber-700' : 'text-slate-600'}`}>
-                                        {item.value}
-                                    </p>
-                                    <p className={`text-xs font-medium leading-tight mt-1 ${item.urgent ? 'text-slate-600' : 'text-slate-500'}`}>
-                                        {item.label}
-                                    </p>
+                                    <Icon size={18} aria-hidden="true" className="shrink-0 text-amber-600" />
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-xl font-bold leading-none text-amber-700">
+                                            {total}
+                                        </p>
+                                        <p className="text-xs font-medium leading-tight mt-1 text-slate-600">
+                                            {grup.label}
+                                        </p>
+                                        <div className="flex flex-wrap gap-1.5 mt-2">
+                                            {grup.tampil.map((a) => (
+                                                <Link
+                                                    key={a.label}
+                                                    href={a.href}
+                                                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white border border-amber-200 text-xs font-bold text-amber-700 hover:bg-amber-100 transition-colors ${focusRing}`}
+                                                >
+                                                    {a.label} {a.value}
+                                                    <ChevronRight size={12} aria-hidden="true" />
+                                                </Link>
+                                            ))}
+                                        </div>
+                                    </div>
                                 </div>
-                                <ChevronRight size={16} aria-hidden="true" className={`shrink-0 ${item.urgent ? 'text-amber-600/60' : 'text-slate-400'}`} />
-                            </Link>
-                        );
-                    })}
-                </div>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
