@@ -81,6 +81,7 @@ const AKSI_MAP = {
 
     // Keuangan
     pengeluaran_dicatat: { label: 'Catat Pengeluaran', outcome: 'kuning', kategori: 'pengeluaran' },
+    pinjaman_talangan_kembali: { label: 'Pengembalian Talangan Pinjaman', outcome: 'hijau', kategori: 'pinjaman' },
 
     // Anggota
     anggota_resign: { label: 'Resign Anggota', outcome: 'merah', kategori: 'anggota' },

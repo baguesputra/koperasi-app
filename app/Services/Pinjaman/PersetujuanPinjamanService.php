@@ -80,7 +80,7 @@ class PersetujuanPinjamanService
 
         AuditLog::catat(
             aksi: 'pinjaman_setujui_bendahara',
-            keterangan: "Pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) disetujui oleh Bendahara. Diminta: ".WaPesan::rupiah($pinjaman->nominal_diminta ?? $pinjaman->nominal).", usulan: ".WaPesan::rupiah($nominalFinal)." ({$tenorFinal} bln). Kas operasional saat itu: ".WaPesan::rupiah($kasSaldo).', proyeksi sisa: '.WaPesan::rupiah($kasSaldo - $nominalFinal),
+            keterangan: "Pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) disetujui oleh Bendahara. Diminta: ".WaPesan::rupiah($pinjaman->nominal_diminta ?? $pinjaman->nominal).', usulan: '.WaPesan::rupiah($nominalFinal)." ({$tenorFinal} bln). Kas operasional saat itu: ".WaPesan::rupiah($kasSaldo).', proyeksi sisa: '.WaPesan::rupiah($kasSaldo - $nominalFinal),
             dataLama: ['status' => 'diajukan'],
             dataBaru: ['status' => 'approved_bendahara', 'nominal_disetujui_bendahara' => $nominalFinal, 'tenor_disetujui_bendahara' => $tenorFinal, 'kas_saldo_bendahara' => $kasSaldo, 'catatan_bendahara' => $catatan]
         );
@@ -175,7 +175,8 @@ class PersetujuanPinjamanService
                 now()
             );
         $infoPagu = [];
-        DB::transaction(function () use ($pinjaman, $catatan, $nomorDokumen, $nominalFinal, $tenorFinal, &$kasSebelum, &$infoPagu) {
+        $talangan = [];
+        DB::transaction(function () use ($pinjaman, $catatan, $nomorDokumen, $nominalFinal, $tenorFinal, &$kasSebelum, &$infoPagu, &$talangan) {
             $kas = KasKoperasi::lockForUpdate()->firstOrFail();
             $kasSebelum = $this->jurnalKas->saldoOperasional($kas);
             $infoPagu = $this->jurnalKas->sisaPaguBulan($kas);
@@ -194,6 +195,21 @@ class PersetujuanPinjamanService
                 throw new \RuntimeException(
                     'Pencairan menyisakan kas di bawah cadangan sosial ('.WaPesan::rupiah($infoPagu['cadangan']).'). '
                     .'Sisa bila cair: '.WaPesan::rupiah($kasSebelum - $nominalFinal).'.'
+                );
+            }
+
+            // P1-4: kantong pinjaman boleh ditalangi sosial lalu simpanan.
+            // Guard global di atas sudah jamin sisa ≥ cadangan; di sini hanya
+            // cover defisit fisik kantong pinjaman (hutang, kembali dari angsuran).
+            $defisit = $nominalFinal - (float) $kas->saldo_pinjaman;
+
+            if ($defisit > 0) {
+                $talangan = $this->jurnalKas->talangiPinjaman(
+                    $defisit,
+                    "Talangan pencairan pinjaman - {$pinjaman->anggota->nama}",
+                    $pinjaman->id,
+                    now()->format('Y-m-d'),
+                    auth()->id(),
                 );
             }
 
@@ -231,6 +247,13 @@ class PersetujuanPinjamanService
         $trail = 'Diminta: '.WaPesan::rupiah($pinjaman->nominal_diminta ?? $nominalFinal)
             .($pinjaman->nominal_disetujui_bendahara ? ', Bendahara: '.WaPesan::rupiah($pinjaman->nominal_disetujui_bendahara) : '')
             .', Final: '.WaPesan::rupiah($nominalFinal);
+
+        if ($talangan) {
+            $trail .= ', Talangan: '.implode(' + ', array_map(
+                fn ($t) => (JurnalKasService::KANTONG_LABEL[$t['kantong']] ?? $t['kantong']).' '.WaPesan::rupiah($t['jumlah']),
+                $talangan
+            ));
+        }
 
         AuditLog::catat(
             aksi: $aksi,
@@ -287,7 +310,7 @@ class PersetujuanPinjamanService
         $isi = "Dengan hormat,\n\nMohon maaf, pengajuan pinjaman Anda dengan rincian berikut:\n\n"
             ."- Nomor Referensi: #{$pinjaman->id}\n"
             .'- Nominal diminta: '.WaPesan::rupiah($pinjaman->nominal_diminta ?? $pinjaman->nominal)."\n"
-            ."- Tenor diminta: ".($pinjaman->tenor_diminta ?? $pinjaman->tenor_bulan)." bulan\n\n"
+            .'- Tenor diminta: '.($pinjaman->tenor_diminta ?? $pinjaman->tenor_bulan)." bulan\n\n"
             ."telah *DITOLAK* oleh {$oleh}."
             .($catatan ? "\n\nCatatan: {$catatan}" : '')
             ."\n\nApabila terdapat pertanyaan lebih lanjut, silakan menghubungi pengurus atau Bendahara Koperasi.";

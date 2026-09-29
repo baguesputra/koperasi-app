@@ -9,6 +9,8 @@ use App\Models\AuditLog;
 use App\Models\PengajuanPercepatan;
 use App\Models\Pengeluaran;
 use App\Models\Pinjaman;
+use App\Models\SettingSimpanan;
+use App\Services\Keuangan\JurnalKasService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -37,6 +39,13 @@ class LaporanRegistry
         'simpanan_wajib_masuk' => 'Simpanan Wajib Masuk',
         'transfer_ke_dana_pinjaman' => 'Transfer ke Dana Pinjaman',
         'terima_dari_pengembalian_simpanan' => 'Terima dari Pengembalian Simpanan',
+        'talangan_sosial_ke_pinjaman' => 'Talangan Sosial ke Pinjaman',
+        'talangan_simpanan_ke_pinjaman' => 'Talangan Simpanan ke Pinjaman',
+        'terima_talangan_dari_sosial' => 'Terima Talangan dari Sosial',
+        'terima_talangan_dari_simpanan' => 'Terima Talangan dari Simpanan',
+        'kembali_talangan_dari_pinjaman' => 'Pengembalian Talangan dari Pinjaman',
+        'kembali_talangan_ke_simpanan' => 'Pengembalian Talangan ke Simpanan',
+        'kembali_talangan_ke_sosial' => 'Pengembalian Talangan ke Sosial',
     ];
 
     public const STATUS_PINJAMAN = [
@@ -154,7 +163,7 @@ class LaporanRegistry
                     $baris('Saldo akhir periode (awal + bersih)', $akhir, 'subtotal');
 
                     $bagian('E. Pagu pinjaman bulan berjalan');
-                    $paguInfo = app(\App\Services\Keuangan\JurnalKasService::class)->sisaPaguBulan();
+                    $paguInfo = app(JurnalKasService::class)->sisaPaguBulan();
                     $baris('Pagu pinjaman bulanan', $paguInfo['pagu']);
                     $baris('Sudah dicairkan bulan ini', $paguInfo['sudah_cair']);
                     $baris('Cadangan sosial (tidak boleh dipakai)', $paguInfo['cadangan']);
@@ -603,12 +612,32 @@ class LaporanRegistry
                         ->selectRaw("SUM(CASE WHEN tipe='masuk' THEN jumlah ELSE -jumlah END) as sisa")
                         ->value('sisa');
 
+                    // P1-4: pisahkan keluar santunan vs keluar pinjaman (talangan).
+                    $keluar = fn (array $kategori) => (float) DB::table('jurnal_kas')
+                        ->where('kantong', 'dana_sosial')->where('tipe', 'keluar')
+                        ->whereIn('kategori', $kategori)
+                        ->whereBetween('tanggal', [$dari, $sampai])
+                        ->sum('jumlah');
+
+                    $santunan = $keluar(['pengeluaran_dana_sosial']);
+                    $pinjaman = $keluar(['talangan_sosial_ke_pinjaman']);
+                    $kembali = (float) DB::table('jurnal_kas')
+                        ->where('kantong', 'dana_sosial')->where('tipe', 'masuk')
+                        ->where('kategori', 'kembali_talangan_ke_sosial')
+                        ->whereBetween('tanggal', [$dari, $sampai])
+                        ->sum('jumlah');
+
                     return self::hasil(
                         ['Tanggal', 'Kategori', 'Keterangan', 'Masuk', 'Keluar'],
                         [3, 4],
                         $rows,
                         [null, null, 'TOTAL PERIODE', array_sum(array_column($rows, 3)), array_sum(array_column($rows, 4))],
-                        ringkasan: [['Sisa Dana Sosial s/d akhir periode', self::rupiah($sisaSampaiCutoff)]]
+                        ringkasan: [
+                            ['Santunan tersalurkan (periode)', self::rupiah($santunan)],
+                            ['Pinjaman tertalangi (periode)', self::rupiah($pinjaman)],
+                            ['Talangan kembali (periode)', self::rupiah($kembali)],
+                            ['Sisa Dana Sosial s/d akhir periode', self::rupiah($sisaSampaiCutoff)],
+                        ]
                     );
                 },
             ],
@@ -653,8 +682,8 @@ class LaporanRegistry
                         ->get()
                         ->groupBy(fn ($a) => $a->pengajuan->pinjaman->anggota_id);
 
-                    $tagihanWajib = (float) (\App\Models\SettingSimpanan::where('jenis', 'wajib')->value('nominal') ?? 45_000);
-                    $tagihanSosial = (float) (\App\Models\SettingSimpanan::where('jenis', 'dana_sosial')->value('nominal') ?? 5_000);
+                    $tagihanWajib = (float) (SettingSimpanan::where('jenis', 'wajib')->value('nominal') ?? 45_000);
+                    $tagihanSosial = (float) (SettingSimpanan::where('jenis', 'dana_sosial')->value('nominal') ?? 5_000);
 
                     $rows = [];
                     foreach ($daftar as $i => $a) {

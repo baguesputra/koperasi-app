@@ -31,6 +31,13 @@ const kategoriLabel = {
     simpanan_wajib_masuk: 'Simpanan Wajib Masuk',
     transfer_ke_dana_pinjaman: 'Transfer ke Dana Pinjaman',
     terima_dari_pengembalian_simpanan: 'Terima dari Pengembalian Simpanan',
+    talangan_sosial_ke_pinjaman: 'Talangan Sosial ke Pinjaman',
+    talangan_simpanan_ke_pinjaman: 'Talangan Simpanan ke Pinjaman',
+    terima_talangan_dari_sosial: 'Terima Talangan dari Sosial',
+    terima_talangan_dari_simpanan: 'Terima Talangan dari Simpanan',
+    kembali_talangan_dari_pinjaman: 'Pengembalian Talangan dari Pinjaman',
+    kembali_talangan_ke_simpanan: 'Pengembalian Talangan ke Simpanan',
+    kembali_talangan_ke_sosial: 'Pengembalian Talangan ke Sosial',
 };
 
 const kantongLabel = {

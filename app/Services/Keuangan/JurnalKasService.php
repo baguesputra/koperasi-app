@@ -4,6 +4,7 @@ namespace App\Services\Keuangan;
 
 use App\Models\JurnalKas;
 use App\Models\KasKoperasi;
+use App\Models\SettingKas;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -100,6 +101,9 @@ class JurnalKasService
      * Transfer saldo antar-kantong dalam 1 transaksi atomic.
      * Mencatat 2 jurnal: keluar dari kantongAsal + masuk ke kantongTujuan.
      * Saldo_koperasi di-lock supaya konsisten.
+     *
+     * Dipanggil dari dalam transaksi induk (mis. cairkan) maupun mandiri:
+     * deteksi level transaksi aktif agar tidak nested transaction error.
      */
     public function transferAntarKantong(
         string $kantongAsal,
@@ -113,68 +117,231 @@ class JurnalKasService
         ?string $kategoriKeluar = 'transfer_ke_dana_pinjaman',
         ?string $kategoriMasuk = 'terima_dari_pengembalian_simpanan'
     ): array {
-        return DB::transaction(function () use ($kantongAsal, $kantongTujuan, $jumlah, $keterangan, $referensiId, $tanggal, $userId, $subJudul, $kategoriKeluar, $kategoriMasuk) {
-            if (! isset(self::KANTONG_SALDO[$kantongAsal]) || ! isset(self::KANTONG_SALDO[$kantongTujuan])) {
-                throw new RuntimeException('Kantong asal atau tujuan tidak dikenal.');
-            }
+        $kerja = fn () => $this->prosesTransfer($kantongAsal, $kantongTujuan, $jumlah, $keterangan, $referensiId, $tanggal, $userId, $subJudul, $kategoriKeluar, $kategoriMasuk);
 
-            if ($kantongAsal === $kantongTujuan) {
-                throw new RuntimeException('Kantong asal dan tujuan tidak boleh sama.');
+        // Sudah di dalam transaksi induk (cairkan): gabung, jangan nested.
+        if (DB::transactionLevel() > 0) {
+            return $kerja();
+        }
+
+        return DB::transaction($kerja);
+    }
+
+    private function prosesTransfer(
+        string $kantongAsal,
+        string $kantongTujuan,
+        float $jumlah,
+        string $keterangan,
+        ?int $referensiId,
+        string $tanggal,
+        int $userId,
+        ?string $subJudul,
+        ?string $kategoriKeluar,
+        ?string $kategoriMasuk
+    ): array {
+        if (! isset(self::KANTONG_SALDO[$kantongAsal]) || ! isset(self::KANTONG_SALDO[$kantongTujuan])) {
+            throw new RuntimeException('Kantong asal atau tujuan tidak dikenal.');
+        }
+
+        if ($kantongAsal === $kantongTujuan) {
+            throw new RuntimeException('Kantong asal dan tujuan tidak boleh sama.');
+        }
+
+        $kas = KasKoperasi::lockForUpdate()->firstOrFail();
+
+        $kolomAsal = self::KANTONG_SALDO[$kantongAsal];
+        $kolomTujuan = self::KANTONG_SALDO[$kantongTujuan];
+
+        if ((float) $kas->{$kolomAsal} < $jumlah) {
+            $labelAsal = self::KANTONG_LABEL[$kantongAsal];
+            throw new RuntimeException(
+                "Saldo {$labelAsal} tidak cukup untuk transfer. Saldo saat ini: Rp ".number_format((float) $kas->{$kolomAsal}, 0, ',', '.')
+            );
+        }
+
+        // Update kedua saldo
+        $kas->decrement($kolomAsal, $jumlah);
+        $kas->increment($kolomTujuan, $jumlah);
+        $kas->refresh();
+
+        $saldoAsalSetelah = (float) $kas->{$kolomAsal};
+        $saldoTujuanSetelah = (float) $kas->{$kolomTujuan};
+
+        // Jurnal keluar dari kantong asal
+        $jurnalKeluar = JurnalKas::create([
+            'tipe' => 'keluar',
+            'kategori' => $kategoriKeluar,
+            'kantong' => $kantongAsal,
+            'jumlah' => $jumlah,
+            'saldo_setelah' => $saldoAsalSetelah,
+            'keterangan' => $keterangan,
+            'sub_judul' => $subJudul,
+            'referensi_id' => $referensiId,
+            'tanggal' => $tanggal,
+            'created_by' => $userId,
+        ]);
+
+        // Jurnal masuk ke kantong tujuan
+        $jurnalMasuk = JurnalKas::create([
+            'tipe' => 'masuk',
+            'kategori' => $kategoriMasuk,
+            'kantong' => $kantongTujuan,
+            'jumlah' => $jumlah,
+            'saldo_setelah' => $saldoTujuanSetelah,
+            'keterangan' => $keterangan,
+            'sub_judul' => $subJudul,
+            'referensi_id' => $referensiId,
+            'tanggal' => $tanggal,
+            'created_by' => $userId,
+        ]);
+
+        return [
+            'keluar' => $jurnalKeluar,
+            'masuk' => $jurnalMasuk,
+        ];
+    }
+
+    /**
+     * Kategori jurnal talangan & pengembaliannya.
+     * Talangan = hutang kantong pinjaman ke sosial/simpanan, wajib dikembalikan
+     * dari angsuran (prioritas simpanan, lalu sosial). Hak simpanan anggota
+     * di tabel `simpanan` tidak tersentuh — yang bergerak hanya kas.
+     */
+    public const KATEGORI_TALANGAN = [
+        'dana_sosial' => 'talangan_sosial_ke_pinjaman',
+        'simpanan' => 'talangan_simpanan_ke_pinjaman',
+    ];
+
+    public const KATEGORI_TALANGAN_MASUK = [
+        'dana_sosial' => 'terima_talangan_dari_sosial',
+        'simpanan' => 'terima_talangan_dari_simpanan',
+    ];
+
+    public const KATEGORI_KEMBALI_KELUAR = 'kembali_talangan_dari_pinjaman';
+
+    public const KATEGORI_KEMBALI = [
+        'simpanan' => 'kembali_talangan_ke_simpanan',
+        'dana_sosial' => 'kembali_talangan_ke_sosial',
+    ];
+
+    /**
+     * Cover defisit kantong pinjaman dari sosial lalu simpanan.
+     * Wajib dipanggil di dalam transaksi induk yang sudah lock kas
+     * (mis. cairkan) agar atomic dengan pencairan.
+     *
+     * @return array[] rincian ['kantong' => ..., 'jumlah' => ...]
+     */
+    public function talangiPinjaman(float $defisit, string $keterangan, ?int $referensiId, string $tanggal, int $userId): array
+    {
+        $rincian = [];
+
+        foreach (['dana_sosial', 'simpanan'] as $sumber) {
+            if ($defisit <= 0) {
+                break;
             }
 
             $kas = KasKoperasi::lockForUpdate()->firstOrFail();
+            $kolom = self::KANTONG_SALDO[$sumber];
+            $ambil = min((float) $kas->{$kolom}, $defisit);
 
-            $kolomAsal = self::KANTONG_SALDO[$kantongAsal];
-            $kolomTujuan = self::KANTONG_SALDO[$kantongTujuan];
-
-            if ((float) $kas->{$kolomAsal} < $jumlah) {
-                $labelAsal = self::KANTONG_LABEL[$kantongAsal];
-                throw new RuntimeException(
-                    "Saldo {$labelAsal} tidak cukup untuk transfer. Saldo saat ini: Rp ".number_format((float) $kas->{$kolomAsal}, 0, ',', '.')
-                );
+            if ($ambil <= 0) {
+                continue;
             }
 
-            // Update kedua saldo
-            $kas->decrement($kolomAsal, $jumlah);
-            $kas->increment($kolomTujuan, $jumlah);
-            $kas->refresh();
+            $this->transferAntarKantong(
+                $sumber,
+                'pinjaman',
+                $ambil,
+                $keterangan,
+                $referensiId,
+                $tanggal,
+                $userId,
+                'Talangan, dikembalikan dari angsuran',
+                self::KATEGORI_TALANGAN[$sumber],
+                self::KATEGORI_TALANGAN_MASUK[$sumber],
+            );
 
-            $saldoAsalSetelah = (float) $kas->{$kolomAsal};
-            $saldoTujuanSetelah = (float) $kas->{$kolomTujuan};
+            $rincian[] = ['kantong' => $sumber, 'jumlah' => $ambil];
+            $defisit -= $ambil;
+        }
 
-            // Jurnal keluar dari kantong asal
-            $jurnalKeluar = JurnalKas::create([
-                'tipe' => 'keluar',
-                'kategori' => $kategoriKeluar,
-                'kantong' => $kantongAsal,
-                'jumlah' => $jumlah,
-                'saldo_setelah' => $saldoAsalSetelah,
-                'keterangan' => $keterangan,
-                'sub_judul' => $subJudul,
-                'referensi_id' => $referensiId,
-                'tanggal' => $tanggal,
-                'created_by' => $userId,
-            ]);
+        if ($defisit > 0) {
+            throw new RuntimeException(
+                'Dana talangan tidak mencukupi. Kurang: Rp '.number_format($defisit, 0, ',', '.')
+            );
+        }
 
-            // Jurnal masuk ke kantong tujuan
-            $jurnalMasuk = JurnalKas::create([
-                'tipe' => 'masuk',
-                'kategori' => $kategoriMasuk,
-                'kantong' => $kantongTujuan,
-                'jumlah' => $jumlah,
-                'saldo_setelah' => $saldoTujuanSetelah,
-                'keterangan' => $keterangan,
-                'sub_judul' => $subJudul,
-                'referensi_id' => $referensiId,
-                'tanggal' => $tanggal,
-                'created_by' => $userId,
-            ]);
+        return $rincian;
+    }
 
-            return [
-                'keluar' => $jurnalKeluar,
-                'masuk' => $jurnalMasuk,
-            ];
-        });
+    /**
+     * Utang talangan terbuka per kantong sumber = total talangan keluar
+     * dikurangi total pengembalian masuk. Dihitung dari jurnal (bukan state
+     * memory) agar tidak miss bila proses terputus di tengah.
+     *
+     * @return array{dana_sosial: float, simpanan: float}
+     */
+    public function utangTalanganTerbuka(): array
+    {
+        $keluar = JurnalKas::whereIn('kategori', array_values(self::KATEGORI_TALANGAN))
+            ->selectRaw('kantong, SUM(jumlah) as total')
+            ->groupBy('kantong')
+            ->pluck('total', 'kantong');
+
+        $masuk = JurnalKas::whereIn('kategori', array_values(self::KATEGORI_KEMBALI))
+            ->selectRaw('kantong, SUM(jumlah) as total')
+            ->groupBy('kantong')
+            ->pluck('total', 'kantong');
+
+        return [
+            'dana_sosial' => max(0.0, (float) ($keluar['dana_sosial'] ?? 0) - (float) ($masuk['dana_sosial'] ?? 0)),
+            'simpanan' => max(0.0, (float) ($keluar['simpanan'] ?? 0) - (float) ($masuk['simpanan'] ?? 0)),
+        ];
+    }
+
+    /**
+     * Kembalikan talangan dari kas pinjaman ke simpanan dulu lalu sosial,
+     * sebesar min(utang terbuka, saldo pinjaman tersedia). Idempoten:
+     * tanpa utang terbuka = no-op. Dipanggil setelah jurnal angsuran masuk
+     * agar urutan jurnal kronologis benar.
+     *
+     * @return array[] rincian ['kantong' => ..., 'jumlah' => ...]
+     */
+    public function kembalikanTalangan(string $keterangan, ?int $referensiId, string $tanggal, int $userId): array
+    {
+        $rincian = [];
+
+        foreach (['simpanan', 'dana_sosial'] as $tujuan) {
+            $utang = $this->utangTalanganTerbuka()[$tujuan] ?? 0.0;
+
+            if ($utang <= 0) {
+                continue;
+            }
+
+            $kas = KasKoperasi::lockForUpdate()->firstOrFail();
+            $kembali = min($utang, (float) $kas->saldo_pinjaman);
+
+            if ($kembali <= 0) {
+                continue;
+            }
+
+            $this->transferAntarKantong(
+                'pinjaman',
+                $tujuan,
+                $kembali,
+                $keterangan,
+                $referensiId,
+                $tanggal,
+                $userId,
+                'Pengembalian talangan dari angsuran',
+                self::KATEGORI_KEMBALI_KELUAR,
+                self::KATEGORI_KEMBALI[$tujuan],
+            );
+
+            $rincian[] = ['kantong' => $tujuan, 'jumlah' => $kembali];
+        }
+
+        return $rincian;
     }
 
     /**
@@ -203,11 +370,11 @@ class JurnalKasService
 
         $saldo = $this->saldoOperasional($kas);
         $cadangan = $this->nilaiSettingKas(
-            \App\Models\SettingKas::CADANGAN,
+            SettingKas::CADANGAN,
             (float) config('koperasi.cadangan_sosial_bulan', 5_000_000)
         );
         $pagu = $this->nilaiSettingKas(
-            \App\Models\SettingKas::PAGU,
+            SettingKas::PAGU,
             (float) config('koperasi.pagu_pinjaman_bulanan', 50_000_000)
         );
 
@@ -270,7 +437,7 @@ class JurnalKasService
     private function nilaiSettingKas(string $kunci, float $default): float
     {
         try {
-            return \App\Models\SettingKas::nilai($kunci, $default);
+            return SettingKas::nilai($kunci, $default);
         } catch (\Throwable) {
             // Tabel belum termigrasi (mis. environment lama): pakai default config.
             return $default;

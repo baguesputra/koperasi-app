@@ -6,6 +6,7 @@ use App\Jobs\KirimWaJob;
 use App\Models\JurnalKas;
 use App\Models\KasKoperasi;
 use App\Models\Pinjaman;
+use App\Services\Keuangan\JurnalKasService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\Concerns\MembuatDataUji;
@@ -144,7 +145,7 @@ class PinjamanApprovalTest extends TestCase
         $this->assertEquals(5_000_000, (float) $pinjaman->nominal_diminta);
         $this->assertSame(12, (int) $pinjaman->tenor_diminta);
 
-        $kasAwal = app(\App\Services\Keuangan\JurnalKasService::class)->saldoOperasional();
+        $kasAwal = app(JurnalKasService::class)->saldoOperasional();
         $kantongAwal = (float) KasKoperasi::first()->saldo_pinjaman;
 
         // Bendahara turunkan ke 4jt, tenor ikut auto-clamp bila perlu
@@ -159,7 +160,7 @@ class PinjamanApprovalTest extends TestCase
         $this->assertEquals(4_000_000, (float) $pinjaman->nominal_disetujui_bendahara);
         $this->assertEquals($kasAwal, (float) $pinjaman->kas_saldo_bendahara);
         // Kas belum berkurang di tahap bendahara
-        $this->assertEquals($kasAwal, app(\App\Services\Keuangan\JurnalKasService::class)->saldoOperasional());
+        $this->assertEquals($kasAwal, app(JurnalKasService::class)->saldoOperasional());
 
         // Ketua naikkan lagi ke 4.5jt → cair final
         $this->masuk('KET-000001');
@@ -173,7 +174,7 @@ class PinjamanApprovalTest extends TestCase
         $this->assertEquals(4_500_000, (float) $pinjaman->nominal);
         $this->assertEquals(4_500_000, (float) $pinjaman->nominal_disetujui);
         $this->assertEquals($kantongAwal - 4_500_000, (float) KasKoperasi::first()->saldo_pinjaman);
-        $this->assertEquals($kasAwal - 4_500_000, app(\App\Services\Keuangan\JurnalKasService::class)->saldoOperasional());
+        $this->assertEquals($kasAwal - 4_500_000, app(JurnalKasService::class)->saldoOperasional());
         $this->assertEquals($kasAwal, (float) $pinjaman->kas_saldo_ketua);
         $this->assertEquals($kasAwal - 4_500_000, (float) $pinjaman->kas_sisa_ketua);
         // Jejak diminta awet
@@ -198,7 +199,7 @@ class PinjamanApprovalTest extends TestCase
         $this->assertSame('diajukan', $pinjaman->refresh()->status);
     }
 
-    public function test_ketua_approve_gagal_bila_saldo_kantong_tidak_cukup(): void
+    public function test_ketua_approve_tertolong_talangan_bila_saldo_kantong_tidak_cukup(): void
     {
         Queue::fake();
         KasKoperasi::first()->update(['saldo_pinjaman' => 500_000]);
@@ -211,14 +212,13 @@ class PinjamanApprovalTest extends TestCase
         $this->masuk('BEN-000001');
         $this->post(route('bendahara.pinjaman.approve', $pinjaman), ['catatan' => 'Dokumen lengkap, layak cair.', 'nominal' => 1_000_000])->assertRedirect();
 
+        // P1-4: defisit kantong pinjaman ditalangi sosial/simpanan → cair tetap jalan.
         $this->masuk('KET-000001');
-        $response = $this->post(route('ketua.pinjaman.approve', $pinjaman), ['catatan' => 'Cairkan.', 'nominal' => 1_000_000]);
-        $response->assertSessionHasErrors();
+        $this->post(route('ketua.pinjaman.approve', $pinjaman), ['catatan' => 'Cairkan.', 'nominal' => 1_000_000])->assertRedirect();
 
-        // Transaksi rollback: status tetap menunggu ketua, tidak ada jadwal/jurnal
-        $this->assertSame('approved_bendahara', $pinjaman->refresh()->status);
-        $this->assertSame(0, $pinjaman->angsuran()->count());
-        $this->assertSame(0, JurnalKas::where('kategori', 'pencairan_pinjaman')->where('referensi_id', $pinjaman->id)->count());
+        $this->assertSame('aktif', $pinjaman->refresh()->status);
+        $this->assertSame(1, JurnalKas::where('kategori', 'pencairan_pinjaman')->where('referensi_id', $pinjaman->id)->count());
+        $this->assertEquals(500_000, (float) JurnalKas::whereIn('kategori', ['talangan_sosial_ke_pinjaman', 'talangan_simpanan_ke_pinjaman'])->sum('jumlah'));
     }
 
     public function test_ringkasan_kas_agregat_di_halaman_approval(): void
@@ -231,7 +231,7 @@ class PinjamanApprovalTest extends TestCase
         $this->actingAs($a2->user);
         $this->ajukanPortal($a2, ['nominal' => 3_000_000, 'tenor_bulan' => 6])->assertStatus(302);
 
-        $saldo = app(\App\Services\Keuangan\JurnalKasService::class)->saldoOperasional();
+        $saldo = app(JurnalKasService::class)->saldoOperasional();
 
         $ukurBendahara = function () {
             $this->masuk('BEN-000001');

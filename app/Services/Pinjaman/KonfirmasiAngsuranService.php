@@ -45,6 +45,29 @@ class KonfirmasiAngsuranService
                         referensiId: $angsuran->id, tanggal: now()->format('Y-m-d'), userId: $confirmedByUserId,
                     );
 
+                    // P1-4: angsuran masuk pinjaman dipakai kembalikan talangan dulu
+                    // (simpanan lalu sosial); sisa tetap di pinjaman. Idempoten:
+                    // tanpa utang terbuka = no-op.
+                    $kembali = $this->jurnalKas->kembalikanTalangan(
+                        "Pengembalian talangan dari angsuran - {$angsuran->pinjaman->anggota->nama}",
+                        $angsuran->id,
+                        now()->format('Y-m-d'),
+                        $confirmedByUserId,
+                    );
+
+                    if ($kembali) {
+                        AuditLog::catat(
+                            'pinjaman_talangan_kembali',
+                            'Pengembalian talangan '.implode(' + ', array_map(
+                                fn ($t) => $t['kantong'].' Rp '.number_format($t['jumlah'], 0, ',', '.'),
+                                $kembali
+                            ))." dari angsuran ke-{$angsuran->cicilan_ke} ({$angsuran->pinjaman->anggota->nama})",
+                            null,
+                            ['angsuran_id' => $angsuran->id, 'kembali' => $kembali],
+                            $confirmedByUserId,
+                        );
+                    }
+
                     $this->tandaiLunasJikaSelesai($angsuran->pinjaman);
                     app(ResignService::class)->finalisasiJikaMenunggu($angsuran, $confirmedByUserId);
                     $jumlah++;
