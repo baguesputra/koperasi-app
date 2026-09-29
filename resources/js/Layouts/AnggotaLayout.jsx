@@ -1,6 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import { useState, useRef, useEffect } from 'react';
-import { User, LogOut, ChevronDown, Home, History, FilePlus, Info } from 'lucide-react';
+import { User, LogOut, ChevronDown, Home, History, Plus, HeartHandshake, Info } from 'lucide-react';
 import Panduan from '@/Pages/Portal/Panduan';
 
 export default function AnggotaLayout({ children }) {
@@ -35,18 +35,44 @@ export default function AnggotaLayout({ children }) {
 
     const isCurrentRoute = (name) => route().current(name);
 
+    function TabItem({ href, active, icon: Icon, label }) {
+        return (
+            <Link
+                href={href}
+                className={`flex flex-col items-center justify-center gap-1 min-h-[56px] py-2 text-[11px] font-semibold transition-colors ${
+                    active ? 'text-brand-green' : 'text-slate-500 hover:text-slate-700'
+                }`}
+            >
+                <Icon size={21} />
+                <span className="leading-none">{label}</span>
+            </Link>
+        );
+    }
+
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col pb-16 sm:pb-0">
+        <div className="min-h-screen bg-slate-50 flex flex-col">
             <header className="sticky top-0 z-50 bg-white border-b-2 border-brand-navy pt-[env(safe-area-inset-top)]">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
                     <div className="flex items-center gap-3 sm:gap-5">
                         <Link href={route('portal.dashboard')} className="flex items-center gap-2.5">
-                            <img src="/images/logo.png" alt="Koperasi App" className="w-8 h-8" />
-                            <span className="font-bold text-base text-slate-800">Koperasi App</span>
+                            <img src="/images/logo.png" alt="Koperasi App" className="w-7 h-7 sm:w-8 sm:h-8" />
+                            <span className="font-bold text-sm sm:text-base text-slate-800">Koperasi App</span>
                         </Link>
                     </div>
 
-                    <div className="relative" ref={dropdownRef}>
+                    <div className="flex items-center gap-1">
+                        {anggotaAktif && (
+                            <button
+                                type="button"
+                                onClick={() => setShowPanduan(true)}
+                                aria-label="Tata cara"
+                                title="Tata cara"
+                                className="w-10 h-10 rounded-full text-slate-500 hover:text-brand-navy hover:bg-slate-100 transition-colors flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2"
+                            >
+                                <Info size={20} />
+                            </button>
+                        )}
+                        <div className="relative" ref={dropdownRef}>
                         <button
                             onClick={() => setDropdownOpen(!dropdownOpen)}
                             className="flex items-center gap-2 min-h-[44px] min-w-[44px] pl-1 pr-2 py-1 rounded-full hover:bg-slate-100 transition-colors"
@@ -97,75 +123,39 @@ export default function AnggotaLayout({ children }) {
                                 </form>
                             </div>
                         )}
+                        </div>
                     </div>
                 </div>
             </header>
 
-            <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8">
-                {children}
+            <main className="flex-1 w-full max-w-7xl sm:mx-auto px-4 sm:px-6 pt-5 sm:py-8 pb-32 sm:pb-8">
+                <div className="mx-auto w-full max-w-lg sm:max-w-none">
+                    {children}
+                </div>
             </main>
 
-            {/* Mobile Bottom Navigation Bar */}
             {anggotaAktif && (
-            <nav className="sm:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-slate-200 pb-[env(safe-area-inset-bottom)] shadow-lg">
-                <div className="grid grid-cols-4 h-16">
-                    <Link
-                        href={route('portal.dashboard')}
-                        className={`flex flex-col items-center justify-center gap-1 text-xs font-semibold ${
-                            isCurrentRoute('portal.dashboard') ? 'text-brand-green' : 'text-slate-500 hover:text-slate-700'
-                        }`}
-                    >
-                        <Home size={20} />
-                        <span>Beranda</span>
-                    </Link>
-
-                    <Link
-                        href={route('portal.pinjaman.create')}
-                        className={`flex flex-col items-center justify-center gap-1 text-xs font-semibold ${
-                            isCurrentRoute('portal.pinjaman.create') ? 'text-brand-green' : 'text-slate-500 hover:text-slate-700'
-                        }`}
-                    >
-                        <FilePlus size={20} />
-                        <span>Ajukan</span>
-                    </Link>
-
-                    <Link
-                        href={route('portal.riwayat')}
-                        className={`flex flex-col items-center justify-center gap-1 text-xs font-semibold ${
-                            isCurrentRoute('portal.riwayat') ? 'text-brand-green' : 'text-slate-500 hover:text-slate-700'
-                        }`}
-                    >
-                        <History size={20} />
-                        <span>Riwayat</span>
-                    </Link>
-
-                    <Link
-                        href={route('portal.profil')}
-                        className={`flex flex-col items-center justify-center gap-1 text-xs font-semibold ${
-                            isCurrentRoute('portal.profil') ? 'text-brand-green' : 'text-slate-500 hover:text-slate-700'
-                        }`}
-                    >
-                        <User size={20} />
-                        <span>Profil</span>
-                    </Link>
+            <nav aria-label="Navigasi utama" className="sm:hidden fixed bottom-0 inset-x-0 z-50 overflow-visible" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+                <div className="relative overflow-visible bg-white border-t border-slate-200 shadow-[0_-4px_24px_rgba(15,30,54,0.08)]">
+                    <div className="grid grid-cols-5 items-end px-2 pt-1 pb-1 overflow-visible">
+                        <TabItem href={route('portal.dashboard')} active={isCurrentRoute('portal.dashboard')} icon={Home} label="Beranda" />
+                        <TabItem href={route('portal.riwayat')} active={isCurrentRoute('portal.riwayat')} icon={History} label="Riwayat" />
+                        <div className="flex justify-center overflow-visible">
+                            <Link
+                                href={route('portal.pinjaman.create')}
+                                aria-label="Ajukan pinjaman"
+                                className="-mt-10 w-[68px] h-[68px] rounded-full text-white flex flex-col items-center justify-center gap-0.5 shadow-[0_10px_24px_rgba(31,162,76,0.5)] ring-4 ring-white hover:brightness-95 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2"
+                                style={{ backgroundColor: '#1FA24C' }}
+                            >
+                                <Plus size={28} strokeWidth={2.6} color="#ffffff" />
+                                <span className="text-[10px] font-bold leading-none text-white">Ajukan</span>
+                            </Link>
+                        </div>
+                        <TabItem href={route('portal.klaim-dana-sosial.create')} active={isCurrentRoute('portal.klaim-dana-sosial.create')} icon={HeartHandshake} label="Santunan" />
+                        <TabItem href={route('portal.profil')} active={isCurrentRoute('portal.profil')} icon={User} label="Profil" />
+                    </div>
                 </div>
             </nav>
-            )}
-
-            {anggotaAktif && !showPanduan && (
-                <button
-                    type="button"
-                    onClick={() => setShowPanduan(true)}
-                    aria-label="Tata cara"
-                    title="Tata cara"
-                    className={`fixed right-4 sm:right-6 z-50 w-[52px] h-[52px] rounded-full bg-brand-navy text-white shadow-lg flex items-center justify-center hover:bg-brand-navy-light transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 ${
-                        isCurrentRoute('portal.pinjaman.create') || isCurrentRoute('portal.percepatan.create') || isCurrentRoute('portal.pengajuan-limit.create')
-                            ? 'bottom-[calc(10.5rem+env(safe-area-inset-bottom))] sm:bottom-8'
-                            : 'bottom-[calc(5rem+env(safe-area-inset-bottom))] sm:bottom-8'
-                    }`}
-                >
-                    <Info size={22} />
-                </button>
             )}
 
             {anggotaAktif && showPanduan && <Panduan onClose={() => setShowPanduan(false)} />}

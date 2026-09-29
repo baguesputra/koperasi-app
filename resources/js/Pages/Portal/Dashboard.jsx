@@ -15,8 +15,11 @@ import {
     ShieldCheck,
     Percent,
     Repeat,
+    Eye,
+    EyeOff,
 } from 'lucide-react';
 import { formatRupiah } from '@/Utils/formatCurrency';
+import Nominal, { usePrivasiNominal } from '@/Components/ui/Nominal';
 
 const statusPengajuanLabel = {
     diajukan: {
@@ -46,16 +49,16 @@ function StatCard({ icon: Icon, tone, label, value, caption }) {
     };
 
     return (
-        <div className="bg-white rounded-xl border border-slate-100 p-4">
+        <div className="bg-white rounded-xl border border-slate-100 p-4 snap-start shrink-0 w-[82%] sm:w-auto sm:shrink">
             <div className="flex items-center gap-3">
                 <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${tones[tone]}`}>
                     <Icon size={18} />
                 </div>
 
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                     <p className="text-xs text-slate-500">{label}</p>
 
-                    <p className="text-lg font-bold text-slate-800 leading-tight truncate">
+                    <p className="text-base sm:text-lg font-bold text-slate-800 leading-tight tabular-nums break-words">
                         {value}
                     </p>
                 </div>
@@ -83,6 +86,35 @@ function StatusStrip({ dark = false, children }) {
                 {children}
             </span>
         </div>
+    );
+}
+
+function CaptionLimitBerjalan({ pengajuan, tampil, limitMaksimal }) {
+    if (!pengajuan) {
+        return (
+            <span>
+                dari limit <Nominal nilai={limitMaksimal} tampil={tampil} />
+            </span>
+        );
+    }
+
+    const isKetua = pengajuan.status === 'approved_bendahara';
+
+    return (
+        <span className="inline-flex items-center gap-1.5 text-amber-700 font-medium">
+            <Clock size={12} />
+            <span>
+                {isKetua ? 'Menunggu Ketua (' : 'Menunggu Bendahara ('}
+                <Nominal nilai={pengajuan.limit_diminta} tampil={tampil} />
+                {isKetua && pengajuan.limit_disetujui_bendahara ? (
+                    <span>
+                        {' → '}
+                        <Nominal nilai={pengajuan.limit_disetujui_bendahara} tampil={tampil} />
+                    </span>
+                ) : null}
+                )
+            </span>
+        </span>
     );
 }
 
@@ -236,6 +268,7 @@ export default function Dashboard({
     const [konfirmasiDitutup, setKonfirmasiDitutup] = useState(false);
     const [percepatanDitutup, setPercepatanDitutup] = useState(false);
     const [limitDitutup, setLimitDitutup] = useState(false);
+    const [nominalTampil, alihNominal] = usePrivasiNominal();
 
     return (
         <AnggotaLayout>
@@ -284,7 +317,7 @@ export default function Dashboard({
                         <Clock size={20} className="text-amber-600 shrink-0 mt-0.5" />
                         <div>
                             <p className="text-sm font-bold text-amber-800">
-                                Penyelesaian resign menunggu pelunasan akhir {formatRupiah(resignMenunggu.shortfall)}
+                                Penyelesaian resign menunggu pelunasan akhir <Nominal nilai={resignMenunggu.shortfall} tampil={nominalTampil} />
                                 {resignMenunggu.jatuh_tempo ? ` sebelum ${resignMenunggu.jatuh_tempo}` : ''}.
                             </p>
                             <p className="text-sm text-amber-700 mt-1">
@@ -298,52 +331,54 @@ export default function Dashboard({
                 {/* =====================================================
                     HEADER
                 ====================================================== */}
-                <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
-                    <div className="flex items-center gap-4">
+                <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
                         {anggota.foto_url ? (
                             <img
                                 src={anggota.foto_url}
                                 alt={anggota.nama}
-                                className="w-20 h-20 rounded-full object-cover border border-slate-200 shrink-0"
+                                className="w-14 h-14 rounded-full object-cover border border-slate-200 shrink-0"
                                 onError={(e) => { e.currentTarget.style.display = 'none'; }}
                             />
                         ) : (
-                            <div className="w-20 h-20 rounded-full bg-brand-green text-white flex items-center justify-center text-2xl font-bold shrink-0">
+                            <div className="w-14 h-14 rounded-full bg-brand-green text-white flex items-center justify-center text-xl font-bold shrink-0">
                                 {anggota.nama.charAt(0).toUpperCase()}
                             </div>
                         )}
                         <div className="min-w-0">
-                            <p className="text-sm text-slate-500">
+                            <p className="text-xs text-slate-500">
                                 Selamat datang,
                             </p>
 
-                            <h1 className="text-2xl font-bold text-slate-800 leading-tight">
+                            <h1 className="text-lg font-bold text-slate-800 leading-tight truncate">
                                 {anggota.nama}
                             </h1>
+                            <p className="text-xs text-slate-500 truncate">
+                                {anggota.no_karyawan} &bull; Anggota sejak {anggota.lama_keanggotaan_label}
+                            </p>
                         </div>
                     </div>
-
-                    <div className="text-left sm:text-right">
-                        <p className="text-sm font-semibold text-slate-700">
-                            {anggota.no_karyawan}
-                        </p>
-
-                        <p className="text-xs text-slate-500">
-                            Anggota sejak {anggota.lama_keanggotaan_label}
-                        </p>
-                    </div>
+                    <button
+                        type="button"
+                        onClick={alihNominal}
+                        aria-label={nominalTampil ? 'Sembunyikan nominal' : 'Tampilkan nominal'}
+                        aria-pressed={nominalTampil}
+                        className="shrink-0 w-10 h-10 rounded-full border border-slate-200 text-slate-500 hover:text-brand-navy hover:border-brand-navy/30 hover:bg-slate-50 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2"
+                    >
+                        {nominalTampil ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+                    </button>
                 </div>
 
                 {/* =====================================================
                     RINGKASAN KEUANGAN
                 ====================================================== */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="-mx-4 px-4 sm:mx-0 sm:px-0 flex sm:grid sm:grid-cols-3 gap-3 overflow-x-auto sm:overflow-visible snap-x snap-mandatory sm:snap-none pb-1 sm:pb-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 
                     <StatCard
                         icon={PiggyBank}
                         tone="green"
                         label="Total Simpanan"
-                        value={formatRupiah(totalSimpanan)}
+                        value={<Nominal nilai={totalSimpanan} tampil={nominalTampil} />}
                     />
 
                     <StatCard
@@ -352,7 +387,7 @@ export default function Dashboard({
                         label="Pinjaman Aktif"
                         value={
                             pinjamanAktifCount > 0
-                                ? formatRupiah(aggregateTotalNominal)
+                                ? <Nominal nilai={aggregateTotalNominal} tampil={nominalTampil} />
                                 : 'Rp0'
                         }
                         caption={
@@ -366,19 +401,8 @@ export default function Dashboard({
                         icon={Gauge}
                         tone="blue"
                         label="Limit Tersedia"
-                        value={formatRupiah(limitTersedia)}
-                        caption={
-                            pengajuanLimitBerjalan ? (
-                                <span className="inline-flex items-center gap-1.5 text-amber-700 font-medium">
-                                    <Clock size={12} />
-                                    {pengajuanLimitBerjalan.status === 'approved_bendahara'
-                                        ? `Menunggu Ketua (${formatRupiah(pengajuanLimitBerjalan.limit_diminta)}${pengajuanLimitBerjalan.limit_disetujui_bendahara ? ` → ${formatRupiah(pengajuanLimitBerjalan.limit_disetujui_bendahara)}` : ''})`
-                                        : `Menunggu Bendahara (${formatRupiah(pengajuanLimitBerjalan.limit_diminta)})`}
-                                </span>
-                            ) : (
-                                `dari limit ${formatRupiah(limitMaksimal)}`
-                            )
-                        }
+                        value={<Nominal nilai={limitTersedia} tampil={nominalTampil} />}
+                        caption={<CaptionLimitBerjalan pengajuan={pengajuanLimitBerjalan} tampil={nominalTampil} limitMaksimal={limitMaksimal} />}
                     />
                 </div>
 
@@ -388,7 +412,7 @@ export default function Dashboard({
                 {pinjamanAktifCount > 0 && angsuranBerikutnya && (
                     <Link
                         href={route('portal.riwayat')}
-                        className={`relative flex items-stretch bg-brand-green-light rounded-xl group ${focusRing}`}
+                        className={`relative flex flex-col min-[400px]:flex-row min-[400px]:items-stretch bg-brand-green-light rounded-xl group ${focusRing}`}
                     >
                         {/* Lubang tiket kiri-kanan */}
                         <span aria-hidden="true" className="absolute -left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-slate-50" />
@@ -412,12 +436,12 @@ export default function Dashboard({
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-3 shrink-0 border-l-2 border-dashed border-brand-green/25 bg-white/70 px-4 py-3 my-2 mr-3 rounded-lg sm:my-0 sm:mr-0 sm:py-4 sm:rounded-l-none sm:rounded-r-xl">
+                        <div className="flex items-center gap-3 shrink-0 border-t-2 border-dashed border-brand-green/25 bg-white/70 px-4 py-3 min-[400px]:my-2 min-[400px]:mr-3 min-[400px]:rounded-lg min-[400px]:border-t-0 min-[400px]:border-l-2 min-[400px]:py-3 rounded-b-xl min-[400px]:rounded-b-none min-[400px]:rounded-r-xl">
                             <div>
                                 <p className="text-xs text-slate-500">Total bayar</p>
 
                                 <p className="text-base font-bold text-slate-800 leading-tight whitespace-nowrap">
-                                    {formatRupiah(angsuranBerikutnya.total_bayar)}
+                                    <Nominal nilai={angsuranBerikutnya.total_bayar} tampil={nominalTampil} />
                                 </p>
                             </div>
 
@@ -456,11 +480,11 @@ export default function Dashboard({
                                         </p>
 
                                         <p className="text-2xl font-bold">
-                                            {formatRupiah(aggregateSisaTotalBayar)}
+                                            <Nominal nilai={aggregateSisaTotalBayar} tampil={nominalTampil} />
                                         </p>
 
                                         <p className="text-xs text-slate-400 mt-1">
-                                            dari total {formatRupiah(aggregateTotalNominal)}
+                                            dari total <Nominal nilai={aggregateTotalNominal} tampil={nominalTampil} />
                                         </p>
                                     </div>
 
@@ -501,7 +525,7 @@ export default function Dashboard({
                                         </p>
 
                                         <p className="text-sm font-semibold mt-0.5">
-                                            {formatRupiah(cicilanPerBulan)}
+                                            <Nominal nilai={cicilanPerBulan} tampil={nominalTampil} />
                                         </p>
                                     </div>
 
@@ -511,7 +535,7 @@ export default function Dashboard({
                                         </p>
 
                                         <p className="text-sm font-semibold mt-0.5">
-                                            {formatRupiah(aggregateSisaTotalBayar)}
+                                            <Nominal nilai={aggregateSisaTotalBayar} tampil={nominalTampil} />
                                         </p>
                                     </div>
                                 </div>
@@ -527,7 +551,7 @@ export default function Dashboard({
                                         <div className="flex flex-col sm:flex-row gap-2.5">
                                             <Link
                                                 href={route('portal.pinjaman.create')}
-                                                className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-brand-green text-white text-sm font-bold hover:bg-brand-green-dark transition-colors ${focusRing}`}
+                                                className={`flex-1 inline-flex items-center justify-center gap-2 px-4 min-h-[48px] rounded-xl bg-brand-green text-white text-base font-bold hover:bg-brand-green-dark transition-colors ${focusRing}`}
                                             >
                                                 Ajukan Pinjaman
                                                 <ArrowRight size={15} />
@@ -536,7 +560,7 @@ export default function Dashboard({
                                             {bisaAjukanLimit && (
                                                 <Link
                                                     href={route('portal.pengajuan-limit.create')}
-                                                    className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-white/25 text-white text-sm font-semibold hover:bg-white/10 transition-colors ${focusRing}`}
+                                                    className={`inline-flex items-center justify-center gap-2 px-4 min-h-[48px] rounded-xl border border-white/25 text-white text-sm font-semibold hover:bg-white/10 transition-colors ${focusRing}`}
                                                 >
                                                     Ajukan Penambahan Limit
                                                 </Link>
@@ -549,9 +573,9 @@ export default function Dashboard({
                                     {bisaUbahTenor && (
                                         <Link
                                             href={route('portal.percepatan.create')}
-                                            className={`inline-flex items-center gap-1.5 text-xs font-semibold text-slate-300 hover:text-white transition-colors rounded ${focusRing}`}
+                                            className={`inline-flex items-center justify-center gap-1.5 w-full sm:w-auto px-4 min-h-[48px] rounded-xl border border-white/25 text-sm font-semibold text-slate-200 hover:text-white hover:bg-white/10 transition-colors ${focusRing}`}
                                         >
-                                            <Repeat size={13} />
+                                            <Repeat size={14} />
                                             Ubah Tenor / Lunas Dipercepat
                                         </Link>
                                     )}
@@ -569,7 +593,7 @@ export default function Dashboard({
                                         </p>
 
                                         <p className="text-2xl font-bold">
-                                            {formatRupiah(pengajuanBerjalan.nominal)}
+                                            <Nominal nilai={pengajuanBerjalan.nominal} tampil={nominalTampil} />
                                         </p>
                                     </div>
 
@@ -593,7 +617,7 @@ export default function Dashboard({
                                 <p className="text-sm text-slate-300">
                                     {statusPengajuanLabel[pengajuanBerjalan.status].text}
                                     {pengajuanBerjalan.nominal_disetujui_bendahara && (
-                                        <> &bull; Usulan Bendahara: {formatRupiah(pengajuanBerjalan.nominal_disetujui_bendahara)}</>
+                                        <> &bull; Usulan Bendahara: <Nominal nilai={pengajuanBerjalan.nominal_disetujui_bendahara} tampil={nominalTampil} /></>
                                     )}
                                 </p>
                             </Link>
@@ -606,7 +630,7 @@ export default function Dashboard({
 
                                         <div>
                                             <p className="text-sm font-semibold text-red-200">
-                                                Pengajuan {formatRupiah(pengajuanDitolak.nominal)} ditolak
+                                                Pengajuan <Nominal nilai={pengajuanDitolak.nominal} tampil={nominalTampil} /> ditolak
                                             </p>
 
                                             {pengajuanDitolak.catatan && (
@@ -625,7 +649,7 @@ export default function Dashboard({
                                         </p>
 
                                         <p className="text-sm text-slate-400 mt-1">
-                                            Limit pengajuan Anda {formatRupiah(limitMaksimal)}
+                                            Limit pengajuan Anda <Nominal nilai={limitMaksimal} tampil={nominalTampil} />
                                         </p>
                                     </div>
 
@@ -633,7 +657,7 @@ export default function Dashboard({
                                         <div className="flex flex-col sm:flex-row gap-2.5 shrink-0">
                                             <Link
                                                 href={route('portal.pinjaman.create')}
-                                                className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-brand-green text-white text-sm font-bold hover:bg-brand-green-dark transition-colors ${focusRing}`}
+                                                className={`inline-flex items-center justify-center gap-2 px-5 min-h-[48px] rounded-xl bg-brand-green text-white text-base font-bold hover:bg-brand-green-dark transition-colors ${focusRing}`}
                                             >
                                                 Ajukan Pinjaman
                                                 <ArrowRight size={15} />
@@ -642,7 +666,7 @@ export default function Dashboard({
                                             {bisaAjukanLimit && (
                                                 <Link
                                                     href={route('portal.pengajuan-limit.create')}
-                                                    className={`inline-flex items-center justify-center px-4 py-2.5 rounded-lg border border-white/25 text-white text-sm font-semibold hover:bg-white/10 transition-colors ${focusRing}`}
+                                                    className={`inline-flex items-center justify-center px-4 min-h-[48px] rounded-xl border border-white/25 text-white text-sm font-semibold hover:bg-white/10 transition-colors ${focusRing}`}
                                                 >
                                                     Ajukan Penambahan Limit
                                                 </Link>
@@ -676,7 +700,7 @@ export default function Dashboard({
                                             {pengajuanPercepatanMenunggu.map((pp) => (
                                                 <p key={pp.id} className="text-xs text-amber-700">
                                                     {tipeLabel[pp.tipe]} • Pinjaman{' '}
-                                                    {formatRupiah(pp.pinjaman_nominal)} •{' '}
+                                                    <Nominal nilai={pp.pinjaman_nominal} tampil={nominalTampil} /> •{' '}
                                                     {pp.tenor_lama} → {pp.tenor_baru ?? 'lunas'} bulan •{' '}
                                                     {statusPengajuanLabel[pp.status]?.text ?? pp.status}
                                                 </p>
@@ -797,7 +821,7 @@ export default function Dashboard({
                                             </div>
 
                                             <p className="text-sm font-bold text-slate-800 shrink-0">
-                                                {formatRupiah(item.nominal)}
+                                                <Nominal nilai={item.nominal} tampil={nominalTampil} />
                                             </p>
                                         </div>
                                     ))}
@@ -828,7 +852,7 @@ export default function Dashboard({
                                     </span>
 
                                     <span className="text-sm font-semibold text-slate-700">
-                                        {formatRupiah(simpananPokok)}
+                                        <Nominal nilai={simpananPokok} tampil={nominalTampil} />
                                     </span>
                                 </div>
 
@@ -838,7 +862,7 @@ export default function Dashboard({
                                     </span>
 
                                     <span className="text-sm font-semibold text-slate-700">
-                                        {formatRupiah(simpananWajib)}
+                                        <Nominal nilai={simpananWajib} tampil={nominalTampil} />
                                     </span>
                                 </div>
 
@@ -848,17 +872,23 @@ export default function Dashboard({
                                     </span>
 
                                     <span className="text-base font-bold text-slate-800">
-                                        {formatRupiah(totalSimpanan)}
+                                        <Nominal nilai={totalSimpanan} tampil={nominalTampil} />
                                     </span>
                                 </div>
 
                                 {settingSimpanan.length > 0 && (
-                                    <div className="pt-3.5 mt-3 border-t border-slate-100">
-                                        <p className="text-xs uppercase tracking-wide font-semibold text-slate-400 mb-2">
-                                            Ketentuan Simpanan
-                                        </p>
+                                    <details className="group pt-3.5 mt-3 border-t border-slate-100">
+                                        <summary className="flex items-center gap-2 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2">
+                                            <span className="text-xs uppercase tracking-wide font-semibold text-slate-400">
+                                                Ketentuan Simpanan
+                                            </span>
+                                            <ArrowRight
+                                                size={12}
+                                                className="ml-auto text-slate-400 rotate-90 group-open:-rotate-90 transition-transform motion-reduce:transition-none"
+                                            />
+                                        </summary>
 
-                                        <div className="space-y-1.5">
+                                        <div className="space-y-1.5 mt-2">
                                             {settingSimpanan.map((s, i) => (
                                                 <div
                                                     key={i}
@@ -874,22 +904,27 @@ export default function Dashboard({
                                                 </div>
                                             ))}
                                         </div>
-                                    </div>
+                                    </details>
                                 )}
                             </div>
                         </div>
 
                         {/* Ketentuan Pinjaman */}
-                        <div className="bg-white rounded-xl border border-slate-100 p-4">
-                            <div className="flex items-center gap-2 mb-3">
-                                <Percent size={16} className="text-brand-green" />
+                        <details className="group bg-white rounded-xl border border-slate-100 p-4">
+                            <summary className="flex items-center gap-2 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2">
+                                <Percent size={16} className="text-brand-green shrink-0" />
 
                                 <p className="text-sm font-bold text-slate-700">
                                     Ketentuan Pinjaman
                                 </p>
-                            </div>
 
-                            <div className="space-y-2">
+                                <ArrowRight
+                                    size={13}
+                                    className="ml-auto text-slate-400 rotate-90 group-open:-rotate-90 transition-transform motion-reduce:transition-none"
+                                />
+                            </summary>
+
+                            <div className="space-y-2 mt-3">
                                 {tabelTenor.map((t, i) => (
                                     <div
                                         key={i}
@@ -927,7 +962,7 @@ export default function Dashboard({
                                     berdasarkan data administrasi koperasi.
                                 </p>
                             </details>
-                        </div>
+                        </details>
                     </div>
                 </div>
             </div>

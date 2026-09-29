@@ -185,21 +185,26 @@ export default function Create({ anggota, poinSyarat, versiSyarat, pengajuanBerj
                             </div>
                         )}
 
-                        <button
-                            type="submit"
-                            disabled={!bisaKirim}
-                            className={`w-full py-3.5 text-base font-bold rounded-2xl bg-brand-green text-white hover:bg-brand-green-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${focusRing}`}
-                        >
-                            {processing ? 'Mengirim...' : 'Kirim Pengajuan'}
-                        </button>
+                        <div className="sticky bottom-24 sm:static -mx-1 px-1 pb-1 sm:mx-0 sm:px-0 sm:pb-0 bg-slate-50/95 sm:bg-transparent backdrop-blur pt-2 sm:pt-0">
+                            <button
+                                type="submit"
+                                disabled={!bisaKirim}
+                                className={`w-full min-h-[52px] text-base font-bold rounded-2xl bg-brand-green text-white hover:bg-brand-green-dark active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed ${focusRing}`}
+                            >
+                                {processing ? 'Mengirim...' : 'Kirim Pengajuan'}
+                            </button>
+                        </div>
                     </form>
                 )}
 
                 {showModal && (
                     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-                        <div className="min-h-full flex items-start sm:items-center justify-center p-4">
-                            <div className="bg-white rounded-2xl w-full max-w-2xl my-8 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="sk-title">
-                                <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-5 flex items-start justify-between gap-4 rounded-t-2xl z-10">
+                        <div className="min-h-full flex items-end sm:items-center justify-center sm:p-4">
+                            <div className="bg-white rounded-t-3xl sm:rounded-2xl w-full max-w-2xl mt-8 mb-0 sm:my-8 shadow-2xl max-h-[92dvh] flex flex-col" role="dialog" aria-modal="true" aria-labelledby="sk-title">
+                                <div className="sm:hidden pt-2 pb-1 flex justify-center shrink-0" aria-hidden="true">
+                                    <span className="w-10 h-1 rounded-full bg-slate-300" />
+                                </div>
+                                <div className="sticky top-0 bg-white border-b border-slate-100 px-4 sm:px-6 py-4 sm:py-5 flex items-start justify-between gap-4 rounded-t-3xl sm:rounded-t-2xl z-10">
                                     <div className="flex items-start gap-3">
                                         <div className="w-10 h-10 rounded-xl bg-brand-green-light flex items-center justify-center shrink-0">
                                             <FileText size={20} className="text-brand-green" />

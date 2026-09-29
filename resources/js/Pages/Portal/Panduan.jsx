@@ -530,9 +530,12 @@ export default function Panduan({ onClose }) {
             aria-modal="true"
             aria-labelledby="panduan-title"
         >
-            <div className="min-h-full flex items-start sm:items-center justify-center p-4">
-                <div className="bg-white rounded-2xl w-full max-w-3xl my-8 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-                    <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-5 flex items-start justify-between gap-4 rounded-t-2xl z-10">
+            <div className="min-h-full flex items-end sm:items-center justify-center sm:p-4">
+                <div className="bg-white rounded-t-3xl sm:rounded-2xl w-full max-w-3xl mt-8 mb-0 sm:my-8 shadow-2xl max-h-[92dvh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+                    <div className="sm:hidden pt-2 pb-1 flex justify-center shrink-0" aria-hidden="true">
+                        <span className="w-10 h-1 rounded-full bg-slate-300" />
+                    </div>
+                    <div className="sticky top-0 bg-white border-b border-slate-100 px-4 sm:px-6 py-4 sm:py-5 flex items-start justify-between gap-4 rounded-t-3xl sm:rounded-t-2xl z-10">
                         <div className="flex items-start gap-3 min-w-0">
                             <div className="w-10 h-10 rounded-xl bg-brand-green-light flex items-center justify-center shrink-0">
                                 <HelpCircle size={20} className="text-brand-green" />
@@ -552,7 +555,7 @@ export default function Panduan({ onClose }) {
                         </button>
                     </div>
 
-                    <div className="px-6 pt-4">
+                    <div className="px-4 sm:px-6 pt-3 sm:pt-4">
                         <div className="flex items-center gap-1 border-b border-slate-200">
                             <button
                                 type="button"
@@ -582,15 +585,15 @@ export default function Panduan({ onClose }) {
                         </div>
                     </div>
 
-                    <div className="px-6 py-5 max-h-[65vh] overflow-y-auto">
+                    <div className="px-4 sm:px-6 py-4 sm:py-5 max-h-[65vh] overflow-y-auto overscroll-contain">
                         {mainTab === 'panduan' ? <TabPanduan /> : <TabFAQ />}
                     </div>
 
-                    <div className="sticky bottom-0 bg-white border-t border-slate-100 px-6 py-4 rounded-b-2xl">
+                    <div className="sticky bottom-0 bg-white border-t border-slate-100 px-4 sm:px-6 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-4 rounded-b-none sm:rounded-b-2xl">
                         <button
                             type="button"
                             onClick={onClose}
-                            className={`w-full py-3 text-sm font-bold rounded-xl border-2 border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors ${focusRing}`}
+                            className={`w-full min-h-[48px] text-base font-bold rounded-xl border-2 border-slate-200 text-slate-700 hover:bg-slate-50 active:bg-slate-100 transition-colors ${focusRing}`}
                         >
                             Tutup
                         </button>

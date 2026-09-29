@@ -185,7 +185,7 @@ function kirimPengajuan() {
                                 placeholder="0"
                                 autoFocus
                                 max={limitTersedia}
-                                className="w-full pl-12 pr-12 py-4 text-2xl font-bold rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
+                                className="w-full pl-12 pr-12 py-4 text-xl sm:text-2xl font-bold rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
                             />
                             {loadingNominal && (
                                 <div className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 border-2 border-brand-green border-t-transparent rounded-full animate-spin" />
@@ -204,12 +204,12 @@ function kirimPengajuan() {
                                 Tenor maksimal untuk nominal ini: {tenorMaksimal} bulan
                             </p>
 
-                            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2.5">
+                            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
                                 {opsiTenor.map((bulan) => (
                                     <button
                                         key={bulan}
                                         onClick={() => pilihTenor(bulan)}
-                                        className={`py-3 min-h-[44px] rounded-xl text-base font-bold border-2 transition-colors ${
+                                        className={`py-3 min-h-[52px] rounded-xl text-base font-bold border-2 transition-colors ${
                                             tenorDipilih === bulan
                                                 ? 'border-brand-green bg-brand-green-light text-brand-green-dark'
                                                 : 'border-slate-200 text-slate-600 hover:border-slate-300'
@@ -297,14 +297,17 @@ function kirimPengajuan() {
 
             {showModalPersetujuan && (
                 <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
-                    <div className="min-h-full flex items-start sm:items-center justify-center p-4">
+                    <div className="min-h-full flex items-end sm:items-center justify-center sm:p-4">
                         <div
-                            className="bg-white rounded-2xl w-full max-w-2xl my-8 shadow-2xl"
+                            className="bg-white rounded-t-3xl sm:rounded-2xl w-full max-w-2xl mt-8 mb-0 sm:my-8 shadow-2xl max-h-[92dvh] flex flex-col"
                             role="dialog"
                             aria-modal="true"
                             aria-labelledby="sk-title"
                         >
-                            <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-5 flex items-start justify-between gap-4 rounded-t-2xl z-10">
+                            <div className="sm:hidden pt-2 pb-1 flex justify-center shrink-0" aria-hidden="true">
+                                <span className="w-10 h-1 rounded-full bg-slate-300" />
+                            </div>
+                            <div className="sticky top-0 bg-white border-b border-slate-100 px-4 sm:px-6 py-4 sm:py-5 flex items-start justify-between gap-4 rounded-t-3xl sm:rounded-t-2xl z-10">
                                 <div className="flex items-start gap-3">
                                     <div className="w-10 h-10 rounded-xl bg-brand-green-light flex items-center justify-center shrink-0">
                                         <FileText size={20} className="text-brand-green" />
@@ -351,7 +354,7 @@ function kirimPengajuan() {
                                 </div>
                             </div>
 
-                            <div className="sticky bottom-0 bg-white border-t border-slate-100 px-6 py-5 space-y-4 rounded-b-2xl">
+                            <div className="sticky bottom-0 bg-white border-t border-slate-100 px-4 sm:px-6 py-4 sm:py-5 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-5 space-y-4 rounded-b-none sm:rounded-b-2xl">
                                 <label htmlFor="persetujuan-sk" className="flex items-start gap-3 cursor-pointer group">
                                     <input
                                         id="persetujuan-sk"
@@ -372,7 +375,7 @@ function kirimPengajuan() {
                                         type="button"
                                         onClick={() => setShowModalPersetujuan(false)}
                                         disabled={loadingSubmit}
-                                        className={`sm:flex-1 py-3.5 text-sm font-bold rounded-xl border-2 border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50 ${focusRing}`}
+                                        className={`sm:flex-1 min-h-[48px] text-base font-bold rounded-xl border-2 border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50 ${focusRing}`}
                                     >
                                         Kembali
                                     </button>
@@ -380,7 +383,7 @@ function kirimPengajuan() {
                                         type="button"
                                         onClick={kirimPengajuan}
                                         disabled={!setujuSyarat || loadingSubmit}
-                                        className={`sm:flex-[2] py-3.5 text-sm font-bold rounded-xl bg-brand-green text-white hover:bg-brand-green-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${focusRing}`}
+                                        className={`sm:flex-[2] min-h-[48px] text-base font-bold rounded-xl bg-brand-green text-white hover:bg-brand-green-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${focusRing}`}
                                     >
                                         {loadingSubmit ? 'Mengirim...' : 'Konfirmasi & Kirim Pengajuan'}
                                     </button>
@@ -499,34 +502,37 @@ function StepRingkasan({
                             value={namaBank}
                             onChange={(e) => setNamaBank(e.target.value)}
                             placeholder="Nama Bank (contoh: BCA)"
-                            className="w-full px-4 py-2.5 text-base rounded-xl border border-slate-300 focus:border-brand-green outline-none"
+                            className="w-full px-4 min-h-[48px] text-base rounded-xl border border-slate-300 focus:border-brand-green outline-none"
                         />
                         <input
                             type="text"
+                            inputMode="numeric"
                             value={noRekening}
                             onChange={(e) => setNoRekening(e.target.value)}
                             placeholder="Nomor Rekening"
-                            className="w-full px-4 py-2.5 text-base rounded-xl border border-slate-300 focus:border-brand-green outline-none"
+                            className="w-full px-4 min-h-[48px] text-base rounded-xl border border-slate-300 focus:border-brand-green outline-none"
                         />
                         <input
                             type="text"
                             value={atasNama}
                             onChange={(e) => setAtasNama(e.target.value)}
                             placeholder="Nama Pemilik Rekening"
-                            className="w-full px-4 py-2.5 text-base rounded-xl border border-slate-300 focus:border-brand-green outline-none"
+                            className="w-full px-4 min-h-[48px] text-base rounded-xl border border-slate-300 focus:border-brand-green outline-none"
                         />
                         <p className="text-xs text-slate-400">Rekening ini akan otomatis tersimpan untuk pengajuan berikutnya.</p>
                     </div>
                 )}
             </div>
 
-            <button
-                onClick={onSubmit}
-                disabled={loading || !bisaSubmit}
-                className="w-full py-4 text-base font-bold rounded-2xl bg-brand-green text-white hover:bg-brand-green-dark transition-colors disabled:opacity-50"
-            >
-                {loading ? 'Mengirim...' : 'Ajukan Sekarang'}
-            </button>
+            <div className="sticky bottom-24 sm:static -mx-1 px-1 pb-1 sm:mx-0 sm:px-0 sm:pb-0 bg-white/95 sm:bg-transparent backdrop-blur pt-2 sm:pt-0">
+                <button
+                    onClick={onSubmit}
+                    disabled={loading || !bisaSubmit}
+                    className="w-full min-h-[52px] text-base font-bold rounded-2xl bg-brand-green text-white hover:bg-brand-green-dark active:scale-[0.99] transition-all disabled:opacity-50"
+                >
+                    {loading ? 'Mengirim...' : 'Ajukan Sekarang'}
+                </button>
+            </div>
         </div>
     );
 }

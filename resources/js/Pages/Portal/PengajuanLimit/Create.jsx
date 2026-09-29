@@ -101,13 +101,15 @@ export default function Create({ limitSaatIni, riwayat }) {
                                 {errors.keterangan && <p className="text-sm text-red-600 mt-1.5">{errors.keterangan}</p>}
                             </div>
 
-                            <button
-                                type="submit"
-                                disabled={processing}
-                                className={`w-full py-3.5 text-base font-bold rounded-2xl bg-brand-green text-white hover:bg-brand-green-dark transition-colors disabled:opacity-50 ${focusRing}`}
-                            >
-                                {processing ? 'Mengirim...' : 'Kirim Pengajuan'}
-                            </button>
+                            <div className="sticky bottom-24 sm:static -mx-1 px-1 pb-1 sm:mx-0 sm:px-0 sm:pb-0 bg-slate-50/95 sm:bg-transparent backdrop-blur pt-2 sm:pt-0">
+                                <button
+                                    type="submit"
+                                    disabled={processing}
+                                    className={`w-full min-h-[52px] text-base font-bold rounded-2xl bg-brand-green text-white hover:bg-brand-green-dark active:scale-[0.99] transition-all disabled:opacity-50 ${focusRing}`}
+                                >
+                                    {processing ? 'Mengirim...' : 'Kirim Pengajuan'}
+                                </button>
+                            </div>
                         </form>
                     )}
                 </div>

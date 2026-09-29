@@ -95,16 +95,17 @@ export default function Profil({ anggota, rekening }) {
                                 value={data.nama_bank}
                                 onChange={(e) => setData('nama_bank', e.target.value)}
                                 placeholder="Nama Bank"
-                                className="w-full px-4 py-2.5 text-sm rounded-lg border border-slate-300 focus:border-brand-green outline-none"
+                                className="w-full px-4 min-h-[48px] text-base rounded-xl border border-slate-300 focus:border-brand-green outline-none"
                             />
                             {errors.nama_bank && <p className="text-xs text-red-600">{errors.nama_bank}</p>}
 
                             <input
                                 type="text"
+                                inputMode="numeric"
                                 value={data.no_rekening}
                                 onChange={(e) => setData('no_rekening', e.target.value)}
                                 placeholder="Nomor Rekening"
-                                className="w-full px-4 py-2.5 text-sm rounded-lg border border-slate-300 focus:border-brand-green outline-none"
+                                className="w-full px-4 min-h-[48px] text-base rounded-xl border border-slate-300 focus:border-brand-green outline-none"
                             />
                             {errors.no_rekening && <p className="text-xs text-red-600">{errors.no_rekening}</p>}
 
@@ -113,14 +114,14 @@ export default function Profil({ anggota, rekening }) {
                                 value={data.atas_nama}
                                 onChange={(e) => setData('atas_nama', e.target.value)}
                                 placeholder="Nama Pemilik Rekening"
-                                className="w-full px-4 py-2.5 text-sm rounded-lg border border-slate-300 focus:border-brand-green outline-none"
+                                className="w-full px-4 min-h-[48px] text-base rounded-xl border border-slate-300 focus:border-brand-green outline-none"
                             />
                             {errors.atas_nama && <p className="text-xs text-red-600">{errors.atas_nama}</p>}
 
                             <button
                                 type="submit"
                                 disabled={processing}
-                                className="w-full py-2.5 text-sm font-bold rounded-lg bg-brand-green text-white hover:bg-brand-green-dark transition-colors disabled:opacity-50"
+                                className="w-full min-h-[48px] text-base font-bold rounded-xl bg-brand-green text-white hover:bg-brand-green-dark transition-colors disabled:opacity-50"
                             >
                                 {processing ? 'Menyimpan...' : 'Simpan Rekening'}
                             </button>
@@ -157,17 +158,19 @@ export default function Profil({ anggota, rekening }) {
                                             <button
                                                 onClick={() => jadikanDefault(r.id)}
                                                 title="Jadikan utama"
-                                                className="p-2 text-slate-400 hover:text-amber-500 transition-colors"
+                                                aria-label="Jadikan rekening utama"
+                                                className="min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-amber-500 transition-colors"
                                             >
-                                                <Star size={16} />
+                                                <Star size={18} />
                                             </button>
                                         )}
                                         <button
                                             onClick={() => hapus(r.id)}
                                             title="Hapus"
-                                            className="p-2 text-slate-400 hover:text-red-600 transition-colors"
+                                            aria-label="Hapus rekening"
+                                            className="min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-red-600 transition-colors"
                                         >
-                                            <Trash2 size={16} />
+                                            <Trash2 size={18} />
                                         </button>
                                     </div>
                                 </div>

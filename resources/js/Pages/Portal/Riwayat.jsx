@@ -3,9 +3,9 @@ import { Head, router, Link } from '@inertiajs/react';
 import { useState } from 'react';
 import {
     ChevronDown, CheckCircle2, Clock, XCircle, ArrowLeft,
-    HandCoins, PiggyBank, TrendingUp,
+    HandCoins, PiggyBank, TrendingUp, Eye, EyeOff,
 } from 'lucide-react';
-import { formatRupiah } from '@/Utils/formatCurrency';
+import Nominal, { usePrivasiNominal } from '@/Components/ui/Nominal';
 
 const statusLabel = {
     diajukan: 'Diajukan',
@@ -35,6 +35,7 @@ const jenisSimpananLabel = { pokok: 'Simpanan Pokok', wajib: 'Simpanan Wajib', d
 
 export default function Riwayat({ pinjaman, simpanan, klaim = [], daftarBulanTersedia, bulanFilter, ringkasan }) {
     const [tab, setTab] = useState('pinjaman');
+    const [nominalTampil, alihNominal] = usePrivasiNominal();
 
     return (
         <AnggotaLayout>
@@ -45,41 +46,52 @@ export default function Riwayat({ pinjaman, simpanan, klaim = [], daftarBulanTer
                 Kembali ke Beranda
             </Link>
 
-            <div className="mb-6">
-                <h1 className="text-2xl font-bold text-slate-800">Riwayat</h1>
-                <p className="text-base text-slate-400 mt-1">Riwayat lengkap pinjaman dan simpanan Anda</p>
+            <div className="mb-5 flex items-start justify-between gap-3">
+                <div>
+                    <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Riwayat</h1>
+                    <p className="text-sm sm:text-base text-slate-400 mt-1">Riwayat lengkap pinjaman, simpanan, dan santunan Anda</p>
+                </div>
+                <button
+                    type="button"
+                    onClick={alihNominal}
+                    aria-label={nominalTampil ? 'Sembunyikan nominal' : 'Tampilkan nominal'}
+                    aria-pressed={nominalTampil}
+                    className="shrink-0 w-10 h-10 rounded-full border border-slate-200 text-slate-500 hover:text-brand-navy hover:border-brand-navy/30 hover:bg-slate-50 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2"
+                >
+                    {nominalTampil ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+                </button>
             </div>
 
             {/* Ringkasan */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                <div className="bg-white rounded-2xl border border-slate-100 p-5">
+            <div className="-mx-4 px-4 sm:mx-0 sm:px-0 flex sm:grid sm:grid-cols-3 gap-3 sm:gap-4 mb-6 overflow-x-auto sm:overflow-visible snap-x snap-mandatory sm:snap-none pb-1 sm:pb-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="bg-white rounded-2xl border border-slate-100 p-4 sm:p-5 snap-start shrink-0 w-[78%] sm:w-auto sm:shrink">
                     <div className="w-10 h-10 rounded-xl bg-brand-navy/5 text-brand-navy flex items-center justify-center mb-3">
                         <HandCoins size={20} />
                     </div>
                     <p className="text-sm text-slate-400">Total Pinjaman Diajukan</p>
-                    <p className="text-xl font-bold text-slate-800 mt-0.5">{ringkasan.total_pinjaman_diajukan}x</p>
+                    <p className="text-xl font-bold text-slate-800 mt-0.5 tabular-nums">{ringkasan.total_pinjaman_diajukan}x</p>
                 </div>
-                <div className="bg-white rounded-2xl border border-slate-100 p-5">
+                <div className="bg-white rounded-2xl border border-slate-100 p-4 sm:p-5 snap-start shrink-0 w-[78%] sm:w-auto sm:shrink">
                     <div className="w-10 h-10 rounded-xl bg-brand-green-light text-brand-green-dark flex items-center justify-center mb-3">
                         <CheckCircle2 size={20} />
                     </div>
                     <p className="text-sm text-slate-400">Pinjaman Lunas</p>
-                    <p className="text-xl font-bold text-slate-800 mt-0.5">{ringkasan.total_pinjaman_lunas}x</p>
+                    <p className="text-xl font-bold text-slate-800 mt-0.5 tabular-nums">{ringkasan.total_pinjaman_lunas}x</p>
                 </div>
-                <div className="bg-white rounded-2xl border border-slate-100 p-5">
+                <div className="bg-white rounded-2xl border border-slate-100 p-4 sm:p-5 snap-start shrink-0 w-[78%] sm:w-auto sm:shrink">
                     <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center mb-3">
                         <PiggyBank size={20} />
                     </div>
                     <p className="text-sm text-slate-400">Total Simpanan Terkumpul</p>
-                    <p className="text-xl font-bold text-slate-800 mt-0.5">{formatRupiah(ringkasan.total_simpanan_terkumpul)}</p>
+                    <p className="text-lg font-bold text-slate-800 mt-0.5 tabular-nums break-words"><Nominal nilai={ringkasan.total_simpanan_terkumpul} tampil={nominalTampil} /></p>
                 </div>
             </div>
 
             {/* Tab */}
-            <div className="flex items-center gap-2 mb-5 bg-slate-100 p-1 rounded-xl w-fit">
+            <div className="flex items-stretch gap-1 mb-5 bg-slate-100 p-1 rounded-xl w-full sm:w-fit overflow-x-auto">
                 <button
                     onClick={() => setTab('pinjaman')}
-                    className={`px-5 py-2 text-sm font-semibold rounded-lg transition-colors ${
+                    className={`flex-1 sm:flex-none px-4 min-h-[44px] text-sm font-semibold rounded-lg transition-colors whitespace-nowrap ${
                         tab === 'pinjaman' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'
                     }`}
                 >
@@ -87,7 +99,7 @@ export default function Riwayat({ pinjaman, simpanan, klaim = [], daftarBulanTer
                 </button>
                 <button
                     onClick={() => setTab('simpanan')}
-                    className={`px-5 py-2 text-sm font-semibold rounded-lg transition-colors ${
+                    className={`flex-1 sm:flex-none px-4 min-h-[44px] text-sm font-semibold rounded-lg transition-colors whitespace-nowrap ${
                         tab === 'simpanan' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'
                     }`}
                 >
@@ -95,7 +107,7 @@ export default function Riwayat({ pinjaman, simpanan, klaim = [], daftarBulanTer
                 </button>
                 <button
                     onClick={() => setTab('klaim')}
-                    className={`px-5 py-2 text-sm font-semibold rounded-lg transition-colors ${
+                    className={`flex-1 sm:flex-none px-4 min-h-[44px] text-sm font-semibold rounded-lg transition-colors whitespace-nowrap ${
                         tab === 'klaim' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'
                     }`}
                 >
@@ -103,20 +115,21 @@ export default function Riwayat({ pinjaman, simpanan, klaim = [], daftarBulanTer
                 </button>
             </div>
 
-            {tab === 'pinjaman' && <RiwayatPinjaman pinjaman={pinjaman} />}
+            {tab === 'pinjaman' && <RiwayatPinjaman pinjaman={pinjaman} nominalTampil={nominalTampil} />}
             {tab === 'simpanan' && (
                 <RiwayatSimpanan
                     simpanan={simpanan}
                     daftarBulanTersedia={daftarBulanTersedia}
                     bulanFilter={bulanFilter}
+                    nominalTampil={nominalTampil}
                 />
             )}
-            {tab === 'klaim' && <RiwayatKlaim klaim={klaim} />}
+            {tab === 'klaim' && <RiwayatKlaim klaim={klaim} nominalTampil={nominalTampil} />}
         </AnggotaLayout>
     );
 }
 
-function RiwayatPinjaman({ pinjaman }) {
+function RiwayatPinjaman({ pinjaman, nominalTampil }) {
     const [expandedId, setExpandedId] = useState(null);
 
     if (pinjaman.length === 0) {
@@ -140,7 +153,7 @@ function RiwayatPinjaman({ pinjaman }) {
                     <div key={p.id} className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
                         <button
                             onClick={() => setExpandedId(isExpanded ? null : p.id)}
-                            className="w-full flex items-center gap-4 p-5 text-left hover:bg-slate-50 transition-colors"
+                            className="w-full flex items-center gap-3 sm:gap-4 p-4 sm:p-5 min-h-[72px] text-left hover:bg-slate-50 active:bg-slate-100 transition-colors"
                         >
                             <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${statusStyle[p.status]}`}>
                                 <StatusIcon size={20} />
@@ -148,7 +161,7 @@ function RiwayatPinjaman({ pinjaman }) {
 
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                    <p className="text-lg font-bold text-slate-800">{formatRupiah(p.nominal)}</p>
+                                    <p className="text-base sm:text-lg font-bold text-slate-800 tabular-nums break-words"><Nominal nilai={p.nominal} tampil={nominalTampil} /></p>
                                     <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${statusStyle[p.status]}`}>
                                         {statusLabel[p.status]}
                                     </span>
@@ -158,9 +171,9 @@ function RiwayatPinjaman({ pinjaman }) {
                                 </p>
                                 {(p.nominal_diminta !== p.nominal || p.nominal_disetujui_bendahara || p.nominal_disetujui) && (
                                     <p className="text-xs text-slate-400 mt-1">
-                                        Diminta {formatRupiah(p.nominal_diminta)}
-                                        {p.nominal_disetujui_bendahara ? ` → Bendahara ${formatRupiah(p.nominal_disetujui_bendahara)}` : ''}
-                                        {p.nominal_disetujui ? ` → Final ${formatRupiah(p.nominal_disetujui)}` : ''}
+                                        Diminta <Nominal nilai={p.nominal_diminta} tampil={nominalTampil} />
+                                        {p.nominal_disetujui_bendahara ? <> → Bendahara <Nominal nilai={p.nominal_disetujui_bendahara} tampil={nominalTampil} /></> : ''}
+                                        {p.nominal_disetujui ? <> → Final <Nominal nilai={p.nominal_disetujui} tampil={nominalTampil} /></> : ''}
                                     </p>
                                 )}
                                 {p.status === 'aktif' && (
@@ -217,7 +230,7 @@ function RiwayatPinjaman({ pinjaman }) {
                                                                 <div className="mt-1.5 pl-3 space-y-1">
                                                                     {r.jadwalLama.map((jl) => (
                                                                         <p key={jl.cicilan_ke} className="text-xs text-amber-600">
-                                                                            Cicilan ke-{jl.cicilan_ke}: {formatRupiah(jl.total_bayar)} ({jl.status})
+                                                                            Cicilan ke-{jl.cicilan_ke}: <Nominal nilai={jl.total_bayar} tampil={nominalTampil} /> ({jl.status})
                                                                         </p>
                                                                     ))}
                                                                 </div>
@@ -246,7 +259,7 @@ function RiwayatPinjaman({ pinjaman }) {
                                                     </div>
                                                 </div>
                                                 <p className="text-sm font-bold text-slate-800">
-                                                    {formatRupiah(a.total_bayar)}
+                                                    <Nominal nilai={a.total_bayar} tampil={nominalTampil} />
                                                 </p>
                                             </div>
                                         ))}
@@ -261,7 +274,7 @@ function RiwayatPinjaman({ pinjaman }) {
     );
 }
 
-function RiwayatSimpanan({ simpanan, daftarBulanTersedia, bulanFilter }) {
+function RiwayatSimpanan({ simpanan, daftarBulanTersedia, bulanFilter, nominalTampil }) {
     function ubahFilterBulan(bulan) {
         router.get(route('portal.riwayat'), bulan ? { bulan } : {}, { preserveState: true, preserveScroll: true });
     }
@@ -273,7 +286,7 @@ function RiwayatSimpanan({ simpanan, daftarBulanTersedia, bulanFilter }) {
                     <select
                         value={bulanFilter ?? ''}
                         onChange={(e) => ubahFilterBulan(e.target.value)}
-                        className="px-4 py-2.5 text-sm font-semibold rounded-xl border border-slate-300 bg-white focus:border-brand-green outline-none"
+                        className="w-full sm:w-auto px-4 min-h-[48px] text-base font-semibold rounded-xl border border-slate-300 bg-white focus:border-brand-green outline-none"
                     >
                         <option value="">Semua Periode</option>
                         {daftarBulanTersedia.map((b) => (
@@ -303,7 +316,7 @@ function RiwayatSimpanan({ simpanan, daftarBulanTersedia, bulanFilter }) {
                                 </p>
                             </div>
                             <p className="text-base font-bold text-slate-800">
-                                {formatRupiah(s.jumlah)}
+                                <Nominal nilai={s.jumlah} tampil={nominalTampil} />
                             </p>
                         </div>
                     ))}
@@ -327,7 +340,7 @@ const klaimStatusStyle = {
     ditolak: 'bg-red-50 text-red-600',
 };
 
-function RiwayatKlaim({ klaim }) {
+function RiwayatKlaim({ klaim, nominalTampil }) {
     if (klaim.length === 0) {
         return (
             <div className="bg-white rounded-2xl border border-slate-100 p-10 text-center">
@@ -351,7 +364,7 @@ function RiwayatKlaim({ klaim }) {
                     </p>
                     {(k.nominal_bendahara || k.nominal_final) && (
                         <p className="text-sm font-semibold text-slate-700 mt-1.5">
-                            {k.nominal_final ? formatRupiah(k.nominal_final) : formatRupiah(k.nominal_bendahara)}
+                            <Nominal nilai={k.nominal_final ?? k.nominal_bendahara} tampil={nominalTampil} />
                             <span className="font-normal text-slate-400"> {k.nominal_final ? '(santunan disetujui)' : '(usulan Bendahara)'}</span>
                         </p>
                     )}

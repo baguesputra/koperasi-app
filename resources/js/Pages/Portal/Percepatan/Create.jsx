@@ -151,7 +151,7 @@ export default function Create({ pinjaman }) {
                                 {s.done ? <Check size={14} /> : i + 1}
                             </span>
 
-                            <span className={`text-xs font-semibold whitespace-nowrap hidden sm:block ${s.active || s.done ? 'text-slate-700' : 'text-slate-400'}`}>
+                            <span className={`text-[11px] sm:text-xs font-semibold whitespace-nowrap ${s.active || s.done ? 'text-slate-700' : 'text-slate-400'}`}>
                                 {s.label}
                             </span>
 
@@ -219,14 +219,14 @@ export default function Create({ pinjaman }) {
                             <div className="mb-5">
                                 <label className="block text-base font-semibold text-slate-700 mb-2">Pilih Tenor Baru</label>
                                 <p className="text-sm text-slate-400 mb-3">Harus kurang dari tenor saat ini ({pinjaman.tenor_bulan} bulan)</p>
-                                <div className="grid grid-cols-4 sm:grid-cols-6 gap-2.5">
+                                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
                                     {opsiTenorPercepat.map((bulan) => (
                                         <button
                                             key={bulan}
                                             type="button"
                                             onClick={() => pilihTenor(bulan)}
                                             aria-pressed={data.tenor_baru === bulan}
-                                            className={`py-3 rounded-xl text-base font-bold border-2 transition-colors ${focusRing} ${
+                                            className={`min-h-[52px] rounded-xl text-base font-bold border-2 transition-colors ${focusRing} ${
                                                 data.tenor_baru === bulan
                                                     ? 'border-brand-green bg-brand-green-light text-brand-green-dark'
                                                     : 'border-slate-200 text-slate-600 hover:border-slate-300'
@@ -244,14 +244,14 @@ export default function Create({ pinjaman }) {
                             <div className="mb-5">
                                 <label className="block text-base font-semibold text-slate-700 mb-2">Pilih Tenor Baru</label>
                                 <p className="text-sm text-slate-400 mb-3">Harus lebih dari tenor saat ini ({pinjaman.tenor_bulan} bulan)</p>
-                                <div className="grid grid-cols-4 sm:grid-cols-6 gap-2.5">
+                                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
                                     {opsiTenorPerpanjang.map((bulan) => (
                                         <button
                                             key={bulan}
                                             type="button"
                                             onClick={() => pilihTenor(bulan)}
                                             aria-pressed={data.tenor_baru === bulan}
-                                            className={`py-3 rounded-xl text-base font-bold border-2 transition-colors ${focusRing} ${
+                                            className={`min-h-[52px] rounded-xl text-base font-bold border-2 transition-colors ${focusRing} ${
                                                 data.tenor_baru === bulan
                                                     ? 'border-brand-green bg-brand-green-light text-brand-green-dark'
                                                     : 'border-slate-200 text-slate-600 hover:border-slate-300'
@@ -324,13 +324,15 @@ export default function Create({ pinjaman }) {
                             </div>
                         )}
 
-                        <button
-                            type="submit"
-                            disabled={processing}
-                            className={`w-full py-3.5 text-base font-bold rounded-2xl bg-brand-green text-white hover:bg-brand-green-dark transition-colors disabled:opacity-50 ${focusRing}`}
-                        >
-                            {processing ? 'Mengirim...' : 'Kirim Pengajuan'}
-                        </button>
+                        <div className="sticky bottom-24 sm:static -mx-1 px-1 pb-1 sm:mx-0 sm:px-0 sm:pb-0 bg-white/95 sm:bg-transparent backdrop-blur pt-2 sm:pt-0">
+                            <button
+                                type="submit"
+                                disabled={processing}
+                                className={`w-full min-h-[52px] text-base font-bold rounded-2xl bg-brand-green text-white hover:bg-brand-green-dark active:scale-[0.99] transition-all disabled:opacity-50 ${focusRing}`}
+                            >
+                                {processing ? 'Mengirim...' : 'Kirim Pengajuan'}
+                            </button>
+                        </div>
                     </form>
                 )}
             </div>

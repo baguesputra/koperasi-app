@@ -95,14 +95,14 @@ export default function Create({ pengajuanBerjalan, riwayat }) {
                                 <label className="block text-base font-semibold text-slate-700 mb-2">Jenis Santunan</label>
                                 <div className="space-y-2">
                                     {jenisOpsi.map((o) => (
-                                        <label key={o.value} className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-colors ${data.jenis === o.value ? 'border-brand-green bg-brand-green-light/30' : 'border-slate-200 hover:border-slate-300'}`}>
+                                        <label key={o.value} className={`flex items-start gap-3 p-4 min-h-[64px] rounded-xl border cursor-pointer transition-colors ${data.jenis === o.value ? 'border-brand-green bg-brand-green-light/30' : 'border-slate-200 hover:border-slate-300 active:bg-slate-50'}`}>
                                             <input
                                                 type="radio"
                                                 name="jenis"
                                                 value={o.value}
                                                 checked={data.jenis === o.value}
                                                 onChange={(e) => setData({ ...data, jenis: e.target.value, sub_tipe: '', hubungan: '', lama_hari: '' })}
-                                                className="w-5 h-5 mt-0.5 text-brand-green focus:ring-brand-green/30"
+                                                className="w-6 h-6 mt-0.5 text-brand-green focus:ring-brand-green/30 shrink-0"
                                             />
                                             <span>
                                                 <span className="block text-base font-semibold text-slate-800">{o.label}</span>
@@ -120,14 +120,14 @@ export default function Create({ pengajuanBerjalan, riwayat }) {
                                         <label className="block text-base font-semibold text-slate-700 mb-2">Jenis Perawatan</label>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                             {subTipeOpsi.map((o) => (
-                                                <label key={o.value} className={`flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer ${data.sub_tipe === o.value ? 'border-brand-green bg-brand-green-light/30' : 'border-slate-200'}`}>
+                                                <label key={o.value} className={`flex items-center gap-2.5 p-3.5 min-h-[52px] rounded-xl border cursor-pointer ${data.sub_tipe === o.value ? 'border-brand-green bg-brand-green-light/30' : 'border-slate-200 active:bg-slate-50'}`}>
                                                     <input
                                                         type="radio"
                                                         name="sub_tipe"
                                                         value={o.value}
                                                         checked={data.sub_tipe === o.value}
                                                         onChange={(e) => setData('sub_tipe', e.target.value)}
-                                                        className="w-5 h-5 text-brand-green focus:ring-brand-green/30"
+                                                        className="w-6 h-6 text-brand-green focus:ring-brand-green/30 shrink-0"
                                                     />
                                                     <span className="text-sm font-semibold text-slate-700">{o.label}</span>
                                                 </label>
@@ -141,11 +141,12 @@ export default function Create({ pengajuanBerjalan, riwayat }) {
                                         <input
                                             id="lama-hari"
                                             type="number"
+                                            inputMode="numeric"
                                             min={minimalHari}
                                             value={data.lama_hari}
                                             onChange={(e) => setData('lama_hari', e.target.value)}
                                             placeholder={String(minimalHari)}
-                                            className={`w-full px-4 py-3 text-base rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors ${focusRing}`}
+                                            className={`w-full px-4 min-h-[52px] text-base rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors ${focusRing}`}
                                         />
                                         {errors.lama_hari && <p className="text-sm text-red-600 mt-1.5">{errors.lama_hari}</p>}
                                     </div>
@@ -157,14 +158,14 @@ export default function Create({ pengajuanBerjalan, riwayat }) {
                                     <label className="block text-base font-semibold text-slate-700 mb-2">Hubungan Keluarga</label>
                                     <div className="grid grid-cols-2 gap-2">
                                         {hubunganOpsi.map((o) => (
-                                            <label key={o.value} className={`flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer ${data.hubungan === o.value ? 'border-brand-green bg-brand-green-light/30' : 'border-slate-200'}`}>
+                                            <label key={o.value} className={`flex items-center gap-2.5 p-3.5 min-h-[52px] rounded-xl border cursor-pointer ${data.hubungan === o.value ? 'border-brand-green bg-brand-green-light/30' : 'border-slate-200 active:bg-slate-50'}`}>
                                                 <input
                                                     type="radio"
                                                     name="hubungan"
                                                     value={o.value}
                                                     checked={data.hubungan === o.value}
                                                     onChange={(e) => setData('hubungan', e.target.value)}
-                                                    className="w-5 h-5 text-brand-green focus:ring-brand-green/30"
+                                                    className="w-6 h-6 text-brand-green focus:ring-brand-green/30 shrink-0"
                                                 />
                                                 <span className="text-sm font-semibold text-slate-700">{o.label}</span>
                                             </label>
@@ -189,7 +190,7 @@ export default function Create({ pengajuanBerjalan, riwayat }) {
                                             max={new Date().toISOString().slice(0, 10)}
                                             value={data.tanggal_kejadian}
                                             onChange={(e) => setData('tanggal_kejadian', e.target.value)}
-                                            className={`w-full px-4 py-3 text-base rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors ${focusRing}`}
+                                            className={`w-full px-4 min-h-[52px] text-base rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors ${focusRing}`}
                                         />
                                         {errors.tanggal_kejadian && <p className="text-sm text-red-600 mt-1.5">{errors.tanggal_kejadian}</p>}
                                     </div>
@@ -213,10 +214,10 @@ export default function Create({ pengajuanBerjalan, riwayat }) {
                                             Dokumen Pendukung {sakit ? '(Surat Keterangan Rumah Sakit)' : '(Foto)'}
                                         </label>
                                         <p className="text-xs text-slate-400 -mt-1 mb-2">Wajib. Format JPG/PNG, maksimal 5 MB.</p>
-                                        <label className={`flex items-center gap-3 p-4 rounded-xl border border-dashed border-slate-300 cursor-pointer hover:border-brand-green transition-colors ${focusRing}`}>
-                                            <Camera size={20} className="text-slate-400 shrink-0" />
-                                            <span className="text-sm text-slate-500 truncate">
-                                                {data.foto ? data.foto.name : 'Pilih berkas gambar...'}
+                                        <label className={`flex items-center gap-3 p-4 sm:p-4 min-h-[64px] sm:min-h-0 rounded-xl border border-dashed border-slate-300 cursor-pointer hover:border-brand-green active:bg-brand-green-light/30 transition-colors ${focusRing}`}>
+                                            <Camera size={22} className="text-slate-400 shrink-0" />
+                                            <span className="text-base text-slate-500 truncate">
+                                                {data.foto ? data.foto.name : 'Ketuk untuk memilih foto dokumen...'}
                                             </span>
                                             <input
                                                 id="foto"
@@ -229,13 +230,15 @@ export default function Create({ pengajuanBerjalan, riwayat }) {
                                         {errors.foto && <p className="text-sm text-red-600 mt-1.5">{errors.foto}</p>}
                                     </div>
 
-                                    <button
-                                        type="submit"
-                                        disabled={processing}
-                                        className={`w-full py-3.5 text-base font-bold rounded-2xl bg-brand-green text-white hover:bg-brand-green-dark transition-colors disabled:opacity-50 ${focusRing}`}
-                                    >
-                                        {processing ? 'Mengirim...' : 'Kirim Pengajuan'}
-                                    </button>
+                                    <div className="sticky bottom-24 sm:static -mx-1 px-1 pb-1 sm:mx-0 sm:px-0 sm:pb-0 bg-white/95 sm:bg-transparent backdrop-blur pt-2 sm:pt-0">
+                                        <button
+                                            type="submit"
+                                            disabled={processing}
+                                            className={`w-full min-h-[52px] text-base font-bold rounded-2xl bg-brand-green text-white hover:bg-brand-green-dark active:scale-[0.99] transition-all disabled:opacity-50 ${focusRing}`}
+                                        >
+                                            {processing ? 'Mengirim...' : 'Kirim Pengajuan'}
+                                        </button>
+                                    </div>
                                 </>
                             )}
                         </form>

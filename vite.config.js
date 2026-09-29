@@ -11,7 +11,7 @@ export default defineConfig({
         }),
         react(),
         VitePWA({
-            registerType: 'prompt',
+            registerType: 'autoUpdate',
             includeAssets: ['favicon.ico', 'favicon_custom.ico', 'images/logo.png'],
             manifest: {
                 name: 'Koperasi App',
