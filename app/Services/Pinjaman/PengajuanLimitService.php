@@ -85,6 +85,10 @@ class PengajuanLimitService
             throw new RuntimeException('Hanya pengajuan berstatus Diajukan yang dapat diverifikasi Bendahara.');
         }
 
+        if ($nominal <= (float) $pengajuan->limit_saat_ini) {
+            throw new RuntimeException('Nominal total limit disetujui harus lebih besar dari limit saat ini (Rp '.number_format($pengajuan->limit_saat_ini, 0, ',', '.').').');
+        }
+
         $pengajuan->update([
             'status' => 'approved_bendahara',
             'limit_disetujui_bendahara' => $nominal,
@@ -136,6 +140,10 @@ class PengajuanLimitService
     {
         if ($pengajuan->status !== 'approved_bendahara') {
             throw new RuntimeException('Hanya pengajuan berstatus Disetujui Bendahara yang dapat disetujui Ketua.');
+        }
+
+        if ($nominal <= (float) $pengajuan->limit_saat_ini) {
+            throw new RuntimeException('Nominal total limit disetujui harus lebih besar dari limit saat ini (Rp '.number_format($pengajuan->limit_saat_ini, 0, ',', '.').').');
         }
 
         $limitLama = $pengajuan->anggota->limit_custom;

@@ -173,23 +173,31 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                             <form onSubmit={submit}>
                                 {aksi === 'approve' && (
                                     <div className="mb-4">
-                                        <label className="block text-sm font-semibold text-slate-600 mb-2">
-                                            Nominal yang Disetujui
+                                        <label className="block text-sm font-semibold text-slate-600 mb-1">
+                                            Total Limit Baru yang Disetujui
                                         </label>
+                                        <p className="text-xs text-slate-500 mb-2">
+                                            Isi total limit baru secara keseluruhan (bukan nilai selisih). Wajib {'>'} {formatRupiah(pengajuan.limit_saat_ini)}.
+                                        </p>
                                         <div className="relative">
                                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-base font-semibold text-slate-400">Rp</span>
                                             <input
                                                 type="number"
-                                                min={1}
+                                                min={pengajuan.limit_saat_ini + 1}
                                                 value={data.limit_disetujui}
                                                 onChange={(e) => setData('limit_disetujui', e.target.value)}
                                                 className="w-full pl-12 pr-4 py-2.5 text-lg font-bold rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
                                                 autoFocus
                                             />
                                         </div>
+                                        {Number(data.limit_disetujui) > pengajuan.limit_saat_ini && (
+                                            <p className="text-xs font-semibold text-brand-green-dark mt-1.5">
+                                                Penambahan limit: +{formatRupiah(Number(data.limit_disetujui) - pengajuan.limit_saat_ini)}
+                                            </p>
+                                        )}
                                         {errors.limit_disetujui && <p className="text-sm text-red-600 mt-1.5">{errors.limit_disetujui}</p>}
                                         {diBawahSaatIni && (
-                                            <p className="text-sm text-amber-600 mt-1.5">Nominal di bawah limit saat ini ({formatRupiah(pengajuan.limit_saat_ini)}). Pastikan ini disengaja.</p>
+                                            <p className="text-sm text-red-600 font-semibold mt-1.5">Nominal di bawah limit saat ini ({formatRupiah(pengajuan.limit_saat_ini)}). Masukkan total limit baru yang lebih besar.</p>
                                         )}
                                     </div>
                                 )}
