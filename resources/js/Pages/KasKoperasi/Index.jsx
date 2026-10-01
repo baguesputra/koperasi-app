@@ -166,8 +166,12 @@ export default function Index({
                             <dd className="font-bold tabular-nums">{formatRupiah(saldoPinjaman)}</dd>
                         </div>
                         <div className="rounded-xl bg-white/10 px-3 py-2">
-                            <dt className="text-xs text-white/70">Dana iuran (sosial + simpanan)</dt>
-                            <dd className="font-bold tabular-nums">{formatRupiah(saldoDanaSosial + totalSimpananOutstanding)}</dd>
+                            <dt className="text-xs text-white/70">Dana sosial</dt>
+                            <dd className="font-bold tabular-nums">{formatRupiah(saldoDanaSosial)}</dd>
+                        </div>
+                        <div className="rounded-xl bg-white/10 px-3 py-2">
+                            <dt className="text-xs text-white/70">Simpanan (Kas)</dt>
+                            <dd className="font-bold tabular-nums">{formatRupiah(saldoSimpanan)}</dd>
                         </div>
                         <div className="rounded-xl bg-white/10 px-3 py-2">
                             <dt className="text-xs text-white/70">Simpanan outstanding</dt>
@@ -193,14 +197,17 @@ export default function Index({
                 )}
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
                 <div className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
                     <StatWidget compact label="Dana Pinjaman" value={formatRupiah(saldoPinjaman)} icon={Wallet} tone="green" />
                 </div>
                 <div className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
-                    <StatWidget compact label="Dana Iuran" value={formatRupiah(saldoDanaSosial + totalSimpananOutstanding)} icon={HeartHandshake} tone="amber" />
+                    <StatWidget compact label="Dana Sosial" value={formatRupiah(saldoDanaSosial)} icon={HeartHandshake} tone="amber" />
                 </div>
-                <div className="col-span-2 lg:col-span-1 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
+                <div className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
+                    <StatWidget compact label="Simpanan (Kas)" value={formatRupiah(saldoSimpanan)} icon={PiggyBank} tone="blue" />
+                </div>
+                <div className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
                     <StatWidget compact label="Simpanan Outstanding" value={formatRupiah(totalSimpananOutstanding)} icon={PiggyBank} tone="navy" />
                 </div>
             </div>

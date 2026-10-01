@@ -2,6 +2,7 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import Checkbox from '@/Components/Checkbox';
 import { Head, useForm } from '@inertiajs/react';
+import { route } from 'ziggy-js';
 import { Lock, User } from 'lucide-react';
 
 export default function Login({ status }) {

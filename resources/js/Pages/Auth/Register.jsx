@@ -4,6 +4,7 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
+import { route } from 'ziggy-js';
 
 export default function Register() {
     const { data, setData, post, processing, errors, reset } = useForm({

@@ -1,4 +1,5 @@
 import { ShieldX, FileQuestion, Hourglass, ServerCrash } from 'lucide-react';
+import { route } from 'ziggy-js';
 
 export const errorStatusConfig = {
     403: {

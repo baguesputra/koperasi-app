@@ -1,4 +1,5 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
+import { route } from 'ziggy-js';
 import { ShieldAlert, LogOut } from 'lucide-react';
 import FormField from '@/Components/ui/FormField';
 import KataSandi from '@/Components/ui/KataSandi';
