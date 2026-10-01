@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\AuditLog;
 use App\Models\KlaimDanaSosial;
+use App\Models\SettingKas;
 use App\Services\DanaSosial\KlaimDanaSosialService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -117,6 +118,39 @@ class KlaimDanaSosialTest extends TestCase
 
         $this->assertSame('ditolak', $klaim->refresh()->status);
         $this->assertNull($klaim->pengeluaran_id);
+    }
+
+    public function test_ketua_setujui_melebihi_pagu_sosial_ditolak(): void
+    {
+        $jumlahSebelum = \App\Models\Pengeluaran::where('jenis', 'dana_sosial')
+            ->whereYear('tanggal', now()->year)
+            ->whereMonth('tanggal', now()->month)
+            ->sum('jumlah');
+        $countSebelum = \App\Models\Pengeluaran::where('jenis', 'dana_sosial')->count();
+        SettingKas::updateOrCreate(
+            ['kunci' => SettingKas::CADANGAN],
+            ['label' => 'Cadangan Sosial Bulanan', 'nominal' => (float) $jumlahSebelum + 500_000]
+        );
+
+        $anggota = $this->buatAnggota();
+        $klaim = $this->ajukan($anggota);
+
+        $this->masuk('BEN-000001');
+        $this->post(route('bendahara.klaim-dana-sosial.approve', $klaim), [
+            'catatan' => 'Dokumen lengkap.',
+            'nominal' => 750_000,
+        ])->assertStatus(302);
+
+        $this->masuk('KET-000001');
+        $this->post(route('ketua.klaim-dana-sosial.approve', $klaim), [
+            'catatan' => 'Melebihi pagu sosial.',
+            'nominal' => 750_000,
+        ])->assertSessionHasErrors('keputusan');
+
+        $klaim->refresh();
+        $this->assertSame('approved_bendahara', $klaim->status);
+        $this->assertNull($klaim->pengeluaran_id);
+        $this->assertSame(0, \App\Models\Pengeluaran::where('jenis', 'dana_sosial')->count() - $countSebelum);
     }
 
     public function test_portal_validasi_tanggal_masa_depan_dan_foto_wajib(): void

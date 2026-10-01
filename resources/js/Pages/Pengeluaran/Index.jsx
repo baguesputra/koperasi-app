@@ -18,7 +18,7 @@ const jenisMeta = {
     dana_sosial: { label: 'Dana Sosial', ikon: HeartHandshake },
 };
 
-export default function Index({ pengeluaran, jenisAktif, filters = {}, totalKoperasi, totalDanaSosial, totalTampil }) {
+export default function Index({ pengeluaran, jenisAktif, filters = {}, totalKoperasi, totalDanaSosial, totalTampil, bulanAktif, totalKoperasiBulan, totalDanaSosialBulan, infoPaguSosial }) {
     const { auth } = usePage().props;
     const bisaCatat = auth.user?.permissions?.includes('kas.topup');
     const [showForm, setShowForm] = useState(false);
@@ -85,6 +85,10 @@ export default function Index({ pengeluaran, jenisAktif, filters = {}, totalKope
 
     const meta = jenisMeta[jenisAktif] ?? jenisMeta.koperasi;
     const IkonJenis = meta.ikon;
+    const [tahunBulan, bulanAngka] = (bulanAktif ?? '').split('-').map(Number);
+    const labelBulan = bulanAngka
+        ? new Date(tahunBulan, bulanAngka - 1, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
+        : '';
 
     return (
         <AppLayout>
@@ -112,14 +116,33 @@ export default function Index({ pengeluaran, jenisAktif, filters = {}, totalKope
                     </div>
                 </div>
                 <dl className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-white/15 text-sm">
-                    <div className="rounded-xl bg-white/10 px-3 py-2">
-                        <dt className="text-xs text-white/70">Koperasi (global)</dt>
-                        <dd className="font-bold tabular-nums">- {formatRupiah(totalKoperasi)}</dd>
-                    </div>
-                    <div className="rounded-xl bg-white/10 px-3 py-2">
-                        <dt className="text-xs text-white/70">Dana sosial (global)</dt>
-                        <dd className="font-bold tabular-nums">- {formatRupiah(totalDanaSosial)}</dd>
-                    </div>
+                    {jenisAktif === 'dana_sosial' ? (
+                        <>
+                            <div className="rounded-xl bg-white/10 px-3 py-2">
+                                <dt className="text-xs text-white/70">Pagu {labelBulan}</dt>
+                                <dd className="font-bold tabular-nums">{formatRupiah(infoPaguSosial.pagu)}</dd>
+                            </div>
+                            <div className="rounded-xl bg-white/10 px-3 py-2">
+                                <dt className="text-xs text-white/70">Terpakai bulan ini</dt>
+                                <dd className="font-bold tabular-nums">- {formatRupiah(infoPaguSosial.terpakai)}</dd>
+                            </div>
+                            <div className={`rounded-xl px-3 py-2 ${infoPaguSosial.sisa === 0 ? 'bg-red-500/30' : 'bg-white/10'}`}>
+                                <dt className="text-xs text-white/70">Sisa pagu bulan ini</dt>
+                                <dd className="font-bold tabular-nums">{formatRupiah(infoPaguSosial.sisa)}</dd>
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <div className="rounded-xl bg-white/10 px-3 py-2">
+                                <dt className="text-xs text-white/70">Koperasi bulan ini</dt>
+                                <dd className="font-bold tabular-nums">- {formatRupiah(totalKoperasiBulan)}</dd>
+                            </div>
+                            <div className="rounded-xl bg-white/10 px-3 py-2">
+                                <dt className="text-xs text-white/70">Dana sosial bulan ini</dt>
+                                <dd className="font-bold tabular-nums">- {formatRupiah(totalDanaSosialBulan)}</dd>
+                            </div>
+                        </>
+                    )}
                 </dl>
             </div>
 

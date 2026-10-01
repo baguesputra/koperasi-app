@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Pengeluaran;
+use App\Models\SettingKas;
 use App\Services\Keuangan\PengeluaranService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -52,6 +53,22 @@ class PengeluaranController extends Controller
         $totalKoperasi = Pengeluaran::where('jenis', 'koperasi')->sum('jumlah');
         $totalDanaSosial = Pengeluaran::where('jenis', 'dana_sosial')->sum('jumlah');
 
+        $bulanAktif = preg_match('/^\d{4}-\d{2}$/', $bulan->value()) ? $bulan->value() : now()->format('Y-m');
+        [$tahunAktif, $bulanAngka] = explode('-', $bulanAktif);
+
+        $perBulan = fn (string $jenis) => (float) Pengeluaran::where('jenis', $jenis)
+            ->whereYear('tanggal', $tahunAktif)
+            ->whereMonth('tanggal', $bulanAngka)
+            ->sum('jumlah');
+
+        $totalKoperasiBulan = $perBulan('koperasi');
+        $totalDanaSosialBulan = $perBulan('dana_sosial');
+
+        $paguSosial = SettingKas::nilai(
+            SettingKas::CADANGAN,
+            (float) config('koperasi.cadangan_sosial_bulan', 5_000_000)
+        );
+
         return Inertia::render('Pengeluaran/Index', [
             'pengeluaran' => $pengeluaran,
             'jenisAktif' => $jenis,
@@ -59,6 +76,15 @@ class PengeluaranController extends Controller
             'totalKoperasi' => (float) $totalKoperasi,
             'totalDanaSosial' => (float) $totalDanaSosial,
             'totalTampil' => (float) $totalTampil,
+            'bulanAktif' => $bulanAktif,
+            'totalKoperasiBulan' => $totalKoperasiBulan,
+            'totalDanaSosialBulan' => $totalDanaSosialBulan,
+            'infoPaguSosial' => [
+                'bulan' => $bulanAktif,
+                'pagu' => $paguSosial,
+                'terpakai' => $totalDanaSosialBulan,
+                'sisa' => max(0, $paguSosial - $totalDanaSosialBulan),
+            ],
         ]);
     }
 

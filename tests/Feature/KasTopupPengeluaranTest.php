@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\JurnalKas;
 use App\Models\KasKoperasi;
+use App\Models\Pengeluaran;
+use App\Models\SettingKas;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\MembuatDataUji;
 use Tests\TestCase;
@@ -119,5 +121,61 @@ class KasTopupPengeluaranTest extends TestCase
         $sesudah = KasKoperasi::first();
         $this->assertEquals($sebelum['saldo_pinjaman'], $sesudah->saldo_pinjaman);
         $this->assertEquals((float) $sebelum['saldo_dana_sosial'] - 100_000, (float) $sesudah->saldo_dana_sosial);
+    }
+
+    public function test_pengeluaran_dana_sosial_dibatasi_pagu_bulanan(): void
+    {
+        $this->masuk('BEN-000001');
+        $terpakai = (float) Pengeluaran::where('jenis', 'dana_sosial')
+            ->whereYear('tanggal', now()->year)
+            ->whereMonth('tanggal', now()->month)
+            ->sum('jumlah');
+        SettingKas::updateOrCreate(
+            ['kunci' => SettingKas::CADANGAN],
+            ['label' => 'Cadangan Sosial Bulanan', 'nominal' => $terpakai + 600_000]
+        );
+
+        $this->post(route('pengeluaran.store'), [
+            'jenis' => 'dana_sosial',
+            'jumlah' => 700_000,
+            'keterangan' => 'Melebihi sisa pagu',
+            'tanggal' => now()->format('Y-m-d'),
+        ])->assertSessionHasErrors('jumlah');
+
+        $this->post(route('pengeluaran.store'), [
+            'jenis' => 'dana_sosial',
+            'jumlah' => 600_000,
+            'keterangan' => 'Santunan dalam pagu',
+            'tanggal' => now()->format('Y-m-d'),
+        ])->assertSessionHasNoErrors();
+
+        $this->post(route('pengeluaran.store'), [
+            'jenis' => 'dana_sosial',
+            'jumlah' => 1,
+            'keterangan' => 'Sisa pagu habis',
+            'tanggal' => now()->format('Y-m-d'),
+        ])->assertSessionHasErrors('jumlah');
+
+        $this->assertSame(1, Pengeluaran::where('jenis', 'dana_sosial')->where('keterangan', 'Santunan dalam pagu')->count());
+        $this->assertSame(0, Pengeluaran::where('jenis', 'dana_sosial')->where('keterangan', 'Melebihi sisa pagu')->count());
+        $this->assertSame(0, Pengeluaran::where('jenis', 'dana_sosial')->where('keterangan', 'Sisa pagu habis')->count());
+    }
+
+    public function test_pengeluaran_koperasi_tak_dibatasi_pagu_sosial(): void
+    {
+        $this->masuk('BEN-000001');
+        SettingKas::updateOrCreate(
+            ['kunci' => SettingKas::CADANGAN],
+            ['label' => 'Cadangan Sosial Bulanan', 'nominal' => 1_000_000]
+        );
+
+        $this->post(route('pengeluaran.store'), [
+            'jenis' => 'koperasi',
+            'jumlah' => 2_000_000,
+            'keterangan' => 'Belanja melebihi pagu sosial tapi koperasi bebas',
+            'tanggal' => now()->format('Y-m-d'),
+        ])->assertStatus(302);
+
+        $this->assertTrue(JurnalKas::where('kategori', 'pengeluaran_koperasi')->where('tipe', 'keluar')->exists());
     }
 }

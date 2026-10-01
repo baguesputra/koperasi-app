@@ -6,7 +6,7 @@ import TextField from '@/Components/ui/TextField';
 
 const KETERANGAN = {
     pagu_pinjaman_bulanan: 'Batas total pencairan pinjaman per bulan kalender. Pencairan ditolak bila melebihi sisa pagu.',
-    cadangan_sosial_bulan: 'Dana yang wajib tersisa di kas operasional dan tidak boleh dipakai pinjaman.',
+    cadangan_sosial_bulan: 'Pagu dana sosial bulanan: batas total klaim santunan + pengeluaran dana sosial per bulan kalender. Melebihi sisa pagu ditolak. Pinjaman juga wajib menyisakan minimal ini di kas.',
 };
 
 export default function TabKas({ settingKas }) {
