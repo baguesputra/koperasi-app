@@ -1,6 +1,6 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, usePage, useForm, router } from '@inertiajs/react';
-import { Wallet, HeartHandshake, PiggyBank, ArrowDownCircle, ArrowUpCircle, Plus, ChevronLeft, ChevronRight, ChevronDown, Landmark, ReceiptText, CalendarDays } from 'lucide-react';
+import { Wallet, HeartHandshake, PiggyBank, ArrowDownCircle, ArrowUpCircle, Plus, ChevronLeft, ChevronRight, Landmark, ReceiptText, CalendarDays } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import Card from '@/Components/ui/Card';
 import Button from '@/Components/ui/Button';
@@ -60,12 +60,11 @@ const chipNominal = [500_000, 1_000_000, 2_500_000, 5_000_000, 10_000_000];
 export default function Index({
     saldoPinjaman,
     saldoDanaSosial,
+    saldoSimpanan,
     totalSimpananOutstanding,
-    totalAkumulasiSimpanan,
     totalKeseluruhan,
     kasOperasional,
     infoPagu,
-    klasifikasi,
     kantongAktif,
     bulanFilter,
     ringkasanPeriode,
@@ -74,7 +73,6 @@ export default function Index({
     const { auth } = usePage().props;
     const bisaTopup = auth.user?.permissions?.includes('kas.topup');
     const [showForm, setShowForm] = useState(false);
-    const [rincianTerbuka, setRincianTerbuka] = useState(false);
 
     const { data, setData, post, processing, errors, reset } = useForm({
         kantong: kantongAktif,
@@ -149,52 +147,7 @@ export default function Index({
                             </p>
                         )}
                     </div>
-                    <button
-                        type="button"
-                        onClick={() => setRincianTerbuka((v) => !v)}
-                        aria-expanded={rincianTerbuka}
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-full px-3 py-1.5 transition-colors shrink-0"
-                    >
-                        Rincian
-                        <ChevronDown size={14} className={`transition-transform ${rincianTerbuka ? 'rotate-180' : ''}`} />
-                    </button>
                 </div>
-                {rincianTerbuka && (
-                    <dl className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-white/15 text-sm">
-                        <div className="rounded-xl bg-white/10 px-3 py-2">
-                            <dt className="text-xs text-white/70">Dana pinjaman</dt>
-                            <dd className="font-bold tabular-nums">{formatRupiah(saldoPinjaman)}</dd>
-                        </div>
-                        <div className="rounded-xl bg-white/10 px-3 py-2">
-                            <dt className="text-xs text-white/70">Dana sosial</dt>
-                            <dd className="font-bold tabular-nums">{formatRupiah(saldoDanaSosial)}</dd>
-                        </div>
-                        <div className="rounded-xl bg-white/10 px-3 py-2">
-                            <dt className="text-xs text-white/70">Simpanan (Kas)</dt>
-                            <dd className="font-bold tabular-nums">{formatRupiah(saldoSimpanan)}</dd>
-                        </div>
-                        <div className="rounded-xl bg-white/10 px-3 py-2">
-                            <dt className="text-xs text-white/70">Simpanan outstanding</dt>
-                            <dd className="font-bold tabular-nums">{formatRupiah(totalSimpananOutstanding)}</dd>
-                        </div>
-                        <div className="rounded-xl bg-white/10 px-3 py-2">
-                            <dt className="text-xs text-white/70">Gross akumulasi (audit)</dt>
-                            <dd className="font-bold tabular-nums">{formatRupiah(totalAkumulasiSimpanan)}</dd>
-                        </div>
-                        {klasifikasi && (
-                            <>
-                                <div className="rounded-xl bg-white/10 px-3 py-2">
-                                    <dt className="text-xs text-white/70">Pinjaman keluar bln ini</dt>
-                                    <dd className="font-bold tabular-nums">{formatRupiah(klasifikasi.pinjaman_keluar)}</dd>
-                                </div>
-                                <div className="rounded-xl bg-white/10 px-3 py-2">
-                                    <dt className="text-xs text-white/70">Arus kas iuran bln ini</dt>
-                                    <dd className="font-bold tabular-nums">{formatRupiah(klasifikasi.iuran_masuk)} / -{formatRupiah(klasifikasi.iuran_keluar ?? 0)}</dd>
-                                </div>
-                            </>
-                        )}
-                    </dl>
-                )}
             </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
