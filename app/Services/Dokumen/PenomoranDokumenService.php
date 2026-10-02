@@ -12,6 +12,12 @@ class PenomoranDokumenService
 
     public const JENIS_RESIGN = 'KOP-RSGN';
 
+    public const JENIS_JKM = 'JKM';
+
+    public const JENIS_JKK = 'JKK';
+
+    public const JENIS_JNK = 'JNK';
+
     private const ROMAWI = [1 => 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
 
     public function berikutnya(string $jenis, Carbon $tanggal): string

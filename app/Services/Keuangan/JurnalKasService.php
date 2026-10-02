@@ -4,6 +4,8 @@ namespace App\Services\Keuangan;
 
 use App\Models\JurnalKas;
 use App\Models\KasKoperasi;
+use App\Services\Dokumen\PenomoranDokumenService;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -79,6 +81,31 @@ class JurnalKasService
     }
 
     /**
+     * Jenis nomor bukti jurnal: non-fisik → JNK (memorial), masuk → JKM,
+     * keluar → JKK. Dipakai PenomoranDokumenService (counter tahunan).
+     */
+    public static function jenisBukti(string $tipe, string $kategori): string
+    {
+        if (in_array($kategori, self::KATEGORI_NON_FISIK, true)) {
+            return PenomoranDokumenService::JENIS_JNK;
+        }
+
+        return $tipe === 'masuk' ? PenomoranDokumenService::JENIS_JKM : PenomoranDokumenService::JENIS_JKK;
+    }
+
+    /**
+     * Ambil no bukti berikutnya. Aman dipanggil di dalam transaksi pemanggil
+     * (nested transaction → savepoint, lock counter tetap berlaku).
+     */
+    protected function noBuktiBerikutnya(string $tipe, string $kategori, string $tanggal): string
+    {
+        return app(PenomoranDokumenService::class)->berikutnya(
+            self::jenisBukti($tipe, $kategori),
+            Carbon::parse($tanggal)
+        );
+    }
+
+    /**
      * Satu-satunya pintu untuk mengubah saldo kas + mencatat jurnal.
      * Selalu dipanggil sebagai 1 paket atomic dengan lock, supaya aman dari race condition.
      *
@@ -131,6 +158,7 @@ class JurnalKasService
                 'tipe' => $tipe,
                 'kategori' => $kategori,
                 'kantong' => $kantong,
+                'no_bukti' => $this->noBuktiBerikutnya($tipe, $kategori, $tanggal),
                 'jumlah' => $jumlah,
                 'saldo_setelah' => $nonFisik ? 0 : $kas->{$kolomFisik},
                 'keterangan' => $keterangan,
@@ -169,6 +197,7 @@ class JurnalKasService
                 'tipe' => 'keluar',
                 'kategori' => 'sisih_kas_kecil',
                 'kantong' => 'bank',
+                'no_bukti' => $this->noBuktiBerikutnya('keluar', 'sisih_kas_kecil', $tanggal),
                 'jumlah' => $jumlah,
                 'saldo_setelah' => $kas->saldo_bank,
                 'keterangan' => $keterangan,
@@ -182,6 +211,7 @@ class JurnalKasService
                 'tipe' => 'masuk',
                 'kategori' => 'terima_sisih_kas_kecil',
                 'kantong' => 'kas_kecil',
+                'no_bukti' => $this->noBuktiBerikutnya('masuk', 'terima_sisih_kas_kecil', $tanggal),
                 'jumlah' => $jumlah,
                 'saldo_setelah' => $kas->saldo_kas_kecil,
                 'keterangan' => $keterangan,
