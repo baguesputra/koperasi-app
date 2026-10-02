@@ -66,10 +66,6 @@ class JurnalKasController extends Controller
 
         return Inertia::render('JurnalKas/Index', [
             'saldo' => [
-                'pinjaman' => (float) $kas->saldo_pinjaman,
-                'dana_sosial' => (float) $kas->saldo_dana_sosial,
-                'simpanan' => (float) $kas->saldo_simpanan,
-                'pengembalian_simpanan' => (float) $kas->saldo_pengembalian_simpanan,
                 'bank' => (float) $kas->saldo_bank,
                 'kas_kecil' => (float) $kas->saldo_kas_kecil,
                 'outstanding' => $totalSimpananOutstanding,

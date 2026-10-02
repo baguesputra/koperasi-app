@@ -125,6 +125,9 @@ class MigrasiImportTest extends TestCase
 
         $jurnalSebelum = JurnalKas::where('kategori', 'simpanan_wajib_masuk')->count();
 
+        $kas = KasKoperasi::first();
+        $bankSebelum = (float) KasKoperasi::first()->saldo_bank;
+
         app(MigrasiSimpananService::class)->proses(
             anggota: $anggota,
             jenis: 'wajib',
@@ -137,8 +140,7 @@ class MigrasiImportTest extends TestCase
         $this->assertSame(1, Simpanan::where('anggota_id', $anggota->id)->where('jenis', 'wajib')->where('bulan_periode', '2024-01')->count());
         $this->assertSame(1, JurnalKas::where('kategori', 'simpanan_wajib_masuk')->where('kantong', 'simpanan')->count() - $jurnalSebelum);
 
-        $kas = KasKoperasi::first();
-        $this->assertGreaterThan(0, (float) $kas->saldo_simpanan);
+        $this->assertEquals($bankSebelum + 50_000, (float) KasKoperasi::first()->saldo_bank);
     }
 
     public function test_migrasi_simpanan_duplikat_ditolak(): void

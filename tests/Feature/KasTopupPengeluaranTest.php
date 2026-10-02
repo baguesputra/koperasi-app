@@ -24,32 +24,37 @@ class KasTopupPengeluaranTest extends TestCase
     public function test_topup_menaikkan_saldo_dan_mencatat_jurnal(): void
     {
         $this->masuk('ADM-000001'); // admin punya kas.topup
-        $saldoSebelum = (float) KasKoperasi::first()->saldo_pinjaman;
         $bankSebelum = (float) KasKoperasi::first()->saldo_bank;
 
         $this->post(route('kas-koperasi.topup'), [
-            'kantong' => 'pinjaman',
             'jumlah' => 5_000_000,
             'keterangan' => 'Topup uji dari keuntungan bulan lalu',
         ])->assertStatus(302);
 
-        $this->assertEquals($saldoSebelum + 5_000_000, (float) KasKoperasi::first()->saldo_pinjaman);
         $this->assertEquals($bankSebelum + 5_000_000, (float) KasKoperasi::first()->saldo_bank);
         $this->assertDatabaseHas('jurnal_kas', [
-            'kategori' => 'topup_bulanan', 'kantong' => 'pinjaman',
+            'kategori' => 'topup_bulanan', 'kantong' => 'bank',
             'tipe' => 'masuk', 'jumlah' => 5_000_000,
         ]);
     }
 
-    public function test_topup_kantong_transit_ditolak(): void
+    public function test_topup_selalu_masuk_bank_tanpa_pilih_kantong(): void
     {
         $this->masuk('ADM-000001');
+        $bankSebelum = (float) KasKoperasi::first()->saldo_bank;
 
+        // Konsep Kas Tunggal: parameter kantong diabaikan, topup selalu ke Bank.
         $this->post(route('kas-koperasi.topup'), [
             'kantong' => 'pengembalian_simpanan',
             'jumlah' => 1_000_000,
-            'keterangan' => 'Harus gagal',
-        ])->assertSessionHasErrors('kantong');
+            'keterangan' => 'Kantong diabaikan',
+        ])->assertStatus(302);
+
+        $this->assertEquals($bankSebelum + 1_000_000, (float) KasKoperasi::first()->saldo_bank);
+        $this->assertDatabaseHas('jurnal_kas', [
+            'kategori' => 'topup_bulanan', 'kantong' => 'bank',
+            'tipe' => 'masuk', 'jumlah' => 1_000_000,
+        ]);
     }
 
     public function test_pengeluaran_koperasi_dari_saldo_kas_kecil(): void

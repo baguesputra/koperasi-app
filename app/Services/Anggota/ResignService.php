@@ -83,24 +83,10 @@ class ResignService
                 'sisa_tagihan_pinjaman' => $totalTagihan,
             ];
 
-            // Step 4: Danai transit pengembalian_simpanan dengan total simpanan anggota,
-            // supaya jurnal keluar (pelunasan + return) di bawah tidak bikin saldo negatif.
-            $this->jurnalKas->catat(
-                tipe: 'masuk',
-                kategori: 'simpanan_resign_masuk',
-                kantong: 'pengembalian_simpanan',
-                jumlah: $totalSimpananKembali,
-                keterangan: "Simpanan anggota masuk (proses resign) - {$anggotaLocked->nama}",
-                referensiId: $anggotaLocked->id,
-                tanggal: $tanggalResign,
-                userId: $aktor->id,
-                subJudul: 'Simpanan anggota ditarik ke kantong pengembalian',
-            );
-
-            // Step 5: Loop pelunasan angsuran. Tiap cicilan lunas dicatat 2 jurnal:
-            //   (A) MASUK  ke kantong:pinjaman             -> saldo_pinjaman NAIK (pinjaman dilunasi).
-            //   (B) KELUAR dari kantong:pengembalian_simpanan -> simpanan bayar angsuran.
-            // saldo_pinjaman tetap TIDAK berkurang; cuma bertambah sebesar pelunasan.
+            // Pelunasan angsuran dari offset simpanan: tiap cicilan lunas dicatat
+            // 1 jurnal audit (NON_FISIK, tanpa gerak uang — pinjaman di-offset
+            // simpanan anggota). Uang fisik hanya bergerak saat sisa simpanan
+            // dikembalikan ke anggota (bank berkurang).
             $totalPelunasan = 0.0;
             $rincianPinjaman = [];
             foreach ($pinjamanAktif as $pinjaman) {
@@ -181,8 +167,7 @@ class ResignService
                 }
             }
 
-            // Step 6: Kembalikan sisa simpanan ke anggota DARI kantong:pengembalian_simpanan
-            // (bukan pinjaman) supaya saldo_pinjaman tidak berkurang.
+            // Step 6: Kembalikan sisa simpanan ke anggota (keluar dari bank).
             $alokasiPokok = min($simpananPokok, $totalPelunasan);
             $alokasiWajib = max(0, $totalPelunasan - $simpananPokok);
             $kembaliPokok = max(0, $simpananPokok - $alokasiPokok);
@@ -562,26 +547,14 @@ class ResignService
             referensiId: $anggota->id,
             tanggal: $tanggalResign,
             userId: $aktor->id,
-            subJudul: 'Pelunasan dari uang simpanan anggota',
-        );
-
-        $this->jurnalKas->catat(
-            tipe: 'keluar',
-            kategori: 'pelunasan_resign_simpanan',
-            kantong: 'pengembalian_simpanan',
-            jumlah: $jumlah,
-            keterangan: "Pelunasan resign agregat (sisa alokasi) - {$anggota->nama}",
-            referensiId: $anggota->id,
-            tanggal: $tanggalResign,
-            userId: $aktor->id,
-            subJudul: 'Uang simpanan dibayarkan angsuran',
+            subJudul: 'Pelunasan dari uang simpanan anggota (offset, tanpa gerak kas)',
         );
     }
 
     /**
-     * Catat 1 transaksi pelunasan angsuran saat resign sebagai 2 jurnal:
-     *   - MASUK  kantong:pinjaman            (saldo_pinjaman naik, sub: "Pelunasan dari uang simpanan anggota")
-     *   - KELUAR kantong:pengembalian_simpanan (sub: "Uang simpanan dibayarkan angsuran")
+     * Catat 1 transaksi pelunasan angsuran saat resign sebagai 1 jurnal audit
+     * (NON_FISIK): MASUK kantong:pinjaman, sub: "Pelunasan dari uang simpanan
+     * anggota". Tidak menggerakkan kas — dananya di-offset dari simpanan.
      */
     private function catatPelunasanResign(
         float $jumlah,
@@ -604,19 +577,7 @@ class ResignService
             referensiId: $referensiId,
             tanggal: $tanggalResign,
             userId: $aktor->id,
-            subJudul: 'Pelunasan dari uang simpanan anggota',
-        );
-
-        $this->jurnalKas->catat(
-            tipe: 'keluar',
-            kategori: 'pelunasan_resign_simpanan',
-            kantong: 'pengembalian_simpanan',
-            jumlah: $jumlah,
-            keterangan: $keterangan,
-            referensiId: $referensiId,
-            tanggal: $tanggalResign,
-            userId: $aktor->id,
-            subJudul: 'Uang simpanan dibayarkan angsuran',
+            subJudul: 'Pelunasan dari uang simpanan anggota (offset, tanpa gerak kas)',
         );
     }
 }

@@ -58,7 +58,7 @@ class AngsuranKonfirmasiTest extends TestCase
         $angsuran = $pinjaman->angsuran()->where('cicilan_ke', 1)->first();
 
         $this->masuk('BEN-000001');
-        $saldoSebelum = (float) KasKoperasi::first()->saldo_pinjaman;
+        $saldoSebelum = (float) KasKoperasi::first()->saldo_bank;
 
         $this->post(route('bendahara.angsuran.konfirmasi'), [
             'angsuran_ids' => ['n-'.$angsuran->id],
@@ -69,7 +69,7 @@ class AngsuranKonfirmasiTest extends TestCase
             'kategori' => 'pembayaran_angsuran', 'tipe' => 'masuk',
             'jumlah' => 309_000, 'referensi_id' => $angsuran->id,
         ]);
-        $this->assertEquals($saldoSebelum + 309_000, (float) KasKoperasi::first()->saldo_pinjaman);
+        $this->assertEquals($saldoSebelum + 309_000, (float) KasKoperasi::first()->saldo_bank);
     }
 
     public function test_pinjaman_otomatis_lunas_saats_semua_cicilan_selesai(): void

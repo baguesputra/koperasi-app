@@ -4,12 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\JurnalKas;
 use App\Models\KasKoperasi;
-use App\Models\Simpanan;
 use App\Services\Keuangan\JurnalKasService;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 use RuntimeException;
@@ -20,83 +16,23 @@ class KasKoperasiController extends Controller
         private JurnalKasService $jurnalKas,
     ) {}
 
+    /**
+     * Konsep Kas Tunggal: satu daftar arus kas gabungan semua kantong +
+     * filter bulan. Badge kantong di tiap baris jadi penanda jenis mutasi.
+     */
     public function index(Request $request): Response
     {
         $kas = KasKoperasi::firstOrFail();
-        $kantongAktif = $request->input('kantong', 'pinjaman');
         $bulanFilter = $request->input('bulan', now()->format('Y-m'));
 
-        // Scope jurnal per tab:
-        // - 'pengembalian_simpanan': hanya event RETURN simpanan ke anggota (bukan jurnal
-        //   rekening transit). Saldo berjalan = akumulasi simpanan anggota aktif (gross − return).
-        //   Ditangani di branch khusus di bawah (bukan via scopeKantong).
-        // - 'pinjaman': semua jurnal kantong pinjaman (termasuk pelunasan_resign_pinjaman).
-        // - 'iuran': gabungan arus iuran — kantong simpanan + dana_sosial (masuk iuran,
-        //   keluar pengembalian/pelunasan). Label konsisten "Dana Iuran".
-        // - 'fisik': gabungan uang fisik — kantong bank + kas_kecil (topup masuk bank,
-        //   sisih bank→kas_kecil, pengeluaran dari kas_kecil, pencairan/return dari bank).
-        $scopeKantong = match ($kantongAktif) {
-            'pengembalian_simpanan' => null,
-            'pinjaman' => [
-                ['kantong' => 'pinjaman'],
-            ],
-            'iuran' => [
-                ['kantong' => 'simpanan'],
-                ['kantong' => 'dana_sosial'],
-            ],
-            'fisik' => [
-                ['kantong' => 'bank'],
-                ['kantong' => 'kas_kecil'],
-            ],
-            default => [['kantong' => $kantongAktif]],
-        };
-
-        // Hitung simpanan outstanding (anggota aktif) & gross akumulasi (audit).
-        // Pakai JOIN eksplisit supaya unambiguous & tahan kalau scope/relasi berubah.
-        $totalSimpananOutstanding = (float) DB::table('simpanan')
-            ->join('anggota', 'anggota.id', '=', 'simpanan.anggota_id')
-            ->whereIn('simpanan.jenis', ['pokok', 'wajib'])
-            ->where('anggota.status', 'aktif')
-            ->sum('simpanan.jumlah');
-
-        // Gross: akumulasi semua simpanan (termasuk anggota resign) untuk transparansi audit.
-        $totalAkumulasiSimpanan = (float) Simpanan::whereIn('jenis', ['pokok', 'wajib'])->sum('jumlah');
-
-        if ($kantongAktif === 'pengembalian_simpanan') {
-            return $this->renderTabPengembalian(
-                kas: $kas,
-                bulanFilter: $bulanFilter,
-                totalSimpananOutstanding: $totalSimpananOutstanding,
-                totalAkumulasiSimpanan: $totalAkumulasiSimpanan,
-            );
-        }
-
         $query = JurnalKas::query();
-        $query->where(function ($q) use ($scopeKantong) {
-            foreach ($scopeKantong as $i => $scope) {
-                $sub = $q;
-                if ($i > 0) {
-                    $sub = $q->orWhere(function ($qq) use ($scope) {
-                        $qq->where('kantong', $scope['kantong']);
-                        if (isset($scope['kategori'])) {
-                            $qq->whereIn('kategori', $scope['kategori']);
-                        }
-                    });
-                } else {
-                    $sub->where('kantong', $scope['kantong']);
-                    if (isset($scope['kategori'])) {
-                        $sub->whereIn('kategori', $scope['kategori']);
-                    }
-                }
-            }
-        });
 
         if ($bulanFilter) {
             [$tahun, $bulan] = explode('-', $bulanFilter);
             $query->whereYear('tanggal', $tahun)->whereMonth('tanggal', $bulan);
         }
 
-        $riwayat = $query->latest('tanggal')->latest('id')
+        $riwayat = (clone $query)->latest('tanggal')->latest('id')
             ->paginate(20)
             ->withQueryString()
             ->through(fn ($j) => [
@@ -111,190 +47,12 @@ class KasKoperasiController extends Controller
                 'tanggal' => $j->tanggal->format('d M Y'),
             ]);
 
-        // Ringkasan arus kas untuk periode yang difilter (ikut scope gabungan).
-        $ringkasanQuery = JurnalKas::query();
-        $ringkasanQuery->where(function ($q) use ($scopeKantong) {
-            foreach ($scopeKantong as $i => $scope) {
-                if ($i > 0) {
-                    $q->orWhere(function ($qq) use ($scope) {
-                        $qq->where('kantong', $scope['kantong']);
-                        if (isset($scope['kategori'])) {
-                            $qq->whereIn('kategori', $scope['kategori']);
-                        }
-                    });
-                } else {
-                    $q->where('kantong', $scope['kantong']);
-                    if (isset($scope['kategori'])) {
-                        $q->whereIn('kategori', $scope['kategori']);
-                    }
-                }
-            }
-        });
-        if ($bulanFilter) {
-            [$tahun, $bulan] = explode('-', $bulanFilter);
-            $ringkasanQuery->whereYear('tanggal', $tahun)->whereMonth('tanggal', $bulan);
-        }
-        $totalMasuk = (clone $ringkasanQuery)->where('tipe', 'masuk')->sum('jumlah');
-        $totalKeluar = (clone $ringkasanQuery)->where('tipe', 'keluar')->sum('jumlah');
-
-        // Total keseluruhan operasional = semua saldo kantong + simpanan outstanding.
-        // saldo_pengembalian_simpanan sengaja tidak dimasukkan: itu cuma "dalam proses",
-        // akan kembali ke 0 setelah transfer & return selesai. Masuk ke saldo_pinjaman via transfer.
-        $totalKeseluruhan = $kas->saldo_pinjaman + $kas->saldo_dana_sosial + $kas->saldo_simpanan;
+        $totalMasuk = (clone $query)->where('tipe', 'masuk')->sum('jumlah');
+        $totalKeluar = (clone $query)->where('tipe', 'keluar')->sum('jumlah');
 
         return Inertia::render('KasKoperasi/Index', [
-            'saldoPinjaman' => (float) $kas->saldo_pinjaman,
-            'saldoDanaSosial' => (float) $kas->saldo_dana_sosial,
-            'saldoPengembalianSimpanan' => (float) $kas->saldo_pengembalian_simpanan,
-            'saldoSimpanan' => (float) $kas->saldo_simpanan,
-            'totalSimpananOutstanding' => $totalSimpananOutstanding,
-            'totalAkumulasiSimpanan' => $totalAkumulasiSimpanan,
-            'totalKeseluruhan' => (float) $totalKeseluruhan,
-            'kasOperasional' => $this->jurnalKas->saldoOperasional($kas),
-            'infoPagu' => $this->jurnalKas->sisaPaguBulan($kas, $bulanFilter ?: null),
             'saldoBank' => (float) $kas->saldo_bank,
             'saldoKasKecil' => (float) $kas->saldo_kas_kecil,
-            'poolPinjaman' => (float) $kas->saldo_bank,
-            'kantongAktif' => $kantongAktif,
-            'bulanFilter' => $bulanFilter,
-            'ringkasanPeriode' => [
-                'total_masuk' => (float) $totalMasuk,
-                'total_keluar' => (float) $totalKeluar,
-            ],
-            'riwayat' => $riwayat,
-        ]);
-    }
-
-    /**
-     * Render tab khusus 'Pengembalian Simpanan': cash flow outstanding simpanan aktif.
-     * Kategori:
-     *   - simpanan_pokok_masuk (masuk)
-     *   - simpanan_wajib_masuk (masuk)
-     *   - pelunasan_resign_simpanan (keluar)
-     *   - return_simpanan_pokok (keluar)
-     *   - return_simpanan_wajib (keluar)
-     *
-     * Saldo berjalan = outstanding absolut simpanan anggota aktif.
-     * Saldo awal = outstanding simpanan aktif sebelum bulan filter (hitung dari tabel simpanan).
-     */
-    private function renderTabPengembalian(
-        KasKoperasi $kas,
-        string $bulanFilter,
-        float $totalSimpananOutstanding,
-        float $totalAkumulasiSimpanan,
-    ): Response {
-        // 5 kategori yang mempengaruhi outstanding simpanan aktif
-        $kategoriScope = [
-            'simpanan_pokok_masuk',      // masuk
-            'simpanan_wajib_masuk',      // masuk
-            'pelunasan_resign_simpanan', // keluar
-            'return_simpanan_pokok',     // keluar
-            'return_simpanan_wajib',     // keluar
-        ];
-
-        // Saldo awal (outstanding sebelum bulan filter): hitung dari tabel simpanan
-        // Sum simpanan pokok+wajib anggota aktif yang tanggal_input < awal bulan filter
-        [$tahun, $bulan] = explode('-', $bulanFilter);
-        $awalBulanFilter = Carbon::createFromDate($tahun, $bulan, 1)->startOfMonth();
-
-        $saldoAwal = (float) DB::table('simpanan')
-            ->join('anggota', 'anggota.id', '=', 'simpanan.anggota_id')
-            ->whereIn('simpanan.jenis', ['pokok', 'wajib'])
-            ->where('anggota.status', 'aktif')
-            ->where('simpanan.tanggal_input', '<', $awalBulanFilter)
-            ->sum('simpanan.jumlah');
-
-        // Query event DALAM bulan filter, urut kronologis ASC
-        $query = JurnalKas::query()
-            ->whereIn('kategori', $kategoriScope);
-
-        if ($bulanFilter) {
-            $query->whereYear('tanggal', $tahun)->whereMonth('tanggal', $bulan);
-        }
-
-        $semuaEvent = (clone $query)
-            ->orderBy('tanggal', 'asc')
-            ->orderBy('id', 'asc')
-            ->get();
-
-        $saldoBerjalan = $saldoAwal;
-        $rows = [];
-        $totalMasuk = 0.0;
-        $totalKeluar = 0.0;
-
-        // Header row: saldo real-time (widget) agar mudah tracking vs card di atas
-        $rows[] = [
-            'id' => 0,
-            'tipe' => 'masuk',
-            'kategori' => 'saldo_awal',
-            'kantong' => 'simpanan',
-            'jumlah' => 0.0,
-            'saldo_setelah' => (float) $totalSimpananOutstanding,
-            'keterangan' => 'Outstanding real-time (widget)',
-            'sub_judul' => 'Saldo awal periode ini',
-            'tanggal' => '-',
-        ];
-
-        foreach ($semuaEvent as $j) {
-            $jumlah = (float) $j->jumlah;
-            $tipe = $j->tipe; // 'masuk' atau 'keluar'
-
-            if ($tipe === 'masuk') {
-                $saldoBerjalan += $jumlah;
-                $totalMasuk += $jumlah;
-            } else {
-                $saldoBerjalan -= $jumlah;
-                $totalKeluar += $jumlah;
-            }
-
-            $rows[] = [
-                'id' => $j->id,
-                'tipe' => $tipe,
-                'kategori' => $j->kategori,
-                'kantong' => $j->kantong,
-                'jumlah' => $jumlah,
-                'saldo_setelah' => (float) $saldoBerjalan,
-                'keterangan' => $j->keterangan,
-                'sub_judul' => $j->sub_judul,
-                'tanggal' => $j->tanggal->format('d M Y'),
-            ];
-        }
-
-        // Pagination manual untuk menjaga saldo berjalan konsisten
-        $page = max(1, (int) request()->input('page', 1));
-        $perPage = 20;
-        $total = count($rows);
-        $slicedRows = array_slice($rows, ($page - 1) * $perPage, $perPage);
-
-        $riwayat = new LengthAwarePaginator(
-            $slicedRows,
-            $total,
-            $perPage,
-            $page,
-            [
-                'path' => request()->url(),
-                'pageName' => 'page',
-                'query' => request()->query(),
-            ]
-        );
-
-        $totalKeseluruhan = $kas->saldo_pinjaman + $kas->saldo_dana_sosial + $totalSimpananOutstanding;
-
-        return Inertia::render('KasKoperasi/Index', [
-            'saldoPinjaman' => (float) $kas->saldo_pinjaman,
-            'saldoDanaSosial' => (float) $kas->saldo_dana_sosial,
-            'saldoPengembalianSimpanan' => (float) $kas->saldo_pengembalian_simpanan,
-            'saldoSimpanan' => (float) $kas->saldo_simpanan,
-            'totalSimpananOutstanding' => $totalSimpananOutstanding,
-            'totalAkumulasiSimpanan' => $totalAkumulasiSimpanan,
-            'totalKeseluruhan' => (float) $totalKeseluruhan,
-            'kasOperasional' => $this->jurnalKas->saldoOperasional($kas),
-            'infoPagu' => $this->jurnalKas->sisaPaguBulan($kas, $bulanFilter ?: null),
-            'saldoBank' => (float) $kas->saldo_bank,
-            'saldoKasKecil' => (float) $kas->saldo_kas_kecil,
-            'poolPinjaman' => (float) $kas->saldo_bank,
-            'klasifikasi' => $this->jurnalKas->klasifikasiBulan($bulanFilter ?: null),
-            'kantongAktif' => 'pengembalian_simpanan',
             'bulanFilter' => $bulanFilter,
             'ringkasanPeriode' => [
                 'total_masuk' => (float) $totalMasuk,
@@ -307,17 +65,15 @@ class KasKoperasiController extends Controller
     public function topup(Request $request)
     {
         $request->validate([
-            'kantong' => ['required', 'in:pinjaman,dana_sosial,simpanan'],
             'jumlah' => ['required', 'numeric', 'min:1'],
             'keterangan' => ['nullable', 'string', 'max:255'],
-        ], [
-            'kantong.in' => 'Kantong pengembalian simpanan bersifat transit dan tidak menerima topup.',
         ]);
 
+        // Konsep Kas Tunggal: topup selalu masuk Bank.
         $this->jurnalKas->catat(
             tipe: 'masuk',
             kategori: 'topup_bulanan',
-            kantong: $request->kantong,
+            kantong: 'bank',
             jumlah: $request->jumlah,
             keterangan: $request->keterangan ?: 'Topup saldo koperasi',
             referensiId: null,
@@ -336,17 +92,11 @@ class KasKoperasiController extends Controller
         ]);
 
         try {
-            $this->jurnalKas->transferAntarKantong(
-                kantongAsal: 'bank',
-                kantongTujuan: 'kas_kecil',
+            $this->jurnalKas->sisihKasKecil(
                 jumlah: (float) $request->jumlah,
                 keterangan: $request->keterangan ?: 'Sisihkan kas kecil dari bank',
-                referensiId: null,
                 tanggal: now()->format('Y-m-d'),
                 userId: auth()->id(),
-                subJudul: 'Sisih kas kecil',
-                kategoriKeluar: 'sisih_kas_kecil',
-                kategoriMasuk: 'terima_sisih_kas_kecil',
             );
         } catch (RuntimeException $e) {
             return back()->withErrors(['jumlah' => $e->getMessage()]);

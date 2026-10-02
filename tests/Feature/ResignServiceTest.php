@@ -85,12 +85,12 @@ class ResignServiceTest extends TestCase
         return $anggota;
     }
 
-    public function test_resign_melunasi_angsuran_dari_simpanan_dan_naikkan_saldo_pinjaman(): void
+    public function test_resign_offset_simpanan_dan_kembalikan_sisa_dari_bank(): void
     {
         $user = $this->actor();
         $this->actingAs($user);
         KasKoperasi::create([
-            'saldo_pinjaman' => 1_000_000,
+            'saldo_pinjaman' => 0,
             'saldo_dana_sosial' => 0,
             'saldo_pengembalian_simpanan' => 0,
             'saldo_bank' => 5_000_000,
@@ -107,38 +107,28 @@ class ResignServiceTest extends TestCase
 
         $kas = KasKoperasi::first();
 
-        // saldo_pinjaman NAIK sebesar pelunasan (300rb x2), tidak berkurang.
-        $this->assertEquals(1_600_000, (float) $kas->saldo_pinjaman);
-        // transit pengembalian_simpanan kembali ke 0.
-        $this->assertEquals(0, (float) $kas->saldo_pengembalian_simpanan);
+        // Pelunasan 600rb di-offset simpanan (tanpa gerak kas); sisa 400rb
+        // kembali ke anggota dari bank.
+        $this->assertEquals(4_600_000, (float) $kas->saldo_bank);
+        $this->assertEquals(1_000_000, (float) $kas->saldo_kas_kecil);
 
-        // Riwayat pinjaman: masuk dengan sub "Pelunasan dari uang simpanan anggota".
+        // Jurnal pelunasan = audit saja (2 baris, saldo_setelah 0).
+        $this->assertEquals(
+            600_000,
+            (float) JurnalKas::where('kategori', 'pelunasan_resign_pinjaman')
+                ->where('tipe', 'masuk')
+                ->sum('jumlah')
+        );
+        $this->assertSame(0, JurnalKas::where('kategori', 'pelunasan_resign_simpanan')->count());
+        $this->assertSame(0, JurnalKas::where('kategori', 'simpanan_resign_masuk')->count());
+
+        // Return wajib 400rb keluar dari bank.
         $this->assertDatabaseHas('jurnal_kas', [
-            'kantong' => 'pinjaman',
-            'kategori' => 'pelunasan_resign_pinjaman',
-            'tipe' => 'masuk',
-            'sub_judul' => 'Pelunasan dari uang simpanan anggota',
+            'kantong' => 'pengembalian_simpanan',
+            'kategori' => 'return_simpanan_wajib',
+            'tipe' => 'keluar',
+            'jumlah' => 400_000,
         ]);
-        $this->assertEquals(
-            600_000,
-            (float) JurnalKas::where('kantong', 'pinjaman')
-                ->where('kategori', 'pelunasan_resign_pinjaman')
-                ->sum('jumlah')
-        );
-
-        // Riwayat pengembalian: keluar dengan sub "Uang simpanan dibayarkan angsuran".
-        $jurnalPengembalian = JurnalKas::where('kantong', 'pengembalian_simpanan')
-            ->where('kategori', 'pelunasan_resign_simpanan')
-            ->first();
-        $this->assertNotNull($jurnalPengembalian);
-        $this->assertEquals('keluar', $jurnalPengembalian->tipe);
-        $this->assertEquals('Uang simpanan dibayarkan angsuran', $jurnalPengembalian->sub_judul);
-        $this->assertEquals(
-            600_000,
-            (float) JurnalKas::where('kantong', 'pengembalian_simpanan')
-                ->where('kategori', 'pelunasan_resign_simpanan')
-                ->sum('jumlah')
-        );
 
         // Angsuran & pinjaman lunas.
         $this->assertDatabaseHas('angsuran', ['cicilan_ke' => 1, 'status' => 'lunas']);

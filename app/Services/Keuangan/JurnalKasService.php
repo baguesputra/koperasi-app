@@ -10,8 +10,10 @@ use RuntimeException;
 class JurnalKasService
 {
     /**
-     * Mapping nama kantong (string) ke kolom saldo di tabel kas_koperasi.
-     * Extend di sini kalau ada kantong baru.
+     * Nama kantong yang sah untuk kolom `kantong` jurnal.
+     * Sejak konsep Kas Tunggal, kantong virtual (pinjaman, dana_sosial,
+     * simpanan, pengembalian_simpanan) hanya LABEL klasifikasi audit —
+     * uang fisik hanya ada di `bank` dan `kas_kecil`.
      */
     public const KANTONG_SALDO = [
         'pinjaman' => 'saldo_pinjaman',
@@ -21,13 +23,6 @@ class JurnalKasService
         'bank' => 'saldo_bank',
         'kas_kecil' => 'saldo_kas_kecil',
     ];
-
-    /**
-     * Kantong transit: diisi di awal proses & dikuras sampai 0.
-     * Saldo TIDAK divalidasi di jurnal individual karena validasi dilakukan
-     * di level proses (lihat ResignService::proses()).
-     */
-    public const KANTONG_TRANSIT = ['pengembalian_simpanan'];
 
     /**
      * Label Indonesia untuk error message dan UI.
@@ -42,15 +37,19 @@ class JurnalKasService
     ];
 
     /**
-     * Kategori jurnal yang HANYA menggerakkan kantong virtual (arus kas /
-     * audit, tanpa perpindahan uang fisik bank/kas kecil):
-     * - Jurnal funding resign (danai transit → pelunasan → return): simpanan
-     *   anggota dipakai alokasi internal, uang fisik cuma bergerak saat
-     *   return benar-benar dibayar ke anggota.
-     * - Talangan & pengembaliannya (hutang antar-kantong).
-     * - Transfer antar-kantong penyeimbang transit.
+     * Kategori yang dibayar dari kas kecil (kantong jurnalnya `kas_kecil`).
      */
-    public const KATEGORI_VIRTUAL_SAJA = [
+    public const KATEGORI_KAS_KECIL = [
+        'pengeluaran_koperasi',
+        'pengeluaran_dana_sosial',
+    ];
+
+    /**
+     * Kategori audit/offset murni (tanpa perpindahan uang fisik). Berlaku
+     * untuk baris histori (funding transit, talangan, transfer penyeimbang)
+     * maupun baris baru (pelunasan resign = offset simpanan, tanpa gerak kas).
+     */
+    public const KATEGORI_NON_FISIK = [
         'simpanan_resign_masuk',
         'pelunasan_resign_pinjaman',
         'pelunasan_resign_simpanan',
@@ -66,29 +65,16 @@ class JurnalKasService
     ];
 
     /**
-     * Kategori pengeluaran: baris BARU berkantong `kas_kecil` (fisik, dibayar
-     * dari kas kecil). Baris LAMA berkantong virtual dihitung ke bank.
-     */
-    public const KATEGORI_KAS_KECIL = [
-        'pengeluaran_koperasi',
-        'pengeluaran_dana_sosial',
-    ];
-
-    /**
      * Satu-satunya pintu untuk mengubah saldo kas + mencatat jurnal.
      * Selalu dipanggil sebagai 1 paket atomic dengan lock, supaya aman dari race condition.
      *
-     * Dua lapis saldo:
-     * - Kantong fisik (`bank`, `kas_kecil`) update kolomnya sendiri.
-     * - Kantong virtual (`saldo_pinjaman` dst) SELALU di-update: untuk arus kas & audit per kantong.
-     * - Fisik untuk baris virtual: masuk → bank, keluar → bank
-     *   (termasuk pengeluaran lama berkantong virtual; dulu pool tunggal).
-     *   Pengeluaran baru lewat kantong `kas_kecil` → kas kecil.
-     *   KATEGORI_VIRTUAL_SAJA tidak menyentuh fisik.
+     * Konsep Kas Tunggal: hanya `saldo_bank` / `saldo_kas_kecil` yang bergerak.
+     * - kantong `kas_kecil` → kas kecil; kantong lain → bank.
+     * - masuk → tambah; keluar → kurang (validasi saldo cukup).
+     * - KATEGORI_NON_FISIK: tulis jurnal audit saja, saldo tak tersentuh.
      *
-     * @param  string  $kantong  salah satu dari self::KANTONG_SALDO
+     * @param  string  $kantong  label klasifikasi, salah satu dari self::KANTONG_SALDO
      * @param  string|null  $subJudul  catatan tambahan untuk transparansi
-     *                                 (mis. "Diambil dari simpanan anggota")
      */
     public function catat(
         string $tipe,
@@ -105,53 +91,23 @@ class JurnalKasService
             throw new RuntimeException("Kantong '{$kantong}' tidak dikenal.");
         }
 
-        $isFisikKantong = in_array($kantong, ['bank', 'kas_kecil'], true);
+        $kolomFisik = $kantong === 'kas_kecil' ? 'saldo_kas_kecil' : 'saldo_bank';
+        $nonFisik = in_array($kategori, self::KATEGORI_NON_FISIK, true);
 
-        return DB::transaction(function () use ($tipe, $kategori, $kantong, $jumlah, $keterangan, $referensiId, $tanggal, $userId, $subJudul, $isFisikKantong) {
+        return DB::transaction(function () use ($tipe, $kategori, $kantong, $jumlah, $keterangan, $referensiId, $tanggal, $userId, $subJudul, $kolomFisik, $nonFisik) {
             $kas = KasKoperasi::lockForUpdate()->firstOrFail();
 
-            $kolom = self::KANTONG_SALDO[$kantong];
-            $isVirtualSaja = in_array($kategori, self::KATEGORI_VIRTUAL_SAJA, true);
-
-            if ($tipe === 'keluar' && ! in_array($kantong, self::KANTONG_TRANSIT, true) && ! $isFisikKantong && (float) $kas->{$kolom} < $jumlah) {
-                $labelKantong = self::KANTONG_LABEL[$kantong] ?? $kantong;
-                throw new RuntimeException(
-                    "Saldo {$labelKantong} tidak mencukupi. Saldo saat ini: Rp ".number_format((float) $kas->{$kolom}, 0, ',', '.')
-                );
-            }
-
-            if ($isFisikKantong) {
+            if (! $nonFisik) {
                 if ($tipe === 'masuk') {
-                    $kas->increment($kolom, $jumlah);
+                    $kas->increment($kolomFisik, $jumlah);
                 } else {
-                    if ((float) $kas->{$kolom} < $jumlah) {
-                        $label = $kantong === 'bank' ? 'Bank' : 'Kas kecil';
+                    if ((float) $kas->{$kolomFisik} < $jumlah) {
+                        $label = $kolomFisik === 'saldo_bank' ? 'Bank' : 'Kas kecil';
                         throw new RuntimeException(
-                            "Saldo {$label} tidak mencukupi. Saldo saat ini: Rp ".number_format((float) $kas->{$kolom}, 0, ',', '.')
+                            "Saldo {$label} tidak mencukupi. Saldo saat ini: Rp ".number_format((float) $kas->{$kolomFisik}, 0, ',', '.')
                         );
                     }
-                    $kas->decrement($kolom, $jumlah);
-                }
-            } else {
-                if (! $isVirtualSaja) {
-                    if ($tipe === 'masuk') {
-                        $kas->increment('saldo_bank', $jumlah);
-                    } else {
-                        // Keluar non-fisik (termasuk pengeluaran lama berkantong
-                        // virtual): dibayar dari bank, selaras aturan derivasi fisik.
-                        if ((float) $kas->saldo_bank < $jumlah) {
-                            throw new RuntimeException(
-                                'Saldo bank tidak mencukupi. Saldo saat ini: Rp '.number_format((float) $kas->saldo_bank, 0, ',', '.')
-                            );
-                        }
-                        $kas->decrement('saldo_bank', $jumlah);
-                    }
-                }
-
-                if ($tipe === 'masuk') {
-                    $kas->increment($kolom, $jumlah);
-                } else {
-                    $kas->decrement($kolom, $jumlah);
+                    $kas->decrement($kolomFisik, $jumlah);
                 }
             }
 
@@ -162,7 +118,7 @@ class JurnalKasService
                 'kategori' => $kategori,
                 'kantong' => $kantong,
                 'jumlah' => $jumlah,
-                'saldo_setelah' => $kas->{$kolom},
+                'saldo_setelah' => $nonFisik ? 0 : $kas->{$kolomFisik},
                 'keterangan' => $keterangan,
                 'sub_judul' => $subJudul,
                 'referensi_id' => $referensiId,
@@ -173,293 +129,58 @@ class JurnalKasService
     }
 
     /**
-     * Transfer saldo antar-kantong dalam 1 transaksi atomic.
-     * Mencatat 2 jurnal: keluar dari kantongAsal + masuk ke kantongTujuan.
-     * Saldo_koperasi di-lock supaya konsisten.
-     *
-     * Dipanggil dari dalam transaksi induk (mis. cairkan) maupun mandiri:
-     * deteksi level transaksi aktif agar tidak nested transaction error.
+     * Pindahkan uang fisik bank → kas kecil dalam 1 transaksi atomic.
+     * Mencatat 2 jurnal: keluar dari bank + masuk ke kas kecil.
      */
-    public function transferAntarKantong(
-        string $kantongAsal,
-        string $kantongTujuan,
+    public function sisihKasKecil(
         float $jumlah,
         string $keterangan,
-        ?int $referensiId,
         string $tanggal,
-        int $userId,
-        ?string $subJudul = null,
-        ?string $kategoriKeluar = 'transfer_ke_dana_pinjaman',
-        ?string $kategoriMasuk = 'terima_dari_pengembalian_simpanan'
-    ): array {
-        $kerja = fn () => $this->prosesTransfer($kantongAsal, $kantongTujuan, $jumlah, $keterangan, $referensiId, $tanggal, $userId, $subJudul, $kategoriKeluar, $kategoriMasuk);
-
-        // Sudah di dalam transaksi induk (cairkan): gabung, jangan nested.
-        if (DB::transactionLevel() > 0) {
-            return $kerja();
-        }
-
-        return DB::transaction($kerja);
-    }
-
-    private function prosesTransfer(
-        string $kantongAsal,
-        string $kantongTujuan,
-        float $jumlah,
-        string $keterangan,
-        ?int $referensiId,
-        string $tanggal,
-        int $userId,
-        ?string $subJudul,
-        ?string $kategoriKeluar,
-        ?string $kategoriMasuk
-    ): array {
-        if (! isset(self::KANTONG_SALDO[$kantongAsal]) || ! isset(self::KANTONG_SALDO[$kantongTujuan])) {
-            throw new RuntimeException('Kantong asal atau tujuan tidak dikenal.');
-        }
-
-        if ($kantongAsal === $kantongTujuan) {
-            throw new RuntimeException('Kantong asal dan tujuan tidak boleh sama.');
-        }
-
-        $kas = KasKoperasi::lockForUpdate()->firstOrFail();
-
-        $kolomAsal = self::KANTONG_SALDO[$kantongAsal];
-        $kolomTujuan = self::KANTONG_SALDO[$kantongTujuan];
-
-        // Validasi fisik per baris (keluar dari asal, masuk ke tujuan)
-        $fisikAsal = $this->kolomFisik('keluar', $kategoriKeluar, $kantongAsal);
-        $fisikTujuan = $this->kolomFisik('masuk', $kategoriMasuk, $kantongTujuan);
-
-        if ($fisikAsal && (float) $kas->{$fisikAsal} < $jumlah) {
-            $label = array_search($fisikAsal, self::KANTONG_SALDO);
-            throw new RuntimeException(
-                "Saldo {$label} tidak mencukupi untuk transfer. Saldo saat ini: Rp ".number_format((float) $kas->{$fisikAsal}, 0, ',', '.')
-            );
-        }
-
-        // Validasi virtual (selalu cek asal, kecuali transit)
-        if (! in_array($kantongAsal, self::KANTONG_TRANSIT, true) && (float) $kas->{$kolomAsal} < $jumlah) {
-            $labelAsal = self::KANTONG_LABEL[$kantongAsal];
-            throw new RuntimeException(
-                "Saldo {$labelAsal} tidak cukup untuk transfer. Saldo saat ini: Rp ".number_format((float) $kas->{$kolomAsal}, 0, ',', '.')
-            );
-        }
-
-        // Update fisik (jika ada)
-        if ($fisikAsal) {
-            $kas->decrement($fisikAsal, $jumlah);
-        }
-        if ($fisikTujuan) {
-            $kas->increment($fisikTujuan, $jumlah);
-        }
-
-        // Update virtual (selalu)
-        $kas->decrement($kolomAsal, $jumlah);
-        $kas->increment($kolomTujuan, $jumlah);
-        $kas->refresh();
-
-        $saldoAsalSetelah = (float) $kas->{$kolomAsal};
-        $saldoTujuanSetelah = (float) $kas->{$kolomTujuan};
-
-        $jurnalKeluar = JurnalKas::create([
-            'tipe' => 'keluar',
-            'kategori' => $kategoriKeluar,
-            'kantong' => $kantongAsal,
-            'jumlah' => $jumlah,
-            'saldo_setelah' => $saldoAsalSetelah,
-            'keterangan' => $keterangan,
-            'sub_judul' => $subJudul,
-            'referensi_id' => $referensiId,
-            'tanggal' => $tanggal,
-            'created_by' => $userId,
-        ]);
-
-        $jurnalMasuk = JurnalKas::create([
-            'tipe' => 'masuk',
-            'kategori' => $kategoriMasuk,
-            'kantong' => $kantongTujuan,
-            'jumlah' => $jumlah,
-            'saldo_setelah' => $saldoTujuanSetelah,
-            'keterangan' => $keterangan,
-            'sub_judul' => $subJudul,
-            'referensi_id' => $referensiId,
-            'tanggal' => $tanggal,
-            'created_by' => $userId,
-        ]);
-
-        return [
-            'keluar' => $jurnalKeluar,
-            'masuk' => $jurnalMasuk,
-        ];
-    }
-
-    /**
-     * Tentukan kolom fisik (saldo_bank / saldo_kas_kecil) yang berubah
-     * untuk baris jurnal dengan (tipe, kategori, kantong).
-     * Null = hanya virtual, tidak menggerakkan uang fisik.
-     */
-    private function kolomFisik(string $tipe, string $kategori, string $kantong): ?string
-    {
-        if (in_array($kantong, ['bank', 'kas_kecil'], true)) {
-            // Baris yang KANTONG-nya fisik: kolom fisik sudah dijaga via mekanisme
-            // update kolom kantong itu sendiri (mis. keluar kantong 'bank' → saldo_bank turun).
-            return null;
-        }
-        if (in_array($kategori, self::KATEGORI_VIRTUAL_SAJA, true)) {
-            return null;
-        }
-        if ($tipe === 'masuk') {
-            return 'saldo_bank';
-        }
-        return in_array($kategori, self::KATEGORI_KAS_KECIL, true) ? 'saldo_kas_kecil' : 'saldo_bank';
-    }
-
-    /**
-     * Kategori jurnal talangan & pengembaliannya.
-     * Talangan = hutang kantong pinjaman ke sosial/simpanan, wajib dikembalikan
-     * dari angsuran (prioritas simpanan, lalu sosial). Hak simpanan anggota
-     * di tabel `simpanan` tidak tersentuh — yang bergerak hanya kas.
-     */
-    public const KATEGORI_TALANGAN = [
-        'dana_sosial' => 'talangan_sosial_ke_pinjaman',
-        'simpanan' => 'talangan_simpanan_ke_pinjaman',
-    ];
-
-    public const KATEGORI_TALANGAN_MASUK = [
-        'dana_sosial' => 'terima_talangan_dari_sosial',
-        'simpanan' => 'terima_talangan_dari_simpanan',
-    ];
-
-    public const KATEGORI_KEMBALI_KELUAR = 'kembali_talangan_dari_pinjaman';
-
-    public const KATEGORI_KEMBALI = [
-        'simpanan' => 'kembali_talangan_ke_simpanan',
-        'dana_sosial' => 'kembali_talangan_ke_sosial',
-    ];
-
-    /**
-     * Cover defisit kantong pinjaman dari sosial lalu simpanan.
-     * Wajib dipanggil di dalam transaksi induk yang sudah lock kas
-     * (mis. cairkan) agar atomic dengan pencairan.
-     *
-     * @return array[] rincian ['kantong' => ..., 'jumlah' => ...]
-     */
-    public function talangiPinjaman(float $defisit, string $keterangan, ?int $referensiId, string $tanggal, int $userId): array
-    {
-        $rincian = [];
-
-        foreach (['dana_sosial', 'simpanan'] as $sumber) {
-            if ($defisit <= 0) {
-                break;
-            }
-
+        int $userId
+    ): void {
+        DB::transaction(function () use ($jumlah, $keterangan, $tanggal, $userId) {
             $kas = KasKoperasi::lockForUpdate()->firstOrFail();
-            $kolom = self::KANTONG_SALDO[$sumber];
-            $ambil = min((float) $kas->{$kolom}, $defisit);
 
-            if ($ambil <= 0) {
-                continue;
+            if ((float) $kas->saldo_bank < $jumlah) {
+                throw new RuntimeException(
+                    'Saldo Bank tidak mencukupi untuk sisih kas kecil. Saldo saat ini: Rp '.number_format((float) $kas->saldo_bank, 0, ',', '.')
+                );
             }
 
-            $this->transferAntarKantong(
-                $sumber,
-                'pinjaman',
-                $ambil,
-                $keterangan,
-                $referensiId,
-                $tanggal,
-                $userId,
-                'Talangan, dikembalikan dari angsuran',
-                self::KATEGORI_TALANGAN[$sumber],
-                self::KATEGORI_TALANGAN_MASUK[$sumber],
-            );
+            $kas->decrement('saldo_bank', $jumlah);
+            $kas->increment('saldo_kas_kecil', $jumlah);
+            $kas->refresh();
 
-            $rincian[] = ['kantong' => $sumber, 'jumlah' => $ambil];
-            $defisit -= $ambil;
-        }
+            JurnalKas::create([
+                'tipe' => 'keluar',
+                'kategori' => 'sisih_kas_kecil',
+                'kantong' => 'bank',
+                'jumlah' => $jumlah,
+                'saldo_setelah' => $kas->saldo_bank,
+                'keterangan' => $keterangan,
+                'sub_judul' => 'Sisih kas kecil',
+                'referensi_id' => null,
+                'tanggal' => $tanggal,
+                'created_by' => $userId,
+            ]);
 
-        if ($defisit > 0) {
-            throw new RuntimeException(
-                'Dana talangan tidak mencukupi. Kurang: Rp '.number_format($defisit, 0, ',', '.')
-            );
-        }
-
-        return $rincian;
+            JurnalKas::create([
+                'tipe' => 'masuk',
+                'kategori' => 'terima_sisih_kas_kecil',
+                'kantong' => 'kas_kecil',
+                'jumlah' => $jumlah,
+                'saldo_setelah' => $kas->saldo_kas_kecil,
+                'keterangan' => $keterangan,
+                'sub_judul' => 'Sisih kas kecil',
+                'referensi_id' => null,
+                'tanggal' => $tanggal,
+                'created_by' => $userId,
+            ]);
+        });
     }
 
     /**
-     * Utang talangan terbuka per kantong sumber = total talangan keluar
-     * dikurangi total pengembalian masuk. Dihitung dari jurnal (bukan state
-     * memory) agar tidak miss bila proses terputus di tengah.
-     *
-     * @return array{dana_sosial: float, simpanan: float}
-     */
-    public function utangTalanganTerbuka(): array
-    {
-        $keluar = JurnalKas::whereIn('kategori', array_values(self::KATEGORI_TALANGAN))
-            ->selectRaw('kantong, SUM(jumlah) as total')
-            ->groupBy('kantong')
-            ->pluck('total', 'kantong');
-
-        $masuk = JurnalKas::whereIn('kategori', array_values(self::KATEGORI_KEMBALI))
-            ->selectRaw('kantong, SUM(jumlah) as total')
-            ->groupBy('kantong')
-            ->pluck('total', 'kantong');
-
-        return [
-            'dana_sosial' => max(0.0, (float) ($keluar['dana_sosial'] ?? 0) - (float) ($masuk['dana_sosial'] ?? 0)),
-            'simpanan' => max(0.0, (float) ($keluar['simpanan'] ?? 0) - (float) ($masuk['simpanan'] ?? 0)),
-        ];
-    }
-
-    /**
-     * Kembalikan talangan dari kas pinjaman ke simpanan dulu lalu sosial,
-     * sebesar min(utang terbuka, saldo pinjaman tersedia). Idempoten:
-     * tanpa utang terbuka = no-op. Dipanggil setelah jurnal angsuran masuk
-     * agar urutan jurnal kronologis benar.
-     *
-     * @return array[] rincian ['kantong' => ..., 'jumlah' => ...]
-     */
-    public function kembalikanTalangan(string $keterangan, ?int $referensiId, string $tanggal, int $userId): array
-    {
-        $rincian = [];
-
-        foreach (['simpanan', 'dana_sosial'] as $tujuan) {
-            $utang = $this->utangTalanganTerbuka()[$tujuan] ?? 0.0;
-
-            if ($utang <= 0) {
-                continue;
-            }
-
-            $kas = KasKoperasi::lockForUpdate()->firstOrFail();
-            $kembali = min($utang, (float) $kas->saldo_pinjaman);
-
-            if ($kembali <= 0) {
-                continue;
-            }
-
-            $this->transferAntarKantong(
-                'pinjaman',
-                $tujuan,
-                $kembali,
-                $keterangan,
-                $referensiId,
-                $tanggal,
-                $userId,
-                'Pengembalian talangan dari angsuran',
-                self::KATEGORI_KEMBALI_KELUAR,
-                self::KATEGORI_KEMBALI[$tujuan],
-            );
-
-            $rincian[] = ['kantong' => $tujuan, 'jumlah' => $kembali];
-        }
-
-        return $rincian;
-    }
-
-    /**
-     * Total uang fisik koperasi: bank + kas kecil (harus = Σ kantong virtual).
+     * Total uang fisik koperasi: bank + kas kecil.
      */
     public function saldoOperasional(?KasKoperasi $kas = null): float
     {
@@ -530,19 +251,5 @@ class JurnalKasService
             'iuran_keluar' => $keluarIuran,
             'iuran_bersih' => $masukIuran - $keluarIuran,
         ];
-    }
-
-    public function catatSaldoAwal(string $kantong, float $jumlah, int $userId): JurnalKas
-    {
-        return $this->catat(
-            tipe: 'masuk',
-            kategori: 'saldo_awal',
-            kantong: $kantong,
-            jumlah: $jumlah,
-            keterangan: 'Saldo awal koperasi',
-            referensiId: null,
-            tanggal: now()->format('Y-m-d'),
-            userId: $userId,
-        );
     }
 }

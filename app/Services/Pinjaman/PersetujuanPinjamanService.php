@@ -175,8 +175,7 @@ class PersetujuanPinjamanService
                 now()
             );
         $infoPagu = [];
-        $talangan = [];
-        DB::transaction(function () use ($pinjaman, $catatan, $nomorDokumen, $nominalFinal, $tenorFinal, &$kasSebelum, &$infoPagu, &$talangan) {
+        DB::transaction(function () use ($pinjaman, $catatan, $nomorDokumen, $nominalFinal, $tenorFinal, &$kasSebelum, &$infoPagu) {
             $kas = KasKoperasi::lockForUpdate()->firstOrFail();
             $kasSebelum = $this->jurnalKas->saldoOperasional($kas);
             $infoPagu = $this->jurnalKas->sisaPaguBulan($kas);
@@ -185,18 +184,6 @@ class PersetujuanPinjamanService
                 throw new \RuntimeException(
                     'Melebihi saldo bank. Pool pinjaman saat ini: '.WaPesan::rupiah($infoPagu['layak'])
                     .', nominal diminta: '.WaPesan::rupiah($nominalFinal).'.'
-                );
-            }
-
-            $defisit = $nominalFinal - (float) $kas->saldo_pinjaman;
-
-            if ($defisit > 0) {
-                $talangan = $this->jurnalKas->talangiPinjaman(
-                    $defisit,
-                    "Talangan pencairan pinjaman - {$pinjaman->anggota->nama}",
-                    $pinjaman->id,
-                    now()->format('Y-m-d'),
-                    auth()->id(),
                 );
             }
 
@@ -234,13 +221,6 @@ class PersetujuanPinjamanService
         $trail = 'Diminta: '.WaPesan::rupiah($pinjaman->nominal_diminta ?? $nominalFinal)
             .($pinjaman->nominal_disetujui_bendahara ? ', Bendahara: '.WaPesan::rupiah($pinjaman->nominal_disetujui_bendahara) : '')
             .', Final: '.WaPesan::rupiah($nominalFinal);
-
-        if ($talangan) {
-            $trail .= ', Talangan: '.implode(' + ', array_map(
-                fn ($t) => (JurnalKasService::KANTONG_LABEL[$t['kantong']] ?? $t['kantong']).' '.WaPesan::rupiah($t['jumlah']),
-                $talangan
-            ));
-        }
 
         AuditLog::catat(
             aksi: $aksi,

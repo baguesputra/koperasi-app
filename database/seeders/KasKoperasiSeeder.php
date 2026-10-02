@@ -13,13 +13,12 @@ class KasKoperasiSeeder extends Seeder
     {
         $adminId = User::where('no_karyawan', 'ADM-000001')->value('id') ?? 1;
 
-        // Modal awal: virtual + fisik (bank + kas kecil).
-        // Virtual saldo_awal (pinjaman 100M + dana_sosial 20M) → via service logika bank += 120M.
-        // Sisih 20M bank → kas kecil.
-        // Final saldo: bank = 100M, kas_kecil = 20M (sebelum pengeluaran seeders).
+        // Modal awal: fisik bank + kas kecil (kolom pot virtual = 0, tak dipakai).
+        // Jurnal saldo_awal virtual (pinjaman 100M + dana_sosial 20M) masuk bank
+        // via aturan efek jurnal; sisih 20M bank → kas kecil.
         KasKoperasi::firstOrCreate(['id' => 1], [
-            'saldo_pinjaman' => 100_000_000,
-            'saldo_dana_sosial' => 20_000_000,
+            'saldo_pinjaman' => 0,
+            'saldo_dana_sosial' => 0,
             'saldo_simpanan' => 0,
             'saldo_pengembalian_simpanan' => 0,
             'saldo_bank' => 100_000_000,

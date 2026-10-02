@@ -39,7 +39,7 @@ class KasPaguOperasionalTest extends TestCase
         return Pinjaman::where('anggota_id', $anggota->id)->sole();
     }
 
-    public function test_saldo_operasional_gabungan_tiga_kantong(): void
+    public function test_saldo_operasional_bank_dan_kas_kecil(): void
     {
         $kas = KasKoperasi::first();
         $layak = app(JurnalKasService::class)->saldoOperasional($kas);
@@ -96,5 +96,10 @@ class KasPaguOperasionalTest extends TestCase
         // sisaPaguBulan pagu = saldo bank (dinamis), bukan setting PAGU.
         $info = app(JurnalKasService::class)->sisaPaguBulan();
         $this->assertEquals(KasKoperasi::first()->saldo_bank, $info['pagu']);
+    }
+
+    public function test_rekonsiliasi_ok_setelah_seed(): void
+    {
+        $this->artisan('kas:rekonsiliasi')->assertSuccessful();
     }
 }

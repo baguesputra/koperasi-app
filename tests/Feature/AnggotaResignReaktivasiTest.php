@@ -50,6 +50,7 @@ class AnggotaResignReaktivasiTest extends TestCase
     {
         $anggota = $this->buatAnggotaDenganSaldo();
         $this->masuk('ADM-000001');
+        $bankSebelum = (float) \App\Models\KasKoperasi::first()->saldo_bank;
 
         $this->post(route('anggota.resign', $anggota), [
             'alasan_resign' => 'Pindah domisili ke luar kota.',
@@ -62,12 +63,13 @@ class AnggotaResignReaktivasiTest extends TestCase
         $this->assertNotNull($anggota->resigned_settlement_json);
         $this->assertEquals(600_000.0, (float) $anggota->resigned_settlement_json['total_dikembalikan']);
 
-        // Jurnal: masuk transit + keluar (return pokok & wajib)
-        $this->assertTrue(JurnalKas::where('kategori', 'simpanan_resign_masuk')->where('referensi_id', $anggota->id)->exists());
+        // Jurnal: tanpa funding transit; return pokok & wajib keluar dari bank.
+        $this->assertFalse(JurnalKas::where('kategori', 'simpanan_resign_masuk')->where('referensi_id', $anggota->id)->exists());
         $this->assertTrue(
             JurnalKas::where('kategori', 'return_simpanan_pokok')->where('referensi_id', $anggota->id)->exists()
             || JurnalKas::where('kategori', 'return_simpanan_wajib')->where('referensi_id', $anggota->id)->exists()
         );
+        $this->assertEquals($bankSebelum - 600_000, (float) \App\Models\KasKoperasi::first()->saldo_bank);
     }
 
     public function test_user_resign_diblokir_saat_login_berikutnya(): void

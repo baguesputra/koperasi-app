@@ -113,9 +113,6 @@ export default function Index({ saldo = {}, filters = {}, bulanFilter, kantongOp
             </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
-                <StatWidget compact label="Dana Pinjaman" value={formatRupiah(saldo.pinjaman ?? 0)} icon={Wallet} tone="green" />
-                <StatWidget compact label="Dana Sosial" value={formatRupiah(saldo.dana_sosial ?? 0)} icon={HeartHandshake} tone="amber" />
-                <StatWidget compact label="Simpanan (Kas)" value={formatRupiah(saldo.simpanan ?? 0)} icon={PiggyBank} tone="blue" />
                 <StatWidget compact label="Simpanan Outstanding" value={formatRupiah(saldo.outstanding ?? 0)} icon={PiggyBank} tone="navy" />
                 <StatWidget compact label="Bank" value={formatRupiah(saldo.bank ?? 0)} icon={Landmark} tone="navy" />
                 <StatWidget compact label="Kas Kecil" value={formatRupiah(saldo.kas_kecil ?? 0)} icon={Wallet} tone="amber" />

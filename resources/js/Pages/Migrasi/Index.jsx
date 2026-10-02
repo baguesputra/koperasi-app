@@ -69,7 +69,7 @@ export default function Index() {
             </div>
 
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5 text-sm text-amber-800">
-                Topup kantong <strong>Dana Pinjaman</strong> dan <strong>Simpanan Anggota</strong> dulu di halaman Kas Koperasi sebelum import,
+                Topup <strong>Bank</strong> dulu di halaman Kas Koperasi sebelum import,
                 supaya jurnal pencairan historis tidak gagal karena saldo kurang.
             </div>
 

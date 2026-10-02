@@ -1,7 +1,7 @@
 <?php
 
 return [
-    // Pagu pinjaman per bulan kalender (angka fix, bisa diubah via Pengaturan → Kas).
+    // Arsip pengaturan lama, tak lagi dipakai pool pinjaman (pool = saldo bank dinamis).
     'pagu_pinjaman_bulanan' => (float) env('KOPERASI_PAGU_PINJAMAN', 50_000_000),
     // Pagu dana sosial per bulan: batas klaim santunan + pengeluaran dana sosial (P1-5).
     // Pool pinjaman kini dinamis mengikuti saldo Bank (bukan pagu bulanan tetap).

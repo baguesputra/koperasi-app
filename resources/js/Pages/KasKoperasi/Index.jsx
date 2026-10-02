@@ -1,6 +1,6 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, usePage, useForm, router } from '@inertiajs/react';
-import { Wallet, HeartHandshake, PiggyBank, ArrowDownCircle, ArrowUpCircle, Plus, ChevronLeft, ChevronRight, Landmark, ReceiptText, CalendarDays } from 'lucide-react';
+import { Wallet, ArrowDownCircle, ArrowUpCircle, Plus, ChevronLeft, ChevronRight, Landmark, ReceiptText, CalendarDays } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import Card from '@/Components/ui/Card';
 import Button from '@/Components/ui/Button';
@@ -43,38 +43,19 @@ const kategoriLabel = {
 };
 
 const kantongLabel = {
-    pinjaman: 'Dana Pinjaman',
+    pinjaman: 'Pinjaman',
     dana_sosial: 'Dana Sosial',
-    iuran: 'Dana Iuran',
     pengembalian_simpanan: 'Pengembalian Simpanan',
     simpanan: 'Simpanan Anggota',
-    fisik: 'Bank & Kas Kecil',
     bank: 'Bank',
     kas_kecil: 'Kas Kecil',
-};
-
-const kantongIkon = {
-    pinjaman: Wallet,
-    dana_sosial: HeartHandshake,
-    iuran: PiggyBank,
-    pengembalian_simpanan: PiggyBank,
-    fisik: Landmark,
 };
 
 const chipNominal = [500_000, 1_000_000, 2_500_000, 5_000_000, 10_000_000];
 
 export default function Index({
-    saldoPinjaman,
-    saldoDanaSosial,
-    saldoSimpanan,
-    totalSimpananOutstanding,
-    totalKeseluruhan,
-    kasOperasional,
-    infoPagu,
     saldoBank,
     saldoKasKecil,
-    poolPinjaman,
-    kantongAktif,
     bulanFilter,
     ringkasanPeriode,
     riwayat,
@@ -85,7 +66,6 @@ export default function Index({
     const [showSisih, setShowSisih] = useState(false);
 
     const { data, setData, post, processing, errors, reset } = useForm({
-        kantong: kantongAktif,
         jumlah: '',
         keterangan: '',
     });
@@ -95,12 +75,8 @@ export default function Index({
         keterangan: '',
     });
 
-    function pindahTab(kantong) {
-        router.get(route('kas-koperasi.index'), { kantong, bulan: bulanFilter }, { preserveState: true });
-    }
-
     function ubahBulan(bulan) {
-        router.get(route('kas-koperasi.index'), { kantong: kantongAktif, bulan }, { preserveState: true });
+        router.get(route('kas-koperasi.index'), { bulan }, { preserveState: true });
     }
 
     function geserBulan(delta) {
@@ -116,11 +92,6 @@ export default function Index({
 
     const bulanIni = new Date();
     const kunciBulanIni = `${bulanIni.getFullYear()}-${String(bulanIni.getMonth() + 1).padStart(2, '0')}`;
-
-    function bukaForm() {
-        setData('kantong', kantongAktif);
-        setShowForm(true);
-    }
 
     function submit(e) {
         e.preventDefault();
@@ -150,89 +121,30 @@ export default function Index({
         );
     }
 
-    const tab = [
-        { key: 'pinjaman', label: 'Dana Pinjaman' },
-        { key: 'iuran', label: 'Dana Iuran' },
-        { key: 'pengembalian_simpanan', label: 'Pengembalian Simpanan' },
-        { key: 'fisik', label: 'Bank & Kas Kecil' },
-    ];
-
     return (
         <AppLayout>
             <Head title="Kas Koperasi" />
 
             <PageHeader title="Kas Koperasi" subtitle="Saldo dan riwayat mutasi keuangan koperasi" />
 
-            <div className="rounded-2xl bg-gradient-to-r from-brand-navy to-brand-navy-light text-white px-5 py-4 mb-3 shadow-md shadow-brand-navy/20">
-                <div className="flex items-center gap-3">
-                    <span className="w-11 h-11 rounded-2xl bg-white/15 inline-flex items-center justify-center shrink-0">
-                        <Landmark size={22} />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                        <p className="text-xs text-white/70">Kas Operasional Gabungan</p>
-                        <p className="text-2xl font-bold tabular-nums leading-tight">{formatRupiah(kasOperasional ?? totalKeseluruhan)}</p>
-                        {infoPagu && (
-                            <p className="text-xs text-white/70 mt-0.5">
-                                Layak cair {labelBulan}: {formatRupiah(infoPagu.layak)} &bull; Pagu {formatRupiah(infoPagu.pagu)} &bull; Cadangan {formatRupiah(infoPagu.cadangan)}
-                            </p>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-                <div className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
-                    <StatWidget compact label="Dana Pinjaman" value={formatRupiah(saldoPinjaman)} icon={Wallet} tone="green" />
-                </div>
-                <div className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
-                    <StatWidget compact label="Dana Sosial" value={formatRupiah(saldoDanaSosial)} icon={HeartHandshake} tone="amber" />
-                </div>
-                <div className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
-                    <StatWidget compact label="Simpanan (Kas)" value={formatRupiah(saldoSimpanan)} icon={PiggyBank} tone="blue" />
-                </div>
-                <div className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
-                    <StatWidget compact label="Simpanan Outstanding" value={formatRupiah(totalSimpananOutstanding)} icon={PiggyBank} tone="navy" />
-                </div>
-            </div>
-
             <div className="grid grid-cols-2 gap-3 mb-4">
                 <div className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
-                    <StatWidget compact label="Bank" value={formatRupiah(saldoBank ?? poolPinjaman ?? 0)} icon={Landmark} tone="navy" />
+                    <StatWidget compact label="Bank" value={formatRupiah(saldoBank ?? 0)} icon={Landmark} tone="navy" />
                 </div>
                 <div className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
                     <StatWidget compact label="Kas Kecil" value={formatRupiah(saldoKasKecil ?? 0)} icon={Wallet} tone="amber" />
                 </div>
             </div>
 
-            <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
-                <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-full w-fit max-w-full overflow-x-auto">
-                    {tab.map((t) => {
-                        const Ikon = kantongIkon[t.key] ?? Wallet;
-                        const aktif = kantongAktif === t.key;
-                        return (
-                            <button
-                                key={t.key}
-                                onClick={() => pindahTab(t.key)}
-                                aria-pressed={aktif}
-                                className={`inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-full whitespace-nowrap transition-all shrink-0 ${
-                                    aktif ? 'bg-white text-slate-800 shadow-md' : 'text-slate-500 hover:text-slate-700'
-                                }`}
-                            >
-                                <Ikon size={15} />
-                                {t.label}
-                            </button>
-                        );
-                    })}
-                </div>
-
-                {bisaTopup && kantongAktif !== 'pengembalian_simpanan' && kantongAktif !== 'fisik' && !showForm && (
-                    <Button size="sm" onClick={bukaForm} className="rounded-full shadow-md shadow-brand-green/25 hover:-translate-y-px active:translate-y-0">
+            <div className="flex items-center justify-end gap-2 flex-wrap mb-4">
+                {bisaTopup && !showForm && (
+                    <Button size="sm" onClick={() => setShowForm(true)} className="rounded-full shadow-md shadow-brand-green/25 hover:-translate-y-px active:translate-y-0">
                         <Plus size={16} aria-hidden="true" />
-                        Topup {kantongLabel[kantongAktif] ?? 'Kantong'}
+                        Topup Bank
                     </Button>
                 )}
-                {bisaTopup && kantongAktif === 'fisik' && !showSisih && (
-                    <Button size="sm" onClick={() => setShowSisih(true)} className="rounded-full shadow-md shadow-brand-green/25 hover:-translate-y-px active:translate-y-0">
+                {bisaTopup && !showSisih && (
+                    <Button size="sm" variant="secondary" onClick={() => setShowSisih(true)} className="rounded-full shadow-md hover:-translate-y-px active:translate-y-0">
                         <Plus size={16} aria-hidden="true" />
                         Sisih Kas Kecil
                     </Button>
@@ -247,8 +159,8 @@ export default function Index({
                                 <ReceiptText size={16} />
                             </span>
                             <div>
-                                <p className="text-sm font-bold text-slate-800">Topup {kantongLabel[kantongAktif]}</p>
-                                <p className="text-xs text-slate-400">Masuk jurnal kas sebagai topup bulanan</p>
+                                <p className="text-sm font-bold text-slate-800">Topup Bank</p>
+                                <p className="text-xs text-slate-400">Masuk jurnal kas sebagai topup bulanan ke Bank</p>
                             </div>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3">
@@ -425,7 +337,7 @@ export default function Index({
                     <div className="text-center py-12 px-4">
                         <Wallet size={28} aria-hidden="true" className="mx-auto text-slate-300 mb-3" />
                         <p className="text-sm font-semibold text-slate-600">
-                            Belum ada mutasi di {kantongLabel[kantongAktif]} untuk {labelBulan}.
+                            Belum ada mutasi kas untuk {labelBulan}.
                         </p>
                         {bulanFilter !== kunciBulanIni && (
                             <p className="text-sm text-slate-400 mt-1">
@@ -451,11 +363,9 @@ export default function Index({
                                         <p className="text-sm font-semibold text-slate-700">
                                             {kategoriLabel[r.kategori] ?? r.kategori}
                                         </p>
-                                        {r.kantong !== kantongAktif && (
-                                            <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500 whitespace-nowrap">
-                                                dari {kantongLabel[r.kantong] ?? r.kantong}
-                                            </span>
-                                        )}
+                                        <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500 whitespace-nowrap">
+                                            {kantongLabel[r.kantong] ?? r.kantong}
+                                        </span>
                                     </div>
                                     {r.sub_judul && (
                                         <p className="text-xs italic text-slate-500 mt-0.5 truncate">{r.sub_judul}</p>

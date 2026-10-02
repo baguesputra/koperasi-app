@@ -84,7 +84,7 @@ class PinjamanApprovalTest extends TestCase
         $this->assertSame('approved_bendahara', $pinjaman->refresh()->status);
 
         // 3. Ketua menyetujui → cair
-        $saldoSebelum = (float) KasKoperasi::first()->saldo_pinjaman;
+        $saldoSebelum = (float) KasKoperasi::first()->saldo_bank;
         $this->masuk('KET-000001');
         $this->post(route('ketua.pinjaman.approve', $pinjaman), ['catatan' => 'Disetujui.', 'nominal' => 1_000_000])->assertRedirect();
 
@@ -93,12 +93,12 @@ class PinjamanApprovalTest extends TestCase
         $this->assertNotNull($pinjaman->tanggal_pencairan);
         $this->assertCount(3, $pinjaman->angsuran()->get());
 
-        // Jurnal pencairan keluar kantong pinjaman + saldo berkurang
+        // Jurnal pencairan keluar dari bank + saldo bank berkurang
         $this->assertDatabaseHas('jurnal_kas', [
             'kategori' => 'pencairan_pinjaman', 'kantong' => 'pinjaman',
             'tipe' => 'keluar', 'referensi_id' => $pinjaman->id,
         ]);
-        $this->assertEquals($saldoSebelum - 1_000_000, (float) KasKoperasi::first()->saldo_pinjaman);
+        $this->assertEquals($saldoSebelum - 1_000_000, (float) KasKoperasi::first()->saldo_bank);
 
         // WA ke anggota membawa dokumen bukti peminjaman
         $namaFileBukti = "Bukti-Peminjaman-{$pinjaman->id}.pdf";
@@ -146,7 +146,7 @@ class PinjamanApprovalTest extends TestCase
         $this->assertSame(12, (int) $pinjaman->tenor_diminta);
 
         $kasAwal = app(JurnalKasService::class)->saldoOperasional();
-        $kantongAwal = (float) KasKoperasi::first()->saldo_pinjaman;
+        $bankAwal = (float) KasKoperasi::first()->saldo_bank;
 
         // Bendahara turunkan ke 4jt, tenor ikut auto-clamp bila perlu
         $this->masuk('BEN-000001');
@@ -173,7 +173,7 @@ class PinjamanApprovalTest extends TestCase
         $this->assertSame('aktif', $pinjaman->status);
         $this->assertEquals(4_500_000, (float) $pinjaman->nominal);
         $this->assertEquals(4_500_000, (float) $pinjaman->nominal_disetujui);
-        $this->assertEquals($kantongAwal - 4_500_000, (float) KasKoperasi::first()->saldo_pinjaman);
+        $this->assertEquals($bankAwal - 4_500_000, (float) KasKoperasi::first()->saldo_bank);
         $this->assertEquals($kasAwal - 4_500_000, app(JurnalKasService::class)->saldoOperasional());
         $this->assertEquals($kasAwal, (float) $pinjaman->kas_saldo_ketua);
         $this->assertEquals($kasAwal - 4_500_000, (float) $pinjaman->kas_sisa_ketua);
@@ -199,10 +199,10 @@ class PinjamanApprovalTest extends TestCase
         $this->assertSame('diajukan', $pinjaman->refresh()->status);
     }
 
-    public function test_ketua_approve_tertolong_talangan_bila_saldo_kantong_tidak_cukup(): void
+    public function test_ketua_approve_cair_dari_bank_tanpa_talangan(): void
     {
         Queue::fake();
-        KasKoperasi::first()->update(['saldo_pinjaman' => 500_000]);
+        KasKoperasi::first()->update(['saldo_bank' => 2_000_000]);
 
         $anggota = $this->buatAnggota();
         $this->actingAs($anggota->user);
@@ -212,13 +212,13 @@ class PinjamanApprovalTest extends TestCase
         $this->masuk('BEN-000001');
         $this->post(route('bendahara.pinjaman.approve', $pinjaman), ['catatan' => 'Dokumen lengkap, layak cair.', 'nominal' => 1_000_000])->assertRedirect();
 
-        // P1-4: defisit kantong pinjaman ditalangi sosial/simpanan → cair tetap jalan.
+        // Konsep Kas Tunggal: cukup saldo bank → cair langsung, tanpa talangan.
         $this->masuk('KET-000001');
         $this->post(route('ketua.pinjaman.approve', $pinjaman), ['catatan' => 'Cairkan.', 'nominal' => 1_000_000])->assertRedirect();
 
         $this->assertSame('aktif', $pinjaman->refresh()->status);
         $this->assertSame(1, JurnalKas::where('kategori', 'pencairan_pinjaman')->where('referensi_id', $pinjaman->id)->count());
-        $this->assertEquals(500_000, (float) JurnalKas::whereIn('kategori', ['talangan_sosial_ke_pinjaman', 'talangan_simpanan_ke_pinjaman'])->sum('jumlah'));
+        $this->assertSame(0, JurnalKas::whereIn('kategori', ['talangan_sosial_ke_pinjaman', 'talangan_simpanan_ke_pinjaman'])->count());
     }
 
     public function test_ringkasan_kas_agregat_di_halaman_approval(): void
