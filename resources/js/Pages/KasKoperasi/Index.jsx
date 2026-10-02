@@ -38,6 +38,8 @@ const kategoriLabel = {
     kembali_talangan_dari_pinjaman: 'Pengembalian Talangan dari Pinjaman',
     kembali_talangan_ke_simpanan: 'Pengembalian Talangan ke Simpanan',
     kembali_talangan_ke_sosial: 'Pengembalian Talangan ke Sosial',
+    sisih_kas_kecil: 'Sisih Kas Kecil',
+    terima_sisih_kas_kecil: 'Terima Sisih Kas Kecil',
 };
 
 const kantongLabel = {
@@ -46,6 +48,9 @@ const kantongLabel = {
     iuran: 'Dana Iuran',
     pengembalian_simpanan: 'Pengembalian Simpanan',
     simpanan: 'Simpanan Anggota',
+    fisik: 'Bank & Kas Kecil',
+    bank: 'Bank',
+    kas_kecil: 'Kas Kecil',
 };
 
 const kantongIkon = {
@@ -53,6 +58,7 @@ const kantongIkon = {
     dana_sosial: HeartHandshake,
     iuran: PiggyBank,
     pengembalian_simpanan: PiggyBank,
+    fisik: Landmark,
 };
 
 const chipNominal = [500_000, 1_000_000, 2_500_000, 5_000_000, 10_000_000];
@@ -65,6 +71,9 @@ export default function Index({
     totalKeseluruhan,
     kasOperasional,
     infoPagu,
+    saldoBank,
+    saldoKasKecil,
+    poolPinjaman,
     kantongAktif,
     bulanFilter,
     ringkasanPeriode,
@@ -73,9 +82,15 @@ export default function Index({
     const { auth } = usePage().props;
     const bisaTopup = auth.user?.permissions?.includes('kas.topup');
     const [showForm, setShowForm] = useState(false);
+    const [showSisih, setShowSisih] = useState(false);
 
     const { data, setData, post, processing, errors, reset } = useForm({
         kantong: kantongAktif,
+        jumlah: '',
+        keterangan: '',
+    });
+
+    const sisihForm = useForm({
         jumlah: '',
         keterangan: '',
     });
@@ -121,10 +136,25 @@ export default function Index({
         );
     }
 
+    function submitSisih(e) {
+        e.preventDefault();
+        sisihForm.post(
+            route('kas-koperasi.sisih-kas-kecil'),
+            withIdempotencyKey({
+                preserveScroll: true,
+                onSuccess: () => {
+                    sisihForm.reset('jumlah', 'keterangan');
+                    setShowSisih(false);
+                },
+            })
+        );
+    }
+
     const tab = [
         { key: 'pinjaman', label: 'Dana Pinjaman' },
         { key: 'iuran', label: 'Dana Iuran' },
         { key: 'pengembalian_simpanan', label: 'Pengembalian Simpanan' },
+        { key: 'fisik', label: 'Bank & Kas Kecil' },
     ];
 
     return (
@@ -165,6 +195,15 @@ export default function Index({
                 </div>
             </div>
 
+            <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
+                    <StatWidget compact label="Bank" value={formatRupiah(saldoBank ?? poolPinjaman ?? 0)} icon={Landmark} tone="navy" />
+                </div>
+                <div className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
+                    <StatWidget compact label="Kas Kecil" value={formatRupiah(saldoKasKecil ?? 0)} icon={Wallet} tone="amber" />
+                </div>
+            </div>
+
             <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
                 <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-full w-fit max-w-full overflow-x-auto">
                     {tab.map((t) => {
@@ -186,10 +225,16 @@ export default function Index({
                     })}
                 </div>
 
-                {bisaTopup && kantongAktif !== 'pengembalian_simpanan' && !showForm && (
+                {bisaTopup && kantongAktif !== 'pengembalian_simpanan' && kantongAktif !== 'fisik' && !showForm && (
                     <Button size="sm" onClick={bukaForm} className="rounded-full shadow-md shadow-brand-green/25 hover:-translate-y-px active:translate-y-0">
                         <Plus size={16} aria-hidden="true" />
                         Topup {kantongLabel[kantongAktif] ?? 'Kantong'}
+                    </Button>
+                )}
+                {bisaTopup && kantongAktif === 'fisik' && !showSisih && (
+                    <Button size="sm" onClick={() => setShowSisih(true)} className="rounded-full shadow-md shadow-brand-green/25 hover:-translate-y-px active:translate-y-0">
+                        <Plus size={16} aria-hidden="true" />
+                        Sisih Kas Kecil
                     </Button>
                 )}
             </div>
@@ -253,6 +298,72 @@ export default function Index({
                                 {processing ? 'Menyimpan...' : `Simpan • ${data.jumlah ? formatRupiah(Number(data.jumlah)) : 'Rp 0'}`}
                             </Button>
                             <Button type="button" variant="ghost" size="sm" className="rounded-full" onClick={() => setShowForm(false)}>
+                                Batal
+                            </Button>
+                        </div>
+                    </form>
+                </Card>
+            )}
+
+            {showSisih && (
+                <Card className="mb-4 border-brand-green/30 shadow-md">
+                    <form onSubmit={submitSisih}>
+                        <div className="flex items-center gap-2 mb-3">
+                            <span className="w-8 h-8 rounded-xl bg-brand-green-light text-brand-green-dark inline-flex items-center justify-center shrink-0">
+                                <Landmark size={16} />
+                            </span>
+                            <div>
+                                <p className="text-sm font-bold text-slate-800">Sisih Kas Kecil</p>
+                                <p className="text-xs text-slate-400">Pindahkan uang fisik dari Bank ke Kas Kecil dalam satu jurnal atomik</p>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3">
+                            <FormField label="Jumlah (Rp)" error={sisihForm.errors.jumlah} required>
+                                <div className="relative">
+                                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400 pointer-events-none">Rp</span>
+                                    <TextField
+                                        size="sm"
+                                        type="number"
+                                        min="1"
+                                        value={sisihForm.data.jumlah}
+                                        onChange={(e) => sisihForm.setData('jumlah', e.target.value)}
+                                        placeholder="1000000"
+                                        autoFocus
+                                        required
+                                        className="pl-10 tabular-nums"
+                                    />
+                                </div>
+                                <div className="flex flex-wrap gap-1.5 mt-2">
+                                    {chipNominal.map((n) => (
+                                        <button
+                                            key={n}
+                                            type="button"
+                                            onClick={() => sisihForm.setData('jumlah', String(n))}
+                                            className={`px-2.5 py-1 text-xs font-bold rounded-full border transition-colors tabular-nums ${
+                                                String(sisihForm.data.jumlah) === String(n)
+                                                    ? 'bg-brand-navy text-white border-brand-navy'
+                                                    : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-brand-green/50 hover:text-brand-green-dark'
+                                            }`}
+                                        >
+                                            {formatRupiahSingkat(n)}
+                                        </button>
+                                    ))}
+                                </div>
+                            </FormField>
+                            <FormField label="Keterangan" error={sisihForm.errors.keterangan} hint="Contoh: Kas operasional sekretariat minggu ini">
+                                <TextField
+                                    size="sm"
+                                    value={sisihForm.data.keterangan}
+                                    onChange={(e) => sisihForm.setData('keterangan', e.target.value)}
+                                    placeholder="Sisih kas kecil untuk operasional"
+                                />
+                            </FormField>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Button type="submit" size="sm" disabled={sisihForm.processing} className="rounded-full shadow-md shadow-brand-green/25">
+                                {sisihForm.processing ? 'Menyimpan...' : `Simpan • ${sisihForm.data.jumlah ? formatRupiah(Number(sisihForm.data.jumlah)) : 'Rp 0'}`}
+                            </Button>
+                            <Button type="button" variant="ghost" size="sm" className="rounded-full" onClick={() => setShowSisih(false)}>
                                 Batal
                             </Button>
                         </div>

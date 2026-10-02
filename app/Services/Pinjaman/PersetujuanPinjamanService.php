@@ -183,24 +183,11 @@ class PersetujuanPinjamanService
 
             if ($nominalFinal > $infoPagu['layak']) {
                 throw new \RuntimeException(
-                    'Melebihi pagu pinjaman bulan '.now()->translatedFormat('F Y').'. '
-                    .'Pagu: '.WaPesan::rupiah($infoPagu['pagu'])
-                    .', sudah cair: '.WaPesan::rupiah($infoPagu['sudah_cair'])
-                    .', cadangan sosial: '.WaPesan::rupiah($infoPagu['cadangan'])
-                    .', layak: '.WaPesan::rupiah($infoPagu['layak']).'.'
+                    'Melebihi saldo bank. Pool pinjaman saat ini: '.WaPesan::rupiah($infoPagu['layak'])
+                    .', nominal diminta: '.WaPesan::rupiah($nominalFinal).'.'
                 );
             }
 
-            if ($kasSebelum - $nominalFinal < $infoPagu['cadangan']) {
-                throw new \RuntimeException(
-                    'Pencairan menyisakan kas di bawah cadangan sosial ('.WaPesan::rupiah($infoPagu['cadangan']).'). '
-                    .'Sisa bila cair: '.WaPesan::rupiah($kasSebelum - $nominalFinal).'.'
-                );
-            }
-
-            // P1-4: kantong pinjaman boleh ditalangi sosial lalu simpanan.
-            // Guard global di atas sudah jamin sisa ≥ cadangan; di sini hanya
-            // cover defisit fisik kantong pinjaman (hutang, kembali dari angsuran).
             $defisit = $nominalFinal - (float) $kas->saldo_pinjaman;
 
             if ($defisit > 0) {

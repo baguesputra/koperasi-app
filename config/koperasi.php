@@ -3,7 +3,8 @@
 return [
     // Pagu pinjaman per bulan kalender (angka fix, bisa diubah via Pengaturan → Kas).
     'pagu_pinjaman_bulanan' => (float) env('KOPERASI_PAGU_PINJAMAN', 50_000_000),
-    // Cadangan sosial per bulan: tidak boleh dipakai pinjaman (P0-3).
+    // Pagu dana sosial per bulan: batas klaim santunan + pengeluaran dana sosial (P1-5).
+    // Pool pinjaman kini dinamis mengikuti saldo Bank (bukan pagu bulanan tetap).
     'cadangan_sosial_bulan' => (float) env('KOPERASI_CADANGAN_SOSIAL', 5_000_000),
     'nama' => env('KOPERASI_NAMA', 'KOPERASI KARYAWAN'),
     'unit' => env('KOPERASI_UNIT', 'KARYA MANDIRI DUTA MALL BANJARMASIN'),

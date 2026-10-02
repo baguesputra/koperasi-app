@@ -28,11 +28,10 @@ class PengeluaranService
                 'input_by' => $userId,
             ]);
 
-            // Validasi saldo cukup sudah otomatis ditangani di JurnalKasService
             $this->jurnalKas->catat(
                 tipe: 'keluar',
                 kategori: $jenis === 'koperasi' ? 'pengeluaran_koperasi' : 'pengeluaran_dana_sosial',
-                kantong: $jenis === 'koperasi' ? 'pinjaman' : 'dana_sosial',
+                kantong: 'kas_kecil',
                 jumlah: $jumlah,
                 keterangan: $keterangan,
                 referensiId: $pengeluaran->id,
@@ -42,11 +41,10 @@ class PengeluaranService
 
             // Audit log untuk pencatatan pengeluaran
             $labelJenis = $jenis === 'koperasi' ? 'Pengeluaran Koperasi' : 'Pengeluaran Dana Sosial';
-            $labelKantong = $jenis === 'koperasi' ? 'Dana Pinjaman' : 'Dana Sosial';
 
             AuditLog::catat(
                 aksi: 'pengeluaran_dicatat',
-                keterangan: "{$labelJenis} dicatat: {$keterangan}, nominal: ".number_format($jumlah, 0, ',', '.').", dari {$labelKantong}",
+                keterangan: "{$labelJenis} dicatat: {$keterangan}, nominal: ".number_format($jumlah, 0, ',', '.').', dari Kas Kecil',
                 dataLama: null,
                 dataBaru: [
                     'pengeluaran_id' => $pengeluaran->id,
@@ -55,7 +53,7 @@ class PengeluaranService
                     'keterangan' => $keterangan,
                     'tanggal' => $tanggal,
                     'input_by' => $userId,
-                    'kantong' => $jenis === 'koperasi' ? 'pinjaman' : 'dana_sosial',
+                    'kantong' => 'kas_kecil',
                 ]
             );
 

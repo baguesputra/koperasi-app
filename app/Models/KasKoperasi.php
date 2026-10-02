@@ -14,7 +14,7 @@ class KasKoperasi extends Model
 
     protected $fillable = [
         'saldo_saat_ini', 'saldo_pinjaman', 'saldo_dana_sosial', 'saldo_pengembalian_simpanan',
-        'saldo_simpanan',
+        'saldo_simpanan', 'saldo_bank', 'saldo_kas_kecil',
     ];
 
     protected $casts = [
@@ -22,6 +22,9 @@ class KasKoperasi extends Model
         'saldo_pinjaman' => 'decimal:2',
         'saldo_dana_sosial' => 'decimal:2',
         'saldo_pengembalian_simpanan' => 'decimal:2',
+        'saldo_simpanan' => 'decimal:2',
+        'saldo_bank' => 'decimal:2',
+        'saldo_kas_kecil' => 'decimal:2',
     ];
 
     public function jurnal(): HasMany

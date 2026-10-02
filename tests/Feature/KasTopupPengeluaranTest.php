@@ -25,6 +25,7 @@ class KasTopupPengeluaranTest extends TestCase
     {
         $this->masuk('ADM-000001'); // admin punya kas.topup
         $saldoSebelum = (float) KasKoperasi::first()->saldo_pinjaman;
+        $bankSebelum = (float) KasKoperasi::first()->saldo_bank;
 
         $this->post(route('kas-koperasi.topup'), [
             'kantong' => 'pinjaman',
@@ -33,6 +34,7 @@ class KasTopupPengeluaranTest extends TestCase
         ])->assertStatus(302);
 
         $this->assertEquals($saldoSebelum + 5_000_000, (float) KasKoperasi::first()->saldo_pinjaman);
+        $this->assertEquals($bankSebelum + 5_000_000, (float) KasKoperasi::first()->saldo_bank);
         $this->assertDatabaseHas('jurnal_kas', [
             'kategori' => 'topup_bulanan', 'kantong' => 'pinjaman',
             'tipe' => 'masuk', 'jumlah' => 5_000_000,
@@ -50,10 +52,10 @@ class KasTopupPengeluaranTest extends TestCase
         ])->assertSessionHasErrors('kantong');
     }
 
-    public function test_pengeluaran_koperasi_mengurangi_saldo_pinjaman(): void
+    public function test_pengeluaran_koperasi_dari_saldo_kas_kecil(): void
     {
         $this->masuk('BEN-000001');
-        $saldoSebelum = (float) KasKoperasi::first()->saldo_pinjaman;
+        $sebelum = KasKoperasi::first()->only(['saldo_pinjaman', 'saldo_kas_kecil', 'saldo_bank']);
 
         $this->post(route('pengeluaran.store'), [
             'jenis' => 'koperasi',
@@ -62,7 +64,10 @@ class KasTopupPengeluaranTest extends TestCase
             'tanggal' => now()->format('Y-m-d'),
         ])->assertStatus(302);
 
-        $this->assertEquals($saldoSebelum - 250_000, (float) KasKoperasi::first()->saldo_pinjaman);
+        $sesudah = KasKoperasi::first();
+        $this->assertEquals((float) $sebelum['saldo_pinjaman'], (float) $sesudah->saldo_pinjaman);
+        $this->assertEquals((float) $sebelum['saldo_kas_kecil'] - 250_000, (float) $sesudah->saldo_kas_kecil);
+        $this->assertEquals((float) $sebelum['saldo_bank'], (float) $sesudah->saldo_bank);
         $this->assertTrue(JurnalKas::where('kategori', 'pengeluaran_koperasi')->where('tipe', 'keluar')->exists());
     }
 
@@ -109,7 +114,7 @@ class KasTopupPengeluaranTest extends TestCase
     public function test_pengeluaran_dana_sosial_tak_bersentuhan_saldo_pinjaman(): void
     {
         $this->masuk('BEN-000001');
-        $sebelum = KasKoperasi::first()->only(['saldo_pinjaman', 'saldo_dana_sosial']);
+        $sebelum = KasKoperasi::first()->only(['saldo_pinjaman', 'saldo_dana_sosial', 'saldo_kas_kecil']);
 
         $this->post(route('pengeluaran.store'), [
             'jenis' => 'dana_sosial',
@@ -119,8 +124,9 @@ class KasTopupPengeluaranTest extends TestCase
         ])->assertStatus(302);
 
         $sesudah = KasKoperasi::first();
-        $this->assertEquals($sebelum['saldo_pinjaman'], $sesudah->saldo_pinjaman);
-        $this->assertEquals((float) $sebelum['saldo_dana_sosial'] - 100_000, (float) $sesudah->saldo_dana_sosial);
+        $this->assertEquals((float) $sebelum['saldo_pinjaman'], (float) $sesudah->saldo_pinjaman);
+        $this->assertEquals((float) $sebelum['saldo_dana_sosial'], (float) $sesudah->saldo_dana_sosial);
+        $this->assertEquals((float) $sebelum['saldo_kas_kecil'] - 100_000, (float) $sesudah->saldo_kas_kecil);
     }
 
     public function test_pengeluaran_dana_sosial_dibatasi_pagu_bulanan(): void
@@ -177,5 +183,74 @@ class KasTopupPengeluaranTest extends TestCase
         ])->assertStatus(302);
 
         $this->assertTrue(JurnalKas::where('kategori', 'pengeluaran_koperasi')->where('tipe', 'keluar')->exists());
+    }
+
+    public function test_pengeluaran_ditolak_bila_saldo_kas_kecil_habis(): void
+    {
+        $this->masuk('BEN-000001');
+        $kas = KasKoperasi::first();
+        $kasKecil = (float) $kas->saldo_kas_kecil;
+
+        // Set saldo kas kecil habis
+        $kas->update(['saldo_kas_kecil' => 0]);
+        $kas->refresh();
+
+        $this->post(route('pengeluaran.store'), [
+            'jenis' => 'dana_sosial',
+            'jumlah' => 1,
+            'keterangan' => 'Santunan saat kas kecil habis',
+            'tanggal' => now()->format('Y-m-d'),
+        ])->assertSessionHasErrors('jumlah');
+
+        $this->assertSame(0, Pengeluaran::where('jenis', 'dana_sosial')->where('keterangan', 'Santunan saat kas kecil habis')->count());
+    }
+
+    public function test_pengeluaran_koperasi_melebihi_saldo_kas_kecil_ditolak(): void
+    {
+        $this->masuk('BEN-000001');
+        $kas = KasKoperasi::first();
+        $kasKecil = (float) $kas->saldo_kas_kecil;
+
+        $this->post(route('pengeluaran.store'), [
+            'jenis' => 'koperasi',
+            'jumlah' => $kasKecil + 1,
+            'keterangan' => 'Melebihi saldo kas kecil',
+            'tanggal' => now()->format('Y-m-d'),
+        ])->assertSessionHasErrors('jumlah');
+
+        $this->assertTrue(JurnalKas::where('kategori', 'pengeluaran_koperasi')->where('keterangan', 'Melebihi saldo kas kecil')->doesntExist());
+    }
+
+    public function test_sisih_kas_kecil_memindahkan_dari_bank(): void
+    {
+        $this->masuk('ADM-000001');
+        $sebelum = KasKoperasi::first()->only(['saldo_bank', 'saldo_kas_kecil']);
+
+        $this->post(route('kas-koperasi.sisih-kas-kecil'), [
+            'jumlah' => 1_000_000,
+            'keterangan' => 'Sisih untuk kas operasional',
+        ])->assertStatus(302);
+
+        $sesudah = KasKoperasi::first();
+        $this->assertEquals((float) $sebelum['saldo_bank'] - 1_000_000, (float) $sesudah->saldo_bank);
+        $this->assertEquals((float) $sebelum['saldo_kas_kecil'] + 1_000_000, (float) $sesudah->saldo_kas_kecil);
+        $this->assertDatabaseHas('jurnal_kas', [
+            'kategori' => 'sisih_kas_kecil', 'kantong' => 'bank', 'tipe' => 'keluar', 'jumlah' => 1_000_000,
+        ]);
+        $this->assertDatabaseHas('jurnal_kas', [
+            'kategori' => 'terima_sisih_kas_kecil', 'kantong' => 'kas_kecil', 'tipe' => 'masuk', 'jumlah' => 1_000_000,
+        ]);
+    }
+
+    public function test_sisih_kas_kecil_ditolak_bila_saldo_bank_kurang(): void
+    {
+        $this->masuk('ADM-000001');
+        $kas = KasKoperasi::first();
+        $bank = (float) $kas->saldo_bank;
+
+        $this->post(route('kas-koperasi.sisih-kas-kecil'), [
+            'jumlah' => $bank + 1,
+            'keterangan' => 'Melebihi saldo bank',
+        ])->assertSessionHasErrors('jumlah');
     }
 }

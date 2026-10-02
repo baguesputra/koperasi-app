@@ -12,6 +12,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
+use RuntimeException;
 
 class KasKoperasiController extends Controller
 {
@@ -32,6 +33,8 @@ class KasKoperasiController extends Controller
         // - 'pinjaman': semua jurnal kantong pinjaman (termasuk pelunasan_resign_pinjaman).
         // - 'iuran': gabungan arus iuran — kantong simpanan + dana_sosial (masuk iuran,
         //   keluar pengembalian/pelunasan). Label konsisten "Dana Iuran".
+        // - 'fisik': gabungan uang fisik — kantong bank + kas_kecil (topup masuk bank,
+        //   sisih bank→kas_kecil, pengeluaran dari kas_kecil, pencairan/return dari bank).
         $scopeKantong = match ($kantongAktif) {
             'pengembalian_simpanan' => null,
             'pinjaman' => [
@@ -40,6 +43,10 @@ class KasKoperasiController extends Controller
             'iuran' => [
                 ['kantong' => 'simpanan'],
                 ['kantong' => 'dana_sosial'],
+            ],
+            'fisik' => [
+                ['kantong' => 'bank'],
+                ['kantong' => 'kas_kecil'],
             ],
             default => [['kantong' => $kantongAktif]],
         };
@@ -145,7 +152,9 @@ class KasKoperasiController extends Controller
             'totalKeseluruhan' => (float) $totalKeseluruhan,
             'kasOperasional' => $this->jurnalKas->saldoOperasional($kas),
             'infoPagu' => $this->jurnalKas->sisaPaguBulan($kas, $bulanFilter ?: null),
-            'klasifikasi' => $this->jurnalKas->klasifikasiBulan($bulanFilter ?: null),
+            'saldoBank' => (float) $kas->saldo_bank,
+            'saldoKasKecil' => (float) $kas->saldo_kas_kecil,
+            'poolPinjaman' => (float) $kas->saldo_bank,
             'kantongAktif' => $kantongAktif,
             'bulanFilter' => $bulanFilter,
             'ringkasanPeriode' => [
@@ -281,6 +290,9 @@ class KasKoperasiController extends Controller
             'totalKeseluruhan' => (float) $totalKeseluruhan,
             'kasOperasional' => $this->jurnalKas->saldoOperasional($kas),
             'infoPagu' => $this->jurnalKas->sisaPaguBulan($kas, $bulanFilter ?: null),
+            'saldoBank' => (float) $kas->saldo_bank,
+            'saldoKasKecil' => (float) $kas->saldo_kas_kecil,
+            'poolPinjaman' => (float) $kas->saldo_bank,
             'klasifikasi' => $this->jurnalKas->klasifikasiBulan($bulanFilter ?: null),
             'kantongAktif' => 'pengembalian_simpanan',
             'bulanFilter' => $bulanFilter,
@@ -314,5 +326,32 @@ class KasKoperasiController extends Controller
         );
 
         return back()->with('status', 'Saldo berhasil ditambahkan.');
+    }
+
+    public function sisihKasKecil(Request $request)
+    {
+        $request->validate([
+            'jumlah' => ['required', 'numeric', 'min:1'],
+            'keterangan' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        try {
+            $this->jurnalKas->transferAntarKantong(
+                kantongAsal: 'bank',
+                kantongTujuan: 'kas_kecil',
+                jumlah: (float) $request->jumlah,
+                keterangan: $request->keterangan ?: 'Sisihkan kas kecil dari bank',
+                referensiId: null,
+                tanggal: now()->format('Y-m-d'),
+                userId: auth()->id(),
+                subJudul: 'Sisih kas kecil',
+                kategoriKeluar: 'sisih_kas_kecil',
+                kategoriMasuk: 'terima_sisih_kas_kecil',
+            );
+        } catch (RuntimeException $e) {
+            return back()->withErrors(['jumlah' => $e->getMessage()]);
+        }
+
+        return back()->with('status', 'Kas kecil berhasil disisihkan.');
     }
 }

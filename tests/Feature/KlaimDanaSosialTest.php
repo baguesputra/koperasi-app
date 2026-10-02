@@ -153,6 +153,40 @@ class KlaimDanaSosialTest extends TestCase
         $this->assertSame(0, \App\Models\Pengeluaran::where('jenis', 'dana_sosial')->count() - $countSebelum);
     }
 
+    public function test_ketua_setujui_melebihi_kas_kecil_ditolak(): void
+    {
+        $countSebelum = \App\Models\Pengeluaran::where('jenis', 'dana_sosial')->count();
+        $kasKecil = (float) \App\Models\KasKoperasi::first()->saldo_kas_kecil;
+        $terpakaiBulanIni = (float) \App\Models\Pengeluaran::where('jenis', 'dana_sosial')
+            ->whereYear('tanggal', now()->year)
+            ->whereMonth('tanggal', now()->month)
+            ->sum('jumlah');
+        SettingKas::updateOrCreate(
+            ['kunci' => SettingKas::CADANGAN],
+            ['label' => 'Cadangan Sosial Bulanan', 'nominal' => $terpakaiBulanIni + $kasKecil + 200_000]
+        );
+
+        $anggota = $this->buatAnggota();
+        $klaim = $this->ajukan($anggota);
+
+        $this->masuk('BEN-000001');
+        $this->post(route('bendahara.klaim-dana-sosial.approve', $klaim), [
+            'catatan' => 'Dokumen lengkap.',
+            'nominal' => $kasKecil + 100_000,
+        ])->assertStatus(302);
+
+        $this->masuk('KET-000001');
+        $this->post(route('ketua.klaim-dana-sosial.approve', $klaim), [
+            'catatan' => 'Melebihi kas kecil.',
+            'nominal' => $kasKecil + 100_000,
+        ])->assertSessionHasErrors('keputusan');
+
+        $klaim->refresh();
+        $this->assertSame('approved_bendahara', $klaim->status);
+        $this->assertNull($klaim->pengeluaran_id);
+        $this->assertSame(0, \App\Models\Pengeluaran::where('jenis', 'dana_sosial')->count() - $countSebelum);
+    }
+
     public function test_portal_validasi_tanggal_masa_depan_dan_foto_wajib(): void
     {
         $anggota = $this->buatAnggota();

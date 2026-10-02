@@ -46,6 +46,8 @@ class LaporanRegistry
         'kembali_talangan_dari_pinjaman' => 'Pengembalian Talangan dari Pinjaman',
         'kembali_talangan_ke_simpanan' => 'Pengembalian Talangan ke Simpanan',
         'kembali_talangan_ke_sosial' => 'Pengembalian Talangan ke Sosial',
+        'sisih_kas_kecil' => 'Sisih Kas Kecil',
+        'terima_sisih_kas_kecil' => 'Terima Sisih Kas Kecil',
     ];
 
     public const STATUS_PINJAMAN = [
@@ -596,8 +598,14 @@ class LaporanRegistry
                 'data' => function (Request $r) {
                     [$dari, $sampai] = self::rentang($r);
                     $rows = DB::table('jurnal_kas')
-                        ->where('kantong', 'dana_sosial')
                         ->whereBetween('tanggal', [$dari, $sampai])
+                        ->where(function ($q) {
+                            $q->where('kantong', 'dana_sosial')
+                                ->orWhere(function ($qq) {
+                                    $qq->where('kantong', 'kas_kecil')
+                                        ->where('kategori', 'pengeluaran_dana_sosial');
+                                });
+                        })
                         ->orderBy('tanggal')->orderBy('id')
                         ->get()->map(fn ($j) => [
                             Carbon::parse($j->tanggal)->format('d M Y'),
@@ -613,8 +621,9 @@ class LaporanRegistry
                         ->value('sisa');
 
                     // P1-4: pisahkan keluar santunan vs keluar pinjaman (talangan).
+                    // Santunan bisa tercatat di kantong dana_sosial (lama) atau kas_kecil (fisik baru).
                     $keluar = fn (array $kategori) => (float) DB::table('jurnal_kas')
-                        ->where('kantong', 'dana_sosial')->where('tipe', 'keluar')
+                        ->where('tipe', 'keluar')
                         ->whereIn('kategori', $kategori)
                         ->whereBetween('tanggal', [$dari, $sampai])
                         ->sum('jumlah');

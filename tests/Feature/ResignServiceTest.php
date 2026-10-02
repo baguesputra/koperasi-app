@@ -93,6 +93,8 @@ class ResignServiceTest extends TestCase
             'saldo_pinjaman' => 1_000_000,
             'saldo_dana_sosial' => 0,
             'saldo_pengembalian_simpanan' => 0,
+            'saldo_bank' => 5_000_000,
+            'saldo_kas_kecil' => 1_000_000,
         ]);
         $anggota = $this->anggotaDenganSimpananDanPinjaman($user);
 

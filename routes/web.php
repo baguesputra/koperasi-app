@@ -146,6 +146,7 @@ Route::middleware(['auth', 'permission:laporan.lihat'])->prefix('laporan')->name
 // ==========================================
 Route::middleware(['auth', 'permission:kas.topup'])->group(function () {
     Route::post('/kas-koperasi/topup', [KasKoperasiController::class, 'topup'])->name('kas-koperasi.topup');
+    Route::post('/kas-koperasi/sisih-kas-kecil', [KasKoperasiController::class, 'sisihKasKecil'])->name('kas-koperasi.sisih-kas-kecil')->middleware('idempotent');
 });
 
 // ==========================================

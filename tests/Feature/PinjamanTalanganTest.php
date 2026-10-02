@@ -55,10 +55,25 @@ class PinjamanTalanganTest extends TestCase
 
     private function aturKas(float $pinjaman, float $sosial, float $simpanan): void
     {
-        // Samakan kas via jurnal (topup/saldo) supaya rekonsiliasi kas=jurnal tetap seimbang.
+        // Samakan virtual ke target. Penurunan virtual via catat juga memakan
+        // bank, jadi danai dulu bank sebesar total penurunan agar tidak gagal.
         $kas = KasKoperasi::firstOrFail();
         $jurnal = app(JurnalKasService::class);
         $adminId = User::where('no_karyawan', 'ADM-000001')->value('id');
+        $butuhBank = 0.0;
+
+        foreach (['pinjaman' => $pinjaman, 'dana_sosial' => $sosial, 'simpanan' => $simpanan] as $kantong => $target) {
+            $kolom = JurnalKasService::KANTONG_SALDO[$kantong];
+            $selisih = $target - (float) $kas->refresh()->{$kolom};
+
+            if ($selisih < 0) {
+                $butuhBank += -$selisih;
+            }
+        }
+
+        if ($butuhBank > 0) {
+            $jurnal->catat('masuk', 'topup_bulanan', 'bank', $butuhBank, 'Dana penyesuaian kas uji', null, now()->format('Y-m-d'), $adminId);
+        }
 
         foreach (['pinjaman' => $pinjaman, 'dana_sosial' => $sosial, 'simpanan' => $simpanan] as $kantong => $target) {
             $kolom = JurnalKasService::KANTONG_SALDO[$kantong];
@@ -69,6 +84,16 @@ class PinjamanTalanganTest extends TestCase
             } elseif ($selisih < 0) {
                 $jurnal->catat('keluar', 'topup_bulanan', $kantong, -$selisih, 'Penyesuaian kas uji', null, now()->format('Y-m-d'), $adminId);
             }
+        }
+
+        // Set fisik bank = total virtual (pool cair = saldo bank).
+        $bankTarget = $pinjaman + $sosial + $simpanan;
+        $selisihBank = $bankTarget - (float) $kas->refresh()->saldo_bank;
+
+        if ($selisihBank > 0) {
+            $jurnal->catat('masuk', 'topup_bulanan', 'bank', $selisihBank, 'Penyesuaian bank uji', null, now()->format('Y-m-d'), $adminId);
+        } elseif ($selisihBank < 0) {
+            $jurnal->catat('keluar', 'topup_bulanan', 'bank', -$selisihBank, 'Penyesuaian bank uji', null, now()->format('Y-m-d'), $adminId);
         }
 
         SettingKas::updateOrCreate(['kunci' => SettingKas::PAGU], ['label' => 'Pagu', 'nominal' => 95_000_000]);
@@ -136,10 +161,18 @@ class PinjamanTalanganTest extends TestCase
         $this->assertTrue(AuditLog::where('aksi', 'pinjaman_talangan_kembali')->exists());
     }
 
-    public function test_cair_tetap_ditolak_bila_global_di_bawah_cadangan(): void
+    public function test_cair_ditolak_bila_saldo_bank_kurang(): void
     {
-        // Operasional 8 < cadangan + nominal: guard global menolak sebelum talangan.
+        // Virtual boleh cukup, tetapi pool fisik bank dibuat di bawah nominal:
+        // guard menolak sebelum talangan.
         $this->aturKas(4_000_000, 3_000_000, 1_000_000);
+
+        $kas = KasKoperasi::firstOrFail();
+        $adminId = User::where('no_karyawan', 'ADM-000001')->value('id');
+        app(JurnalKasService::class)->catat(
+            'keluar', 'topup_bulanan', 'bank', 6_000_000,
+            'Turunkan pool bank uji', null, now()->format('Y-m-d'), $adminId
+        );
 
         $anggota = $this->buatAnggota();
         $pinjaman = $this->ajukanDisetujuiBendahara($anggota, 5_000_000, 3);

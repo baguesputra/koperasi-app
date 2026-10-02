@@ -5,8 +5,8 @@ import { formatRupiah } from '@/Utils/formatCurrency';
 import TextField from '@/Components/ui/TextField';
 
 const KETERANGAN = {
-    pagu_pinjaman_bulanan: 'Batas total pencairan pinjaman per bulan kalender. Pencairan ditolak bila melebihi sisa pagu.',
-    cadangan_sosial_bulan: 'Pagu dana sosial bulanan: batas total klaim santunan + pengeluaran dana sosial per bulan kalender. Melebihi sisa pagu ditolak. Pinjaman juga wajib menyisakan minimal ini di kas.',
+    pagu_pinjaman_bulanan: 'Arsip pengaturan lama: pool pinjaman kini dinamis mengikuti saldo Bank, bukan angka bulanan ini.',
+    cadangan_sosial_bulan: 'Pagu dana sosial bulanan: batas total klaim santunan + pengeluaran dana sosial per bulan kalender. Pengeluaran dana sosial dibayar dari Kas Kecil dan tetap dibatasi pagu ini.',
 };
 
 export default function TabKas({ settingKas }) {
@@ -29,8 +29,8 @@ export default function TabKas({ settingKas }) {
     return (
         <div>
             <p className="text-sm text-slate-400 mb-4">
-                Kas operasional = gabungan Dana Pinjaman + Dana Sosial + Simpanan.
-                Pencairan ditolak bila melebihi sisa pagu atau menyisakan kas di bawah cadangan sosial.
+                Uang fisik koperasi = Bank + Kas Kecil. Pencairan pinjaman dibatasi saldo Bank;
+                pengeluaran dibayar dari Kas Kecil dan untuk dana sosial tetap dibatasi pagu bulanan.
             </p>
             <ul className="divide-y divide-slate-100">
                 {(settingKas ?? []).map((item) => (
