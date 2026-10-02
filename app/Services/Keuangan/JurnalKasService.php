@@ -65,6 +65,20 @@ class JurnalKasService
     ];
 
     /**
+     * Kanal fisik satu baris jurnal untuk tampilan: `bank`, `kas_kecil`, atau `audit`.
+     * Urutan meniru catat(): kategori NON_FISIK tidak menggerakkan saldo dulu,
+     * lalu kantong kas_kecil → kas kecil; selainnya → bank.
+     */
+    public static function kanalFisik(string $kantong, string $kategori): string
+    {
+        if (in_array($kategori, self::KATEGORI_NON_FISIK, true)) {
+            return 'audit';
+        }
+
+        return $kantong === 'kas_kecil' ? 'kas_kecil' : 'bank';
+    }
+
+    /**
      * Satu-satunya pintu untuk mengubah saldo kas + mencatat jurnal.
      * Selalu dipanggil sebagai 1 paket atomic dengan lock, supaya aman dari race condition.
      *
