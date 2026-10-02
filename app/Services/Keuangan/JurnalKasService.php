@@ -66,8 +66,8 @@ class JurnalKasService
     ];
 
     /**
-     * Kategori pengeluaran kas kecil: keluar dari saldo_kas_kecil.
-     * Semua pengeluaran (koperasi, dana sosial, klaim santunan) dibayar dari sini.
+     * Kategori pengeluaran: baris BARU berkantong `kas_kecil` (fisik, dibayar
+     * dari kas kecil). Baris LAMA berkantong virtual dihitung ke bank.
      */
     public const KATEGORI_KAS_KECIL = [
         'pengeluaran_koperasi',
@@ -79,10 +79,12 @@ class JurnalKasService
      * Selalu dipanggil sebagai 1 paket atomic dengan lock, supaya aman dari race condition.
      *
      * Dua lapis saldo:
+     * - Kantong fisik (`bank`, `kas_kecil`) update kolomnya sendiri.
      * - Kantong virtual (`saldo_pinjaman` dst) SELALU di-update: untuk arus kas & audit per kantong.
-     * - Fisik (`saldo_bank` / `saldo_kas_kecil`) hanya untuk kategori yang benar-benar
-     *   memindahkan uang: masuk → bank, pengeluaran_* → kas kecil,
-     *   pencairan/return → bank. KATEGORI_VIRTUAL_SAJA tidak menyentuh fisik.
+     * - Fisik untuk baris virtual: masuk → bank, keluar → bank
+     *   (termasuk pengeluaran lama berkantong virtual; dulu pool tunggal).
+     *   Pengeluaran baru lewat kantong `kas_kecil` → kas kecil.
+     *   KATEGORI_VIRTUAL_SAJA tidak menyentuh fisik.
      *
      * @param  string  $kantong  salah satu dari self::KANTONG_SALDO
      * @param  string|null  $subJudul  catatan tambahan untuk transparansi
@@ -110,7 +112,6 @@ class JurnalKasService
 
             $kolom = self::KANTONG_SALDO[$kantong];
             $isVirtualSaja = in_array($kategori, self::KATEGORI_VIRTUAL_SAJA, true);
-            $isKasKecil = in_array($kategori, self::KATEGORI_KAS_KECIL, true);
 
             if ($tipe === 'keluar' && ! in_array($kantong, self::KANTONG_TRANSIT, true) && ! $isFisikKantong && (float) $kas->{$kolom} < $jumlah) {
                 $labelKantong = self::KANTONG_LABEL[$kantong] ?? $kantong;
@@ -135,14 +136,9 @@ class JurnalKasService
                 if (! $isVirtualSaja) {
                     if ($tipe === 'masuk') {
                         $kas->increment('saldo_bank', $jumlah);
-                    } elseif ($isKasKecil) {
-                        if ((float) $kas->saldo_kas_kecil < $jumlah) {
-                            throw new RuntimeException(
-                                'Saldo kas kecil tidak mencukupi. Saldo saat ini: Rp '.number_format((float) $kas->saldo_kas_kecil, 0, ',', '.')
-                            );
-                        }
-                        $kas->decrement('saldo_kas_kecil', $jumlah);
                     } else {
+                        // Keluar non-fisik (termasuk pengeluaran lama berkantong
+                        // virtual): dibayar dari bank, selaras aturan derivasi fisik.
                         if ((float) $kas->saldo_bank < $jumlah) {
                             throw new RuntimeException(
                                 'Saldo bank tidak mencukupi. Saldo saat ini: Rp '.number_format((float) $kas->saldo_bank, 0, ',', '.')

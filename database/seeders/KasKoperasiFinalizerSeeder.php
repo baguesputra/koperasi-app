@@ -50,7 +50,7 @@ class KasKoperasiFinalizerSeeder extends Seeder
                 continue;
             } elseif ($j->tipe === 'masuk') {
                 $bank += $jumlah;
-            } elseif (in_array($j->kategori, \App\Services\Keuangan\JurnalKasService::KATEGORI_KAS_KECIL, true)) {
+            } elseif ($j->kantong === 'kas_kecil' && in_array($j->kategori, \App\Services\Keuangan\JurnalKasService::KATEGORI_KAS_KECIL, true)) {
                 $kas -= $jumlah;
             } else {
                 $bank -= $jumlah;

@@ -44,9 +44,12 @@ return new class extends Migration
                 continue;
             } elseif ($j->tipe === 'masuk') {
                 $bank += $jumlah;
-            } elseif (str_starts_with($j->kategori, 'pengeluaran_')) {
+            } elseif ($j->kantong === 'kas_kecil' && str_starts_with($j->kategori, 'pengeluaran_')) {
+                // Baris fisik baru: pengeluaran dibayar dari kas kecil.
                 $kas -= $jumlah;
             } else {
+                // Termasuk pengeluaran lama (kantong pinjaman/dana_sosial):
+                // dulu pool tunggal, jadi dibayar dari bank.
                 $bank -= $jumlah;
             }
         }
