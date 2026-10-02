@@ -9,6 +9,7 @@ use App\Http\Controllers\Bendahara\PercepatanController as BendaharaPercepatanCo
 use App\Http\Controllers\Bendahara\PinjamanController as BendaharaPinjamanController;
 use App\Http\Controllers\Bendahara\SimpananController as BendaharaSimpananController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\JurnalKasController;
 use App\Http\Controllers\KasKoperasiController;
 use App\Http\Controllers\Ketua\AktivasiController as KetuaAktivasiController;
 use App\Http\Controllers\Ketua\KlaimDanaSosialController as KetuaKlaimDanaSosialController;
@@ -129,6 +130,10 @@ Route::middleware(['auth', 'permission:simpanan.lihat'])->group(function () {
 
 Route::middleware(['auth', 'permission:kas.lihat'])->group(function () {
     Route::get('/kas-koperasi', [KasKoperasiController::class, 'index'])->name('kas-koperasi.index');
+});
+
+Route::middleware(['auth', 'permission:jurnal.lihat'])->group(function () {
+    Route::get('/jurnal-kas', [JurnalKasController::class, 'index'])->name('jurnal-kas.index');
 });
 
 // ==========================================

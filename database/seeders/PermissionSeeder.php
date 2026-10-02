@@ -26,6 +26,7 @@ class PermissionSeeder extends Seeder
             'angsuran.konfirmasi',
             'kas.lihat',
             'kas.topup',
+            'jurnal.lihat',
             'laporan.lihat',
             'pengaturan.kelola',
             'user.kelola',

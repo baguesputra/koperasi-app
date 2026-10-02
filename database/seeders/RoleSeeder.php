@@ -19,6 +19,7 @@ class RoleSeeder extends Seeder
             'klaim.tinjau-bendahara', 'klaim.approve-ketua',
             'aktivasi.approve-ketua',
             'kas.lihat', 'kas.topup',
+            'jurnal.lihat',
             'laporan.lihat',
             'pengaturan.kelola', 'user.kelola',
             'migrasi.kelola',
@@ -33,6 +34,7 @@ class RoleSeeder extends Seeder
             'klaim.tinjau-bendahara',
             'angsuran.konfirmasi',
             'kas.lihat', 'kas.topup',
+            'jurnal.lihat',
             'laporan.lihat',
             'portal.akses',
         ]);
@@ -46,6 +48,7 @@ class RoleSeeder extends Seeder
             'klaim.approve-ketua',
             'aktivasi.approve-ketua',
             'kas.lihat',
+            'jurnal.lihat',
             'laporan.lihat',
             'portal.akses',
         ]);
