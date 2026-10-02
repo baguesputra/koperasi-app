@@ -57,7 +57,7 @@ const kantongLabel = {
 const kanalMeta = {
     bank: { label: 'Bank', ikon: Landmark, warna: 'bg-brand-navy/10 text-brand-navy' },
     kas_kecil: { label: 'Kas Kecil', ikon: Wallet, warna: 'bg-amber-50 text-amber-700' },
-    audit: { label: 'Audit', ikon: FileSearch, warna: 'bg-slate-100 text-slate-500' },
+    audit: { label: 'Non-kas', ikon: FileSearch, warna: 'bg-slate-100 text-slate-500' },
 };
 
 const chipNominal = [500_000, 1_000_000, 2_500_000, 5_000_000, 10_000_000];
@@ -216,7 +216,7 @@ export default function Index({
         <AppLayout>
             <Head title="Kas Koperasi" />
 
-            <PageHeader title="Kas Koperasi" subtitle="Saldo dan riwayat mutasi keuangan koperasi">
+            <PageHeader title="Kas Koperasi" subtitle="Saldo dan mutasi kas koperasi">
                 {(bisaTopup && !showForm) || (bisaTopup && !showSisih) ? (
                     <div className="flex items-center gap-2 flex-wrap">
                         {bisaTopup && !showForm && (
@@ -241,7 +241,7 @@ export default function Index({
                         <Landmark size={22} />
                     </span>
                     <div className="min-w-0 flex-1">
-                        <p className="text-xs text-white/70">Uang fisik (Bank + Kas Kecil)</p>
+                        <p className="text-xs text-white/70">Kas (Bank + Kas Kecil)</p>
                         <p className="text-2xl font-bold tabular-nums leading-tight">{formatRupiah((saldoBank ?? 0) + (saldoKasKecil ?? 0))}</p>
                     </div>
                 </div>
@@ -417,8 +417,8 @@ export default function Index({
             <Card padding="sm" className="shadow-md border-slate-200/70 mb-4">
                 <div className="flex flex-col md:flex-row md:items-center gap-2 pb-3 mb-1 border-b border-slate-100">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2 flex-1">
-                        <Select size="sm" value={filters.kanal ?? ''} onChange={(e) => terapkan({ kanal: e.target.value })} aria-label="Filter kanal" className={fokusRing}>
-                            <option value="">Semua kanal</option>
+                        <Select size="sm" value={filters.kanal ?? ''} onChange={(e) => terapkan({ kanal: e.target.value })} aria-label="Filter akun kas" className={fokusRing}>
+                            <option value="">Semua akun kas</option>
                             {Object.entries(kanalMeta).map(([key, meta]) => (
                                 <option key={key} value={key}>{meta.label}</option>
                             ))}
@@ -477,7 +477,7 @@ export default function Index({
                 <div className="flex items-center gap-1.5 min-w-0 px-1 pt-1">
                     <CalendarDays size={15} className="text-slate-400 shrink-0" />
                     <p className="text-sm text-slate-500 truncate">
-                        Arus kas <span className="font-bold text-slate-800">{labelBulan}</span>
+                        Mutasi kas <span className="font-bold text-slate-800">{labelBulan}</span>
                     </p>
                 </div>
                 {riwayat.data.length === 0 ? (
@@ -541,7 +541,7 @@ export default function Index({
                                                 </p>
                                                 <p className="text-[11px] text-slate-400 whitespace-nowrap tabular-nums">
                                                     {r.kanal === 'audit'
-                                                        ? 'Jurnal audit — tanpa gerak uang'
+                                                        ? 'Transaksi non-kas — kas tidak berubah'
                                                         : `${r.kanal === 'bank' ? 'Saldo Bank' : 'Saldo Kas'}: ${formatRupiah(r.saldo_setelah)}`}
                                                 </p>
                                             </div>
