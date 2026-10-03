@@ -17,6 +17,17 @@ use Illuminate\Support\Facades\Hash;
 
 class SinkronisasiAnggotaService
 {
+    /**
+     * Petakan kode perusahaan Gate → cabang koperasi.
+     * Kode Gate tidak berpola tunggal (TOP-*, DIV-*, DM-*, IT-*), jadi peta
+     * eksplisit per kode; bukan tebak string.
+     */
+    public const CABANG_PER_KODE = [
+        'DUTA' => 'Banjarmasin',
+        'BM' => 'Samarinda',
+        'DMP' => 'Palangka',
+    ];
+
     public function __construct(
         private GateClient $gate,
         private JurnalKasService $jurnalKas,
@@ -79,6 +90,15 @@ class SinkronisasiAnggotaService
         }
 
         return $hasil;
+    }
+
+    public static function cabangUntukKode(?string $kode): ?string
+    {
+        if (! $kode) {
+            return null;
+        }
+
+        return self::CABANG_PER_KODE[strtoupper(trim($kode))] ?? null;
     }
 
     private function sinkronSatu(array $baris, ?int $aktorId): string
@@ -171,7 +191,7 @@ class SinkronisasiAnggotaService
                     'no_karyawan' => $nik,
                     'no_ktp' => preg_match('/^\d{16}$/', $nik) ? $nik : null,
                     'nama' => $nama,
-                    'cabang' => 'Banjarmasin',
+                    'cabang' => self::cabangUntukKode($perusahaan?->kode) ?? 'Banjarmasin',
                     'unit_bisnis' => $perusahaan?->nama ?? $department ?? 'Operasional',
                     'department' => $department,
                     'jabatan' => $namaJabatan ?: 'staff',
@@ -201,6 +221,74 @@ class SinkronisasiAnggotaService
             }
 
             return $baru ? 'baru' : 'diperbarui';
+        });
+    }
+
+    /**
+     * Daftarkan karyawan Gate sebagai user+anggota (untuk auto-provision saat login SSO).
+     * Memakai jalur sinkronSatu yang sama: role anggota + simpanan pokok ikut dibuat.
+     */
+    public function provisiDariGate(array $baris, ?int $aktorId = null): User
+    {
+        $nik = trim((string) ($baris['nik'] ?? ''));
+        if (! $nik) {
+            throw new \RuntimeException('Data Gate tidak lengkap (nik).');
+        }
+
+        $this->sinkronSatu($baris, $aktorId);
+
+        return User::where('no_karyawan', $nik)->firstOrFail();
+    }
+
+    /**
+     * Perkaya user+anggota dari data Gate secara non-destruktif (untuk refresh
+     * saat login SSO): hanya mengisi kolom yang masih kosong, tidak menimpa
+     * edit manual admin. Berbeda dengan sinkron massal yang menimpa dari Gate.
+     */
+    public function enrichDariGate(User $user, array $baris): void
+    {
+        DB::transaction(function () use ($user, $baris) {
+            $fotoUrl = $this->normalisasiFoto($baris['photo_url'] ?? $baris['photo'] ?? null);
+            $noHp = $this->normalisasiHp($baris['whatsapp_number'] ?? null);
+
+            $user->update([
+                'no_karyawan' => $user->no_karyawan ?: (trim((string) ($baris['nik'] ?? '')) ?: null),
+                'name' => trim((string) ($baris['name'] ?? '')) ?: $user->name,
+            ]);
+
+            $anggota = $user->anggota;
+            if (! $anggota) {
+                return;
+            }
+
+            $posisi = $baris['position'] ?? null;
+            $deptGateId = is_array($posisi)
+                ? ($posisi['department']['id'] ?? null)
+                : ($baris['department_id'] ?? null);
+            $jabGateId = is_array($posisi)
+                ? ($posisi['id'] ?? null)
+                : ($baris['position_id'] ?? null);
+
+            $departemen = $deptGateId ? Departemen::where('gate_id', $deptGateId)->first() : null;
+            $jabatan = $jabGateId ? Jabatan::where('gate_id', $jabGateId)->first() : null;
+            $perusahaan = ! empty($baris['company_id'])
+                ? Perusahaan::where('gate_id', $baris['company_id'])->first()
+                : null;
+
+            $anggota->update([
+                'gate_id' => $anggota->gate_id ?? ($baris['id'] ?? null),
+                'perusahaan_id' => $anggota->perusahaan_id ?? $perusahaan?->id,
+                'departemen_id' => $anggota->departemen_id ?? $departemen?->id,
+                'jabatan_id' => $anggota->jabatan_id ?? $jabatan?->id,
+                'divisi_id' => $anggota->divisi_id ?? $jabatan?->division_id,
+                'department' => $anggota->department ?? $departemen?->nama,
+                // 'staff' adalah fallback sinkron; ganti bila Gate punya nama asli.
+                'jabatan' => ($anggota->jabatan && $anggota->jabatan !== 'staff')
+                    ? $anggota->jabatan
+                    : ($jabatan?->nama ?? $anggota->jabatan),
+                'no_hp' => $anggota->no_hp ?? $noHp,
+                'foto_url' => $anggota->foto_url ?? $fotoUrl,
+            ]);
         });
     }
 
@@ -243,7 +331,7 @@ class SinkronisasiAnggotaService
                 'jumlah' => $nominalPokok,
                 'bulan_periode' => now()->format('Y-m'),
                 'tanggal_input' => now(),
-                'input_by' => $aktorId,
+                'input_by' => $aktorId ?? $anggota->user_id,
             ]
         );
 

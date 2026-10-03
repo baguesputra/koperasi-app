@@ -111,6 +111,67 @@ class SinkronMasterTest extends TestCase
         $this->assertSame('Samarinda', $anggota->cabang);
     }
 
+    public function test_sinkron_master_via_tree_hierarki(): void
+    {
+        Http::fake([
+            '*/api/companies/*/tree' => Http::response(['success' => true, 'data' => [
+                'departments' => [[
+                    'id' => 'dept-uuid-9', 'code' => 'TOP-IT', 'name' => 'DM - IT',
+                    'divisions' => [[
+                        'id' => 'div-uuid-9', 'code' => 'DM-IT', 'name' => 'IT',
+                        'positions' => [
+                            ['id' => 'pos-uuid-90', 'name' => 'IT Supervisor'],
+                        ],
+                    ]],
+                    'positions' => [
+                        ['id' => 'pos-uuid-91', 'name' => 'IT Staff'],
+                    ],
+                ]],
+                'direct_divisions' => [
+                    ['id' => 'div-uuid-92', 'code' => 'DIV-CCTV', 'name' => 'CCTV'],
+                ],
+            ]], 200),
+            '*/api/companies*' => Http::response(['success' => true, 'data' => [
+                ['id' => 'comp-uuid-1', 'code' => 'DUTA', 'name' => 'Duta Mall Banjarmasin'],
+            ]], 200),
+        ]);
+        $this->masuk('ADM-000001');
+
+        $this->post(route('pengaturan.sinkron-master-gate'))->assertRedirect();
+
+        $this->assertSame(1, Departemen::count());
+        $this->assertSame(2, Divisi::count());
+        $this->assertSame(2, Jabatan::count());
+        $it = Divisi::where('gate_id', 'div-uuid-9')->sole();
+        $this->assertSame('DM-IT', $it->kode);
+        $this->assertSame(Departemen::sole()->id, $it->departemen_id);
+        $this->assertSame($it->id, Jabatan::where('gate_id', 'pos-uuid-90')->sole()->division_id);
+    }
+
+    public function test_sinkron_master_fallback_flat_bila_bukan_tree(): void
+    {
+        // Respons tanpa kunci departments/direct_divisions → pakai jalur flat lama.
+        Http::fake([
+            '*/api/companies/*' => Http::response(['success' => true, 'data' => [
+                'id' => 'comp-uuid-1', 'code' => 'DUTA', 'name' => 'Duta Mall Banjarmasin',
+            ]], 200),
+            '*/api/companies*' => Http::response(['success' => true, 'data' => [
+                ['id' => 'comp-uuid-1', 'code' => 'DUTA', 'name' => 'Duta Mall Banjarmasin'],
+            ]], 200),
+            '*/api/departments*' => Http::response(['success' => true, 'data' => [
+                ['id' => 'dept-uuid-2', 'code' => 'IT', 'name' => 'Information Technology', 'company_id' => 'comp-uuid-1'],
+            ]], 200),
+            '*/api/divisions*' => Http::response(['success' => true, 'data' => []], 200),
+            '*/api/positions*' => Http::response(['success' => true, 'data' => []], 200),
+        ]);
+        $this->masuk('ADM-000001');
+
+        $this->post(route('pengaturan.sinkron-master-gate'))->assertRedirect();
+
+        $this->assertSame(1, Perusahaan::count());
+        $this->assertSame(1, Departemen::count());
+    }
+
     public function test_sinkron_master_butuh_permission(): void
     {
         $this->fakeMaster();

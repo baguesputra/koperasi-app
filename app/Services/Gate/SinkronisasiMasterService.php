@@ -86,6 +86,122 @@ class SinkronisasiMasterService
         ));
         $hitung['perusahaan'] = $perusahaan->wasRecentlyCreated ? 1 : 0;
 
+        // Jalur utama: tree hierarki (1 call, linking pasti). Fallback ke flat
+        // bila endpoint tree tidak tersedia / respons bukan tree.
+        try {
+            $tree = $this->gate->ambilTreeCompany($gateId);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return $this->sinkronPerusahaanFlat($perusahaan, $gateId, $hitung);
+        }
+
+        if (! isset($tree['departments']) && ! isset($tree['direct_divisions'])) {
+            return $this->sinkronPerusahaanFlat($perusahaan, $gateId, $hitung);
+        }
+
+        return $this->simpanTree($perusahaan, $tree, $hitung);
+    }
+
+    /**
+     * Simpan hierarki tree: departments → divisions → positions (+ direct_divisions).
+     */
+    private function simpanTree(Perusahaan $perusahaan, array $tree, array $hitung): array
+    {
+        return DB::transaction(function () use ($perusahaan, $tree, $hitung) {
+            foreach ($tree['departments'] ?? [] as $dept) {
+                if (empty($dept['id']) || empty($dept['name'])) {
+                    continue;
+                }
+                $deptModel = Departemen::updateOrCreate(
+                    ['gate_id' => $dept['id']],
+                    [
+                        'perusahaan_id' => $perusahaan->id,
+                        'kode' => $dept['code'] ?? null,
+                        'nama' => $dept['name'],
+                        'leadership_title' => $dept['leadership_title'] ?? null,
+                        'users_count' => $dept['users_count'] ?? null,
+                        'positions_count' => $dept['positions_count'] ?? null,
+                    ]
+                );
+                $hitung['departemen'] += $deptModel->wasRecentlyCreated ? 1 : 0;
+
+                foreach ($dept['divisions'] ?? [] as $div) {
+                    $hitung['divisi'] += $this->simpanDivisi($perusahaan, $div, $deptModel->id) ? 1 : 0;
+                }
+
+                foreach ($dept['positions'] ?? [] as $jab) {
+                    $hitung['jabatan'] += $this->simpanJabatan($perusahaan, $jab, $deptModel->id, null) ? 1 : 0;
+                }
+            }
+
+            foreach ($tree['direct_divisions'] ?? [] as $div) {
+                $hitung['divisi'] += $this->simpanDivisi($perusahaan, $div, null) ? 1 : 0;
+            }
+
+            return $hitung;
+        });
+    }
+
+    private function simpanDivisi(Perusahaan $perusahaan, array $div, ?int $departmentId): bool
+    {
+        if (empty($div['id']) || empty($div['name'])) {
+            return false;
+        }
+
+        $model = Divisi::updateOrCreate(
+            ['gate_id' => $div['id']],
+            [
+                'perusahaan_id' => $perusahaan->id,
+                'kode' => $div['code'] ?? null,
+                'nama' => $div['name'],
+                'leadership_title' => $div['leadership_title'] ?? null,
+                'users_count' => $div['users_count'] ?? null,
+                'positions_count' => $div['positions_count'] ?? null,
+                'departemen_id' => ! empty($div['department_id'])
+                    ? Departemen::where('gate_id', $div['department_id'])->value('id') ?? $departmentId
+                    : $departmentId,
+            ]
+        );
+        $baru = $model->wasRecentlyCreated;
+
+        foreach ($div['positions'] ?? [] as $jab) {
+            $this->simpanJabatan($perusahaan, $jab, $model->departemen_id, $model->id);
+        }
+
+        return $baru;
+    }
+
+    private function simpanJabatan(Perusahaan $perusahaan, array $jab, ?int $departmentId, ?int $divisionId): bool
+    {
+        if (empty($jab['id']) || empty($jab['name'])) {
+            return false;
+        }
+
+        $model = Jabatan::updateOrCreate(
+            ['gate_id' => $jab['id']],
+            [
+                'perusahaan_id' => $perusahaan->id,
+                'departemen_id' => ! empty($jab['department_id'])
+                    ? Departemen::where('gate_id', $jab['department_id'])->value('id') ?? $departmentId
+                    : $departmentId,
+                'division_id' => ! empty($jab['division_id'])
+                    ? Divisi::where('gate_id', $jab['division_id'])->value('id') ?? $divisionId
+                    : $divisionId,
+                'nama' => $jab['name'],
+                'level' => $jab['level'] ?? null,
+                'level_label' => $jab['level_label'] ?? null,
+            ]
+        );
+
+        return $model->wasRecentlyCreated;
+    }
+
+    /**
+     * Fallback flat (4 call) bila endpoint tree tidak tersedia.
+     */
+    private function sinkronPerusahaanFlat(Perusahaan $perusahaan, int|string $gateId, array $hitung): array
+    {
         try {
             $daftarDept = $this->gate->ambilDepartemen($gateId);
         } catch (\Throwable $e) {

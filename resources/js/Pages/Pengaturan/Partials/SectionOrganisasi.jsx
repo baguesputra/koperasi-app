@@ -13,6 +13,7 @@ function BadgeStatus({ terhubung, adaToken }) {
 
 export default function SectionOrganisasi({ ringkasanMaster, gateStatus }) {
     const sinkron = useForm({});
+    const pratinjau = useForm({ dry_run: true });
 
     const statistik = [
         ['Perusahaan', ringkasanMaster?.perusahaan ?? 0],
@@ -48,6 +49,15 @@ export default function SectionOrganisasi({ ringkasanMaster, gateStatus }) {
                             Perusahaan, departemen, divisi, jabatan{gateStatus?.masterTerakhir ? ` — terakhir ${gateStatus.masterTerakhir}` : ''}
                         </p>
                     </div>
+                    <div className="flex gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={pratinjau.processing}
+                        onClick={() => pratinjau.post(route('pengaturan.sinkron-master-gate'))}
+                    >
+                        Pratinjau
+                    </Button>
                     <Button
                         variant="outline"
                         size="sm"
@@ -57,6 +67,7 @@ export default function SectionOrganisasi({ ringkasanMaster, gateStatus }) {
                         <RefreshCw size={16} className={sinkron.processing ? 'animate-spin' : ''} />
                         {sinkron.processing ? 'Menyinkron...' : 'Sinkron Master'}
                     </Button>
+                    </div>
                 </div>
 
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl border border-slate-100 p-4">
@@ -68,6 +79,15 @@ export default function SectionOrganisasi({ ringkasanMaster, gateStatus }) {
                             {(ringkasanMaster?.tanpaPerusahaan ?? 0) > 0 && ` — ${ringkasanMaster.tanpaPerusahaan} tanpa perusahaan`}
                         </p>
                     </div>
+                    <div className="flex gap-2">
+                    <Button
+                        variant="primary"
+                        size="sm"
+                        disabled={pratinjau.processing}
+                        onClick={() => pratinjau.post(route('pengaturan.sinkron-gate'))}
+                    >
+                        Pratinjau
+                    </Button>
                     <Button
                         variant="primary"
                         size="sm"
@@ -77,6 +97,7 @@ export default function SectionOrganisasi({ ringkasanMaster, gateStatus }) {
                         <RefreshCw size={16} className={sinkron.processing ? 'animate-spin' : ''} />
                         {sinkron.processing ? 'Menyinkron...' : 'Sinkron Karyawan'}
                     </Button>
+                    </div>
                 </div>
             </div>
         </div>

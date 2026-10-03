@@ -304,34 +304,56 @@ class PengaturanController extends Controller
 
     public function sinkronMasterGate(Request $request, SinkronisasiMasterService $sinkron)
     {
-        $request->validate(['company_id' => ['nullable', 'string', 'max:50']]);
+        $request->validate([
+            'company_id' => ['nullable', 'string', 'max:50'],
+            'dry_run' => ['nullable', 'boolean'],
+        ]);
+        $kering = (bool) $request->input('dry_run', false);
 
         try {
-            $hasil = $sinkron->sinkron($request->input('company_id'), false, $request->user()->id);
+            $hasil = $sinkron->sinkron($request->input('company_id'), $kering, $request->user()->id);
         } catch (\Throwable $e) {
             report($e);
 
             return back()->with('status', 'Sinkron master GATE gagal: '.$e->getMessage());
         }
 
+        $prefix = $kering ? 'Pratinjau: ' : '';
+
         return back()->with(
             'status',
-            'Sinkron master GATE selesai: '.$hasil['perusahaan'].' perusahaan, '.$hasil['departemen'].' departemen, '.$hasil['divisi'].' divisi, '.$hasil['jabatan'].' jabatan.'
+            $prefix.'Sinkron master GATE selesai: '.$hasil['perusahaan'].' perusahaan, '.$hasil['departemen'].' departemen, '.$hasil['divisi'].' divisi, '.$hasil['jabatan'].' jabatan.'
                 .($hasil['gagal'] ? ' Gagal: '.implode(' ', array_slice($hasil['gagal'], 0, 3)) : '')
         );
     }
 
     public function sinkronGate(Request $request, SinkronisasiAnggotaService $sinkron)
     {
+        $validated = $request->validate([
+            'company_id' => ['nullable', 'string', 'max:50'],
+            'department_id' => ['nullable', 'string', 'max:50'],
+            'level' => ['nullable', 'string', 'max:50'],
+            'dry_run' => ['nullable', 'boolean'],
+            'batas' => ['nullable', 'integer', 'min:1', 'max:1000'],
+        ]);
+        $kering = (bool) ($validated['dry_run'] ?? false);
+
         $hasil = $sinkron->sinkron(
-            $request->only(['company_id', 'department_id', 'level']),
-            false,
-            $request->user()->id
+            [
+                'company_id' => $validated['company_id'] ?? null,
+                'department_id' => $validated['department_id'] ?? null,
+                'level' => $validated['level'] ?? null,
+            ],
+            $kering,
+            $request->user()->id,
+            $validated['batas'] ?? null
         );
+
+        $prefix = $kering ? 'Pratinjau: ' : '';
 
         return back()->with(
             'status',
-            'Sinkron GATE selesai: '.count($hasil['baru']).' baru, '.count($hasil['diperbarui']).' diperbarui, '.count($hasil['gagal']).' gagal.'
+            $prefix.'Sinkron GATE selesai: '.count($hasil['baru']).' baru, '.count($hasil['diperbarui']).' diperbarui, '.count($hasil['gagal']).' gagal.'
                 .($hasil['gagal'] ? ' '.implode(' ', array_slice($hasil['gagal'], 0, 3)) : '')
         );
     }

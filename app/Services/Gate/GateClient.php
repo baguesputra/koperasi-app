@@ -61,6 +61,51 @@ class GateClient
         return $this->ambil('/api/positions', $query, 'jabatan');
     }
 
+    /**
+     * Hierarki org per company (departemen → divisi → jabatan bersarang).
+     * Dipakai master sync agar linking tidak ditebak dari flat list.
+     */
+    public function ambilTreeCompany(int|string $companyId): array
+    {
+        try {
+            $respon = $this->get(
+                rtrim(config('services.gate.base_url'), '/'),
+                config('services.gate.token'),
+                "/api/companies/{$companyId}/tree",
+                []
+            )->throw()->json();
+        } catch (ConnectionException|RequestException $e) {
+            Log::warning('GATE gagal', ['jenis' => 'tree', 'path' => "/api/companies/{$companyId}/tree", 'error' => $e->getMessage()]);
+            throw new RuntimeException('Gagal mengambil tree perusahaan dari GATE: '.$e->getMessage(), 0, $e);
+        }
+
+        $data = $respon['data'] ?? [];
+
+        return is_array($data) ? $data : [];
+    }
+
+    /**
+     * Cari satu karyawan Gate by email (untuk auto-provision & enrich saat login SSO).
+     */
+    public function cariKaryawanByEmail(string $email): ?array
+    {
+        try {
+            $daftar = $this->ambilKaryawan(['email' => $email, 'limit' => 5]);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return null;
+        }
+
+        foreach ($daftar as $baris) {
+            if (is_array($baris) && strcasecmp(trim((string) ($baris['email'] ?? '')), $email) === 0) {
+                return $baris;
+            }
+        }
+
+        return count($daftar) === 1 && is_array($daftar[0]) ? $daftar[0] : null;
+    }
+
     private function ambil(string $path, array $query, string $jenis): array
     {
         $token = config('services.gate.token');
@@ -78,20 +123,12 @@ class GateClient
             $status = $e instanceof RequestException ? $e->response?->status() : null;
             Log::warning('GATE gagal', ['jenis' => $jenis, 'path' => $path, 'status' => $status, 'error' => $e->getMessage()]);
 
-            if ($status !== null && $status >= 500) {
-                if ($query) {
-                    try {
-                        $respon = $this->get($baseUrl, $token, $path, [])->throw()->json();
-                    } catch (ConnectionException|RequestException $eUlang) {
-                        Log::warning('GATE gagal (tanpa filter)', ['jenis' => $jenis, 'path' => $path, 'error' => $eUlang->getMessage()]);
-                    }
-                }
-                if (! isset($respon)) {
-                    throw new RuntimeException("Server GATE bermasalah saat mengambil data {$jenis}. Coba lagi nanti atau hubungi admin GATE.", 0, $e);
-                }
-            } else {
-                throw new RuntimeException("Gagal mengambil data {$jenis} dari GATE: ".$e->getMessage(), 0, $e);
-            }
+            // ponytail: tanpa retry tanpa-filter — retry diam-diam bisa menarik data
+            // di luar filter (company salah) saat server error; gagal eksplisit saja.
+            $pesan = ($status !== null && $status >= 500)
+                ? "Server GATE bermasalah saat mengambil data {$jenis}. Coba lagi nanti atau hubungi admin GATE."
+                : "Gagal mengambil data {$jenis} dari GATE: ".$e->getMessage();
+            throw new RuntimeException($pesan, 0, $e);
         }
 
         $data = $respon['data'] ?? [];

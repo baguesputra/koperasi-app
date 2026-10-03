@@ -148,4 +148,85 @@ class SinkronGateTest extends TestCase
 
         $this->post(route('pengaturan.sinkron-gate'))->assertForbidden();
     }
+
+    public function test_sinkron_cabang_dari_kode_perusahaan(): void
+    {
+        Http::fake([
+            '*/api/users*' => Http::response(['success' => true, 'data' => [
+                $this->karyawanGate(['nik' => '6371012304950001', 'company_id' => 'comp-bm-1']),
+            ]], 200),
+            '*/api/departments*' => Http::response(['success' => true, 'data' => []], 200),
+            '*/api/divisions*' => Http::response(['success' => true, 'data' => []], 200),
+            '*/api/positions*' => Http::response(['success' => true, 'data' => []], 200),
+            '*/api/companies*' => Http::response(['success' => true, 'data' => [
+                ['id' => 'comp-bm-1', 'code' => 'BM', 'name' => 'Big Mall Samarinda'],
+            ]], 200),
+        ]);
+        $this->masuk('ADM-000001');
+
+        $this->post(route('pengaturan.sinkron-gate'))->assertRedirect();
+
+        $anggota = Anggota::where('no_karyawan', '6371012304950001')->sole();
+        $this->assertSame('Samarinda', $anggota->cabang);
+        $this->assertSame('Big Mall Samarinda', $anggota->perusahaan->nama);
+    }
+
+    public function test_sinkron_pratinjau_tidak_menyimpan(): void
+    {
+        $this->fakeGate([$this->karyawanGate()]);
+        $this->masuk('ADM-000001');
+
+        $this->post(route('pengaturan.sinkron-gate'), ['dry_run' => true])->assertRedirect();
+
+        $this->assertFalse(Anggota::where('no_karyawan', '6371012304950001')->exists());
+    }
+
+    public function test_enrich_dari_gate_tidak_menimpa_edit_manual(): void
+    {
+        $this->fakeGate([$this->karyawanGate()]);
+        $this->masuk('ADM-000001');
+        $this->post(route('pengaturan.sinkron-gate'))->assertRedirect();
+
+        $anggota = Anggota::where('no_karyawan', '6371012304950001')->sole();
+        $anggota->update(['nama' => 'Nama Edit Manual', 'no_hp' => '089999999999', 'foto_url' => null]);
+
+        $sinkron = app(\App\Services\Gate\SinkronisasiAnggotaService::class);
+        $sinkron->enrichDariGate($anggota->user->fresh(), $this->karyawanGate([
+            'name' => 'Nama Dari Gate',
+            'photo_url' => 'https://gate.appdutamall.com/storage/photos/avatar.jpg',
+        ]));
+
+        $anggota->refresh();
+        $this->assertSame('Nama Edit Manual', $anggota->nama);
+        $this->assertSame('089999999999', $anggota->no_hp);
+        $this->assertSame('https://gate.appdutamall.com/storage/photos/avatar.jpg', $anggota->foto_url);
+    }
+
+    public function test_provisi_dari_gate_membuat_user_anggota_simpanan(): void
+    {
+        $sinkron = app(\App\Services\Gate\SinkronisasiAnggotaService::class);
+
+        $user = $sinkron->provisiDariGate($this->karyawanGate());
+
+        $this->assertTrue($user->hasRole('anggota'));
+        $this->assertNotNull($user->anggota);
+        $this->assertSame('Banjarmasin', $user->anggota->cabang);
+        $this->assertTrue(Simpanan::where('anggota_id', $user->anggota->id)->where('jenis', 'pokok')->exists());
+    }
+
+    public function test_cari_karyawan_by_email(): void
+    {
+        config()->set('services.gate.token', 'token-uji');
+        Http::fake([
+            '*/api/users*' => Http::sequence()
+                ->push(['success' => true, 'data' => [$this->karyawanGate()]], 200)
+                ->push(['success' => true, 'data' => []], 200),
+        ]);
+
+        $ketemu = app(\App\Services\Gate\GateClient::class)
+            ->cariKaryawanByEmail('BUDI.SANTOSO@dutamall.com');
+
+        $this->assertSame('6371012304950001', $ketemu['nik']);
+        $this->assertNull(app(\App\Services\Gate\GateClient::class)->cariKaryawanByEmail('tidak.ada@dutamall.com'));
+    }
 }

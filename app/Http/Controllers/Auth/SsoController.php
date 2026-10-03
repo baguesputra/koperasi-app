@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Services\Gate\GateClient;
+use App\Services\Gate\SinkronisasiAnggotaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -23,7 +25,7 @@ class SsoController extends Controller
         return Inertia::location($tujuan);
     }
 
-    public function callback()
+    public function callback(GateClient $gate, SinkronisasiAnggotaService $sinkron)
     {
         try {
             $ssoUser = Socialite::driver('perusahaan')
@@ -60,13 +62,54 @@ class SsoController extends Controller
             }
 
             if (! $user) {
-                AuditLog::catat('sso_login_failed', 'user_not_found', [
-                    'sso_id' => $ssoId,
-                    'email' => $email,
-                ]);
+                // Auto-provision dari Gate (konsep tenancy): karyawan terdaftar
+                // langsung dibuatkan user+anggota+simpanan pokok, bukan ditolak.
+                $baris = $gate->cariKaryawanByEmail($email);
 
-                return redirect()->route('sso.gagal')
-                    ->with('error', 'Akun SSO tidak terdaftar di sistem koperasi. Hubungi admin koperasi untuk mendaftarkan Anda sebagai anggota.');
+                if (! $baris) {
+                    AuditLog::catat('sso_login_failed', 'user_not_found', [
+                        'sso_id' => $ssoId,
+                        'email' => $email,
+                    ]);
+
+                    return redirect()->route('sso.gagal')
+                        ->with('error', 'Akun SSO tidak terdaftar di sistem koperasi. Hubungi admin koperasi untuk mendaftarkan Anda sebagai anggota.');
+                }
+
+                if (array_key_exists('is_active', $baris) && ! $baris['is_active']) {
+                    AuditLog::catat('sso_login_failed', 'inactive', [
+                        'sso_id' => $ssoId,
+                        'email' => $email,
+                    ]);
+
+                    return redirect()->route('sso.gagal')
+                        ->with('error', 'Akun Anda dinonaktifkan. Silakan hubungi pengurus koperasi untuk mengaktifkan kembali.');
+                }
+
+                try {
+                    $user = $sinkron->provisiDariGate($baris);
+                } catch (\Throwable $e) {
+                    report($e);
+                    AuditLog::catat('sso_login_failed', 'user_not_found', [
+                        'sso_id' => $ssoId,
+                        'email' => $email,
+                        'error' => $e->getMessage(),
+                    ]);
+
+                    return redirect()->route('sso.gagal')
+                        ->with('error', 'Akun SSO tidak terdaftar di sistem koperasi. Hubungi admin koperasi untuk mendaftarkan Anda sebagai anggota.');
+                }
+            } else {
+                // Refresh data dari Gate secara non-destruktif; kegagalan tidak
+                // menggagalkan login.
+                try {
+                    if ($barisGate = $gate->cariKaryawanByEmail($email)) {
+                        $sinkron->enrichDariGate($user->fresh(), $barisGate);
+                        $user = $user->fresh();
+                    }
+                } catch (\Throwable $e) {
+                    report($e);
+                }
             }
 
             if ($user->hasRole('anggota') && ! $user->anggota) {
