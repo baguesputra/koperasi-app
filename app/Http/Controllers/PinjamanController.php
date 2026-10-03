@@ -101,14 +101,15 @@ class PinjamanController extends Controller
                 ];
             });
 
-        // Load jurnal_pelunasan untuk semua pinjaman di halaman ini (1 query, bukan N+1)
+        // Load jurnal_pelunasan untuk semua pinjaman di halaman ini (2 query, bukan N+1)
         $pinjamanIds = $pinjaman->pluck('id');
         $jurnalMap = [];
         if ($pinjamanIds->isNotEmpty()) {
-            $angsuranIds = Angsuran::whereIn('pinjaman_id', $pinjamanIds)->pluck('id');
-            if ($angsuranIds->isNotEmpty()) {
+            // 1 query peta angsuran_id => pinjaman_id (ganti pluck ids + pluck map terpisah)
+            $angsuranMap = Angsuran::whereIn('pinjaman_id', $pinjamanIds)->pluck('pinjaman_id', 'id');
+            if ($angsuranMap->isNotEmpty()) {
                 $jurnalList = JurnalKas::where('kategori', 'pelunasan_resign_pinjaman')
-                    ->whereIn('referensi_id', $angsuranIds)
+                    ->whereIn('referensi_id', $angsuranMap->keys())
                     ->orderBy('tanggal')
                     ->get()
                     ->groupBy(function ($j) {
@@ -117,9 +118,6 @@ class PinjamanController extends Controller
                     });
 
                 // Map kembali ke pinjaman_id
-                $angsuranMap = Angsuran::whereIn('id', $angsuranIds)
-                    ->pluck('pinjaman_id', 'id');
-
                 foreach ($jurnalList as $angsuranId => $journals) {
                     $pinjamanId = $angsuranMap[$angsuranId] ?? null;
                     if ($pinjamanId) {
@@ -176,9 +174,8 @@ class PinjamanController extends Controller
     {
         $pinjaman->load(['anggota', 'angsuran', 'pengajuanPercepatan']);
 
-        $angsuranList = $pinjaman->angsuran()
-            ->orderBy('cicilan_ke')
-            ->get()
+        // Pakai relasi yang sudah di-load (ganti query ulang angsuran)
+        $angsuranList = $pinjaman->getRelationValue('angsuran')->sortBy('cicilan_ke')->values()
             ->map(fn ($a) => [
                 'id' => $a->id,
                 'cicilan_ke' => $a->cicilan_ke,
@@ -188,8 +185,10 @@ class PinjamanController extends Controller
                 'tanggal_konfirmasi_bayar' => $a->tanggal_konfirmasi_bayar?->format('d M Y'),
             ]);
 
-        $pelunasanResign = $this->hitungPelunasanResign($pinjaman);
-        $jurnalPelunasan = $this->ambilJurnalPelunasanResign($pinjaman);
+        // 1x pluck dishare (ganti pluck identik di 2 helper)
+        $angsuranIds = $pinjaman->getRelationValue('angsuran')->pluck('id');
+        $pelunasanResign = $this->hitungPelunasanResign($angsuranIds);
+        $jurnalPelunasan = $this->ambilJurnalPelunasanResign($angsuranIds);
 
         return Inertia::render('Pinjaman/Show', [
                 'pinjaman' => [
@@ -213,10 +212,8 @@ class PinjamanController extends Controller
         ]);
     }
 
-    private function hitungPelunasanResign(Pinjaman $p): array
+    private function hitungPelunasanResign($angsuranIds): array
     {
-        $angsuranIds = Angsuran::where('pinjaman_id', $p->id)->pluck('id');
-
         if ($angsuranIds->isEmpty()) {
             return ['total' => 0.0, 'tanggal' => null];
         }
@@ -232,10 +229,8 @@ class PinjamanController extends Controller
         ];
     }
 
-    private function ambilJurnalPelunasanResign(Pinjaman $p): array
+    private function ambilJurnalPelunasanResign($angsuranIds): array
     {
-        $angsuranIds = Angsuran::where('pinjaman_id', $p->id)->pluck('id');
-
         if ($angsuranIds->isEmpty()) {
             return [];
         }

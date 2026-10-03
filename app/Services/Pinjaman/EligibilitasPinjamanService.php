@@ -8,6 +8,9 @@ use App\Models\TabelTenor;
 
 class EligibilitasPinjamanService
 {
+    /** Memo setting limit per kategori selama request (ganti query berulang kategori sama). */
+    private static array $limitCache = [];
+
     /**
      * Cek apakah anggota boleh mengajukan pinjaman baru.
      * Return array:
@@ -118,7 +121,8 @@ class EligibilitasPinjamanService
             default => 'lebih_5_tahun',
         };
 
-        $setting = SettingLimitPinjaman::where('kategori', $kategori)->first();
+        $setting = self::$limitCache[$kategori]
+            ??= SettingLimitPinjaman::where('kategori', $kategori)->first();
 
         return (float) ($setting->limit_maksimal ?? 1_000_000);
     }

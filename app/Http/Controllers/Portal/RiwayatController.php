@@ -15,11 +15,23 @@ class RiwayatController extends Controller
     {
         $anggota = auth()->user()->anggota;
 
-        $pinjaman = $anggota->pinjaman()
+        $daftarPinjaman = $anggota->pinjaman()
             ->with(['angsuran', 'pengajuanPercepatan.angsuranBaru'])
             ->latest('tanggal_pengajuan')
-            ->get()
-            ->map(function ($p) {
+            ->get();
+
+        // Preload jadwal lama angsuran per pengajuan aktif (ganti query per $pp di map)
+        $semuaPpAktifIds = $daftarPinjaman->pluck('pengajuanPercepatan')->flatten()
+            ->where('status', 'aktif')->pluck('id')->unique()->values();
+        $jadwalLamaMap = $semuaPpAktifIds->isEmpty()
+            ? collect()
+            : Angsuran::whereIn('pengajuan_percepatan_id', $semuaPpAktifIds)
+                ->orderBy('cicilan_ke')
+                ->get()
+                ->groupBy('pengajuan_percepatan_id');
+
+        $pinjaman = $daftarPinjaman
+            ->map(function ($p) use ($jadwalLamaMap) {
                 return [
                     'id' => $p->id,
                     'nominal' => (float) $p->nominal,
@@ -51,9 +63,9 @@ class RiwayatController extends Controller
                         'tenor_baru' => $pp->tenor_baru,
                         'bulan_berlaku' => $pp->bulan_berlaku === 'bulan_ini' ? 'Bulan Ini' : 'Bulan Depan',
                         'tanggal' => $pp->updated_at->format('d M Y'),
-                        'jadwalLama' => Angsuran::where('pengajuan_percepatan_id', $pp->id)
-                            ->orderBy('cicilan_ke')->get()
-                            ->map(fn ($a) => ['cicilan_ke' => $a->cicilan_ke, 'total_bayar' => (float) $a->total_bayar, 'status' => $a->status]),
+                        'jadwalLama' => ($jadwalLamaMap[$pp->id] ?? collect())
+                            ->map(fn ($a) => ['cicilan_ke' => $a->cicilan_ke, 'total_bayar' => (float) $a->total_bayar, 'status' => $a->status])
+                            ->values(),
                     ])->values(),
                 ];
             });

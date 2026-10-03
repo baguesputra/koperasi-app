@@ -50,16 +50,21 @@ class ResignService
                 );
             }
 
-            // Snapshot simpanan & hitung total tagihan.
-            $simpananPokok = (float) $anggotaLocked->simpanan()->where('jenis', 'pokok')->sum('jumlah');
-            $simpananWajib = (float) $anggotaLocked->simpanan()->where('jenis', 'wajib')->sum('jumlah');
-            $danaSosial = (float) $anggotaLocked->simpanan()->where('jenis', 'dana_sosial')->sum('jumlah');
+            // Snapshot simpanan & hitung total tagihan (1 query agregat).
+            $simpananAgg = $anggotaLocked->simpanan()
+                ->selectRaw("SUM(CASE WHEN jenis = 'pokok' THEN jumlah ELSE 0 END) as pokok")
+                ->selectRaw("SUM(CASE WHEN jenis = 'wajib' THEN jumlah ELSE 0 END) as wajib")
+                ->selectRaw("SUM(CASE WHEN jenis = 'dana_sosial' THEN jumlah ELSE 0 END) as sosial")
+                ->first();
+            $simpananPokok = (float) ($simpananAgg->pokok ?? 0);
+            $simpananWajib = (float) ($simpananAgg->wajib ?? 0);
+            $danaSosial = (float) ($simpananAgg->sosial ?? 0);
             $totalSimpananKembali = $simpananPokok + $simpananWajib;
 
             $pinjamanAktif = $anggotaLocked->pinjaman()->where('status', 'aktif')->get();
             $totalTagihan = 0.0;
             foreach ($pinjamanAktif as $p) {
-                $totalTagihan += $p->sisaTotalBayarAktif();
+                $totalTagihan += $p->agregatJadwalAktif()['sisa_bayar'];
             }
 
             if ($totalSimpananKembali < $totalTagihan) {
@@ -91,7 +96,7 @@ class ResignService
             $rincianPinjaman = [];
             foreach ($pinjamanAktif as $pinjaman) {
                 $nominalAwal = (float) $pinjaman->nominal;
-                $sisaCicilan = $pinjaman->sisaCicilanAktif();
+                $sisaCicilan = $pinjaman->agregatJadwalAktif()['sisa'];
                 $pelunasanPinjaman = 0.0;
                 $angsuranList = Angsuran::where('pinjaman_id', $pinjaman->id)
                     ->where('status', 'belum_bayar')
@@ -361,7 +366,7 @@ class ResignService
 
         // Buat SATU cicilan akhir pada pinjaman dengan sisa terbesar.
         $target = $anggotaLocked->pinjaman()->where('status', 'aktif')->get()
-            ->sortByDesc(fn ($p) => $p->sisaTotalBayarAktif())
+            ->sortByDesc(fn ($p) => $p->agregatJadwalAktif()['sisa_bayar'])
             ->firstOrFail();
         $cicilanTerakhir = (int) Angsuran::where('pinjaman_id', $target->id)->max('cicilan_ke');
 

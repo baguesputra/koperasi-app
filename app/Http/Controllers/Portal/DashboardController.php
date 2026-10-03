@@ -71,20 +71,6 @@ class DashboardController extends Controller
         }
 
         $angsuranBerikutnya = null;
-        if ($pinjamanAktif) {
-            $terdekat = $pinjamanAktif->jadwalAktif()
-                ->where('status', 'belum_bayar')
-                ->sortBy('tanggal_jatuh_tempo')
-                ->first();
-
-            if ($terdekat) {
-                $angsuranBerikutnya = [
-                    'cicilan_ke' => $terdekat->cicilan_ke,
-                    'total_bayar' => (float) $terdekat->total_bayar,
-                    'tanggal_jatuh_tempo' => $terdekat->tanggal_jatuh_tempo->format('d M Y'),
-                ];
-            }
-        }
         $sisaTotalBayar = 0;
 
         if ($pinjamanAktif) {
@@ -119,18 +105,22 @@ class DashboardController extends Controller
                 'tanggal_format' => $s->tanggal_input->format('d M Y'),
             ]);
 
-        $riwayatAngsuran = $anggota->pinjaman()
-            ->with(['angsuran' => fn ($q) => $q->where('status', 'lunas')])
-            ->get()
-            ->pluck('angsuran')
-            ->flatten()
-            ->map(fn ($a) => [
-                'tipe' => 'angsuran',
-                'label' => "Cicilan ke-{$a->cicilan_ke}",
-                'nominal' => (float) $a->total_bayar,
-                'tanggal' => $a->tanggal_konfirmasi_bayar,
-                'tanggal_format' => $a->tanggal_konfirmasi_bayar->format('d M Y'),
-            ]);
+        // 1 query angsuran lunas terbaru (ganti load semua pinjaman + semua angsuran lalu flatten)
+        $pinjamanIdsAnggota = $anggota->pinjaman()->pluck('id');
+        $riwayatAngsuran = $pinjamanIdsAnggota->isEmpty()
+            ? collect()
+            : \App\Models\Angsuran::whereIn('pinjaman_id', $pinjamanIdsAnggota)
+                ->where('status', 'lunas')
+                ->latest('tanggal_konfirmasi_bayar')
+                ->take(4)
+                ->get()
+                ->map(fn ($a) => [
+                    'tipe' => 'angsuran',
+                    'label' => "Cicilan ke-{$a->cicilan_ke}",
+                    'nominal' => (float) $a->total_bayar,
+                    'tanggal' => $a->tanggal_konfirmasi_bayar,
+                    'tanggal_format' => $a->tanggal_konfirmasi_bayar?->format('d M Y'),
+                ]);
 
         $riwayatGabungan = $riwayatSimpanan->concat($riwayatAngsuran)
             ->sortByDesc('tanggal')
@@ -142,15 +132,19 @@ class DashboardController extends Controller
         $tabelTenor = TabelTenor::orderBy('nominal_min')->get(['nominal_min', 'nominal_max', 'tenor_maksimal_bulan']);
         $settingSimpanan = SettingSimpanan::orderBy('id')->get(['jenis', 'label', 'nominal']);
 
-        $pinjamanAktifList = $anggota->pinjamanAktifList()->map(fn ($p) => [
-            'id' => $p->id,
-            'nominal' => (float) $p->nominal,
-            'tenor_bulan' => $p->tenor_bulan,
-            'sisa_angsuran' => $p->sisaCicilanAktif(),
-            'total_angsuran' => $p->totalCicilanAktif(),
-            'sisa_total_bayar' => $p->sisaTotalBayarAktif(),
-            'sudah_pakai_percepatan' => (bool) $p->sudah_pakai_percepatan,
-        ]);
+        $pinjamanAktifList = $anggota->pinjamanAktifList()->map(function ($p) {
+            $agg = $p->agregatJadwalAktif();
+
+            return [
+                'id' => $p->id,
+                'nominal' => (float) $p->nominal,
+                'tenor_bulan' => $p->tenor_bulan,
+                'sisa_angsuran' => $agg['sisa'],
+                'total_angsuran' => $agg['total'],
+                'sisa_total_bayar' => $agg['sisa_bayar'],
+                'sudah_pakai_percepatan' => (bool) $p->sudah_pakai_percepatan,
+            ];
+        });
 
         // Pengajuan perubahan tenor/pelunasan yang masih menunggu approval
         // untuk SEMUA pinjaman aktif anggota.
@@ -189,14 +183,18 @@ class DashboardController extends Controller
             'limitTersedia' => (float) $cekEligibilitas['limit_tersedia'],
             'sisaAngsuranAktif' => (int) $cekEligibilitas['sisa_angsuran'],
             'cicilanPokokAktif' => (float) $cekEligibilitas['cicilan_pokok'],
-            'pinjamanAktif' => $pinjamanAktif ? [
-                'id' => $pinjamanAktif->id,
-                'nominal' => (float) $pinjamanAktif->nominal,
-                'tenor_bulan' => $pinjamanAktif->tenor_bulan,
-                'sisa_angsuran' => $pinjamanAktif->sisaCicilanAktif(),
-                'total_angsuran' => $pinjamanAktif->totalCicilanAktif(),
-                'sisa_total_bayar' => $pinjamanAktif->sisaTotalBayarAktif(),
-            ] : null,
+            'pinjamanAktif' => $pinjamanAktif ? (function () use ($pinjamanAktif) {
+                $agg = $pinjamanAktif->agregatJadwalAktif();
+
+                return [
+                    'id' => $pinjamanAktif->id,
+                    'nominal' => (float) $pinjamanAktif->nominal,
+                    'tenor_bulan' => $pinjamanAktif->tenor_bulan,
+                    'sisa_angsuran' => $agg['sisa'],
+                    'total_angsuran' => $agg['total'],
+                    'sisa_total_bayar' => $agg['sisa_bayar'],
+                ];
+            })() : null,
             'pinjamanAktifList' => $pinjamanAktifList,
             'pinjamanAktifCount' => $pinjamanAktifList->count(),
             'pengajuanPercepatanMenunggu' => $pengajuanPercepatanMenunggu,

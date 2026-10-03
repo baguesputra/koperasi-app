@@ -223,15 +223,30 @@ class Anggota extends Model
      */
     public function ringkasanResign(): array
     {
-        $simpananPokok = (float) $this->simpanan()->where('jenis', 'pokok')->sum('jumlah');
-        $simpananWajib = (float) $this->simpanan()->where('jenis', 'wajib')->sum('jumlah');
-        $danaSosial = (float) $this->simpanan()->where('jenis', 'dana_sosial')->sum('jumlah');
+        // 1 query conditional aggregation (ganti 3x sum per jenis)
+        $agg = $this->simpanan()
+            ->selectRaw("SUM(CASE WHEN jenis = 'pokok' THEN jumlah ELSE 0 END) as pokok")
+            ->selectRaw("SUM(CASE WHEN jenis = 'wajib' THEN jumlah ELSE 0 END) as wajib")
+            ->selectRaw("SUM(CASE WHEN jenis = 'dana_sosial' THEN jumlah ELSE 0 END) as sosial")
+            ->first();
+        $simpananPokok = (float) ($agg->pokok ?? 0);
+        $simpananWajib = (float) ($agg->wajib ?? 0);
+        $danaSosial = (float) ($agg->sosial ?? 0);
         $totalSimpananKembali = $simpananPokok + $simpananWajib;
 
         $pinjamanAktif = $this->pinjaman()->where('status', 'aktif')->get();
         $totalSisaPinjaman = 0.0;
+        $detail = [];
         foreach ($pinjamanAktif as $p) {
-            $totalSisaPinjaman += $p->sisaTotalBayarAktif();
+            // 1x jadwalAktif (memo) per pinjaman via agregat tunggal
+            $jadwal = $p->agregatJadwalAktif();
+            $totalSisaPinjaman += $jadwal['sisa_bayar'];
+            $detail[] = [
+                'id' => $p->id,
+                'nominal_awal' => (float) $p->nominal,
+                'sisa_tagihan' => (float) $jadwal['sisa_bayar'],
+                'sisa_cicilan' => $jadwal['sisa'],
+            ];
         }
 
         $kembalianNeto = max(0, $totalSimpananKembali - $totalSisaPinjaman);
@@ -250,12 +265,7 @@ class Anggota extends Model
             'pinjaman' => [
                 'jumlah_pinjaman_aktif' => $pinjamanAktif->count(),
                 'sisa_tagihan' => $totalSisaPinjaman,
-                'detail' => $pinjamanAktif->map(fn ($p) => [
-                    'id' => $p->id,
-                    'nominal_awal' => (float) $p->nominal,
-                    'sisa_tagihan' => (float) $p->sisaTotalBayarAktif(),
-                    'sisa_cicilan' => $p->sisaCicilanAktif(),
-                ])->values()->all(),
+                'detail' => $detail,
             ],
             'estimasi_pengembalian' => [
                 'tagihan_pelunasan' => $totalSisaPinjaman,

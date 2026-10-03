@@ -5,6 +5,8 @@ namespace App\Services\Pinjaman;
 use App\Models\Angsuran;
 use App\Models\AngsuranPercepatan;
 use App\Models\AuditLog;
+use App\Models\PengajuanPercepatan;
+use App\Models\Pinjaman;
 use App\Services\Anggota\ResignService;
 use App\Services\Keuangan\JurnalKasService;
 use Illuminate\Support\Facades\DB;
@@ -29,6 +31,7 @@ class KonfirmasiAngsuranService
 
             $jumlah = 0;
             $totalBayar = 0.0;
+            $pinjamanTersentuh = [];
 
             if ($normalIds) {
                 $list = Angsuran::with('pinjaman.anggota')
@@ -46,7 +49,7 @@ class KonfirmasiAngsuranService
                     );
 
                     // Angsuran masuk kas bank; tanpa talangan (konsep Kas Tunggal).
-                    $this->tandaiLunasJikaSelesai($angsuran->pinjaman);
+                    $pinjamanTersentuh[$angsuran->pinjaman_id] = true;
                     app(ResignService::class)->finalisasiJikaMenunggu($angsuran, $confirmedByUserId);
                     $jumlah++;
                     $totalBayar += (float) $angsuran->total_bayar;
@@ -70,11 +73,14 @@ class KonfirmasiAngsuranService
                         referensiId: $angsuran->id, tanggal: now()->format('Y-m-d'), userId: $confirmedByUserId,
                     );
 
-                    $this->tandaiLunasJikaSelesai($pinjaman);
+                    $pinjamanTersentuh[$pinjaman->id] = true;
                     $jumlah++;
                     $totalBayar += (float) $angsuran->total_bayar;
                 }
             }
+
+            // Tandai lunas sekaligus (ganti refresh + 2-3 query per angsuran)
+            $this->tandaiLunasBatch(array_keys($pinjamanTersentuh));
 
             // Audit log untuk konfirmasi massal
             AuditLog::catat(
@@ -93,21 +99,54 @@ class KonfirmasiAngsuranService
         });
     }
 
-    private function tandaiLunasJikaSelesai($pinjaman): void
+    /**
+     * Tandai pinjaman lunas sekaligus untuk semua pinjaman tersentuh.
+     * 4 query GROUP BY (ganti refresh + 2-3 query per angsuran).
+     */
+    private function tandaiLunasBatch(array $pinjamanIds): void
     {
-        $pinjaman->refresh();
-        if ($pinjaman->status !== 'aktif') {
+        if (empty($pinjamanIds)) {
             return;
         }
 
-        $sisaLama = $pinjaman->angsuran()->where('status', 'belum_bayar')->count();
-        $pengajuanAktif = $pinjaman->pengajuanPercepatan()->where('status', 'aktif')->latest()->first();
-        $sisaBaru = $pengajuanAktif
-            ? $pengajuanAktif->angsuranBaru()->where('status', 'belum_bayar')->count()
-            : 0;
+        $statusMap = Pinjaman::whereIn('id', $pinjamanIds)->pluck('status', 'id');
+        $sisaLama = Angsuran::whereIn('pinjaman_id', $pinjamanIds)
+            ->where('status', 'belum_bayar')
+            ->selectRaw('pinjaman_id, COUNT(*) as c')
+            ->groupBy('pinjaman_id')
+            ->pluck('c', 'pinjaman_id');
 
-        if ($sisaLama === 0 && $sisaBaru === 0) {
-            $pinjaman->update(['status' => 'lunas']);
+        $pengajuanAktif = PengajuanPercepatan::whereIn('pinjaman_id', $pinjamanIds)
+            ->where('status', 'aktif')
+            ->orderByDesc('created_at')
+            ->get()
+            ->groupBy('pinjaman_id')
+            ->map(fn ($rows) => $rows->first());
+
+        $sisaBaru = collect();
+        if ($pengajuanAktif->isNotEmpty()) {
+            $sisaBaru = AngsuranPercepatan::whereIn('pengajuan_percepatan_id', $pengajuanAktif->pluck('id'))
+                ->where('status', 'belum_bayar')
+                ->selectRaw('pengajuan_percepatan_id, COUNT(*) as c')
+                ->groupBy('pengajuan_percepatan_id')
+                ->pluck('c', 'pengajuan_percepatan_id');
+        }
+
+        $lunasIds = [];
+        foreach ($pinjamanIds as $pid) {
+            if (($statusMap[$pid] ?? null) !== 'aktif') {
+                continue;
+            }
+            $lama = (int) ($sisaLama[$pid] ?? 0);
+            $peng = $pengajuanAktif[$pid] ?? null;
+            $baru = $peng ? (int) ($sisaBaru[$peng->id] ?? 0) : 0;
+            if ($lama === 0 && $baru === 0) {
+                $lunasIds[] = $pid;
+            }
+        }
+
+        if ($lunasIds !== []) {
+            Pinjaman::whereIn('id', $lunasIds)->update(['status' => 'lunas']);
         }
     }
 }

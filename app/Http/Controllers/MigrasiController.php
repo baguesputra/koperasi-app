@@ -66,7 +66,8 @@ class MigrasiController extends Controller
 
     public function progresPinjaman()
     {
-        $pinjaman = Pinjaman::with('anggota')->orderBy('id')->get();
+        // Eager semua relasi sekali (ganti get() + 3 query per baris untuk semua pinjaman)
+        $pinjaman = Pinjaman::with(['anggota', 'angsuran', 'pengajuanPercepatan.angsuranBaru'])->orderBy('id')->get();
 
         $kolom = [
             'No Karyawan', 'Nama', 'Nominal', 'Tenor',
@@ -74,16 +75,22 @@ class MigrasiController extends Controller
         ];
 
         $rows = $pinjaman->map(function ($p) {
-            $sudahBayar = $p->angsuran()->where('status', 'lunas')->count();
+            // Replika jadwalAktif() di memori dari relasi yang sudah di-eager (tanpa query baru)
+            $pengajuanAktif = $p->getRelationValue('pengajuanPercepatan')->where('status', 'aktif')->sortByDesc('created_at')->first();
+            $lama = $p->getRelationValue('angsuran')->where('status', '!=', 'digantikan')->sortBy('cicilan_ke')->values();
+            $jadwal = $pengajuanAktif
+                ? $lama->concat($pengajuanAktif->getRelationValue('angsuranBaru')->sortBy('cicilan_ke')->values())
+                : $lama;
+            $belum = $jadwal->where('status', 'belum_bayar');
 
             return [
                 $p->anggota->no_karyawan,
                 $p->anggota->nama,
                 (float) $p->nominal,
                 $p->tenor_bulan,
-                $sudahBayar,
-                $p->sisaCicilanAktif(),
-                $p->sisaTotalBayarAktif(),
+                $p->getRelationValue('angsuran')->where('status', 'lunas')->count(),
+                $belum->count(),
+                (float) $belum->sum('total_bayar'),
                 $p->status,
             ];
         })->all();

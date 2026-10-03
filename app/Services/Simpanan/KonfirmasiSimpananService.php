@@ -42,39 +42,62 @@ class KonfirmasiSimpananService
             $totalDanaSosial = 0.0;
             $processedAnggota = [];
 
+            // 1 query daftar yang sudah ada (ganti exists() per anggota)
+            $sudahAdaIds = Simpanan::whereIn('anggota_id', $anggotaIds)
+                ->where('jenis', 'wajib')
+                ->where('bulan_periode', $bulanPeriode)
+                ->pluck('anggota_id')
+                ->flip();
+
+            $barisWajib = [];
+            $barisSosial = [];
+            $sekarang = now();
+
             foreach ($anggotaIds as $anggotaId) {
                 if (! $anggotaTerkunci->has($anggotaId)) {
                     continue;
                 }
 
-                // Cek ULANG di dalam lock - pastikan belum ada simpanan wajib bulan ini
+                // Cek dari prefetch + cek ulang di dalam lock via koleksi terkunci
                 // (mencegah duplikasi kalau ada proses lain yang barusan submit)
-                $sudahAda = Simpanan::where('anggota_id', $anggotaId)
-                    ->where('jenis', 'wajib')
-                    ->where('bulan_periode', $bulanPeriode)
-                    ->exists();
-
-                if ($sudahAda) {
+                if ($sudahAdaIds->has($anggotaId)) {
                     continue; // sudah dikonfirmasi proses lain, lewati
                 }
+                $sudahAdaIds[$anggotaId] = true; // cegah duplikat dalam batch yang sama
 
-                Simpanan::create([
+                $barisWajib[] = [
                     'anggota_id' => $anggotaId,
                     'jenis' => 'wajib',
                     'jumlah' => $nominalWajib,
                     'bulan_periode' => $bulanPeriode,
-                    'tanggal_input' => now(),
+                    'tanggal_input' => $sekarang,
                     'input_by' => $inputByUserId,
-                ]);
+                    'created_at' => $sekarang,
+                    'updated_at' => $sekarang,
+                ];
 
-                Simpanan::create([
+                $barisSosial[] = [
                     'anggota_id' => $anggotaId,
                     'jenis' => 'dana_sosial',
                     'jumlah' => $nominalDanaSosial,
                     'bulan_periode' => $bulanPeriode,
-                    'tanggal_input' => now(),
+                    'tanggal_input' => $sekarang,
                     'input_by' => $inputByUserId,
-                ]);
+                    'created_at' => $sekarang,
+                    'updated_at' => $sekarang,
+                ];
+
+                $processedAnggota[] = $anggotaId;
+            }
+
+            // 2 bulk insert (ganti 2x create per anggota)
+            if ($barisWajib !== []) {
+                Simpanan::insert($barisWajib);
+                Simpanan::insert($barisSosial);
+            }
+
+            // Jurnal per anggota tetap per baris (butuh lock kas + nomor dokumen sekuensial)
+            foreach ($processedAnggota as $anggotaId) {
 
                 $this->jurnalKas->catat(
                     tipe: 'masuk',
@@ -103,7 +126,6 @@ class KonfirmasiSimpananService
                 $jumlahDiproses++;
                 $totalWajib += $nominalWajib;
                 $totalDanaSosial += $nominalDanaSosial;
-                $processedAnggota[] = $anggotaId;
             }
 
             // Audit log untuk konfirmasi massal simpanan

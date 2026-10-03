@@ -17,22 +17,23 @@ class PengajuanLimitController extends Controller
 
     public function index(): Response
     {
-        $menunggu = PengajuanLimit::with('anggota')
+        $menungguRaw = PengajuanLimit::with('anggota')
             ->where('status', 'approved_bendahara')
             ->latest('tanggal_pengajuan')
-            ->get()
-            ->map(self::formatItem());
+            ->get();
 
-        $riwayat = PengajuanLimit::with('anggota')
+        $riwayatRaw = PengajuanLimit::with('anggota')
             ->whereIn('status', ['disetujui', 'ditolak'])
             ->latest('updated_at')
             ->take(20)
-            ->get()
-            ->map(self::formatItem());
+            ->get();
+
+        // 2 query preload untuk semua baris (ganti 2 query + agregat per baris)
+        $cache = self::preloadPinjaman($menungguRaw->concat($riwayatRaw));
 
         return Inertia::render('Ketua/PengajuanLimit/Index', [
-            'menunggu' => $menunggu,
-            'riwayat' => $riwayat,
+            'menunggu' => $menungguRaw->map(self::formatItem($cache)),
+            'riwayat' => $riwayatRaw->map(self::formatItem($cache)),
         ]);
     }
 
@@ -69,40 +70,83 @@ class PengajuanLimitController extends Controller
             ->with('status', 'Pengajuan limit ditolak.');
     }
 
-    public static function formatItem(): \Closure
+    /**
+     * Preload pinjaman aktif + pending untuk semua anggota di daftar pengajuan.
+     * Dipakai index (banyak baris) agar formatItem tidak query per baris.
+     * Return: ['aktif' => [anggota_id => Collection], 'pending' => [anggota_id => Pinjaman]]
+     */
+    public static function preloadPinjaman(\Illuminate\Support\Collection $pengajuan): array
     {
-        return function ($p) {
+        $anggotaIds = $pengajuan->pluck('anggota_id')->unique()->values();
+        if ($anggotaIds->isEmpty()) {
+            return ['aktif' => [], 'pending' => []];
+        }
+
+        $aktif = Pinjaman::whereIn('anggota_id', $anggotaIds)
+            ->where('status', 'aktif')
+            ->with('angsuran:pinjaman_id,cicilan_ke,nominal_pokok,nominal_bunga,total_bayar,status,tanggal_jatuh_tempo')
+            ->get()
+            ->groupBy('anggota_id')
+            ->all();
+
+        $pending = Pinjaman::whereIn('anggota_id', $anggotaIds)
+            ->whereIn('status', ['diajukan', 'approved_bendahara'])
+            ->orderByDesc('tanggal_pengajuan')
+            ->get()
+            ->groupBy('anggota_id')
+            ->map(fn ($rows) => $rows->first())
+            ->all();
+
+        return ['aktif' => $aktif, 'pending' => $pending];
+    }
+
+    public static function formatItem(array $cache = []): \Closure
+    {
+        return function ($p) use ($cache) {
             $anggota = $p->anggota;
+            // Cache terisi (dari index) → kunci hilang berarti memang tidak ada, tanpa fallback query.
+            // Cache kosong (dari show) → query seperti semula.
+            $pakaiCache = ! empty($cache);
 
-            $pinjamanAktif = Pinjaman::where('anggota_id', $anggota->id)
-                ->where('status', 'aktif')
-                ->with('angsuran:pinjaman_id,cicilan_ke,nominal_pokok,nominal_bunga,total_bayar,status,tanggal_jatuh_tempo')
-                ->get()
-                ->map(fn ($pin) => [
-                    'id' => $pin->id,
-                    'nominal' => (float) $pin->nominal,
-                    'tenor_bulan' => $pin->tenor_bulan,
-                    'sisa_cicilan' => $pin->sisaCicilanAktif(),
-                    'total_cicilan' => $pin->totalCicilanAktif(),
-                    'sisa_total_bayar' => $pin->sisaTotalBayarAktif(),
-                    'jadwal_angsuran' => $pin->angsuran
-                        ->where('status', 'belum_bayar')
-                        ->sortBy('cicilan_ke')
-                        ->values()
-                        ->map(fn ($a) => [
-                            'cicilan_ke' => $a->cicilan_ke,
-                            'nominal_pokok' => (float) $a->nominal_pokok,
-                            'nominal_bunga' => (float) $a->nominal_bunga,
-                            'total_bayar' => (float) $a->total_bayar,
-                            'tanggal_jatuh_tempo' => $a->tanggal_jatuh_tempo->format('d M Y'),
-                        ])
-                        ->all(),
-                ]);
+            $daftarAktif = $pakaiCache
+                ? ($cache['aktif'][$anggota->id] ?? collect())
+                : Pinjaman::where('anggota_id', $anggota->id)
+                    ->where('status', 'aktif')
+                    ->with('angsuran:pinjaman_id,cicilan_ke,nominal_pokok,nominal_bunga,total_bayar,status,tanggal_jatuh_tempo')
+                    ->get();
 
-            $pinjamanPending = Pinjaman::where('anggota_id', $anggota->id)
-                ->whereIn('status', ['diajukan', 'approved_bendahara'])
-                ->latest('tanggal_pengajuan')
-                ->first();
+            $pinjamanAktif = $daftarAktif
+                ->map(function ($pin) {
+                    $agg = $pin->agregatJadwalAktif();
+
+                    return [
+                        'id' => $pin->id,
+                        'nominal' => (float) $pin->nominal,
+                        'tenor_bulan' => $pin->tenor_bulan,
+                        'sisa_cicilan' => $agg['sisa'],
+                        'total_cicilan' => $agg['total'],
+                        'sisa_total_bayar' => $agg['sisa_bayar'],
+                        'jadwal_angsuran' => $pin->angsuran
+                            ->where('status', 'belum_bayar')
+                            ->sortBy('cicilan_ke')
+                            ->values()
+                            ->map(fn ($a) => [
+                                'cicilan_ke' => $a->cicilan_ke,
+                                'nominal_pokok' => (float) $a->nominal_pokok,
+                                'nominal_bunga' => (float) $a->nominal_bunga,
+                                'total_bayar' => (float) $a->total_bayar,
+                                'tanggal_jatuh_tempo' => $a->tanggal_jatuh_tempo->format('d M Y'),
+                            ])
+                            ->all(),
+                    ];
+                });
+
+            $pinjamanPending = $pakaiCache
+                ? ($cache['pending'][$anggota->id] ?? null)
+                : Pinjaman::where('anggota_id', $anggota->id)
+                    ->whereIn('status', ['diajukan', 'approved_bendahara'])
+                    ->latest('tanggal_pengajuan')
+                    ->first();
 
             return [
                 'id' => $p->id,

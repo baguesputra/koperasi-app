@@ -80,12 +80,13 @@ class DashboardController extends Controller
         $simpananWajib = (float) ($simpananAgg->wajib ?? 0);
 
         $pinjamanAktif = $anggota->pinjamanAktif();
+        $aggAktif = $pinjamanAktif ? $pinjamanAktif->agregatJadwalAktif() : null;
 
         $limitMaksimal = $totalSimpanan * 3;
         $cekEligibilitas = [
             'limit_tersedia' => $pinjamanAktif ? max(0, $limitMaksimal - ($pinjamanAktif->nominal ?? 0)) : $limitMaksimal,
-            'sisa_angsuran' => $pinjamanAktif ? $pinjamanAktif->sisaCicilanAktif() : 0,
-            'cicilan_pokok' => $pinjamanAktif ? $pinjamanAktif->cicilanPokokAktif() : 0,
+            'sisa_angsuran' => $aggAktif['sisa'] ?? 0,
+            'cicilan_pokok' => $aggAktif['cicilan_pokok'] ?? 0,
             'boleh' => true,
             'alasan' => null,
         ];
@@ -128,9 +129,9 @@ class DashboardController extends Controller
                 'id' => $pinjamanAktif->id,
                 'nominal' => (float) $pinjamanAktif->nominal,
                 'tenor_bulan' => $pinjamanAktif->tenor_bulan,
-                'sisa_angsuran' => $pinjamanAktif->sisaCicilanAktif(),
-                'total_angsuran' => $pinjamanAktif->totalCicilanAktif(),
-                'sisa_total_bayar' => $pinjamanAktif->sisaTotalBayarAktif(),
+                'sisa_angsuran' => $aggAktif['sisa'],
+                'total_angsuran' => $aggAktif['total'],
+                'sisa_total_bayar' => $aggAktif['sisa_bayar'],
             ] : null,
         ]);
     }

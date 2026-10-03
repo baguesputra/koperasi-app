@@ -109,40 +109,68 @@ class Pinjaman extends Model
         return $this->hasMany(PengajuanPercepatan::class);
     }
 
+    /**
+     * Memo jadwal aktif per instance. Empat helper agregat (sisa/total/bayar/pokok)
+     * membaca jadwal yang sama — tanpa memo, tiap helper = 2-3 query (N+1 fan-out).
+     * Pakai refresh() + jadwalAktifCache = null bila butuh data fresh setelah update.
+     *
+     * @var \Illuminate\Support\Collection|null
+     */
+    protected $jadwalAktifCache = null;
+
     public function jadwalAktif()
     {
+        if ($this->jadwalAktifCache !== null) {
+            return $this->jadwalAktifCache;
+        }
+
         $pengajuanAktif = $this->pengajuanPercepatan()->where('status', 'aktif')->latest()->first();
         $lama = $this->angsuran()->where('status', '!=', 'digantikan')->orderBy('cicilan_ke')->get();
 
         if (! $pengajuanAktif) {
-            return $lama;
+            return $this->jadwalAktifCache = $lama;
         }
 
         $baru = $pengajuanAktif->angsuranBaru()->orderBy('cicilan_ke')->get();
 
-        return $lama->concat($baru);
+        return $this->jadwalAktifCache = $lama->concat($baru);
+    }
+
+    /**
+     * Agregat jadwal aktif dalam 1x load (ganti 4 helper terpisah = 4x jadwalAktif).
+     * Return: ['total' => int, 'sisa' => int, 'sisa_bayar' => float, 'cicilan_pokok' => float]
+     */
+    public function agregatJadwalAktif(): array
+    {
+        $jadwal = $this->jadwalAktif();
+        $belum = $jadwal->where('status', 'belum_bayar');
+
+        return [
+            'total' => $jadwal->count(),
+            'sisa' => $belum->count(),
+            'sisa_bayar' => (float) $belum->sum('total_bayar'),
+            'cicilan_pokok' => (float) ($belum->avg('nominal_pokok') ?? 0),
+        ];
     }
 
     public function totalCicilanAktif(): int
     {
-        return $this->jadwalAktif()->count();
+        return $this->agregatJadwalAktif()['total'];
     }
 
     public function sisaCicilanAktif(): int
     {
-        return $this->jadwalAktif()->where('status', 'belum_bayar')->count();
+        return $this->agregatJadwalAktif()['sisa'];
     }
 
     public function sisaTotalBayarAktif(): float
     {
-        return (float) $this->jadwalAktif()->where('status', 'belum_bayar')->sum('total_bayar');
+        return $this->agregatJadwalAktif()['sisa_bayar'];
     }
 
     public function cicilanPokokAktif(): float
     {
-        return (float) ($this->jadwalAktif()
-            ->where('status', 'belum_bayar')
-            ->avg('nominal_pokok') ?? 0);
+        return $this->agregatJadwalAktif()['cicilan_pokok'];
     }
 
     public function verificationUrl(): string
@@ -223,9 +251,8 @@ class Pinjaman extends Model
     {
         $this->loadMissing(['anggota', 'angsuran', 'pengaju']);
 
-        $angsuranList = $this->angsuran()
-            ->orderBy('cicilan_ke')
-            ->get()
+        // Pakai relasi yang sudah di-load (ganti query ulang angsuran)
+        $angsuranList = $this->getRelationValue('angsuran')->sortBy('cicilan_ke')->values()
             ->map(fn ($a) => [
                 'cicilan_ke' => $a->cicilan_ke,
                 'tanggal_jatuh_tempo' => $a->tanggal_jatuh_tempo?->format('d M Y'),

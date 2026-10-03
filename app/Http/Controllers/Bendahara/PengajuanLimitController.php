@@ -17,23 +17,24 @@ class PengajuanLimitController extends Controller
 
     public function index(): Response
     {
-        $menunggu = PengajuanLimit::with('anggota')
+        $menungguRaw = PengajuanLimit::with('anggota')
             ->where('status', 'diajukan')
             ->latest('tanggal_pengajuan')
-            ->get()
-            ->map(KetuaPengajuanLimitController::formatItem());
+            ->get();
 
-        $riwayat = PengajuanLimit::with('anggota')
+        $riwayatRaw = PengajuanLimit::with('anggota')
             ->whereIn('status', ['approved_bendahara', 'disetujui', 'ditolak'])
             ->whereNotNull('catatan_bendahara')
             ->latest('updated_at')
             ->take(20)
-            ->get()
-            ->map(KetuaPengajuanLimitController::formatItem());
+            ->get();
+
+        // 2 query preload untuk semua baris (ganti 2 query + agregat per baris)
+        $cache = KetuaPengajuanLimitController::preloadPinjaman($menungguRaw->concat($riwayatRaw));
 
         return Inertia::render('Bendahara/PengajuanLimit/Index', [
-            'menunggu' => $menunggu,
-            'riwayat' => $riwayat,
+            'menunggu' => $menungguRaw->map(KetuaPengajuanLimitController::formatItem($cache)),
+            'riwayat' => $riwayatRaw->map(KetuaPengajuanLimitController::formatItem($cache)),
         ]);
     }
 
