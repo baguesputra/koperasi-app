@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Pengeluaran;
 use App\Models\SettingKas;
 use App\Services\Keuangan\PengeluaranService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -30,8 +31,9 @@ class PengeluaranController extends Controller
         }
 
         if ($bulan->isNotEmpty() && preg_match('/^\d{4}-\d{2}$/', $bulan->value())) {
-            $query->whereYear('tanggal', substr($bulan->value(), 0, 4))
-                ->whereMonth('tanggal', substr($bulan->value(), 5, 2));
+            $awal = Carbon::createFromFormat('Y-m', $bulan->value())->startOfMonth()->startOfDay()->toDateTimeString();
+            $akhir = Carbon::createFromFormat('Y-m', $bulan->value())->endOfMonth()->endOfDay()->toDateTimeString();
+            $query->whereBetween('tanggal', [$awal, $akhir]);
         }
 
         $totalTampil = (clone $query)->sum('jumlah');
@@ -50,19 +52,21 @@ class PengeluaranController extends Controller
                 'input_oleh' => $p->inputOleh->name,
             ]);
 
-        $totalKoperasi = Pengeluaran::where('jenis', 'koperasi')->sum('jumlah');
-        $totalDanaSosial = Pengeluaran::where('jenis', 'dana_sosial')->sum('jumlah');
+        $agregatJenis = Pengeluaran::selectRaw('jenis, SUM(jumlah) as total')->groupBy('jenis')->pluck('total', 'jenis');
+        $totalKoperasi = (float) ($agregatJenis['koperasi'] ?? 0);
+        $totalDanaSosial = (float) ($agregatJenis['dana_sosial'] ?? 0);
 
         $bulanAktif = preg_match('/^\d{4}-\d{2}$/', $bulan->value()) ? $bulan->value() : now()->format('Y-m');
-        [$tahunAktif, $bulanAngka] = explode('-', $bulanAktif);
+        $awalAktif = Carbon::createFromFormat('Y-m', $bulanAktif)->startOfMonth()->startOfDay()->toDateTimeString();
+        $akhirAktif = Carbon::createFromFormat('Y-m', $bulanAktif)->endOfMonth()->endOfDay()->toDateTimeString();
 
-        $perBulan = fn (string $jenis) => (float) Pengeluaran::where('jenis', $jenis)
-            ->whereYear('tanggal', $tahunAktif)
-            ->whereMonth('tanggal', $bulanAngka)
-            ->sum('jumlah');
+        $perBulanAgg = Pengeluaran::whereBetween('tanggal', [$awalAktif, $akhirAktif])
+            ->selectRaw('jenis, SUM(jumlah) as total')
+            ->groupBy('jenis')
+            ->pluck('total', 'jenis');
 
-        $totalKoperasiBulan = $perBulan('koperasi');
-        $totalDanaSosialBulan = $perBulan('dana_sosial');
+        $totalKoperasiBulan = (float) ($perBulanAgg['koperasi'] ?? 0);
+        $totalDanaSosialBulan = (float) ($perBulanAgg['dana_sosial'] ?? 0);
 
         $paguSosial = SettingKas::nilai(
             SettingKas::CADANGAN,

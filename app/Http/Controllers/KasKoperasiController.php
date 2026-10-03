@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\JurnalKas;
 use App\Models\KasKoperasi;
 use App\Services\Keuangan\JurnalKasService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -31,8 +32,9 @@ class KasKoperasiController extends Controller
         $query = JurnalKas::query();
 
         if ($bulanFilter && preg_match('/^\d{4}-\d{2}$/', $bulanFilter)) {
-            [$tahun, $bulan] = explode('-', $bulanFilter);
-            $query->whereYear('tanggal', $tahun)->whereMonth('tanggal', $bulan);
+            $awal = Carbon::createFromFormat('Y-m', $bulanFilter)->startOfMonth()->startOfDay()->toDateTimeString();
+            $akhir = Carbon::createFromFormat('Y-m', $bulanFilter)->endOfMonth()->endOfDay()->toDateTimeString();
+            $query->whereBetween('tanggal', [$awal, $akhir]);
         }
 
         if ($cari !== '') {
@@ -64,16 +66,36 @@ class KasKoperasiController extends Controller
                 'rute_asal' => $this->ruteAsal($j),
             ]);
 
+        // 1 query agregat GROUP BY (ganti 8x sum): kantong+kategori+tipe, kanal dihitung di PHP
+        $agregat = (clone $query)
+            ->selectRaw('kantong, kategori, tipe, SUM(jumlah) as total')
+            ->groupBy('kantong', 'kategori', 'tipe')
+            ->get();
+
+        $totalMasuk = 0.0;
+        $totalKeluar = 0.0;
+        $ringkasanKanal = ['bank' => ['masuk' => 0.0, 'keluar' => 0.0], 'kas_kecil' => ['masuk' => 0.0, 'keluar' => 0.0], 'audit' => ['masuk' => 0.0, 'keluar' => 0.0]];
+        foreach ($agregat as $row) {
+            $total = (float) $row->total;
+            if ($row->tipe === 'masuk') {
+                $totalMasuk += $total;
+            } else {
+                $totalKeluar += $total;
+            }
+            $kanal = JurnalKasService::kanalFisik($row->kantong, $row->kategori);
+            $ringkasanKanal[$kanal][$row->tipe] += $total;
+        }
+
         return Inertia::render('KasKoperasi/Index', [
             'saldoBank' => (float) $kas->saldo_bank,
             'saldoKasKecil' => (float) $kas->saldo_kas_kecil,
             'bulanFilter' => $bulanFilter,
             'filters' => ['kanal' => $kanalFilter, 'cari' => $cari],
             'ringkasanPeriode' => [
-                'total_masuk' => (float) (clone $query)->where('tipe', 'masuk')->sum('jumlah'),
-                'total_keluar' => (float) (clone $query)->where('tipe', 'keluar')->sum('jumlah'),
+                'total_masuk' => $totalMasuk,
+                'total_keluar' => $totalKeluar,
             ],
-            'ringkasanKanal' => $this->ringkasanKanal($query),
+            'ringkasanKanal' => $ringkasanKanal,
             'riwayat' => $riwayat,
         ]);
     }
@@ -98,24 +120,6 @@ class KasKoperasiController extends Controller
         }
 
         return $q;
-    }
-
-    /**
-     * Total masuk/keluar per kanal dalam query yang sudah terfilter,
-     * untuk rincian ringkasan di hero.
-     */
-    private function ringkasanKanal($query): array
-    {
-        $hasil = [];
-        foreach (['bank', 'kas_kecil', 'audit'] as $kanal) {
-            $perKanal = $this->denganFilterKanal($query, $kanal);
-            $hasil[$kanal] = [
-                'masuk' => (float) (clone $perKanal)->where('tipe', 'masuk')->sum('jumlah'),
-                'keluar' => (float) (clone $perKanal)->where('tipe', 'keluar')->sum('jumlah'),
-            ];
-        }
-
-        return $hasil;
     }
 
     /**

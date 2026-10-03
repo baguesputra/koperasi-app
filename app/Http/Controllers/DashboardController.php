@@ -30,9 +30,11 @@ class DashboardController extends Controller
         $infoPagu = $jurnal->sisaPaguBulan($kas);
         $klasifikasi = $jurnal->klasifikasiBulan();
 
+        $awalBulanIni = now()->startOfMonth()->startOfDay()->toDateTimeString();
+        $akhirBulanIni = now()->endOfMonth()->endOfDay()->toDateTimeString();
+
         $pendapatanBungaBulanIni = Angsuran::where('status', 'lunas')
-            ->whereYear('tanggal_konfirmasi_bayar', now()->year)
-            ->whereMonth('tanggal_konfirmasi_bayar', now()->month)
+            ->whereBetween('tanggal_konfirmasi_bayar', [$awalBulanIni, $akhirBulanIni])
             ->sum('nominal_bunga');
 
         // Outstanding: simpanan anggota aktif saja. Gross: akumulasi semua.
@@ -48,28 +50,39 @@ class DashboardController extends Controller
 
         $saldoDanaSosial = $kas->saldo_dana_sosial;
 
-        // Actionable items - dipisah per tahap, bukan digabung
-        $menungguTinjauanBendahara = Pinjaman::where('status', 'diajukan')->count();
-        $menungguApprovalKetua = Pinjaman::where('status', 'approved_bendahara')->count();
+        // Actionable items - 1 query agregat per tabel (bukan 2x count)
+        $hitungStatus = fn (string $model) => $model::whereIn('status', ['diajukan', 'approved_bendahara'])
+            ->selectRaw('status, COUNT(*) as jumlah')
+            ->groupBy('status')
+            ->pluck('jumlah', 'status');
 
-        $menungguPerubahanTenorBendahara = PengajuanPercepatan::where('status', 'diajukan')->count();
-        $menungguPerubahanTenorKetua = PengajuanPercepatan::where('status', 'approved_bendahara')->count();
+        $pinjamanAntre = $hitungStatus(Pinjaman::class);
+        $menungguTinjauanBendahara = (int) ($pinjamanAntre['diajukan'] ?? 0);
+        $menungguApprovalKetua = (int) ($pinjamanAntre['approved_bendahara'] ?? 0);
+
+        $percepatanAntre = $hitungStatus(PengajuanPercepatan::class);
+        $menungguPerubahanTenorBendahara = (int) ($percepatanAntre['diajukan'] ?? 0);
+        $menungguPerubahanTenorKetua = (int) ($percepatanAntre['approved_bendahara'] ?? 0);
         $menungguPerubahanTenor = $menungguPerubahanTenorBendahara + $menungguPerubahanTenorKetua;
 
-        $menungguPengajuanLimitBendahara = PengajuanLimit::where('status', 'diajukan')->count();
-        $menungguPengajuanLimit = PengajuanLimit::where('status', 'approved_bendahara')->count();
+        $limitAntre = $hitungStatus(PengajuanLimit::class);
+        $menungguPengajuanLimitBendahara = (int) ($limitAntre['diajukan'] ?? 0);
+        $menungguPengajuanLimit = (int) ($limitAntre['approved_bendahara'] ?? 0);
         $menungguAktivasi = PengajuanAktivasi::where('status', 'diajukan')->count();
-        $menungguKlaimBendahara = KlaimDanaSosial::where('status', 'diajukan')->count();
-        $menungguKlaimKetua = KlaimDanaSosial::where('status', 'approved_bendahara')->count();
+        $klaimAntre = $hitungStatus(KlaimDanaSosial::class);
+        $menungguKlaimBendahara = (int) ($klaimAntre['diajukan'] ?? 0);
+        $menungguKlaimKetua = (int) ($klaimAntre['approved_bendahara'] ?? 0);
 
-        // Ringkasan kas global: nominal hanya pinjaman (tahap berjalan),
-        // jenis lain hanya hitung jumlah.
-        $totalDiajukan = (float) (Pinjaman::where('status', 'diajukan')
-            ->selectRaw('SUM(COALESCE(nominal_diminta, nominal)) as total')->first()->total ?? 0);
-        $agregatApproved = Pinjaman::where('status', 'approved_bendahara')
-            ->selectRaw('COUNT(*) as jumlah, SUM(COALESCE(nominal_disetujui_bendahara, nominal_diminta, nominal)) as total')->first();
-        $totalApproved = (float) ($agregatApproved->total ?? 0);
-        $jumlahApproved = (int) ($agregatApproved->jumlah ?? 0);
+        // Ringkasan kas global: 1 query conditional aggregation (nominal hanya pinjaman tahap berjalan)
+        $agregatPinjaman = Pinjaman::whereIn('status', ['diajukan', 'approved_bendahara'])
+            ->selectRaw("SUM(CASE WHEN status = 'diajukan' THEN 1 ELSE 0 END) as jml_diajukan")
+            ->selectRaw("SUM(CASE WHEN status = 'approved_bendahara' THEN 1 ELSE 0 END) as jml_approved")
+            ->selectRaw('SUM(CASE WHEN status = \'diajukan\' THEN COALESCE(nominal_diminta, nominal) ELSE 0 END) as total_diajukan')
+            ->selectRaw('SUM(CASE WHEN status = \'approved_bendahara\' THEN COALESCE(nominal_disetujui_bendahara, nominal_diminta, nominal) ELSE 0 END) as total_approved')
+            ->first();
+        $totalDiajukan = (float) ($agregatPinjaman->total_diajukan ?? 0);
+        $totalApproved = (float) ($agregatPinjaman->total_approved ?? 0);
+        $jumlahApproved = (int) ($agregatPinjaman->jml_approved ?? 0);
         $jumlahDiajukan = $menungguTinjauanBendahara;
         $totalMenungguPinjaman = $totalDiajukan + $totalApproved;
 
@@ -99,8 +112,7 @@ class DashboardController extends Controller
             )->count();
 
         $angsuranJatuhTempoBulanIni = Angsuran::where('status', 'belum_bayar')
-            ->whereYear('tanggal_jatuh_tempo', now()->year)
-            ->whereMonth('tanggal_jatuh_tempo', now()->month)
+            ->whereBetween('tanggal_jatuh_tempo', [$awalBulanIni, $akhirBulanIni])
             ->count();
 
         // Grafik - tren 6 bulan terakhir: 2 query (simpanan + pinjaman) GROUP BY year, month

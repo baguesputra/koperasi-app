@@ -13,6 +13,7 @@ use App\Models\SettingSimpanan;
 use App\Services\Keuangan\JurnalKasService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -262,9 +263,11 @@ class LaporanRegistry
                     $tahun = (int) ($r->input('tahun') ?? now()->format('Y'));
 
                     // ponytail: dikelompokkan di PHP (bukan SQL MONTH()) supaya portabel mysql/sqlite
+                    $awal = sprintf('%04d-01-01 00:00:00', $tahun);
+                    $akhir = sprintf('%04d-12-31 23:59:59', $tahun);
                     $kumpulkan = fn ($model) => $model::query()
                         ->where('status', 'lunas')
-                        ->whereYear('tanggal_konfirmasi_bayar', $tahun)
+                        ->whereBetween('tanggal_konfirmasi_bayar', [$awal, $akhir])
                         ->get(['tanggal_konfirmasi_bayar', 'nominal_pokok', 'nominal_bunga']);
 
                     $perBulan = [];
@@ -450,7 +453,7 @@ class LaporanRegistry
                     // ponytail: dikelompokkan di PHP agar portabel mysql/sqlite
                     $rowsRaw = DB::table('simpanan')
                         ->whereIn('jenis', ['wajib', 'dana_sosial'])
-                        ->whereYear('tanggal_input', $tahun)
+                        ->whereBetween('tanggal_input', [sprintf('%04d-01-01 00:00:00', $tahun), sprintf('%04d-12-31 23:59:59', $tahun)])
                         ->get(['anggota_id', 'jenis', 'jumlah', 'tanggal_input']);
 
                     $perBulan = [];
@@ -624,16 +627,18 @@ class LaporanRegistry
                         ->selectRaw("SUM(CASE WHEN tipe='masuk' THEN jumlah ELSE -jumlah END) as sisa")
                         ->value('sisa');
 
-                    // P1-4: pisahkan keluar santunan vs keluar pinjaman (talangan).
+                    // P1-4: pisahkan keluar santunan vs keluar pinjaman (talangan) — 1 query GROUP BY.
                     // Santunan bisa tercatat di kantong dana_sosial (lama) atau kas_kecil (fisik baru).
-                    $keluar = fn (array $kategori) => (float) DB::table('jurnal_kas')
+                    $keluarAgg = DB::table('jurnal_kas')
                         ->where('tipe', 'keluar')
-                        ->whereIn('kategori', $kategori)
+                        ->whereIn('kategori', ['pengeluaran_dana_sosial', 'talangan_sosial_ke_pinjaman'])
                         ->whereBetween('tanggal', [$dari, $sampai])
-                        ->sum('jumlah');
+                        ->selectRaw('kategori, SUM(jumlah) as total')
+                        ->groupBy('kategori')
+                        ->pluck('total', 'kategori');
 
-                    $santunan = $keluar(['pengeluaran_dana_sosial']);
-                    $pinjaman = $keluar(['talangan_sosial_ke_pinjaman']);
+                    $santunan = (float) ($keluarAgg['pengeluaran_dana_sosial'] ?? 0);
+                    $pinjaman = (float) ($keluarAgg['talangan_sosial_ke_pinjaman'] ?? 0);
                     $kembali = (float) DB::table('jurnal_kas')
                         ->where('kantong', 'dana_sosial')->where('tipe', 'masuk')
                         ->where('kategori', 'kembali_talangan_ke_sosial')
@@ -671,32 +676,56 @@ class LaporanRegistry
                         $anggota = $anggota->where('cabang', $r->input('cabang'));
                     }
                     $daftar = $anggota->get();
+                    $anggotaIds = $daftar->pluck('id');
+                    // 1 query peta pinjaman (ganti 3x pluck berantai)
+                    $pinjamanMap = $anggotaIds->isEmpty()
+                        ? collect()
+                        : Pinjaman::whereIn('anggota_id', $anggotaIds)->pluck('anggota_id', 'id');
+                    $pinjamanIds = $pinjamanMap->keys();
 
                     $simpanan = DB::table('simpanan')
                         ->where('bulan_periode', $bulanPeriode)
-                        ->whereIn('anggota_id', $daftar->pluck('id'))
-                        ->get()
+                        ->whereIn('anggota_id', $anggotaIds)
+                        ->get(['anggota_id', 'jenis', 'jumlah'])
                         ->groupBy('anggota_id');
 
-                    $cicilan = Angsuran::with('pinjaman')
-                        ->where('status', 'belum_bayar')
+                    // Agregat SUM GROUP BY di SQL (ganti with()+get()+groupBy model penuh)
+                    $cicilanBiasaAgg = $pinjamanIds->isEmpty() ? collect() : Angsuran::where('status', 'belum_bayar')
                         ->whereBetween('tanggal_jatuh_tempo', [$dari, $sampai])
-                        ->whereIn('pinjaman_id', Pinjaman::whereIn('anggota_id', $daftar->pluck('id'))->pluck('id'))
-                        ->get()
-                        ->groupBy(fn ($a) => $a->pinjaman->anggota_id);
+                        ->whereIn('pinjaman_id', $pinjamanIds)
+                        ->selectRaw('pinjaman_id, SUM(nominal_pokok) as pokok, SUM(nominal_bunga) as bunga')
+                        ->groupBy('pinjaman_id')
+                        ->get();
+                    $cicilan = [];
+                    foreach ($cicilanBiasaAgg as $row) {
+                        $aid = $pinjamanMap[$row->pinjaman_id] ?? null;
+                        if ($aid === null) {
+                            continue;
+                        }
+                        $cicilan[$aid]['pokok'] = ((float) ($cicilan[$aid]['pokok'] ?? 0)) + (float) $row->pokok;
+                        $cicilan[$aid]['bunga'] = ((float) ($cicilan[$aid]['bunga'] ?? 0)) + (float) $row->bunga;
+                    }
 
-                    $cicilanPercepatan = AngsuranPercepatan::with('pengajuan.pinjaman')
-                        ->where('status', 'belum_bayar')
-                        ->whereBetween('tanggal_jatuh_tempo', [$dari, $sampai])
-                        ->whereIn('pengajuan_percepatan_id', PengajuanPercepatan::whereIn(
-                            'pinjaman_id',
-                            Pinjaman::whereIn('anggota_id', $daftar->pluck('id'))->pluck('id')
-                        )->where('status', 'aktif')->pluck('id'))
-                        ->get()
-                        ->groupBy(fn ($a) => $a->pengajuan->pinjaman->anggota_id);
+                    $cicilanSusulanAgg = $pinjamanIds->isEmpty() ? collect() : AngsuranPercepatan::join('pengajuan_percepatan', 'pengajuan_percepatan.id', '=', 'angsuran_percepatan.pengajuan_percepatan_id')
+                        ->where('angsuran_percepatan.status', 'belum_bayar')
+                        ->where('pengajuan_percepatan.status', 'aktif')
+                        ->whereBetween('angsuran_percepatan.tanggal_jatuh_tempo', [$dari, $sampai])
+                        ->whereIn('pengajuan_percepatan.pinjaman_id', $pinjamanIds)
+                        ->selectRaw('pengajuan_percepatan.pinjaman_id as pinjaman_id, SUM(angsuran_percepatan.nominal_pokok) as pokok, SUM(angsuran_percepatan.nominal_bunga) as bunga')
+                        ->groupBy('pengajuan_percepatan.pinjaman_id')
+                        ->get();
+                    $cicilanPercepatan = [];
+                    foreach ($cicilanSusulanAgg as $row) {
+                        $aid = $pinjamanMap[$row->pinjaman_id] ?? null;
+                        if ($aid === null) {
+                            continue;
+                        }
+                        $cicilanPercepatan[$aid]['pokok'] = ((float) ($cicilanPercepatan[$aid]['pokok'] ?? 0)) + (float) $row->pokok;
+                        $cicilanPercepatan[$aid]['bunga'] = ((float) ($cicilanPercepatan[$aid]['bunga'] ?? 0)) + (float) $row->bunga;
+                    }
 
-                    $tagihanWajib = (float) (SettingSimpanan::where('jenis', 'wajib')->value('nominal') ?? 45_000);
-                    $tagihanSosial = (float) (SettingSimpanan::where('jenis', 'dana_sosial')->value('nominal') ?? 5_000);
+                    $tagihanWajib = (float) Cache::remember('setting_simpanan_wajib', 600, fn () => SettingSimpanan::where('jenis', 'wajib')->value('nominal') ?? 45_000);
+                    $tagihanSosial = (float) Cache::remember('setting_simpanan_sosial', 600, fn () => SettingSimpanan::where('jenis', 'dana_sosial')->value('nominal') ?? 5_000);
 
                     $rows = [];
                     foreach ($daftar as $i => $a) {
@@ -709,20 +738,20 @@ class LaporanRegistry
                         $wajib = $setorWajib > 0 ? $setorWajib : ($a->status === 'aktif' ? $tagihanWajib : 0);
                         $sosial = $setorSosial > 0 ? $setorSosial : ($a->status === 'aktif' ? $tagihanSosial : 0);
 
-                        $cicilanBiasa = $cicilan->get($a->id, collect());
-                        $cicilanSusulan = $cicilanPercepatan->get($a->id, collect());
+                        $cicilanBiasa = $cicilan[$a->id] ?? ['pokok' => 0.0, 'bunga' => 0.0];
+                        $cicilanSusulan = $cicilanPercepatan[$a->id] ?? ['pokok' => 0.0, 'bunga' => 0.0];
                         // Samakan tampilan sistem (formatRupiah 0 desimal): bulatkan per baris,
                         // total dijumlah dari nilai yang sudah dibulatkan.
                         $pokok = round($pokok);
                         $wajib = round($wajib);
                         $sosial = round($sosial);
                         $pinjamanPokok = round(
-                            (float) $cicilanBiasa->sum('nominal_pokok')
-                            + (float) $cicilanSusulan->sum('nominal_pokok')
+                            (float) $cicilanBiasa['pokok']
+                            + (float) $cicilanSusulan['pokok']
                         );
                         $pinjamanBunga = round(
-                            (float) $cicilanBiasa->sum('nominal_bunga')
-                            + (float) $cicilanSusulan->sum('nominal_bunga')
+                            (float) $cicilanBiasa['bunga']
+                            + (float) $cicilanSusulan['bunga']
                         );
                         $total = $pokok + $wajib + $sosial + $pinjamanPokok + $pinjamanBunga;
 
@@ -842,34 +871,45 @@ class LaporanRegistry
     {
         $pinjamans = Pinjaman::whereNotNull('tanggal_pencairan')
             ->whereDate('tanggal_pencairan', '<=', $tanggal)
-            ->get(['id', 'nominal']);
+            ->pluck('nominal', 'id');
 
         if ($pinjamans->isEmpty()) {
             return 0.0;
         }
 
-        $ids = $pinjamans->pluck('id');
-        $dibayar = [];
-        $tambah = function ($pinjamanId, $nominal) use (&$dibayar) {
-            $dibayar[$pinjamanId] = ($dibayar[$pinjamanId] ?? 0) + (float) $nominal;
-        };
-        $sudahLunas = fn ($q) => $q->where('status', 'lunas')
+        $ids = $pinjamans->keys();
+        $lunas = fn ($q) => $q->where('status', 'lunas')
             ->where(fn ($qq) => $qq
                 ->whereDate('tanggal_konfirmasi_bayar', '<=', $tanggal)
                 ->orWhereNull('tanggal_konfirmasi_bayar'));
 
-        Angsuran::whereIn('pinjaman_id', $ids)
-            ->where($sudahLunas)
-            ->get(['pinjaman_id', 'nominal_pokok'])
-            ->each(fn ($a) => $tambah($a->pinjaman_id, $a->nominal_pokok));
+        // 1 query agregat per tabel (ganti get()+each per baris)
+        $dibayar = Angsuran::whereIn('pinjaman_id', $ids)
+            ->where($lunas)
+            ->selectRaw('pinjaman_id, SUM(nominal_pokok) as total')
+            ->groupBy('pinjaman_id')
+            ->pluck('total', 'pinjaman_id');
 
-        AngsuranPercepatan::with('pengajuan:id,pinjaman_id')
-            ->whereHas('pengajuan', fn ($q) => $q->whereIn('pinjaman_id', $ids))
-            ->where($sudahLunas)
-            ->get(['pengajuan_percepatan_id', 'nominal_pokok'])
-            ->each(fn ($a) => $a->pengajuan && $tambah($a->pengajuan->pinjaman_id, $a->nominal_pokok));
+        $dibayarPercepatan = AngsuranPercepatan::join('pengajuan_percepatan', 'pengajuan_percepatan.id', '=', 'angsuran_percepatan.pengajuan_percepatan_id')
+            ->whereIn('pengajuan_percepatan.pinjaman_id', $ids)
+            ->where(fn ($q) => $q->where('angsuran_percepatan.status', 'lunas')
+                ->where(fn ($qq) => $qq
+                    ->whereDate('angsuran_percepatan.tanggal_konfirmasi_bayar', '<=', $tanggal)
+                    ->orWhereNull('angsuran_percepatan.tanggal_konfirmasi_bayar')))
+            ->selectRaw('pengajuan_percepatan.pinjaman_id as pinjaman_id, SUM(angsuran_percepatan.nominal_pokok) as total')
+            ->groupBy('pengajuan_percepatan.pinjaman_id')
+            ->pluck('total', 'pinjaman_id');
 
-        return $pinjamans->sum(fn ($p) => max(0.0, (float) $p->nominal - ($dibayar[$p->id] ?? 0)));
+        foreach ($dibayarPercepatan as $pid => $nominal) {
+            $dibayar[$pid] = ((float) ($dibayar[$pid] ?? 0)) + (float) $nominal;
+        }
+
+        $total = 0.0;
+        foreach ($pinjamans as $pid => $nominal) {
+            $total += max(0.0, (float) $nominal - (float) ($dibayar[$pid] ?? 0));
+        }
+
+        return $total;
     }
 
     /**
@@ -893,17 +933,19 @@ class LaporanRegistry
      */
     private static function shuTahunBerjalan(int $tahun): array
     {
+        $awal = sprintf('%04d-01-01 00:00:00', $tahun);
+        $akhir = sprintf('%04d-12-31 23:59:59', $tahun);
         $bunga = 0.0;
         foreach ([Angsuran::class, AngsuranPercepatan::class] as $model) {
             $bunga += (float) $model::where('status', 'lunas')
-                ->whereYear('tanggal_konfirmasi_bayar', $tahun)
+                ->whereBetween('tanggal_konfirmasi_bayar', [$awal, $akhir])
                 ->sum('nominal_bunga');
         }
 
         $beban = (float) DB::table('jurnal_kas')
             ->where('tipe', 'keluar')
             ->where('kategori', 'pengeluaran_koperasi')
-            ->whereYear('tanggal', $tahun)
+            ->whereBetween('tanggal', [$awal, $akhir])
             ->sum('jumlah');
 
         return ['bunga' => $bunga, 'beban' => $beban, 'shu' => $bunga - $beban];

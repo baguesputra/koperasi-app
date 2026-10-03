@@ -8,6 +8,7 @@ use App\Models\Anggota;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -175,7 +176,7 @@ class LaporanController extends Controller
 
         return [
             'cabang' => $perluCabang
-                ? Anggota::query()->whereNotNull('cabang')->distinct()->orderBy('cabang')->pluck('cabang')->all()
+                ? Cache::remember('daftar_cabang', 600, fn () => Anggota::query()->whereNotNull('cabang')->distinct()->orderBy('cabang')->pluck('cabang')->all())
                 : null,
             'kantong' => $perluKantong
                 ? [

@@ -268,24 +268,22 @@ class JurnalKasService
     public function klasifikasiBulan(?string $bulan = null): array
     {
         $bulan ??= now()->format('Y-m');
-        [$tahun, $bln] = explode('-', $bulan);
+        $awal = Carbon::createFromFormat('Y-m', $bulan)->startOfMonth()->startOfDay()->toDateTimeString();
+        $akhir = Carbon::createFromFormat('Y-m', $bulan)->endOfMonth()->endOfDay()->toDateTimeString();
 
         $keluarPinjaman = (float) JurnalKas::where('kategori', 'pencairan_pinjaman')
             ->where('tipe', 'keluar')
-            ->whereYear('tanggal', $tahun)
-            ->whereMonth('tanggal', $bln)
+            ->whereBetween('tanggal', [$awal, $akhir])
             ->sum('jumlah');
 
         $masukIuran = (float) JurnalKas::whereIn('kategori', ['simpanan_pokok_masuk', 'simpanan_wajib_masuk', 'dana_sosial_bulanan'])
             ->where('tipe', 'masuk')
-            ->whereYear('tanggal', $tahun)
-            ->whereMonth('tanggal', $bln)
+            ->whereBetween('tanggal', [$awal, $akhir])
             ->sum('jumlah');
 
         $keluarIuran = (float) JurnalKas::whereIn('kategori', ['return_simpanan_pokok', 'return_simpanan_wajib', 'pelunasan_resign_simpanan'])
             ->where('tipe', 'keluar')
-            ->whereYear('tanggal', $tahun)
-            ->whereMonth('tanggal', $bln)
+            ->whereBetween('tanggal', [$awal, $akhir])
             ->sum('jumlah');
 
         return [

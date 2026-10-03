@@ -45,10 +45,14 @@ class JurnalKasController extends Controller
             $query->where('kantong', 'kas_kecil');
         }
 
-        $totalMasuk = (clone $query)->where('tipe', 'masuk')->sum('jumlah');
-        $totalKeluar = (clone $query)->where('tipe', 'keluar')->sum('jumlah');
+        $agregat = (clone $query)
+            ->selectRaw("SUM(CASE WHEN tipe = 'masuk' THEN jumlah ELSE 0 END) as masuk, SUM(CASE WHEN tipe = 'keluar' THEN jumlah ELSE 0 END) as keluar")
+            ->first();
+        $totalMasuk = (float) ($agregat->masuk ?? 0);
+        $totalKeluar = (float) ($agregat->keluar ?? 0);
 
         $riwayat = $query->orderBy('tanggal')->orderBy('id')
+            ->limit(500)
             ->get()
             ->map(fn ($j) => $this->barisJurnal($j))
             ->values();

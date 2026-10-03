@@ -60,9 +60,10 @@ class SimpananController extends Controller
                 ];
             });
 
-        $totalDanaSosialTerkumpul = Simpanan::where('jenis', 'dana_sosial')->sum('jumlah');
+        $agregatSimpanan = Simpanan::selectRaw("SUM(CASE WHEN jenis = 'dana_sosial' THEN jumlah ELSE 0 END) as sosial, SUM(CASE WHEN jenis IN ('pokok', 'wajib') THEN jumlah ELSE 0 END) as gross")->first();
+        $totalDanaSosialTerkumpul = (float) ($agregatSimpanan->sosial ?? 0);
         // Gross: akumulasi semua simpanan (untuk transparansi audit)
-        $totalSimpananSeluruhAnggota = Simpanan::whereIn('jenis', ['pokok', 'wajib'])->sum('jumlah');
+        $totalSimpananSeluruhAnggota = (float) ($agregatSimpanan->gross ?? 0);
         // Outstanding: hanya anggota aktif (simpanan yang masih ditanggung koperasi)
         $totalSimpananOutstanding = (float) Simpanan::whereIn('jenis', ['pokok', 'wajib'])
             ->whereHas('anggota', fn ($q) => $q->where('status', 'aktif'))

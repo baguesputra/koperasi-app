@@ -8,6 +8,7 @@ use App\Models\SettingSimpanan;
 use App\Models\Simpanan;
 use App\Services\Simpanan\KonfirmasiSimpananService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -35,8 +36,8 @@ class SimpananController extends Controller
             ? $semuaBelumSimpanan->where('cabang', $cabangAktif)->values()
             : $semuaBelumSimpanan;
 
-        $nominalWajib = (float) (SettingSimpanan::where('jenis', 'wajib')->value('nominal') ?? 0);
-        $nominalDanaSosial = (float) (SettingSimpanan::where('jenis', 'dana_sosial')->value('nominal') ?? 0);
+        $nominalWajib = (float) Cache::remember('setting_simpanan_wajib', 600, fn () => SettingSimpanan::where('jenis', 'wajib')->value('nominal') ?? 0);
+        $nominalDanaSosial = (float) Cache::remember('setting_simpanan_sosial', 600, fn () => SettingSimpanan::where('jenis', 'dana_sosial')->value('nominal') ?? 0);
         $nominalPerAnggota = $nominalWajib + $nominalDanaSosial;
 
         $ringkasanCabang = $semuaBelumSimpanan
@@ -46,7 +47,7 @@ class SimpananController extends Controller
                 'nominal' => (float) ($anggota->count() * $nominalPerAnggota),
             ]);
 
-        $daftarCabang = Anggota::query()->whereNotNull('cabang')->distinct()->orderBy('cabang')->pluck('cabang');
+        $daftarCabang = Cache::remember('daftar_cabang', 600, fn () => Anggota::query()->whereNotNull('cabang')->distinct()->orderBy('cabang')->pluck('cabang'));
 
         $totalDanaSosialTerkumpul = Simpanan::where('jenis', 'dana_sosial')->sum('jumlah');
 

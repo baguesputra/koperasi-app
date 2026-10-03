@@ -8,7 +8,9 @@ use App\Models\Angsuran;
 use App\Models\AngsuranPercepatan;
 use App\Models\PengajuanPercepatan;
 use App\Services\Pinjaman\KonfirmasiAngsuranService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -19,7 +21,8 @@ class AngsuranController extends Controller
     public function index(Request $request): Response
     {
         $bulan = $request->input('bulan', now()->format('Y-m'));
-        [$tahun, $bulanAngka] = explode('-', $bulan);
+        $awalBulan = Carbon::createFromFormat('Y-m', $bulan)->startOfMonth()->startOfDay()->toDateTimeString();
+        $akhirBulan = Carbon::createFromFormat('Y-m', $bulan)->endOfMonth()->endOfDay()->toDateTimeString();
 
         $cabangAktif = $request->string('cabang');
 
@@ -30,7 +33,7 @@ class AngsuranController extends Controller
 
         $semuaNormal = Angsuran::with('pinjaman.anggota')
             ->where('status', 'belum_bayar')
-            ->whereYear('tanggal_jatuh_tempo', $tahun)->whereMonth('tanggal_jatuh_tempo', $bulanAngka)
+            ->whereBetween('tanggal_jatuh_tempo', [$awalBulan, $akhirBulan])
             ->get()
             ->map(function ($a) use ($pinjamanBerpengajuan) {
                 $adaPengajuan = $pinjamanBerpengajuan->has($a->pinjaman_id);
@@ -53,7 +56,7 @@ class AngsuranController extends Controller
 
         $semuaPercepatan = AngsuranPercepatan::with('pengajuan.pinjaman.anggota')
             ->where('status', 'belum_bayar')
-            ->whereYear('tanggal_jatuh_tempo', $tahun)->whereMonth('tanggal_jatuh_tempo', $bulanAngka)
+            ->whereBetween('tanggal_jatuh_tempo', [$awalBulan, $akhirBulan])
             ->get()
             ->map(function ($a) {
                 $pinjaman = $a->pengajuan->pinjaman;
@@ -86,13 +89,13 @@ class AngsuranController extends Controller
             ->groupBy('cabang')
             ->map(fn ($items) => (float) $items->sum('total_bayar'));
 
-        $daftarCabang = Anggota::query()->whereNotNull('cabang')->distinct()->orderBy('cabang')->pluck('cabang');
+        $daftarCabang = Cache::remember('daftar_cabang', 600, fn () => Anggota::query()->whereNotNull('cabang')->distinct()->orderBy('cabang')->pluck('cabang'));
 
         $totalPendapatanBungaBulanIni = Angsuran::where('status', 'lunas')
-            ->whereYear('tanggal_konfirmasi_bayar', $tahun)->whereMonth('tanggal_konfirmasi_bayar', $bulanAngka)
+            ->whereBetween('tanggal_konfirmasi_bayar', [$awalBulan, $akhirBulan])
             ->sum('nominal_bunga')
             + AngsuranPercepatan::where('status', 'lunas')
-                ->whereYear('tanggal_konfirmasi_bayar', $tahun)->whereMonth('tanggal_konfirmasi_bayar', $bulanAngka)
+                ->whereBetween('tanggal_konfirmasi_bayar', [$awalBulan, $akhirBulan])
                 ->sum('nominal_bunga');
 
         $totalPendapatanBungaKeseluruhan = Angsuran::where('status', 'lunas')->sum('nominal_bunga')

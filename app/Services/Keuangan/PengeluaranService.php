@@ -75,8 +75,7 @@ class PengeluaranService
         );
 
         $terpakai = (float) Pengeluaran::where('jenis', 'dana_sosial')
-            ->whereYear('tanggal', $tgl->year)
-            ->whereMonth('tanggal', $tgl->month)
+            ->whereBetween('tanggal', [$tgl->copy()->startOfMonth()->startOfDay()->toDateTimeString(), $tgl->copy()->endOfMonth()->endOfDay()->toDateTimeString()])
             ->sum('jumlah');
 
         $sisa = $pagu - $terpakai;
