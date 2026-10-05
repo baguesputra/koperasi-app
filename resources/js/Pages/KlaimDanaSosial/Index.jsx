@@ -1,6 +1,6 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head } from '@inertiajs/react';
-import { ClipboardCheck, HeartHandshake } from 'lucide-react';
+import { ChevronRight, HeartHandshake } from 'lucide-react';
 import { useState } from 'react';
 import Card from '@/Components/ui/Card';
 import FotoAnggota from '@/Components/ui/FotoAnggota';
@@ -64,7 +64,7 @@ export default function Index({ menunggu, riwayat, tahap }) {
                                     <th className="hidden md:table-cell px-5 py-3 text-sm font-semibold text-slate-500">Kejadian</th>
                                     <th className="px-5 py-3 text-sm font-semibold text-slate-500">Tanggal</th>
                                     <th className="px-5 py-3 text-sm font-semibold text-slate-500">Status</th>
-                                    <th className="px-5 py-3 text-right text-sm font-semibold text-slate-500">Aksi</th>
+                                    <th className="w-10" aria-label="Buka detail" />
                                 </tr>
                             </thead>
                             <tbody>
@@ -76,7 +76,14 @@ export default function Index({ menunggu, riwayat, tahap }) {
                                     </tr>
                                 ) : (
                                     menunggu.map((k) => (
-                                        <tr key={k.id} onClick={() => bukaDetail(k)} className="border-t border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer">
+                                        <tr
+                                            key={k.id}
+                                            onClick={() => bukaDetail(k)}
+                                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); bukaDetail(k); } }}
+                                            tabIndex={0}
+                                            title="Klik untuk mereview"
+                                            className="border-t border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer focus-visible:outline-none focus-visible:bg-slate-100"
+                                        >
                                             <td className="px-5 py-3">
                                                 <div className="flex items-center gap-3">
                                                     <FotoAnggota nama={k.anggota.nama} fotoUrl={k.anggota.foto_url} ukuran="sm" />
@@ -90,14 +97,8 @@ export default function Index({ menunggu, riwayat, tahap }) {
                                             <td className="hidden md:table-cell px-5 py-3 text-sm text-slate-600">{k.tanggal_kejadian}</td>
                                             <td className="px-5 py-3 text-sm text-slate-600">{k.tanggal_pengajuan}</td>
                                             <td className="px-5 py-3"><StatusBadge status={k.status} /></td>
-                                            <td className="px-5 py-3 text-right">
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); bukaDetail(k); }}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-bold rounded-lg bg-brand-green text-white hover:bg-brand-green-dark transition-colors"
-                                                >
-                                                    <ClipboardCheck size={15} />
-                                                    Review
-                                                </button>
+                                            <td className="px-3 py-3 text-right" aria-hidden="true">
+                                                <ChevronRight size={18} className="ml-auto text-slate-300" />
                                             </td>
                                         </tr>
                                     ))

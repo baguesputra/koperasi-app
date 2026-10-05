@@ -1,6 +1,6 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head } from '@inertiajs/react';
-import { ClipboardCheck } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import Card from '@/Components/ui/Card';
 import FotoAnggota from '@/Components/ui/FotoAnggota';
@@ -67,7 +67,7 @@ export default function Index({ menungguTinjauan, riwayat, ringkasanKas }) {
                                     <th className="px-5 py-3 text-sm font-semibold text-slate-500">Tenor</th>
                                     <th className="px-5 py-3 text-sm font-semibold text-slate-500">Tanggal</th>
                                     <th className="px-5 py-3 text-sm font-semibold text-slate-500">Status</th>
-                                    <th className="px-5 py-3 text-right text-sm font-semibold text-slate-500">Aksi</th>
+                                    <th className="w-10" aria-label="Buka detail" />
                                 </tr>
                             </thead>
                             <tbody>
@@ -79,7 +79,14 @@ export default function Index({ menungguTinjauan, riwayat, ringkasanKas }) {
                                     </tr>
                                 ) : (
                                     menungguTinjauan.map((p) => (
-                                        <tr key={p.id} onClick={() => bukaDetail(p)} className="border-t border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer">
+                                        <tr
+                                            key={p.id}
+                                            onClick={() => bukaDetail(p)}
+                                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); bukaDetail(p); } }}
+                                            tabIndex={0}
+                                            title="Klik untuk meninjau"
+                                            className="border-t border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer focus-visible:outline-none focus-visible:bg-slate-100"
+                                        >
                                             <td className="px-5 py-3">
                                                 <div className="flex items-center gap-3">
                                                     <FotoAnggota nama={p.anggota.nama} fotoUrl={p.anggota.foto_url} ukuran="sm" />
@@ -93,14 +100,8 @@ export default function Index({ menungguTinjauan, riwayat, ringkasanKas }) {
                                             <td className="px-5 py-3 text-sm text-slate-600">{p.tenor_bulan} bulan</td>
                                             <td className="px-5 py-3 text-sm text-slate-600">{p.tanggal_pengajuan}</td>
                                             <td className="px-5 py-3"><StatusBadge status="pending" /></td>
-                                            <td className="px-5 py-3 text-right">
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); bukaDetail(p); }}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-bold rounded-lg bg-brand-green text-white hover:bg-brand-green-dark transition-colors"
-                                                >
-                                                    <ClipboardCheck size={15} />
-                                                    Tinjau
-                                                </button>
+                                            <td className="px-3 py-3 text-right" aria-hidden="true">
+                                                <ChevronRight size={18} className="ml-auto text-slate-300" />
                                             </td>
                                         </tr>
                                     ))
