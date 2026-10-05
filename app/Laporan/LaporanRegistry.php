@@ -5,7 +5,6 @@ namespace App\Laporan;
 use App\Models\Anggota;
 use App\Models\Angsuran;
 use App\Models\AngsuranPercepatan;
-use App\Models\AuditLog;
 use App\Models\PengajuanPercepatan;
 use App\Models\Pengeluaran;
 use App\Models\Pinjaman;
@@ -326,39 +325,6 @@ class LaporanRegistry
                         [3],
                         $rows,
                         [null, null, null, array_sum(array_column($rows, 3)), count($rows).' pinjaman', null, null]
-                    );
-                },
-            ],
-
-            'pinjaman-jatuh-tempo' => [
-                'judul' => 'Pinjaman Jatuh Tempo',
-                'deskripsi' => 'Angsuran belum dibayar yang jatuh tempo di bulan terpilih — bahan follow-up.',
-                'kategori' => 'Pinjaman',
-                'ikon' => 'calendar-clock',
-                'filter' => ['tipe' => 'bulan'],
-                'periodeDefault' => fn () => [now()->format('Y-m')],
-                'data' => function (Request $r) {
-                    [$dari, $sampai] = self::rentang($r);
-                    $rows = Angsuran::with('pinjaman.anggota')
-                        ->where('status', 'belum_bayar')
-                        ->whereBetween('tanggal_jatuh_tempo', [$dari, $sampai])
-                        ->orderBy('tanggal_jatuh_tempo')
-                        ->get()
-                        ->map(fn ($a) => [
-                            $a->pinjaman->anggota->nama,
-                            $a->pinjaman->anggota->no_karyawan,
-                            $a->pinjaman->anggota->cabang,
-                            $a->cicilan_ke,
-                            $a->tanggal_jatuh_tempo->format('d M Y'),
-                            (float) $a->total_bayar,
-                            $a->tanggal_jatuh_tempo->isPast() ? 'Ya' : '-',
-                        ])->all();
-
-                    return self::hasil(
-                        ['Nama', 'No. Karyawan', 'Cabang', 'Cicilan Ke', 'Jatuh Tempo', 'Total Tagihan', 'Terlambat'],
-                        [5],
-                        $rows,
-                        [count($rows).' angsuran', null, null, null, null, array_sum(array_column($rows, 5)), null]
                     );
                 },
             ],
@@ -782,37 +748,6 @@ class LaporanRegistry
                 },
             ],
 
-            'audit-log' => [
-                'judul' => 'Laporan Audit',
-                'deskripsi' => 'Jejak aktivitas: siapa mengubah apa dan kapan.',
-                'kategori' => 'Operasional',
-                'ikon' => 'shield-check',
-                'admin_only' => true,
-                'filter' => ['tipe' => 'rentang'],
-                'periodeDefault' => fn () => [now()->subMonth()->format('Y-m'), now()->format('Y-m')],
-                'data' => function (Request $r) {
-                    [$dari, $sampai] = self::rentang($r);
-                    $rows = AuditLog::with('user')
-                        ->whereBetween('created_at', [$dari->copy()->startOfDay(), $sampai->copy()->endOfDay()])
-                        ->latest()
-                        ->limit(1000)
-                        ->get()
-                        ->map(fn ($log) => [
-                            $log->created_at->format('d M Y H:i'),
-                            $log->user?->name ?? '-',
-                            $log->aksi,
-                            $log->keterangan,
-                        ])->all();
-
-                    return self::hasil(
-                        ['Waktu', 'Pengguna', 'Aksi', 'Keterangan'],
-                        [],
-                        $rows,
-                        [count($rows).' aktivitas (maks 1000)', null, null, null],
-                        catatan: 'Dibatasi 1000 baris terbaru untuk performa. Gunakan rentang lebih sempit bila perlu.'
-                    );
-                },
-            ],
         ];
     }
 

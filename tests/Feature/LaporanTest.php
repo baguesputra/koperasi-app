@@ -54,7 +54,20 @@ class LaporanTest extends TestCase
         $this->get(route('laporan.index'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page->component('Laporan/Index')
-                ->has('kelompok.Keuangan', 3));
+                ->has('kelompok.Keuangan', 3)
+                ->has('kelompok.Operasional', 2));
+    }
+
+    /** Duplikat menu lain: angsuran sudah ada di Bendahara → Angsuran, audit di Pengaturan. */
+    public function test_laporan_duplikat_tidak_ada_di_registry(): void
+    {
+        foreach (['pinjaman-jatuh-tempo', 'audit-log'] as $slug) {
+            $this->assertFalse(LaporanRegistry::ada($slug));
+        }
+
+        $this->loginSebagai('BEN-000001');
+        $this->get(route('laporan.show', 'audit-log'))->assertNotFound();
+        $this->get(route('laporan.show', 'pinjaman-jatuh-tempo'))->assertNotFound();
     }
 
     public function test_arus_kas_basis_fisik_dengan_rekonsiliasi(): void
@@ -231,25 +244,6 @@ class LaporanTest extends TestCase
 
         $this->get(route('laporan.pdf', ['jenis' => 'neraca', 'tanggal' => now()->format('Y-m-d')]))
             ->assertOk();
-    }
-
-    public function test_audit_log_tersembunyi_dari_non_admin(): void
-    {
-        // Bendahara: tidak lihat kartu audit di index, dan akses langsung ditolak
-        $this->loginSebagai('BEN-000001');
-
-        $this->get(route('laporan.index'))
-            ->assertInertia(fn ($page) => $page->component('Laporan/Index')
-                ->has('kelompok.Operasional', 2));
-
-        $this->get(route('laporan.show', 'audit-log'))->assertForbidden();
-    }
-
-    public function test_audit_log_tampil_untuk_admin(): void
-    {
-        $this->loginSebagai('ADM-000001'); // admin (punya pengaturan.kelola)
-
-        $this->get(route('laporan.show', 'audit-log'))->assertOk();
     }
 
     public function test_rekap_iuran_pinjaman_satu_baris_per_anggota(): void
