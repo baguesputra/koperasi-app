@@ -1,6 +1,7 @@
 import AppLayout from '@/Layouts/AppLayout';
-import { Head, router } from '@inertiajs/react';
-import { FileSpreadsheet, Printer, CalendarDays } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
+import { FileSpreadsheet, Printer, CalendarDays, Loader2, RotateCcw } from 'lucide-react';
 import Card from '@/Components/ui/Card';
 import BackLink from '@/Components/ui/BackLink';
 import PageHeader from '@/Components/ui/PageHeader';
@@ -13,9 +14,27 @@ const fokusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible
 
 export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
     const tipeFilter = 'bulan' in filter ? 'bulan' : 'tahun' in filter ? 'tahun' : 'tanggal' in filter ? 'tanggal' : 'dari' in filter ? 'rentang' : null;
+    const [memuat, setMemuat] = useState(false);
+    const [tahun, setTahun] = useState(String(filter.tahun ?? ''));
+
+    // Ikuti nilai server saat navigasi (mis. dari tombol back browser).
+    useEffect(() => setTahun(String(filter.tahun ?? '')), [filter.tahun]);
 
     function terapkan(perubahan) {
-        router.get(route('laporan.show', laporan.slug), { ...filter, ...perubahan }, { preserveState: true });
+        router.get(route('laporan.show', laporan.slug), { ...filter, ...perubahan }, {
+            preserveState: true,
+            onStart: () => setMemuat(true),
+            onFinish: () => setMemuat(false),
+        });
+    }
+
+    function komitTahun() {
+        const n = parseInt(tahun, 10);
+        if (tahun.length === 4 && n >= 2000 && n <= 2100 && n !== filter.tahun) {
+            terapkan({ tahun: n });
+        } else {
+            setTahun(String(filter.tahun ?? ''));
+        }
     }
 
     function queryString() {
@@ -41,6 +60,13 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
 
             <PageHeader title={laporan.judul} subtitle={laporan.deskripsi}>
                 <div className="flex flex-wrap items-center gap-2">
+                    <Link
+                        href={route('laporan.show', laporan.slug)}
+                        className={`inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-full text-slate-600 hover:bg-slate-100 transition-colors ${fokusRing}`}
+                    >
+                        <RotateCcw size={16} aria-hidden="true" />
+                        Reset periode
+                    </Link>
                     <a
                         href={`${route('laporan.export', laporan.slug)}?${queryString()}`}
                         className={`inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-full border-2 border-brand-navy text-brand-navy hover:bg-slate-50 hover:shadow-md hover:-translate-y-px active:translate-y-0 transition-all ${fokusRing}`}
@@ -60,7 +86,7 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
 
             {/* Filter periode */}
             <Card padding="sm" className="shadow-md border-slate-200/70 mb-4">
-                <div className="flex flex-wrap items-end gap-x-3 gap-y-1">
+                <div className={`flex flex-wrap items-end gap-x-3 gap-y-1 transition-opacity ${memuat ? 'opacity-50 pointer-events-none' : ''}`}>
                     {tipeFilter === 'bulan' && (
                         <FormField label="Bulan">
                             <TextField
@@ -74,14 +100,17 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
                         </FormField>
                     )}
                     {tipeFilter === 'tahun' && (
-                        <FormField label="Tahun">
+                        <FormField label="Tahun" hint="Tekan Enter untuk Terapkan">
                             <TextField
                                 size="sm"
                                 type="number"
+                                inputMode="numeric"
                                 min="2000"
                                 max="2100"
-                                value={filter.tahun}
-                                onChange={(e) => e.target.value.length === 4 && terapkan({ tahun: Number(e.target.value) })}
+                                value={tahun}
+                                onChange={(e) => setTahun(e.target.value)}
+                                onBlur={komitTahun}
+                                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
                                 aria-label="Pilih tahun"
                                 className="w-28 rounded-full border-slate-200 bg-slate-50/60 tabular-nums"
                             />
@@ -166,7 +195,9 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
                     )}
                     <div className="pb-4">
                         <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-brand-navy/5 text-brand-navy whitespace-nowrap">
-                            <CalendarDays size={13} />
+                            {memuat
+                                ? <Loader2 size={13} aria-hidden="true" className="animate-spin" />
+                                : <CalendarDays size={13} aria-hidden="true" />}
                             {periodeLabel}
                         </span>
                     </div>
@@ -184,12 +215,20 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
                     <div className="text-center py-12 px-4">
                         <p className="text-sm font-semibold text-slate-600">Tidak ada data pada periode ini.</p>
                         <p className="text-sm text-slate-400 mt-1">Coba perlebar rentang periode atau ubah filter.</p>
+                        <Link
+                            href={route('laporan.show', laporan.slug)}
+                            className="inline-flex items-center justify-center gap-2 mt-3 px-4 py-2 text-sm font-semibold rounded-full text-brand-navy border-2 border-brand-navy hover:bg-slate-50 transition-colors"
+                        >
+                            <RotateCcw size={14} aria-hidden="true" />
+                            Kembali ke periode default
+                        </Link>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm table-sticky-first table-head-static">
+                    <div className={`overflow-x-auto transition-opacity ${memuat ? 'opacity-50' : ''}`} aria-busy={memuat}>
+                        <table className="w-full text-sm table-sticky-first">
+                            {/* .table-sticky-first thead th memaksa background putih (app.css), jadi header tanpa gradient. */}
                             <thead>
-                                <tr className="text-left bg-gradient-to-r from-slate-50 to-white border-b border-slate-200/80">
+                                <tr className="text-left border-b border-slate-200/80">
                                     {hasil.kolom.map((label, i) => (
                                         <th key={i} scope="col" className={`px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap ${sel(i)}`}>{label}</th>
                                     ))}
@@ -199,7 +238,7 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
                                 {hasil.rows.map((row, ri) => (
                                     hasil.gayaBaris?.[ri] === 'section' ? (
                                         <tr key={ri} className="bg-slate-100">
-                                            <td colSpan={row.length + 1} className="px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-600">{row[0]}</td>
+                                            <td colSpan={hasil.kolom.length} className="px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-600">{row[0]}</td>
                                         </tr>
                                     ) : (
                                         <tr key={ri} className={gayaBaris(ri)}>

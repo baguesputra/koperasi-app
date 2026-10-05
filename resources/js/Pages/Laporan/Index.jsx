@@ -1,10 +1,10 @@
 import AppLayout from '@/Layouts/AppLayout';
-import { Head, router } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 import {
-    Wallet, Landmark, TrendingUp, HandCoins, CalendarClock, Repeat,
+    Wallet, Landmark, TrendingUp, HandCoins, Repeat,
     PiggyBank, CalendarCheck, Users, UserMinus, Receipt, HeartHandshake,
-    ShieldCheck, Search, ChevronRight, X, FileText,
+    Search, ChevronRight, X, FileText,
 } from 'lucide-react';
 import PageHeader from '@/Components/ui/PageHeader';
 import TextField from '@/Components/ui/TextField';
@@ -17,7 +17,6 @@ const ikonMap = {
     landmark: Landmark,
     'trending-up': TrendingUp,
     'hand-coins': HandCoins,
-    'calendar-clock': CalendarClock,
     repeat: Repeat,
     'piggy-bank': PiggyBank,
     'calendar-check': CalendarCheck,
@@ -25,13 +24,17 @@ const ikonMap = {
     'user-minus': UserMinus,
     receipt: Receipt,
     'heart-handshake': HeartHandshake,
-    'shield-check': ShieldCheck,
     'file-text': FileText,
 };
 
 export default function Index({ kelompok }) {
     const [cari, setCari] = useState('');
     const kataCari = cari.trim().toLowerCase();
+
+    const totalSemua = useMemo(
+        () => Object.values(kelompok).reduce((s, items) => s + items.length, 0),
+        [kelompok]
+    );
 
     const grupTampil = useMemo(
         () => Object.entries(kelompok)
@@ -48,16 +51,15 @@ export default function Index({ kelompok }) {
     );
 
     const totalTampil = grupTampil.reduce((s, [, items]) => s + items.length, 0);
-
-    function buka(laporan) {
-        router.get(route('laporan.show', laporan.slug));
-    }
+    const subjudul = kataCari
+        ? `${totalTampil} dari ${totalSemua} laporan cocok dengan "${cari.trim()}"`
+        : `${totalSemua} laporan tersedia • pilih, atur periode, lalu cetak atau unduh Excel`;
 
     return (
         <AppLayout>
             <Head title="Laporan" />
 
-            <PageHeader title="Laporan" subtitle={`${totalTampil} laporan tersedia • pilih, atur periode, lalu cetak atau unduh Excel`}>
+            <PageHeader title="Laporan" subtitle={subjudul}>
                 <div className="relative w-full sm:w-72 group">
                     <Search size={16} aria-hidden="true" className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-green transition-colors pointer-events-none" />
                     <TextField
@@ -105,21 +107,20 @@ export default function Index({ kelompok }) {
                             {items.map((l) => {
                                 const Icon = ikonMap[l.ikon] ?? Receipt;
                                 return (
-                                    <button
+                                    <Link
                                         key={l.slug}
-                                        onClick={() => buka(l)}
-                                        aria-label={`Buka ${l.judul}`}
+                                        href={route('laporan.show', l.slug)}
                                         className={`group text-left bg-white rounded-2xl border border-slate-200/70 shadow-sm p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-brand-green/40 ${fokusRing}`}
                                     >
                                         <div className="flex items-start justify-between gap-2 mb-3">
                                             <span className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-navy/5 to-brand-green-light/60 text-brand-navy flex items-center justify-center shrink-0 group-hover:from-brand-green-light group-hover:to-brand-green-light group-hover:text-brand-green-dark transition-colors">
                                                 <Icon size={20} aria-hidden="true" />
                                             </span>
-                                            <ChevronRight size={16} className="text-slate-300 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-brand-green transition-all mt-1" />
+                                            <ChevronRight size={16} aria-hidden="true" className="text-slate-300 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-brand-green transition-all mt-1" />
                                         </div>
                                         <p className="text-base font-bold text-slate-800 group-hover:text-brand-navy transition-colors">{l.judul}</p>
                                         <p className="text-sm text-slate-400 mt-1 leading-snug">{l.deskripsi}</p>
-                                    </button>
+                                    </Link>
                                 );
                             })}
                         </div>
