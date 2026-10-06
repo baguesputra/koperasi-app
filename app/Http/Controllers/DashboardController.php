@@ -230,7 +230,8 @@ class DashboardController extends Controller
             ->values()
             ->map(fn ($item) => [
                 ...collect($item)->except('tanggal')->toArray(),
-                'tanggal_format' => $item['tanggal']->format('d M Y'),
+                'tanggal_format' => $item['tanggal']->translatedFormat('d M Y'),
+                'tanggal_iso' => $item['tanggal']->toDateString(),
             ]);
 
         // Stats: total_anggota_aktif, pinjaman_outstanding - bisa dioptimasi nanti kalau perlu

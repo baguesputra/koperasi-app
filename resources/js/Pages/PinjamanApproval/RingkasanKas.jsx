@@ -1,7 +1,10 @@
-import { Wallet } from 'lucide-react';
+import { Link } from '@inertiajs/react';
+import { ChevronRight, Wallet } from 'lucide-react';
 import { formatRupiah } from '@/Utils/formatCurrency';
 
-export default function RingkasanKas({ ringkasan, judul = 'Beban Persetujuan Bulan Ini' }) {
+const labelBulan = new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(new Date());
+
+export default function RingkasanKas({ ringkasan, judul = 'Beban Persetujuan Bulan Ini', tinjauHref = null }) {
     if (!ringkasan) return null;
 
     const { total_menunggu = 0, jumlah_menunggu = 0 } = ringkasan;
@@ -13,9 +16,12 @@ export default function RingkasanKas({ ringkasan, judul = 'Beban Persetujuan Bul
 
     return (
         <div className="bg-brand-navy rounded-2xl p-5 text-white mb-5">
-            <div className="flex items-center gap-2 mb-4">
-                <Wallet size={18} className="text-brand-green-light" />
-                <p className="text-base font-bold">{judul}</p>
+            <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+                <div className="flex items-center gap-2">
+                    <Wallet size={18} className="text-brand-green-light" />
+                    <p className="text-base font-bold">{judul}</p>
+                </div>
+                <p className="text-xs text-slate-300">Saldo bank {labelBulan}</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -50,6 +56,16 @@ export default function RingkasanKas({ ringkasan, judul = 'Beban Persetujuan Bul
                     {defisit && ' — pertimbangkan penyesuaian nominal.'}
                 </p>
             </div>
+
+            {tinjauHref && jumlah_menunggu > 0 && (
+                <Link
+                    href={tinjauHref}
+                    className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-brand-green-light hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy rounded"
+                >
+                    Tinjau {jumlah_menunggu} antrean
+                    <ChevronRight size={14} aria-hidden="true" />
+                </Link>
+            )}
 
         </div>
     );

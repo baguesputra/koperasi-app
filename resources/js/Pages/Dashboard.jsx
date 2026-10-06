@@ -10,6 +10,7 @@ import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, R
 import Card from '@/Components/ui/Card';
 import StatWidget from '@/Components/ui/StatWidget';
 import PageHeader from '@/Components/ui/PageHeader';
+import DashboardClock from '@/Components/ui/DashboardClock';
 import RingkasanKas from '@/Pages/PinjamanApproval/RingkasanKas';
 import { formatRupiah, formatRupiahSingkat } from '@/Utils/formatCurrency';
 import { statusStyle } from '@/Utils/status';
@@ -34,13 +35,14 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
         return permission === null || userPermissions.includes(permission);
     }
 
+    const labelBulan = new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(new Date());
     const widgets = [
-        { label: 'Total Anggota Aktif', value: stats.total_anggota_aktif, icon: Users, tone: 'navy' },
-        { label: 'Total Simpanan (Aktif)', value: formatRupiah(stats.total_simpanan_outstanding), icon: PiggyBank, tone: 'green' },
-        { label: 'Pinjaman Outstanding', value: formatRupiah(stats.pinjaman_outstanding), icon: HandCoins, tone: 'amber' },
-        { label: 'Kas Operasional Gabungan', value: formatRupiah(stats.kas_operasional ?? stats.total_keseluruhan), icon: Wallet, tone: 'navy' },
-        { label: 'Layak Cair Bulan Ini', value: formatRupiah(infoPagu?.layak ?? 0), icon: HeartHandshake, tone: 'amber' },
-        { label: 'Pendapatan Bunga Bulan Ini', value: formatRupiah(stats.pendapatan_bunga_bulan_ini), icon: TrendingUp, tone: 'green' },
+        { label: 'Total Anggota Aktif', value: stats.total_anggota_aktif, icon: Users, tone: 'navy', caption: 'Data terkini' },
+        { label: 'Total Simpanan (Aktif)', value: formatRupiah(stats.total_simpanan_outstanding), icon: PiggyBank, tone: 'green', caption: 'Pokok + wajib' },
+        { label: 'Pinjaman Outstanding', value: formatRupiah(stats.pinjaman_outstanding), icon: HandCoins, tone: 'amber', caption: 'Status aktif' },
+        { label: 'Kas Operasional Gabungan', value: formatRupiah(stats.kas_operasional ?? stats.total_keseluruhan), icon: Wallet, tone: 'navy', caption: 'Bank + kas kecil' },
+        { label: 'Layak Cair Bulan Ini', value: formatRupiah(infoPagu?.layak ?? 0), icon: HeartHandshake, tone: 'amber', caption: `Saldo bank ${labelBulan}` },
+        { label: 'Pendapatan Bunga Bulan Ini', value: formatRupiah(stats.pendapatan_bunga_bulan_ini), icon: TrendingUp, tone: 'green', caption: labelBulan },
     ];
 
     const grupAksi = [
@@ -80,17 +82,34 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
             ],
         },
     ]
-        .map((g) => ({ ...g, tampil: g.aksi.filter((a) => bisaAkses(a.permission) && a.value > 0) }))
+        .map((g) => ({ ...g, tampil: g.aksi.filter((a) => bisaAkses(a.permission)), total: 0 }))
         .filter((g) => g.tampil.length > 0)
-        .sort((a, b) => b.tampil.reduce((s, a) => s + a.value, 0) - a.tampil.reduce((s, a) => s + a.value, 0));
+        .map((g) => ({ ...g, total: g.tampil.reduce((s, a) => s + a.value, 0) }))
+        .sort((a, b) => b.total - a.total);
 
-    const jumlahMenunggu = grupAksi.length;
+    const grupMenunggu = grupAksi.filter((g) => g.total > 0);
+    const jumlahMenunggu = grupMenunggu.length;
+    const semuaBeres = jumlahMenunggu === 0;
+    const antreanUtama = grupMenunggu[0]?.tampil.find((a) => a.value > 0)?.href ?? null;
+
+    function waktuRelatif(iso) {
+        if (!iso) return '';
+        const sehari = 86400000;
+        const awalHari = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+        const selisih = Math.round((awalHari(new Date()) - awalHari(new Date(iso))) / sehari);
+        if (selisih <= 0) return 'Hari ini';
+        if (selisih === 1) return 'Kemarin';
+        if (selisih < 30) return `${selisih} hari lalu`;
+        return '';
+    }
 
     return (
         <AppLayout>
             <Head title="Dashboard" />
 
-            <PageHeader title="Dashboard" subtitle="Ringkasan aktivitas koperasi hari ini" />
+            <PageHeader title="Dashboard" subtitle={`Ringkasan aktivitas koperasi • periode ${labelBulan}`}>
+                <DashboardClock />
+            </PageHeader>
 
             {/* Tren + Stat Widget */}
             <div className="mb-6">
@@ -98,10 +117,10 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                     <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
                         <div>
                             <p className="text-base font-bold text-slate-700">Tren Simpanan &amp; Pinjaman</p>
-                            <p className="text-xs text-slate-400 mt-0.5">Enam bulan terakhir</p>
+                            <p className="text-xs text-slate-400 mt-0.5">Enam bulan terakhir • periode {labelBulan}</p>
                         </div>
 
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-4 flex-wrap">
                             <div className="flex items-center gap-1.5">
                                 <span className="w-2.5 h-2.5 rounded-full bg-brand-green" />
                                 <span className="text-xs text-slate-500">Simpanan</span>
@@ -110,6 +129,15 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                                 <span className="w-2.5 h-2.5 rounded-full bg-brand-navy" />
                                 <span className="text-xs text-slate-500">Pinjaman Cair</span>
                             </div>
+                            {bisaAkses('laporan.lihat') && (
+                                <Link
+                                    href={route('laporan.show', 'arus-kas')}
+                                    className={`inline-flex items-center gap-0.5 text-xs font-bold text-brand-green-dark hover:underline ${focusRing} rounded`}
+                                >
+                                    Buka Laporan
+                                    <ChevronRight size={12} aria-hidden="true" />
+                                </Link>
+                            )}
                         </div>
                     </div>
 
@@ -138,7 +166,7 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:col-span-2 lg:col-span-3">
                         {widgets.map((w) => (
-                            <StatWidget compact key={w.label} label={w.label} value={w.value} icon={w.icon} tone={w.tone} />
+                            <StatWidget compact key={w.label} label={w.label} value={w.value} icon={w.icon} tone={w.tone} caption={w.caption} />
                         ))}
                     </div>
                     <div className="bg-brand-navy rounded-2xl p-5 text-white flex flex-col justify-between sm:col-span-2 lg:col-span-1 lg:min-h-full">
@@ -154,17 +182,17 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                 </div>
             </div>
 
-            <RingkasanKas ringkasan={ringkasanKas} judul="Beban Persetujuan Bulan Ini" />
+            <RingkasanKas ringkasan={ringkasanKas} judul="Beban Persetujuan Bulan Ini" tinjauHref={antreanUtama} />
 
             {/* Perlu Ditindaklanjuti */}
             <div className="mb-6">
                 <div className="flex items-center justify-between mb-3">
                     <p className="text-base font-bold text-slate-700">Perlu Ditindaklanjuti</p>
                     <p className="text-xs text-slate-400">
-                        {jumlahMenunggu > 0 ? `${jumlahMenunggu} domain menunggu aksi` : 'Semua beres'}
+                        {semuaBeres ? 'Semua beres' : `${jumlahMenunggu} domain menunggu aksi`}
                     </p>
                 </div>
-                {grupAksi.length === 0 ? (
+                {semuaBeres ? (
                     <div className="flex items-center gap-3 bg-brand-green-light/40 border border-brand-green/20 rounded-xl px-4 py-3.5">
                         <CheckCircle2 size={18} aria-hidden="true" className="text-brand-green-dark shrink-0" />
                         <p className="text-sm font-semibold text-brand-green-dark">Semua antrean sudah ditangani. Tidak ada aksi menunggu.</p>
@@ -173,20 +201,21 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                         {grupAksi.map((grup) => {
                             const Icon = grup.icon;
-                            const total = grup.tampil.reduce((s, a) => s + a.value, 0);
+                            const sibuk = grup.total > 0;
                             return (
                                 <div
                                     key={grup.label}
-                                    className="relative flex items-center gap-2.5 rounded-xl border px-3.5 py-3 bg-amber-50 border-amber-200"
+                                    className={`relative flex items-center gap-2.5 rounded-xl border px-3.5 py-3 ${sibuk ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-100 opacity-70'}`}
                                 >
-                                    <span className="absolute top-2 right-2 flex h-1.5 w-1.5">
-                                        <span className="absolute inline-flex h-full w-full animate-ping motion-reduce:hidden rounded-full bg-red-400 opacity-75" />
-                                        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-red-500" />
-                                    </span>
-                                    <Icon size={18} aria-hidden="true" className="shrink-0 text-amber-600" />
+                                    {sibuk && (
+                                        <span className="absolute top-2 right-2 flex h-1.5 w-1.5" aria-hidden="true">
+                                            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-red-500" />
+                                        </span>
+                                    )}
+                                    <Icon size={18} aria-hidden="true" className={`shrink-0 ${sibuk ? 'text-amber-600' : 'text-slate-300'}`} />
                                     <div className="min-w-0 flex-1">
-                                        <p className="text-xl font-bold leading-none text-amber-700">
-                                            {total}
+                                        <p className={`text-xl font-bold leading-none ${sibuk ? 'text-amber-700' : 'text-slate-400'}`}>
+                                            {grup.total}
                                         </p>
                                         <p className="text-xs font-medium leading-tight mt-1 text-slate-600">
                                             {grup.label}
@@ -196,7 +225,7 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                                                 <Link
                                                     key={a.label}
                                                     href={a.href}
-                                                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white border border-amber-200 text-xs font-bold text-amber-700 hover:bg-amber-100 transition-colors ${focusRing}`}
+                                                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white border text-xs font-bold transition-colors ${a.value > 0 ? 'border-amber-200 text-amber-700 hover:bg-amber-100' : 'border-slate-200 text-slate-400'} ${focusRing}`}
                                                 >
                                                     {a.label} {a.value}
                                                     <ChevronRight size={12} aria-hidden="true" />
@@ -214,7 +243,18 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
                 {/* Aktivitas Terbaru */}
                 <Card className="lg:col-span-1 sm:p-6">
-                    <p className="text-base font-bold text-slate-700 mb-4">Aktivitas Terbaru</p>
+                    <div className="flex items-center justify-between gap-3 mb-4">
+                        <p className="text-base font-bold text-slate-700">Aktivitas Terbaru</p>
+                        {bisaAkses('pinjaman.lihat') && aktivitasTerbaru.length > 0 && (
+                            <Link
+                                href={route('pinjaman.index')}
+                                className={`inline-flex items-center gap-0.5 text-xs font-bold text-brand-green-dark hover:underline ${focusRing} rounded`}
+                            >
+                                Lihat semua
+                                <ChevronRight size={12} aria-hidden="true" />
+                            </Link>
+                        )}
+                    </div>
 
                     {aktivitasTerbaru.length === 0 ? (
                         <p className="text-sm text-slate-400 text-center py-8">Belum ada aktivitas.</p>
@@ -222,6 +262,7 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                         <div className="space-y-3">
                             {aktivitasTerbaru.map((item, i) => {
                                 const Icon = item.tipe === 'pinjaman' ? PinjamanIcon : CheckCircle2;
+                                const relatif = waktuRelatif(item.tanggal_iso);
                                 return (
                                     <div key={i} className="flex items-start gap-3">
                                         <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${statusStyle[item.status]}`}>
@@ -230,7 +271,7 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-semibold text-slate-700 truncate">{item.nama}</p>
                                             <p className="text-xs text-slate-400 truncate">{item.keterangan}</p>
-                                            <p className="text-xs text-slate-400 mt-0.5">{item.tanggal_format}</p>
+                                            <p className="text-xs text-slate-400 mt-0.5">{relatif ? `${relatif} • ${item.tanggal_format}` : item.tanggal_format}</p>
                                         </div>
                                     </div>
                                 );
@@ -241,8 +282,21 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
 
                 {/* Mutasi Kas */}
                 <Card className="lg:col-span-2 sm:p-6">
-                <p className="text-base font-bold text-slate-700 mb-1">Mutasi Kas Koperasi</p>
-                <p className="text-xs text-slate-400 mb-4">Enam bulan terakhir</p>
+                <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
+                    <div>
+                        <p className="text-base font-bold text-slate-700 mb-1">Mutasi Kas Koperasi</p>
+                        <p className="text-xs text-slate-400">Enam bulan terakhir</p>
+                    </div>
+                    {bisaAkses('laporan.lihat') && (
+                        <Link
+                            href={route('laporan.show', 'arus-kas')}
+                            className={`inline-flex items-center gap-0.5 text-xs font-bold text-brand-green-dark hover:underline ${focusRing} rounded`}
+                        >
+                            Buka Laporan Arus Kas
+                            <ChevronRight size={12} aria-hidden="true" />
+                        </Link>
+                    )}
+                </div>
                 <div className="min-h-[280px]">
                     <ResponsiveContainer width="100%" height={280}>
                     <BarChart data={grafikKas} margin={{ left: -10 }} barCategoryGap="25%">

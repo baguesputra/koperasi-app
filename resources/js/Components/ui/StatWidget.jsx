@@ -1,4 +1,4 @@
-export default function StatWidget({ label, value, icon: Icon, tone = 'navy', compact = false }) {
+export default function StatWidget({ label, value, icon: Icon, tone = 'navy', compact = false, caption }) {
     const tones = {
         navy: 'bg-brand-navy/5 text-brand-navy',
         green: 'bg-brand-green-light text-brand-green-dark',
@@ -15,6 +15,7 @@ export default function StatWidget({ label, value, icon: Icon, tone = 'navy', co
                 <div className="min-w-0">
                     <p className="text-sm text-slate-500 leading-snug">{label}</p>
                     <p className="text-xl font-bold text-slate-800 mt-0.5 leading-tight break-words">{value}</p>
+                    {caption && <p className="text-xs text-slate-400 mt-0.5">{caption}</p>}
                 </div>
             </div>
         );
