@@ -1,5 +1,6 @@
 import { Head } from '@inertiajs/react';
-import { Printer } from 'lucide-react';
+import { useState } from 'react';
+import { Check, Copy, ExternalLink, Printer } from 'lucide-react';
 
 function formatRupiah(n) {
     return 'Rp ' + Number(n ?? 0).toLocaleString('id-ID', { maximumFractionDigits: 0 });
@@ -12,8 +13,20 @@ function formatTanggal(iso) {
 }
 
 export default function CetakBukti({ pinjaman, angsuran, totals, kota_ttd }) {
+    const [tersalin, setTersalin] = useState(false);
+
     function handlePrint() {
         window.print();
+    }
+
+    async function salinTautan() {
+        try {
+            await navigator.clipboard.writeText(verificationUrl);
+            setTersalin(true);
+            setTimeout(() => setTersalin(false), 2000);
+        } catch {
+            setTersalin(false);
+        }
     }
 
     const docNo = pinjaman.nomor_dokumen ?? `BUKTI-PJM/${pinjaman.anggota.no_karyawan}/${pinjaman.id}`;
@@ -187,11 +200,10 @@ export default function CetakBukti({ pinjaman, angsuran, totals, kota_ttd }) {
                             </div>
                             <div style={{ display: 'table-cell', width: '50%', textAlign: 'center', verticalAlign: 'top' }}>
                                 <div className="tnr" style={{ fontSize: '10pt', color: '#000', marginBottom: '4px' }}>{kota}, {tglTtd}<br />Ketua Koperasi</div>
-                                <div id="qr-code" style={{ width: '60px', height: '60px', margin: '6px auto' }}></div>
-                                <div style={{ height: '24px' }} />
+                                <div style={{ height: '80px' }} />
                                 <span className="tnr" style={{ fontSize: '11pt', fontWeight: 700, color: '#000', borderTop: '1.5px solid #000', paddingTop: '6px', display: 'inline-block', minWidth: '200px', textTransform: 'uppercase' }}>{ketuaNama}</span>
                                 <span className="tnr" style={{ fontSize: '9pt', color: '#000', marginTop: '2px', display: 'block', fontStyle: 'italic' }}>Ketua</span>
-                                <div className="tnr" style={{ fontSize: '8pt', color: '#333', marginTop: '4px' }}>Pindai untuk verifikasi keaslian dokumen</div>
+                                <div className="tnr" style={{ fontSize: '8pt', color: '#333', marginTop: '4px' }}>QR verifikasi tersedia di dokumen PDF unduhan</div>
                             </div>
                         </div>
                     </div>
@@ -199,19 +211,32 @@ export default function CetakBukti({ pinjaman, angsuran, totals, kota_ttd }) {
                     <div style={{ textAlign: 'center', marginTop: '20px', paddingTop: '8px', borderTop: '1px solid #000', fontSize: '9pt', color: '#000', fontStyle: 'italic' }}>
                         Dokumen ini diterbitkan oleh sistem Koperasi Karyawan pada {tglCetak} &bull; {docNo}
                     </div>
+
+                    <div className="no-print mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                        <p className="text-sm font-bold text-slate-700 mb-1">Tautan verifikasi keaslian</p>
+                        <p className="text-xs text-slate-500 mb-2 break-all">{verificationUrl}</p>
+                        <div className="flex flex-wrap gap-2">
+                            <button
+                                type="button"
+                                onClick={salinTautan}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-100"
+                            >
+                                {tersalin ? <Check size={14} /> : <Copy size={14} />}
+                                {tersalin ? 'Tersalin' : 'Salin tautan'}
+                            </button>
+                            <a
+                                href={verificationUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-100"
+                            >
+                                <ExternalLink size={14} />
+                                Buka verifikasi
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
-
-            <script dangerouslySetInnerHTML={{
-                __html: `
-                    (function() {
-                        var url = "${verificationUrl}";
-                        var qrDiv = document.getElementById('qr-code');
-                        if (!qrDiv) return;
-                        qrDiv.innerHTML = '<img src="https://chart.googleapis.com/chart?cht=qr&chl=' + encodeURIComponent(url) + '&chs=60x60&chld=L|2" alt="QR Code" style="width:60px;height:60px;">';
-                    })();
-                `
-            }} />
         </>
     );
 }
