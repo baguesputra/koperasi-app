@@ -82,7 +82,7 @@ export default function Import() {
                         </span>
                         <div>
                             <p className="text-sm font-bold text-slate-800">Upload file Excel</p>
-                            <p className="text-xs text-slate-400">Password awal = no. karyawan</p>
+                            <p className="text-xs text-slate-400">Password awal = no. karyawan &bull; Maks 2 MB, 5000 baris</p>
                         </div>
                     </div>
 

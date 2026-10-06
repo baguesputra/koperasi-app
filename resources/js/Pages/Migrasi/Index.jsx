@@ -4,6 +4,24 @@ import { Download, Upload, CheckCircle2, XCircle } from 'lucide-react';
 import Card from '@/Components/ui/Card';
 import Button from '@/Components/ui/Button';
 
+function CatatanItem({ teks }) {
+    const bagian = teks.split(/(<code>.*?<\/code>)/g);
+
+    return (
+        <span>
+            {bagian.map((b, i) =>
+                b.startsWith('<code>') ? (
+                    <code key={i} className="rounded bg-slate-200/70 px-1 py-0.5 text-[13px] font-semibold text-slate-700">
+                        {b.replace(/<\/?code>/g, '')}
+                    </code>
+                ) : (
+                    <span key={i}>{b}</span>
+                ),
+            )}
+        </span>
+    );
+}
+
 function BlokImport({ judul, deskripsi, catatan, templateRoute, importRoute, progresRoute, form }) {
     function submit(e) {
         e.preventDefault();
@@ -17,7 +35,7 @@ function BlokImport({ judul, deskripsi, catatan, templateRoute, importRoute, pro
 
             <div className="bg-slate-50 rounded-xl p-4 mb-4 text-sm text-slate-600 space-y-1">
                 {catatan.map((c, i) => (
-                    <p key={i}>&bull; <span dangerouslySetInnerHTML={{ __html: c }} /></p>
+                    <p key={i}>&bull; <CatatanItem teks={c} /></p>
                 ))}
             </div>
 
@@ -71,6 +89,7 @@ export default function Index() {
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5 text-sm text-amber-800">
                 Topup <strong>Bank</strong> dulu di halaman Kas Koperasi sebelum import,
                 supaya jurnal pencairan historis tidak gagal karena saldo kurang.
+                Maksimal file <strong>2 MB</strong> dan <strong>5000 baris</strong>.
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">

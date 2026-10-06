@@ -24,6 +24,12 @@ class PinjamanMigrasiImport implements ToCollection, WithHeadingRow
 
     public function collection(Collection $rows): void
     {
+        if ($rows->count() > 5000) {
+            $this->gagal[] = 'File melebihi 5000 baris. Pecah file lalu upload ulang.';
+
+            return;
+        }
+
         $userId = auth()->id();
         $this->pencocokan->lupakanCache();
 

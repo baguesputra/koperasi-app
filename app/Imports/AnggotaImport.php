@@ -21,6 +21,12 @@ class AnggotaImport implements ToCollection, WithHeadingRow
 
     public function collection(Collection $rows): void
     {
+        if ($rows->count() > 5000) {
+            $this->gagal[] = 'File melebihi 5000 baris. Pecah file lalu upload ulang.';
+
+            return;
+        }
+
         $nominalPokok = SettingSimpanan::where('jenis', 'pokok')->value('nominal') ?? 50_000;
         $adminId = auth()->id();
 
