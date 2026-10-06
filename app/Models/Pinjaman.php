@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Helpers\TerbilangHelper;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -185,43 +186,37 @@ class Pinjaman extends Model
 
     public function getVerificationTimeline(): array
     {
-        $timeline = [];
-
-        $timeline[] = [
-            'label' => 'Pengajuan',
-            'date' => $this->tanggal_pengajuan?->format('d M Y H:i'),
-            'user' => $this->pengaju?->name ?? '-',
-            'status' => 'done',
-            'icon' => 'file-text',
-        ];
+        $ditolak = $this->status === 'ditolak';
+        $ditolakKetua = $ditolak && ! empty($this->catatan_ketua);
+        $bendaharaDone = in_array($this->status, ['approved_bendahara', 'approved_ketua', 'aktif', 'lunas'], true) || $ditolakKetua;
+        $ketuaDone = in_array($this->status, ['approved_ketua', 'aktif', 'lunas'], true);
 
         $bendaharaData = $this->parseApprovalNote($this->catatan_bendahara);
-        $timeline[] = [
-            'label' => 'Approve Bendahara',
-            'date' => $bendaharaData['date'] ?? ($this->tanggal_pencairan?->format('d M Y H:i') ?? '-'),
-            'user' => $bendaharaData['user'] ?? '-',
-            'status' => in_array($this->status, ['approved_bendahara', 'approved_ketua', 'aktif', 'lunas']) ? 'done' : 'pending',
-            'icon' => 'shield-check',
-        ];
-
         $ketuaData = $this->parseApprovalNote($this->catatan_ketua);
-        $timeline[] = [
-            'label' => 'Approve Ketua',
-            'date' => $ketuaData['date'] ?? ($this->disetujui_pada?->format('d M Y H:i') ?? '-'),
-            'user' => $ketuaData['user'] ?? '-',
-            'status' => in_array($this->status, ['approved_ketua', 'aktif', 'lunas']) ? 'done' : 'pending',
-            'icon' => 'user-check',
-        ];
 
-        $timeline[] = [
-            'label' => 'Pencairan',
-            'date' => $this->tanggal_pencairan?->format('d M Y H:i') ?? '-',
-            'user' => $this->cairOlehBendahara?->name ?? '-',
-            'status' => $this->status === 'aktif' ? 'done' : 'pending',
-            'icon' => 'banknote',
+        return [
+            [
+                'label' => 'Pengajuan Anggota',
+                'date' => $this->tanggal_pengajuan?->translatedFormat('d F Y') ?? '-',
+                'user' => $this->pengaju?->name ?? 'Belum tercatat',
+                'status' => 'done',
+                'icon' => 'file-text',
+            ],
+            [
+                'label' => 'Verifikasi Bendahara',
+                'date' => $bendaharaData['date'] ?? '-',
+                'user' => $bendaharaData['user'] ?? 'Belum tercatat',
+                'status' => $ditolak && ! $ditolakKetua ? 'rejected' : ($bendaharaDone ? 'done' : 'current'),
+                'icon' => 'shield-check',
+            ],
+            [
+                'label' => 'Persetujuan Ketua',
+                'date' => $ketuaData['date'] ?? ($this->disetujui_pada?->translatedFormat('d F Y, H:i') ?? '-'),
+                'user' => $ketuaData['user'] ?? 'Belum tercatat',
+                'status' => $ditolakKetua ? 'rejected' : ($ketuaDone ? 'done' : ($bendaharaDone ? 'current' : 'pending')),
+                'icon' => 'user-check',
+            ],
         ];
-
-        return $timeline;
     }
 
     private function parseApprovalNote(?string $note): array
@@ -233,9 +228,9 @@ class Pinjaman extends Model
         $result = ['date' => null, 'user' => null];
 
         if (preg_match('/pada\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2})/i', $note, $matches)) {
-            $result['date'] = date('d M Y H:i', strtotime($matches[1]));
+            $result['date'] = Carbon::parse($matches[1])->translatedFormat('d F Y, H:i');
         } elseif (preg_match('/(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2})/', $note, $matches)) {
-            $result['date'] = date('d M Y H:i', strtotime($matches[1]));
+            $result['date'] = Carbon::parse($matches[1])->translatedFormat('d F Y, H:i');
         }
 
         if (preg_match('/oleh\s+([A-Za-z\s.]+?)(?:\s+pada|\s*$)/i', $note, $matches)) {

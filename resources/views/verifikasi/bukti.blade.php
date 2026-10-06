@@ -17,6 +17,7 @@
             --success: #16A34A;
             --info: #2563EB;
             --warning: #D97706;
+            --danger: #DC2626;
             --radius: 16px;
             --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
             --space-1: 4px;
@@ -310,13 +311,17 @@
             height: clamp(40px, 5vw, 44px);
             margin-top: -2px;
         }
-        .step-dot.current { border-color: var(--info); background: var(--info); animation: pulse 2s infinite; }
+        .step-dot.current { border-color: var(--info); background: var(--info); }
+        .step-dot.rejected { border-color: var(--danger); background: var(--danger); }
+        .step-dot.rejected svg { stroke: white; }
+        .timeline-step.rejected .step-label { color: var(--danger); }
         .step-dot.pending { border-color: var(--border); background: var(--card-bg); }
         .step-dot svg { width: clamp(16px, 2vw, 18px); height: clamp(16px, 2vw, 18px); }
         .step-dot.done svg { stroke: white; }
         .step-dot.current svg { stroke: white; }
         .step-dot.pending svg { stroke: var(--text-muted); }
-        @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); } 50% { box-shadow: 0 0 0 8px rgba(37, 99, 235, 0); } }
+        .step-status.rejected { background: #FEE2E2; color: var(--danger); }
+        .timeline-step.rejected:not(:last-child)::after { background: var(--danger); }
         .step-label {
             font-size: clamp(12px, 1.4vw, 13px);
             font-weight: 600;
@@ -484,9 +489,21 @@
                     </div>
                 </div>
                 <div class="hero-meta">
-                    <span class="badge">VALID</span>
+                    @php
+                        $statusLabel = match ($pinjaman->status) {
+                            'aktif', 'lunas', 'approved_ketua' => 'SAH',
+                            'ditolak' => 'DITOLAK',
+                            default => 'DALAM PROSES',
+                        };
+                        $badgeStyle = match ($pinjaman->status) {
+                            'aktif', 'lunas', 'approved_ketua' => 'background: #DCFCE7; color: var(--success);',
+                            'ditolak' => 'background: #FEE2E2; color: var(--danger);',
+                            default => 'background: #DBEAFE; color: var(--info);',
+                        };
+                    @endphp
+                    <span class="badge" style="{{ $badgeStyle }}">{{ $statusLabel }}</span>
                     <div class="hero-ref">No. Referensi: {{ $pinjaman->nomor_dokumen ?? '-' }}</div>
-                    <div class="hero-verified">Diverifikasi: {{ now()->format('d M Y H:i') }}</div>
+                    <div class="hero-verified">Diverifikasi: {{ now()->translatedFormat('d F Y, H:i') }} WIB</div>
                 </div>
             </div>
         </section>
@@ -494,7 +511,7 @@
         <!-- Timeline -->
         <section class="card">
             <div class="card-header">
-                <h2 class="card-title">Timeline Persetujuan</h2>
+                <h2 class="card-title">Riwayat Persetujuan &middot; No. {{ $pinjaman->nomor_dokumen ?? '-' }}</h2>
             </div>
             <div class="card-body">
                 <div class="timeline">
@@ -503,18 +520,18 @@
                             <div class="step-dot {{ $step['status'] }}">
                                 @if ($step['status'] === 'done')
                                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                @elseif ($step['status'] === 'current')
-                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                @elseif ($step['status'] === 'rejected')
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                                 @else
                                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                 @endif
                             </div>
                             <div class="step-label">{{ $step['label'] }}</div>
                             <span class="step-status {{ $step['status'] }}">
-                                {{ $step['status'] === 'done' ? 'Selesai' : ($step['status'] === 'current' ? 'Sedang Proses' : 'Menunggu') }}
+                                {{ $step['status'] === 'done' ? 'Selesai' : ($step['status'] === 'current' ? 'Sedang Diproses' : ($step['status'] === 'rejected' ? 'Ditolak' : 'Menunggu')) }}
                             </span>
                             <div class="step-date">{{ $step['date'] }}</div>
-                            <div class="step-user">Oleh: {{ $step['user'] }}</div>
+                            <div class="step-user">{{ $step['user'] }}</div>
                         </div>
                     @endforeach
                 </div>
@@ -633,7 +650,8 @@
         <footer class="footer">
             <p>Halaman verifikasi resmi Koperasi Karyawan &bull;
             <a href="{{ $verificationUrl }}">{{ parse_url($verificationUrl, PHP_URL_HOST) }}</a>
-            &bull; Dicetak pada {{ now()->format('d M Y H:i') }}</p>
+            &bull; Dicetak pada {{ now()->translatedFormat('d F Y, H:i') }} WIB</p>
+            <p>Dokumen ini diterbitkan sesuai Anggaran Dasar dan Anggaran Rumah Tangga koperasi yang berlaku.</p>
         </footer>
     </div>
 </body>
