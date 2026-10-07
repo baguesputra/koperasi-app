@@ -247,6 +247,12 @@ class JurnalKasService
         $kas ??= KasKoperasi::first();
 
         $bank = $kas ? (float) $kas->saldo_bank : 0.0;
+        $awal = Carbon::createFromFormat('Y-m', $bulan)->startOfMonth()->startOfDay()->toDateTimeString();
+        $akhir = Carbon::createFromFormat('Y-m', $bulan)->endOfMonth()->endOfDay()->toDateTimeString();
+        $sudahCair = (float) JurnalKas::where('kategori', 'pencairan_pinjaman')
+            ->where('tipe', 'keluar')
+            ->whereBetween('tanggal', [$awal, $akhir])
+            ->sum('jumlah');
 
         return [
             'bulan' => $bulan,
@@ -255,7 +261,7 @@ class JurnalKasService
             'saldo_operasional' => $this->saldoOperasional($kas),
             'saldo_bank' => $bank,
             'saldo_kas_kecil' => $kas ? (float) $kas->saldo_kas_kecil : 0.0,
-            'sudah_cair' => 0.0,
+            'sudah_cair' => $sudahCair,
             'layak' => max(0.0, $bank),
         ];
     }

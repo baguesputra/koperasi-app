@@ -60,6 +60,24 @@ class KasPaguOperasionalTest extends TestCase
         $this->assertEquals($info['saldo_bank'], $info['layak']);
     }
 
+    public function test_sudah_cair_mengikuti_pencairan_bulan_berjalan(): void
+    {
+        $anggota = $this->buatAnggota();
+        $pinjaman = $this->ajukan($anggota, 1_000_000);
+
+        $this->masuk('BEN-000001');
+        $this->post(route('bendahara.pinjaman.approve', $pinjaman), ['catatan' => 'Setuju, data lengkap.', 'nominal' => 1_000_000])
+            ->assertStatus(302);
+
+        $this->masuk('KET-000001');
+        $this->post(route('ketua.pinjaman.approve', $pinjaman), ['catatan' => 'Disetujui Ketua.', 'nominal' => 1_000_000])
+            ->assertStatus(302);
+
+        $info = app(JurnalKasService::class)->sisaPaguBulan();
+
+        $this->assertEquals(1_000_000, $info['sudah_cair']);
+    }
+
     public function test_cair_ditolak_bila_melebihi_saldo_bank(): void
     {
         $kas = KasKoperasi::first();
