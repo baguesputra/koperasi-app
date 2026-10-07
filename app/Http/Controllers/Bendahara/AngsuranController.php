@@ -89,7 +89,7 @@ class AngsuranController extends Controller
             ->groupBy('cabang')
             ->map(fn ($items) => (float) $items->sum('total_bayar'));
 
-        $daftarCabang = Cache::remember('daftar_cabang', 600, fn () => Anggota::query()->whereNotNull('cabang')->distinct()->orderBy('cabang')->pluck('cabang'));
+        $daftarCabang = Cache::remember('daftar_cabang', 600, fn () => Anggota::query()->whereNotNull('cabang')->distinct()->orderBy('cabang')->pluck('cabang')->values()->all());
 
         $totalPendapatanBungaBulanIni = Angsuran::where('status', 'lunas')
             ->whereBetween('tanggal_konfirmasi_bayar', [$awalBulan, $akhirBulan])

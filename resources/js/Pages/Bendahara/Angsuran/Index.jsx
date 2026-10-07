@@ -13,7 +13,8 @@ import { withIdempotencyKey } from '@/Utils/idempotency';
 
 const fokusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/40';
 
-export default function Index({ bulan, daftarAngsuran, cabangAktif, daftarCabang, tagihanPerCabang, totalTagihanBulanIni, totalPendapatanBungaBulanIni, totalPendapatanBungaKeseluruhan }) {
+export default function Index({ bulan, daftarAngsuran = [], cabangAktif = '', daftarCabang = [], tagihanPerCabang = {}, totalTagihanBulanIni = 0, totalPendapatanBungaBulanIni = 0, totalPendapatanBungaKeseluruhan = 0 }) {
+    const daftarCabangAman = Array.isArray(daftarCabang) ? daftarCabang : Object.values(daftarCabang ?? {});
     const [terpilih, setTerpilih] = useState([]);
     const [processing, setProcessing] = useState(false);
     const [cari, setCari] = useState('');
@@ -93,7 +94,7 @@ export default function Index({ bulan, daftarAngsuran, cabangAktif, daftarCabang
 
     const tab = [
         { key: '', label: 'Semua Cabang', nominal: totalTagihanBulanIni },
-        ...daftarCabang.map((c) => ({
+        ...daftarCabangAman.map((c) => ({
             key: c,
             label: c,
             nominal: tagihanPerCabang[c] ?? 0,
