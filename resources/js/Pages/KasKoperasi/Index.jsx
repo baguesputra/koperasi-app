@@ -11,6 +11,7 @@ import TextField from '@/Components/ui/TextField';
 import FormField from '@/Components/ui/FormField';
 import Select from '@/Components/ui/Select';
 import useDebouncedValue from '@/Utils/useDebouncedValue';
+import ChipNominal from '@/Components/ui/ChipNominal';
 import { formatRupiah, formatRupiahSingkat } from '@/Utils/formatCurrency';
 import { withIdempotencyKey } from '@/Utils/idempotency';
 
@@ -59,8 +60,6 @@ const kanalMeta = {
     kas_kecil: { label: 'Kas Kecil', ikon: Wallet, warna: 'bg-amber-50 text-amber-700' },
     audit: { label: 'Non-kas', ikon: FileSearch, warna: 'bg-slate-100 text-slate-500' },
 };
-
-const chipNominal = [500_000, 1_000_000, 2_500_000, 5_000_000, 10_000_000];
 
 export default function Index({
     saldoBank,
@@ -310,22 +309,7 @@ export default function Index({
                                         className="pl-10 tabular-nums"
                                     />
                                 </div>
-                                <div className="flex flex-wrap gap-1.5 mt-2">
-                                    {chipNominal.map((n) => (
-                                        <button
-                                            key={n}
-                                            type="button"
-                                            onClick={() => setData('jumlah', String(n))}
-                                            className={`px-2.5 py-1 text-xs font-bold rounded-full border transition-colors tabular-nums ${
-                                                String(data.jumlah) === String(n)
-                                                    ? 'bg-brand-navy text-white border-brand-navy'
-                                                    : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-brand-green/50 hover:text-brand-green-dark'
-                                            }`}
-                                        >
-                                            {formatRupiahSingkat(n)}
-                                        </button>
-                                    ))}
-                                </div>
+                                <ChipNominal grup="topup" nilai={data.jumlah} onPilih={(n) => setData('jumlah', n)} />
                             </FormField>
                             <FormField label="Keterangan" error={errors.keterangan} hint={`Contoh: Topup ${labelBulan} dari pendapatan bunga`}>
                                 <TextField
@@ -376,22 +360,7 @@ export default function Index({
                                         className="pl-10 tabular-nums"
                                     />
                                 </div>
-                                <div className="flex flex-wrap gap-1.5 mt-2">
-                                    {chipNominal.map((n) => (
-                                        <button
-                                            key={n}
-                                            type="button"
-                                            onClick={() => sisihForm.setData('jumlah', String(n))}
-                                            className={`px-2.5 py-1 text-xs font-bold rounded-full border transition-colors tabular-nums ${
-                                                String(sisihForm.data.jumlah) === String(n)
-                                                    ? 'bg-brand-navy text-white border-brand-navy'
-                                                    : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-brand-green/50 hover:text-brand-green-dark'
-                                            }`}
-                                        >
-                                            {formatRupiahSingkat(n)}
-                                        </button>
-                                    ))}
-                                </div>
+                                <ChipNominal grup="sisih" nilai={sisihForm.data.jumlah} onPilih={(n) => sisihForm.setData('jumlah', n)} />
                             </FormField>
                             <FormField label="Keterangan" error={sisihForm.errors.keterangan} hint="Contoh: Kas operasional sekretariat minggu ini">
                                 <TextField

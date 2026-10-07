@@ -9,6 +9,7 @@ use App\Models\Divisi;
 use App\Models\Jabatan;
 use App\Models\Perusahaan;
 use App\Models\SettingBunga;
+use App\Models\SettingChipNominal;
 use App\Models\SettingKas;
 use App\Models\SettingLimitPinjaman;
 use App\Models\SettingSimpanan;
@@ -22,6 +23,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -30,7 +32,7 @@ use Spatie\Permission\Models\Role;
 
 class PengaturanController extends Controller
 {
-    private const TAB_DIPERBOLEHKAN = ['bunga', 'limit', 'tenor', 'simpanan', 'kas', 'wa', 'akses', 'organisasi', 'audit'];
+    private const TAB_DIPERBOLEHKAN = ['bunga', 'limit', 'tenor', 'simpanan', 'kas', 'chip', 'wa', 'akses', 'organisasi', 'audit'];
 
     private const PANEL_DIPERBOLEHKAN = ['kelola-pengguna', 'kelola-role'];
 
@@ -147,6 +149,7 @@ class PengaturanController extends Controller
             'bungaSaatIni' => SettingBunga::orderByDesc('berlaku_dari_tanggal')->first(),
             'settingSimpanan' => SettingSimpanan::orderBy('id')->get(),
             'settingKas' => SettingKas::orderBy('id')->get(),
+            'chipNominal' => SettingChipNominal::dikelompokkan(),
             'ringkasanMaster' => [
                 'perusahaan' => Perusahaan::count(),
                 'departemen' => Departemen::count(),
@@ -276,6 +279,39 @@ class PengaturanController extends Controller
         );
 
         return back()->with('status', 'Pagu kas berhasil diperbarui.');
+    }
+
+    public function updateChip(Request $request)
+    {
+        $grupDipakai = array_keys(SettingChipNominal::GRUP_LABEL);
+
+        $request->validate([
+            'grup' => ['required', 'string', 'in:'.implode(',', $grupDipakai)],
+            'daftar' => ['required', 'array', 'min:1', 'max:'.SettingChipNominal::MAKS_PER_GRUP],
+            'daftar.*' => ['required', 'numeric', 'min:1', 'max:999999999999'],
+        ]);
+
+        $grup = $request->string('grup')->toString();
+        $daftar = collect($request->input('daftar'))
+            ->map(fn ($n) => (float) $n)
+            ->unique()
+            ->values();
+
+        SettingChipNominal::where('grup', $grup)->delete();
+        foreach ($daftar as $i => $nominal) {
+            SettingChipNominal::create(['grup' => $grup, 'nominal' => $nominal, 'urutan' => $i]);
+        }
+
+        Cache::forget('chip_nominal_semua');
+
+        AuditLog::catat(
+            'update_chip_nominal',
+            "Chip nominal '{$grup}' diubah menjadi: ".implode(', ', $daftar->map(fn ($n) => 'Rp '.number_format($n, 0, ',', '.'))->all()),
+            null,
+            ['grup' => $grup, 'daftar' => $daftar->all()]
+        );
+
+        return back()->with('status', 'Chip nominal berhasil diperbarui.');
     }
 
     private function statusGate(): array

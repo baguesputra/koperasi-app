@@ -2,6 +2,7 @@ import { useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import { AlertCircle, CheckCircle2, ArrowUpRight, Minus, CreditCard, Calendar } from 'lucide-react';
 import Button from '@/Components/ui/Button';
+import ChipNominal from '@/Components/ui/ChipNominal';
 import StatusBadge from '@/Components/ui/StatusBadge';
 import { formatRupiah } from '@/Utils/formatCurrency';
 import { withIdempotencyKey } from '@/Utils/idempotency';
@@ -326,6 +327,7 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                                                 autoFocus
                                             />
                                         </div>
+                                        <ChipNominal grup="limit_baru" nilai={data.limit_disetujui} onPilih={(n) => setData('limit_disetujui', n)} />
                                         {Number(data.limit_disetujui) > pengajuan.limit_saat_ini && (
                                             <p className="text-xs font-semibold text-brand-green-dark mt-1.5">
                                                 Penambahan limit: +{formatRupiah(Number(data.limit_disetujui) - pengajuan.limit_saat_ini)}

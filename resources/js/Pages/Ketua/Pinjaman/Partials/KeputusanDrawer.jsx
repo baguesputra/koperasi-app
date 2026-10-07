@@ -2,6 +2,7 @@ import { useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import Button from '@/Components/ui/Button';
+import ChipNominal from '@/Components/ui/ChipNominal';
 import StatusBadge from '@/Components/ui/StatusBadge';
 import { formatRupiah } from '@/Utils/formatCurrency';
 import { withIdempotencyKey } from '@/Utils/idempotency';
@@ -236,6 +237,7 @@ export default function KeputusanDrawer({ pinjaman, onClose }) {
                                                     autoFocus
                                                 />
                                             </div>
+                                            <ChipNominal grup="pinjaman_usulan" nilai={data.nominal} onPilih={(n) => setData('nominal', n)} />
                                             {errors.nominal && <p className="text-sm text-red-600 mt-1.5">{errors.nominal}</p>}
                                             {nominalFinal > (pinjaman.limit_tersedia ?? 0) && (
                                                 <p className="text-sm text-amber-600 mt-1.5">Melebihi limit tersedia anggota — server akan menolak.</p>

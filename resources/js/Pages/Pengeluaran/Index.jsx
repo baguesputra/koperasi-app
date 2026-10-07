@@ -9,10 +9,9 @@ import PageHeader from '@/Components/ui/PageHeader';
 import TextField from '@/Components/ui/TextField';
 import FormField from '@/Components/ui/FormField';
 import Pagination from '@/Components/ui/Pagination';
+import ChipNominal from '@/Components/ui/ChipNominal';
 import { formatRupiah, formatRupiahSingkat } from '@/Utils/formatCurrency';
 import { withIdempotencyKey } from '@/Utils/idempotency';
-
-const chipNominal = [50_000, 100_000, 250_000, 500_000, 1_000_000];
 const jenisMeta = {
     koperasi: { label: 'Koperasi', ikon: Wallet },
     dana_sosial: { label: 'Dana Sosial', ikon: HeartHandshake },
@@ -198,22 +197,7 @@ export default function Index({ pengeluaran, jenisAktif, filters = {}, totalKope
                                         className="pl-10 tabular-nums"
                                     />
                                 </div>
-                                <div className="flex flex-wrap gap-1.5 mt-2">
-                                    {chipNominal.map((n) => (
-                                        <button
-                                            key={n}
-                                            type="button"
-                                            onClick={() => setData('jumlah', String(n))}
-                                            className={`px-2.5 py-1 text-xs font-bold rounded-full border transition-colors tabular-nums ${
-                                                String(data.jumlah) === String(n)
-                                                    ? 'bg-brand-navy text-white border-brand-navy'
-                                                    : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-brand-green/50 hover:text-brand-green-dark'
-                                            }`}
-                                        >
-                                            {formatRupiahSingkat(n)}
-                                        </button>
-                                    ))}
-                                </div>
+                                <ChipNominal grup="pengeluaran" nilai={data.jumlah} onPilih={(n) => setData('jumlah', n)} />
                             </FormField>
                             <FormField label="Tanggal" error={errors.tanggal} required>
                                 <div className="relative">

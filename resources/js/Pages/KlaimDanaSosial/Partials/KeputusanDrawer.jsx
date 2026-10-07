@@ -2,6 +2,7 @@ import { useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import { AlertCircle, CheckCircle2, HeartHandshake, Calendar, Camera } from 'lucide-react';
 import Button from '@/Components/ui/Button';
+import ChipNominal from '@/Components/ui/ChipNominal';
 import StatusBadge from '@/Components/ui/StatusBadge';
 import { formatRupiah } from '@/Utils/formatCurrency';
 import { withIdempotencyKey } from '@/Utils/idempotency';
@@ -146,6 +147,7 @@ export default function KeputusanDrawer({ klaim, tahap, onClose }) {
                                                 autoFocus
                                             />
                                         </div>
+                                        <ChipNominal grup="santunan" nilai={data.nominal} onPilih={(n) => setData('nominal', n)} />
                                         {errors.nominal && <p className="text-sm text-red-600 mt-1.5">{errors.nominal}</p>}
                                         {tahap === 'ketua' && klaim.nominal_bendahara && (
                                             <p className="text-xs text-slate-400 mt-1.5 flex items-center gap-1">

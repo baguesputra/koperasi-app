@@ -4,6 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 import Card from '@/Components/ui/Card';
 import Button from '@/Components/ui/Button';
+import ChipNominal from '@/Components/ui/ChipNominal';
 import { formatRupiah } from '@/Utils/formatCurrency';
 import { withIdempotencyKey } from '@/Utils/idempotency';
 
@@ -77,6 +78,7 @@ export default function Show({ pengajuan }) {
                                                     autoFocus
                                                 />
                                             </div>
+                                            <ChipNominal grup="limit_baru" nilai={data.limit_disetujui} onPilih={(n) => setData('limit_disetujui', n)} />
                                             {errors.limit_disetujui && <p className="text-sm text-red-600 mt-1.5">{errors.limit_disetujui}</p>}
                                         </div>
                                     )}

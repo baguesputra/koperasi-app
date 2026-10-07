@@ -7,6 +7,7 @@ use App\Models\PengajuanAktivasi;
 use App\Models\PengajuanLimit;
 use App\Models\PengajuanPercepatan;
 use App\Models\Pinjaman;
+use App\Models\SettingChipNominal;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -54,6 +55,7 @@ class HandleInertiaRequests extends Middleware
                 'percepatanTerkirim' => fn () => $request->session()->get('percepatan_terkirim'),
                 'limitTerkirim' => fn () => $request->session()->get('limit_terkirim'),
             ],
+            'chipNominal' => fn () => SettingChipNominal::dikelompokkan(),
             'notifications' => function () use ($request) {
                 $user = $request->user();
 
