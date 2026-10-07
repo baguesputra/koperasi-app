@@ -234,11 +234,9 @@ class DashboardController extends Controller
                 'tanggal_iso' => $item['tanggal']->toDateString(),
             ]);
 
-        // Stats: total_anggota_aktif, pinjaman_outstanding - bisa dioptimasi nanti kalau perlu
-
         return Inertia::render('Dashboard', [
             'stats' => [
-                'total_anggota_aktif' => Anggota::where('status', 'aktif')->count(),
+                'saldo_kas_kecil' => (float) $kas->saldo_kas_kecil,
                 'total_simpanan_outstanding' => $totalSimpananOutstanding,
                 'total_simpanan_akumulasi' => $totalAkumulasiSimpanan,
                 'pinjaman_outstanding' => (float) Pinjaman::where('status', 'aktif')->sum('nominal'),

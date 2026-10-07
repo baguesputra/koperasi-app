@@ -37,11 +37,11 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
 
     const labelBulan = new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(new Date());
     const widgets = [
-        { label: 'Total Anggota Aktif', value: stats.total_anggota_aktif, icon: Users, tone: 'navy', caption: 'Data terkini' },
+        { label: 'Kas Operasional Gabungan', value: formatRupiah(stats.kas_operasional ?? stats.total_keseluruhan), icon: Wallet, tone: 'navy', caption: 'Bank + kas kecil' },
+        { label: 'Kas Kecil', value: formatRupiah(stats.saldo_kas_kecil ?? 0), icon: Wallet, tone: 'amber', caption: 'Uang tunai operasional' },
+        { label: 'Layak Cair Bulan Ini', value: formatRupiah(infoPagu?.layak ?? 0), icon: HeartHandshake, tone: 'amber', caption: `Saldo bank ${labelBulan}` },
         { label: 'Total Simpanan (Aktif)', value: formatRupiah(stats.total_simpanan_outstanding), icon: PiggyBank, tone: 'green', caption: 'Pokok + wajib' },
         { label: 'Pinjaman Outstanding', value: formatRupiah(stats.pinjaman_outstanding), icon: HandCoins, tone: 'amber', caption: 'Status aktif' },
-        { label: 'Kas Operasional Gabungan', value: formatRupiah(stats.kas_operasional ?? stats.total_keseluruhan), icon: Wallet, tone: 'navy', caption: 'Bank + kas kecil' },
-        { label: 'Layak Cair Bulan Ini', value: formatRupiah(infoPagu?.layak ?? 0), icon: HeartHandshake, tone: 'amber', caption: `Saldo bank ${labelBulan}` },
         { label: 'Pendapatan Bunga Bulan Ini', value: formatRupiah(stats.pendapatan_bunga_bulan_ini), icon: TrendingUp, tone: 'green', caption: labelBulan },
     ];
 
