@@ -118,6 +118,40 @@ function CaptionLimitBerjalan({ pengajuan, tampil, limitMaksimal }) {
     );
 }
 
+function AlertLimitBerjalan({ pengajuan, limitSaatIni, tampil }) {
+    if (!pengajuan) {
+        return null;
+    }
+
+    return (
+        <Link
+            href={route('portal.pengajuan-limit.create')}
+            className={`flex items-start gap-2.5 w-full px-3.5 py-3 rounded-xl border bg-amber-400/15 border-amber-300/30 hover:bg-amber-400/25 transition-colors ${focusRing}`}
+        >
+            <Clock size={16} className="text-amber-300 shrink-0 mt-0.5" />
+            <span className="min-w-0">
+                <span className="block text-sm font-bold text-amber-200">
+                    Penambahan limit <Nominal nilai={pengajuan.limit_diminta} tampil={tampil} /> dalam proses
+                </span>
+                <span className="block text-xs text-amber-200/80 mt-0.5 leading-relaxed">
+                    {statusPengajuanLabel[pengajuan.status]?.text ?? 'Menunggu pemeriksaan'}
+                    {pengajuan.status === 'approved_bendahara' && pengajuan.limit_disetujui_bendahara ? (
+                        <span>
+                            {' • Usulan Bendahara: '}
+                            <Nominal nilai={pengajuan.limit_disetujui_bendahara} tampil={tampil} />
+                        </span>
+                    ) : null}
+                    {' • Diajukan '}
+                    {pengajuan.tanggal_pengajuan}
+                    {'. '}
+                    Anda tetap bisa mengajukan pinjaman dengan limit saat ini{' '}
+                    <Nominal nilai={limitSaatIni} tampil={tampil} />.
+                </span>
+            </span>
+        </Link>
+    );
+}
+
 function KuitansiModal({ judul, rows, paragraf, catatan, onClose }) {
     return (
         <div
@@ -548,24 +582,27 @@ export default function Dashboard({
                                             {statusPengajuanLabel[pengajuanBerjalan.status]?.text ?? 'Menunggu pemeriksaan'}
                                         </StatusStrip>
                                     ) : bisaAjukan ? (
-                                        <div className="flex flex-col sm:flex-row gap-2.5">
-                                            <Link
-                                                href={route('portal.pinjaman.create')}
-                                                className={`flex-1 inline-flex items-center justify-center gap-2 px-4 min-h-[48px] rounded-xl bg-brand-green text-white text-base font-bold hover:bg-brand-green-dark transition-colors ${focusRing}`}
-                                            >
-                                                Ajukan Pinjaman
-                                                <ArrowRight size={15} />
-                                            </Link>
-
-                                            {bisaAjukanLimit && (
+                                        <>
+                                            <AlertLimitBerjalan pengajuan={pengajuanLimitBerjalan} limitSaatIni={limitMaksimal} tampil={nominalTampil} />
+                                            <div className="flex flex-col sm:flex-row gap-2.5">
                                                 <Link
-                                                    href={route('portal.pengajuan-limit.create')}
-                                                    className={`inline-flex items-center justify-center gap-2 px-4 min-h-[48px] rounded-xl border border-white/25 text-white text-sm font-semibold hover:bg-white/10 transition-colors ${focusRing}`}
+                                                    href={route('portal.pinjaman.create')}
+                                                    className={`flex-1 inline-flex items-center justify-center gap-2 px-4 min-h-[48px] rounded-xl bg-brand-green text-white text-base font-bold hover:bg-brand-green-dark transition-colors ${focusRing}`}
                                                 >
-                                                    Ajukan Penambahan Limit
+                                                    Ajukan Pinjaman
+                                                    <ArrowRight size={15} />
                                                 </Link>
-                                            )}
-                                        </div>
+
+                                                {bisaAjukanLimit && (
+                                                    <Link
+                                                        href={route('portal.pengajuan-limit.create')}
+                                                        className={`inline-flex items-center justify-center gap-2 px-4 min-h-[48px] rounded-xl border border-white/25 text-white text-sm font-semibold hover:bg-white/10 transition-colors ${focusRing}`}
+                                                    >
+                                                        Ajukan Penambahan Limit
+                                                    </Link>
+                                                )}
+                                            </div>
+                                        </>
                                     ) : (
                                         <StatusStrip dark>{alasanTidakBisa}</StatusStrip>
                                     )}
@@ -654,23 +691,26 @@ export default function Dashboard({
                                     </div>
 
                                     {bisaAjukan ? (
-                                        <div className="flex flex-col sm:flex-row gap-2.5 shrink-0">
-                                            <Link
-                                                href={route('portal.pinjaman.create')}
-                                                className={`inline-flex items-center justify-center gap-2 px-5 min-h-[48px] rounded-xl bg-brand-green text-white text-base font-bold hover:bg-brand-green-dark transition-colors ${focusRing}`}
-                                            >
-                                                Ajukan Pinjaman
-                                                <ArrowRight size={15} />
-                                            </Link>
-
-                                            {bisaAjukanLimit && (
+                                        <div className="space-y-3">
+                                            <AlertLimitBerjalan pengajuan={pengajuanLimitBerjalan} limitSaatIni={limitMaksimal} tampil={nominalTampil} />
+                                            <div className="flex flex-col sm:flex-row gap-2.5 shrink-0">
                                                 <Link
-                                                    href={route('portal.pengajuan-limit.create')}
-                                                    className={`inline-flex items-center justify-center px-4 min-h-[48px] rounded-xl border border-white/25 text-white text-sm font-semibold hover:bg-white/10 transition-colors ${focusRing}`}
+                                                    href={route('portal.pinjaman.create')}
+                                                    className={`inline-flex items-center justify-center gap-2 px-5 min-h-[48px] rounded-xl bg-brand-green text-white text-base font-bold hover:bg-brand-green-dark transition-colors ${focusRing}`}
                                                 >
-                                                    Ajukan Penambahan Limit
+                                                    Ajukan Pinjaman
+                                                    <ArrowRight size={15} />
                                                 </Link>
-                                            )}
+
+                                                {bisaAjukanLimit && (
+                                                    <Link
+                                                        href={route('portal.pengajuan-limit.create')}
+                                                        className={`inline-flex items-center justify-center px-4 min-h-[48px] rounded-xl border border-white/25 text-white text-sm font-semibold hover:bg-white/10 transition-colors ${focusRing}`}
+                                                    >
+                                                        Ajukan Penambahan Limit
+                                                    </Link>
+                                                )}
+                                            </div>
                                         </div>
                                     ) : (
                                         <div className="bg-white/5 border border-white/10 rounded-lg px-3.5 py-2.5">
