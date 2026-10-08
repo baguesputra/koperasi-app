@@ -24,6 +24,7 @@ use App\Services\Gate\SinkronisasiMasterService;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -34,15 +35,31 @@ use Spatie\Permission\Models\Role;
 
 class PengaturanController extends Controller
 {
-    private const TAB_DIPERBOLEHKAN = ['bunga', 'limit', 'tenor', 'simpanan', 'kas', 'chip', 'wa', 'akses', 'organisasi', 'audit'];
+    private const TAB_DIPERBOLEHKAN = ['aturan-pinjaman', 'dana-operasional', 'wa', 'akses', 'organisasi', 'audit'];
+
+    private const TAB_LEGASI = [
+        'bunga' => 'aturan-pinjaman',
+        'limit' => 'aturan-pinjaman',
+        'tenor' => 'aturan-pinjaman',
+        'simpanan' => 'dana-operasional',
+        'kas' => 'dana-operasional',
+        'chip' => 'dana-operasional',
+    ];
 
     private const PANEL_DIPERBOLEHKAN = ['kelola-pengguna', 'kelola-role'];
 
-    public function index(Request $request): Response
+    public function index(Request $request): Response|RedirectResponse
     {
-        $tabAktif = $request->input('tab', 'bunga');
+        $tabDiminta = $request->input('tab', 'aturan-pinjaman');
+        if (isset(self::TAB_LEGASI[$tabDiminta])) {
+            return redirect()->route('pengaturan.index', array_merge(
+                $request->except(['tab', 'section']),
+                ['tab' => self::TAB_LEGASI[$tabDiminta], 'section' => $tabDiminta]
+            ));
+        }
+        $tabAktif = $request->input('tab', 'aturan-pinjaman');
         if (! in_array($tabAktif, self::TAB_DIPERBOLEHKAN, true)) {
-            $tabAktif = 'bunga';
+            $tabAktif = 'aturan-pinjaman';
         }
 
         $panelAktif = $request->input('panel');
@@ -50,57 +67,64 @@ class PengaturanController extends Controller
             $panelAktif = null;
         }
 
-        $roleList = Role::withCount('users')->with('permissions')->orderBy('name')->get()
-            ->map(fn ($role) => [
-                'id' => $role->id,
-                'name' => $role->name,
-                'jumlah_user' => $role->users_count,
-                'dilindungi' => in_array($role->name, ['admin', 'bendahara', 'ketua_koperasi', 'anggota']),
-                'permissions' => $role->permissions->pluck('name')->values(),
-            ]);
+        $roleList = [];
+        $daftarRole = [];
+        $semuaPermission = [];
+        $pengguna = null;
 
-        $daftarRole = $roleList->pluck('name');
+        if ($tabAktif === 'akses') {
+            $roleList = Role::withCount('users')->with('permissions')->orderBy('name')->get()
+                ->map(fn ($role) => [
+                    'id' => $role->id,
+                    'name' => $role->name,
+                    'jumlah_user' => $role->users_count,
+                    'dilindungi' => in_array($role->name, ['admin', 'bendahara', 'ketua_koperasi', 'anggota']),
+                    'permissions' => $role->permissions->pluck('name')->values(),
+                ]);
 
-        $semuaPermission = Permission::orderBy('name')->get()
-            ->groupBy(fn ($p) => explode('.', $p->name)[0]);
+            $daftarRole = $roleList->pluck('name');
 
-        $queryPengguna = User::query()->with('anggota');
+            $semuaPermission = Permission::orderBy('name')->get()
+                ->groupBy(fn ($p) => explode('.', $p->name)[0]);
 
-        if ($request->filled('cari')) {
-            $cari = $request->string('cari');
-            $queryPengguna->where(function ($q) use ($cari) {
-                $q->where('name', 'like', "%{$cari}%")
-                    ->orWhere('no_karyawan', 'like', "%{$cari}%")
-                    ->orWhere('email', 'like', "%{$cari}%");
-            });
+            $queryPengguna = User::query()->with(['anggota', 'roles']);
+
+            if ($request->filled('cari')) {
+                $cari = $request->string('cari');
+                $queryPengguna->where(function ($q) use ($cari) {
+                    $q->where('name', 'like', "%{$cari}%")
+                        ->orWhere('no_karyawan', 'like', "%{$cari}%")
+                        ->orWhere('email', 'like', "%{$cari}%");
+                });
+            }
+
+            if ($request->filled('role')) {
+                $queryPengguna->whereHas('roles', fn ($q) => $q->where('name', $request->string('role')));
+            }
+
+            if ($request->filled('status')) {
+                $queryPengguna->where('status', $request->string('status'));
+            }
+
+            $pengguna = $queryPengguna->orderBy('name')
+                ->paginate(15)
+                ->withQueryString()
+                ->through(fn ($user) => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'no_karyawan' => $user->no_karyawan,
+                    'email' => $user->email,
+                    'status' => $user->status,
+                    'roles' => $user->getRoleNames()->values(),
+                    'harus_ganti_password' => (bool) $user->harus_ganti_password,
+                    'anggota' => $user->anggota ? [
+                        'no_anggota' => $user->anggota->no_anggota,
+                        'no_karyawan' => $user->anggota->no_karyawan,
+                        'nama' => $user->anggota->nama,
+                    ] : null,
+                    'dilindungi' => $user->no_karyawan === 'ADM-000001',
+                ]);
         }
-
-        if ($request->filled('role')) {
-            $queryPengguna->whereHas('roles', fn ($q) => $q->where('name', $request->string('role')));
-        }
-
-        if ($request->filled('status')) {
-            $queryPengguna->where('status', $request->string('status'));
-        }
-
-        $pengguna = $queryPengguna->orderBy('name')
-            ->paginate(15)
-            ->withQueryString()
-            ->through(fn ($user) => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'no_karyawan' => $user->no_karyawan,
-                'email' => $user->email,
-                'status' => $user->status,
-                'roles' => $user->getRoleNames()->values(),
-                'harus_ganti_password' => (bool) $user->harus_ganti_password,
-                'anggota' => $user->anggota ? [
-                    'no_anggota' => $user->anggota->no_anggota,
-                    'no_karyawan' => $user->anggota->no_karyawan,
-                    'nama' => $user->anggota->nama,
-                ] : null,
-                'dilindungi' => $user->no_karyawan === 'ADM-000001',
-            ]);
 
         // Audit log (hanya diambil saat tab audit aktif)
         $auditLogs = null;
@@ -141,25 +165,26 @@ class PengaturanController extends Controller
         return Inertia::render('Pengaturan/Index', [
             'tabAktif' => $tabAktif,
             'panelAktif' => $panelAktif,
+            'sectionAktif' => $request->input('section'),
             'pengguna' => $pengguna,
             'filterPengguna' => $request->only(['cari', 'role', 'status']),
             'daftarRole' => $daftarRole,
             'roleList' => $roleList,
             'semuaPermission' => $semuaPermission,
-            'limitPinjaman' => SettingLimitPinjaman::orderBy('id')->get(),
-            'tabelTenor' => TabelTenor::orderBy('nominal_min')->get(),
-            'bungaSaatIni' => SettingBunga::orderByDesc('berlaku_dari_tanggal')->first(),
-            'settingSimpanan' => SettingSimpanan::orderBy('id')->get(),
-            'settingKas' => SettingKas::orderBy('id')->get(),
-            'chipNominal' => SettingChipNominal::dikelompokkan(),
-            'ringkasanMaster' => [
+            'limitPinjaman' => $tabAktif === 'aturan-pinjaman' ? SettingLimitPinjaman::orderBy('id')->get() : [],
+            'tabelTenor' => $tabAktif === 'aturan-pinjaman' ? TabelTenor::orderBy('nominal_min')->get() : [],
+            'bungaSaatIni' => $tabAktif === 'aturan-pinjaman' ? SettingBunga::orderByDesc('berlaku_dari_tanggal')->first() : null,
+            'settingSimpanan' => $tabAktif === 'dana-operasional' ? SettingSimpanan::orderBy('id')->get() : [],
+            'settingKas' => $tabAktif === 'dana-operasional' ? SettingKas::orderBy('id')->get() : [],
+            'chipNominal' => $tabAktif === 'dana-operasional' ? SettingChipNominal::dikelompokkan() : [],
+            'ringkasanMaster' => $tabAktif === 'organisasi' ? [
                 'perusahaan' => Perusahaan::count(),
                 'departemen' => Departemen::count(),
                 'divisi' => Divisi::count(),
                 'jabatan' => Jabatan::count(),
                 'tanpaPerusahaan' => Anggota::whereNull('perusahaan_id')->count(),
                 'tanpaDivisi' => Anggota::whereNull('divisi_id')->count(),
-            ],
+            ] : null,
             'gateStatus' => $tabAktif === 'organisasi' ? $this->statusGate() : null,
             'gateSetting' => $tabAktif === 'organisasi' ? GateSyncSetting::current() : null,
             'gateHistory' => $tabAktif === 'organisasi'
