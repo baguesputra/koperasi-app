@@ -135,6 +135,68 @@ class SinkronSemuaGateTest extends TestCase
         $this->assertTrue(Anggota::whereKey($anggota->id)->firstOrFail()->gate_synced_at->gt(now()->subMinutes(5)));
     }
 
+    public function test_jit_login_mencatat_riwayat_ok(): void
+    {
+        $anggota = $this->buatAnggota();
+        $baris = $this->karyawanGate(['email' => $anggota->user->email, 'nik' => 'TOP-900001']);
+        $this->mock(GateClient::class, fn ($mock) => $mock->shouldReceive('cariKaryawanByEmail')->andReturn($baris));
+
+        $hasil = (new SinkronAnggotaJit($anggota->user_id, $anggota->user->email))
+            ->handle(app(GateClient::class), app(SinkronisasiAnggotaService::class));
+
+        $this->assertSame('ok', $hasil);
+        $this->assertDatabaseHas('gate_sync_logs', [
+            'kind' => 'karyawan', 'source' => 'login',
+            'user_id' => $anggota->user_id, 'count_diperbarui' => 1, 'count_gagal' => 0,
+        ]);
+        $this->assertDatabaseHas('audit_log', [
+            'aksi' => 'sinkron_gate_login', 'user_id' => $anggota->user_id,
+        ]);
+    }
+
+    public function test_jit_login_mencatat_dilewati_saat_tak_ketemu(): void
+    {
+        $anggota = $this->buatAnggota();
+        $this->mock(GateClient::class, fn ($mock) => $mock->shouldReceive('cariKaryawanByEmail')->andReturn(null));
+
+        $hasil = (new SinkronAnggotaJit($anggota->user_id, $anggota->user->email))
+            ->handle(app(GateClient::class), app(SinkronisasiAnggotaService::class));
+
+        $this->assertSame('tak-ketemu', $hasil);
+        $this->assertDatabaseHas('gate_sync_logs', [
+            'source' => 'login', 'user_id' => $anggota->user_id, 'count_dilewati' => 1,
+        ]);
+    }
+
+    public function test_jit_login_mencatat_gagal_saat_gate_error(): void
+    {
+        $anggota = $this->buatAnggota();
+        $this->mock(GateClient::class, fn ($mock) => $mock->shouldReceive('cariKaryawanByEmail')->andThrow(new \RuntimeException('Gate down')));
+
+        $hasil = (new SinkronAnggotaJit($anggota->user_id, $anggota->user->email))
+            ->handle(app(GateClient::class), app(SinkronisasiAnggotaService::class));
+
+        $this->assertSame('gagal-gate', $hasil);
+        $this->assertDatabaseHas('gate_sync_logs', [
+            'source' => 'login', 'user_id' => $anggota->user_id, 'count_gagal' => 1,
+        ]);
+        $this->assertDatabaseHas('audit_log', [
+            'aksi' => 'sinkron_gate_login_gagal', 'user_id' => $anggota->user_id,
+        ]);
+    }
+
+    public function test_jit_login_diam_saat_masih_segar(): void
+    {
+        $anggota = $this->buatAnggota();
+        $anggota->update(['gate_synced_at' => now()]);
+
+        $hasil = (new SinkronAnggotaJit($anggota->user_id, $anggota->user->email))
+            ->handle(app(GateClient::class), app(SinkronisasiAnggotaService::class));
+
+        $this->assertSame('segar', $hasil);
+        $this->assertSame(0, GateSyncLog::where('source', 'login')->count());
+    }
+
     public function test_resign_tidak_disentuh_dan_nonaktif_pulih_aktif(): void
     {
         GateSyncSetting::simpan(['grace_miss_count' => 2]);

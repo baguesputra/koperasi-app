@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Jobs\SinkronAnggotaJit;
 use App\Models\AuditLog;
+use App\Models\GateSyncLog;
 use App\Models\GateSyncSetting;
 use App\Models\User;
 use App\Services\Gate\GateClient;
@@ -90,8 +91,28 @@ class SsoController extends Controller
 
                 try {
                     $user = $sinkron->provisiDariGate($baris);
+                    GateSyncLog::create([
+                        'kind' => 'karyawan',
+                        'source' => 'login',
+                        'is_dry_run' => false,
+                        'count_baru' => 1,
+                        'user_id' => $user->id,
+                    ]);
+                    AuditLog::catat(
+                        'sinkron_gate_login',
+                        "Sync login {$email} OK (provisi baru).",
+                        null,
+                        null,
+                        $user->id
+                    );
                 } catch (\Throwable $e) {
                     report($e);
+                    GateSyncLog::create([
+                        'kind' => 'karyawan',
+                        'source' => 'login',
+                        'is_dry_run' => false,
+                        'count_gagal' => 1,
+                    ]);
                     AuditLog::catat('sso_login_failed', 'user_not_found', [
                         'sso_id' => $ssoId,
                         'email' => $email,
@@ -103,17 +124,57 @@ class SsoController extends Controller
                 }
             } else {
                 // Refresh data dari Gate secara non-destruktif; kegagalan tidak
-                // menggagalkan login.
+                // menggagalkan login. Baris riwayat selalu 1x per login (pilihan A).
                 try {
+                    $statusLogin = 'dilewati';
+                    $galatLogin = null;
                     if ($barisGate = $gate->cariKaryawanByEmail($email)) {
                         $sinkron->enrichDariGate($user->fresh(), $barisGate);
                         $user = $user->fresh();
+                        if ($user->anggota) {
+                            $statusLogin = 'ok';
+                        } else {
+                            $galatLogin = 'tanpa relasi anggota';
+                        }
+                    } else {
+                        $galatLogin = 'tak ketemu di Gate';
                     }
+                    GateSyncLog::create([
+                        'kind' => 'karyawan',
+                        'source' => 'login',
+                        'is_dry_run' => false,
+                        'count_baru' => 0,
+                        'count_diperbarui' => $statusLogin === 'ok' ? 1 : 0,
+                        'count_gagal' => 0,
+                        'count_dilewati' => $statusLogin === 'ok' ? 0 : 1,
+                        'user_id' => $user->id,
+                    ]);
+                    AuditLog::catat(
+                        'sinkron_gate_login',
+                        "Sync login {$email}".($galatLogin ? ": {$galatLogin}." : ' OK.'),
+                        null,
+                        $galatLogin ? ['error' => $galatLogin] : null,
+                        $user->id
+                    );
                     if (GateSyncSetting::current()->jit_enabled ?? true) {
                         SinkronAnggotaJit::dispatch($user->id, $email)->afterCommit();
                     }
                 } catch (\Throwable $e) {
                     report($e);
+                    GateSyncLog::create([
+                        'kind' => 'karyawan',
+                        'source' => 'login',
+                        'is_dry_run' => false,
+                        'count_gagal' => 1,
+                        'user_id' => $user->id,
+                    ]);
+                    AuditLog::catat(
+                        'sinkron_gate_login_gagal',
+                        "Sync login {$email}: {$e->getMessage()}",
+                        null,
+                        ['error' => $e->getMessage()],
+                        $user->id
+                    );
                 }
             }
 

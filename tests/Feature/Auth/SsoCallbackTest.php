@@ -3,8 +3,11 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\Anggota;
+use App\Models\KasKoperasi;
 use App\Models\User;
+use App\Services\Gate\GateClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Laravel\Socialite\Facades\Socialite;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -316,6 +319,105 @@ class SsoCallbackTest extends TestCase
             'aksi' => 'sso_login_failed',
             'keterangan' => 'email_mismatch',
             'user_id' => $user->id,
+        ]);
+    }
+
+    public function test_sso_callback_mencatat_riwayat_sync_login_saat_user_lama(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'test@example.com',
+            'no_karyawan' => 'TOP-100001',
+            'status' => 'aktif',
+        ]);
+
+        Anggota::factory()->create([
+            'user_id' => $user->id,
+            'no_karyawan' => 'TOP-100001',
+            'gate_synced_at' => now()->subHour(),
+            'status' => 'aktif',
+        ]);
+
+        $this->mock(GateClient::class, fn ($mock) => $mock
+            ->shouldReceive('cariKaryawanByEmail')->andReturn(['id' => 'gate-1', 'name' => 'Test User', 'nik' => 'TOP-100001']));
+
+        $this->mockSsoUser([
+            'id' => 'sso-123',
+            'email' => 'test@example.com',
+            'nik' => 'TOP-100001',
+            'name' => 'Test User',
+        ]);
+
+        $this->get(route('sso.callback'))->assertRedirect(route('dashboard'));
+
+        $this->assertDatabaseHas('gate_sync_logs', [
+            'kind' => 'karyawan', 'source' => 'login',
+            'user_id' => $user->id, 'count_diperbarui' => 1,
+        ]);
+        $this->assertDatabaseHas('audit_log', [
+            'aksi' => 'sinkron_gate_login', 'user_id' => $user->id,
+        ]);
+    }
+
+    public function test_sso_callback_mencatat_gagal_sync_login_tanpa_gagalkan_login(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'test@example.com',
+            'no_karyawan' => 'TOP-100001',
+            'status' => 'aktif',
+        ]);
+
+        Anggota::factory()->create([
+            'user_id' => $user->id,
+            'no_karyawan' => 'TOP-100001',
+            'status' => 'aktif',
+        ]);
+
+        $this->mock(GateClient::class, fn ($mock) => $mock
+            ->shouldReceive('cariKaryawanByEmail')->andThrow(new \RuntimeException('Gate down')));
+
+        $this->mockSsoUser([
+            'id' => 'sso-123',
+            'email' => 'test@example.com',
+            'nik' => 'TOP-100001',
+            'name' => 'Test User',
+        ]);
+
+        $this->get(route('sso.callback'))->assertRedirect(route('dashboard'));
+
+        $this->assertDatabaseHas('gate_sync_logs', [
+            'source' => 'login', 'user_id' => $user->id, 'count_gagal' => 1,
+        ]);
+        $this->assertDatabaseHas('audit_log', [
+            'aksi' => 'sinkron_gate_login_gagal', 'user_id' => $user->id,
+        ]);
+    }
+
+    public function test_sso_callback_mencatat_riwayat_saat_provisi_baru(): void
+    {
+        Role::firstOrCreate(['name' => 'anggota', 'guard_name' => 'web']);
+        KasKoperasi::create(['saldo_bank' => 100_000_000, 'saldo_kas_kecil' => 20_000_000]);
+        config()->set('services.gate.token', 'token-uji');
+        Http::fake([
+            '*/api/users*' => Http::response(['success' => true, 'data' => [[
+                'id' => 'gate-baru', 'name' => 'Karyawan Baru', 'email' => 'baru@example.com',
+                'nik' => 'TOP-200001', 'is_active' => true,
+            ]]], 200),
+            '*/api/*' => Http::response(['success' => true, 'data' => []], 200),
+        ]);
+
+        $this->mockSsoUser([
+            'id' => 'sso-baru',
+            'email' => 'baru@example.com',
+            'nik' => 'TOP-200001',
+            'name' => 'Karyawan Baru',
+        ]);
+
+        $this->get(route('sso.callback'))->assertRedirect(route('dashboard'));
+
+        $user = User::where('email', 'baru@example.com')->firstOrFail();
+        $this->assertDatabaseHas('gate_sync_logs', [
+            'kind' => 'karyawan', 'source' => 'login',
+            'user_id' => $user->id, 'count_baru' => 1,
         ]);
     }
 
