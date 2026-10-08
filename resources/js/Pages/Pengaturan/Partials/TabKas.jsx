@@ -50,10 +50,10 @@ export default function TabKas({ settingKas }) {
                                             className="w-36 text-right tabular-nums"
                                             autoFocus
                                         />
-                                        <button onClick={() => simpan(item.id)} disabled={processing} aria-label="Simpan" title="Simpan" className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-brand-green-dark bg-brand-green-light hover:shadow-sm transition-all">
+                                        <button onClick={() => simpan(item.id)} disabled={processing} aria-label="Simpan" title="Simpan" className="min-h-[40px] min-w-[40px] inline-flex items-center justify-center rounded-lg text-brand-green-dark bg-brand-green-light hover:shadow-sm transition-all">
                                             <Check size={16} />
                                         </button>
-                                        <button onClick={batal} aria-label="Batal" title="Batal" className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+                                        <button onClick={batal} aria-label="Batal" title="Batal" className="min-h-[40px] min-w-[40px] inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
                                             <X size={16} />
                                         </button>
                                     </div>
@@ -62,7 +62,7 @@ export default function TabKas({ settingKas }) {
                             ) : (
                                 <div className="flex items-center gap-2 shrink-0">
                                     <span className="text-sm font-bold text-slate-800 tabular-nums">{formatRupiah(item.nominal)}</span>
-                                    <button onClick={() => mulaiEdit(item)} aria-label={`Ubah ${item.label}`} title="Ubah" className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-brand-navy hover:bg-slate-100 transition-colors">
+                                    <button onClick={() => mulaiEdit(item)} aria-label={`Ubah ${item.label}`} title="Ubah" className="min-h-[40px] min-w-[40px] inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-brand-navy hover:bg-slate-100 transition-colors">
                                         <Pencil size={15} />
                                     </button>
                                 </div>

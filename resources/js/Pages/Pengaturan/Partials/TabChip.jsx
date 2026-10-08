@@ -70,7 +70,7 @@ export default function TabChip({ chipNominal = {} }) {
                                         <span className="text-sm font-bold text-slate-800 tabular-nums">
                                             {daftar.map((n) => formatRupiahSingkat(n)).join(' • ') || '-'}
                                         </span>
-                                        <button onClick={() => mulaiEdit(grup)} aria-label={`Ubah ${LABEL_GRUP[grup]}`} title="Ubah" className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-brand-navy hover:bg-slate-100 transition-colors">
+                                        <button onClick={() => mulaiEdit(grup)} aria-label={`Ubah ${LABEL_GRUP[grup]}`} title="Ubah" className="min-h-[40px] min-w-[40px] inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-brand-navy hover:bg-slate-100 transition-colors">
                                             <Pencil size={15} />
                                         </button>
                                     </div>
@@ -88,10 +88,10 @@ export default function TabChip({ chipNominal = {} }) {
                                             className="flex-1 tabular-nums"
                                             autoFocus
                                         />
-                                        <button onClick={simpan} disabled={processing} aria-label="Simpan" title="Simpan" className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-brand-green-dark bg-brand-green-light hover:shadow-sm transition-all">
+                                        <button onClick={simpan} disabled={processing} aria-label="Simpan" title="Simpan" className="min-h-[40px] min-w-[40px] inline-flex items-center justify-center rounded-lg text-brand-green-dark bg-brand-green-light hover:shadow-sm transition-all">
                                             <Check size={16} />
                                         </button>
-                                        <button onClick={batal} aria-label="Batal" title="Batal" className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+                                        <button onClick={batal} aria-label="Batal" title="Batal" className="min-h-[40px] min-w-[40px] inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
                                             <X size={16} />
                                         </button>
                                     </div>

@@ -11,8 +11,10 @@ const STATUS_LOG = {
 export default function TabWa() {
     const [data, setData] = useState(null);
     const [keluar, setKeluar] = useState(false);
+    const [jeda, setJeda] = useState(false);
 
     async function muat() {
+        if (document.hidden) return;
         try {
             const res = await fetch(route('pengaturan.wa.data'));
             if (res.ok) setData(await res.json());
@@ -21,9 +23,10 @@ export default function TabWa() {
 
     useEffect(() => {
         muat();
+        if (jeda) return undefined;
         const t = setInterval(muat, 4000);
         return () => clearInterval(t);
-    }, []);
+    }, [jeda]);
 
     async function logout() {
         setKeluar(true);
@@ -85,14 +88,24 @@ export default function TabWa() {
 
                 <div className="text-sm text-slate-500 space-y-1.5">
                     <p className="font-bold text-slate-700">Status: {data.terhubung ? 'Terhubung' : 'Tidak terhubung'}</p>
-                    <p>Halaman ini diperbarui otomatis setiap 4 detik.</p>
-                    <button
-                        type="button"
-                        onClick={muat}
-                        className="inline-flex items-center gap-1.5 text-brand-green hover:text-brand-green-dark font-semibold"
-                    >
-                        <RefreshCw size={14} /> Muat sekarang
-                    </button>
+                    <p>{jeda ? 'Auto-refresh dijeda.' : 'Halaman ini diperbarui otomatis setiap 4 detik.'}</p>
+                    <div className="flex items-center gap-3">
+                        <button
+                            type="button"
+                            onClick={muat}
+                            className="inline-flex min-h-[40px] items-center gap-1.5 text-brand-green hover:text-brand-green-dark font-semibold"
+                        >
+                            <RefreshCw size={14} /> Muat sekarang
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setJeda((v) => !v)}
+                            aria-pressed={jeda}
+                            className="inline-flex min-h-[40px] items-center rounded-full bg-slate-100 px-3.5 text-xs font-bold text-slate-600 hover:bg-slate-200"
+                        >
+                            {jeda ? 'Lanjutkan' : 'Jeda'}
+                        </button>
+                    </div>
                 </div>
             </div>
 

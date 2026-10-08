@@ -15,6 +15,7 @@ export default function TabTenor({ tabelTenor }) {
     function submit(e) {
         e.preventDefault();
         post(route('pengaturan.tenor.store'), {
+            preserveScroll: true,
             onSuccess: () => { reset(); setShowForm(false); },
         });
     }
@@ -74,7 +75,7 @@ export default function TabTenor({ tabelTenor }) {
                             </p>
                             <div className="flex items-center gap-2 shrink-0">
                                 <span className="text-sm font-bold text-slate-800 tabular-nums">{item.tenor_maksimal_bulan} bln</span>
-                                <button onClick={() => hapus(item.id)} aria-label={`Hapus rentang ${item.tenor_maksimal_bulan} bulan`} title="Hapus" className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors">
+                                <button onClick={() => hapus(item.id)} aria-label={`Hapus rentang ${item.tenor_maksimal_bulan} bulan`} title="Hapus" className="min-h-[40px] min-w-[40px] inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors">
                                     <Trash2 size={15} />
                                 </button>
                             </div>

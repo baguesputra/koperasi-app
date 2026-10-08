@@ -8,7 +8,7 @@ export default function TabBunga({ bungaSaatIni }) {
 
     function submit(e) {
         e.preventDefault();
-        post(route('pengaturan.bunga.update'), { onSuccess: () => reset() });
+        post(route('pengaturan.bunga.update'), { preserveScroll: true, onSuccess: () => reset() });
     }
 
     return (

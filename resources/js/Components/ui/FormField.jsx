@@ -10,7 +10,7 @@ export default function FormField({ label, error, children, hint, required = fal
                 <p className="mt-1 text-xs text-slate-400">{hint}</p>
             )}
             {error && (
-                <p className="mt-1 text-xs font-medium text-red-600">{error}</p>
+                <p role="alert" className="mt-1 text-xs font-medium text-red-600">{error}</p>
             )}
         </div>
     );
