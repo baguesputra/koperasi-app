@@ -2,6 +2,8 @@
 
 namespace App\Console\Commands;
 
+use App\Models\GateSyncLog;
+use App\Models\GateSyncSetting;
 use App\Services\Gate\SinkronisasiAnggotaService;
 use Illuminate\Console\Command;
 
@@ -26,8 +28,16 @@ class SinkronAnggotaGate extends Command
             ],
             (bool) $this->option('dry-run'),
             null,
-            $this->option('limit') ? (int) $this->option('limit') : null
+            $this->option('limit') ? (int) $this->option('limit') : null,
+            GateSyncSetting::current()->grace_miss_count ?? 2
         );
+
+        GateSyncLog::create([
+            'kind' => 'karyawan', 'source' => 'jadwal', 'is_dry_run' => (bool) $this->option('dry-run'),
+            'count_baru' => count($hasil['baru']), 'count_diperbarui' => count($hasil['diperbarui']),
+            'count_gagal' => count($hasil['gagal']), 'count_dilewati' => $hasil['dilewati'],
+            'count_nonaktif' => $hasil['nonaktif'] ?? 0,
+        ]);
 
         $this->info('Baru: '.count($hasil['baru']).', diperbarui: '.count($hasil['diperbarui']).', gagal: '.count($hasil['gagal']).', dilewati: '.$hasil['dilewati']);
 

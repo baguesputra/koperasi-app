@@ -35,6 +35,8 @@ export default function Index({
     chipNominal,
     ringkasanMaster,
     gateStatus,
+    gateSetting,
+    gateHistory,
     auditLogs,
     filterAudit,
 }) {
@@ -138,7 +140,7 @@ export default function Index({
                         />
                     )}
                     {tabAktif === 'organisasi' && (
-                        <SectionOrganisasi ringkasanMaster={ringkasanMaster} gateStatus={gateStatus} />
+                        <SectionOrganisasi ringkasanMaster={ringkasanMaster} gateStatus={gateStatus} gateSetting={gateSetting} gateHistory={gateHistory} />
                     )}
                     {tabAktif === 'audit' && <TabAuditLog auditLogs={auditLogs} filterAudit={filterAudit} />}
                 </div>

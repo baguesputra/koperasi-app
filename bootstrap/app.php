@@ -4,6 +4,7 @@ use App\Http\Middleware\EnsureAnggotaAktif;
 use App\Http\Middleware\EnsurePasswordChanged;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\IdempotencyMiddleware;
+use App\Http\Middleware\PacuSinkronGate;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
@@ -31,6 +32,7 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
             EnsurePasswordChanged::class,
+            PacuSinkronGate::class,
         ]);
         $middleware->alias([
             'role' => RoleMiddleware::class,

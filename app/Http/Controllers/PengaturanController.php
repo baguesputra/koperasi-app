@@ -6,6 +6,8 @@ use App\Models\Anggota;
 use App\Models\AuditLog;
 use App\Models\Departemen;
 use App\Models\Divisi;
+use App\Models\GateSyncLog;
+use App\Models\GateSyncSetting;
 use App\Models\Jabatan;
 use App\Models\Perusahaan;
 use App\Models\SettingBunga;
@@ -159,6 +161,14 @@ class PengaturanController extends Controller
                 'tanpaDivisi' => Anggota::whereNull('divisi_id')->count(),
             ],
             'gateStatus' => $tabAktif === 'organisasi' ? $this->statusGate() : null,
+            'gateSetting' => $tabAktif === 'organisasi' ? GateSyncSetting::current() : null,
+            'gateHistory' => $tabAktif === 'organisasi'
+                ? GateSyncLog::with('user:id,name')->latest()->take(10)->get([
+                    'id', 'kind', 'source', 'is_dry_run', 'count_baru', 'count_diperbarui', 'count_gagal',
+                    'count_dilewati', 'count_nonaktif', 'count_perusahaan', 'count_departemen',
+                    'count_divisi', 'count_jabatan', 'user_id', 'created_at',
+                ])
+                : [],
             'auditLogs' => $auditLogs,
             'filterAudit' => $request->only(['search', 'date_from', 'date_to']),
         ]);
@@ -354,6 +364,15 @@ class PengaturanController extends Controller
             return back()->with('status', 'Sinkron master GATE gagal: '.$e->getMessage());
         }
 
+        if (! $kering) {
+            GateSyncLog::create([
+                'kind' => 'master', 'source' => 'manual', 'is_dry_run' => false, 'user_id' => $request->user()?->id,
+                'count_perusahaan' => $hasil['perusahaan'], 'count_departemen' => $hasil['departemen'],
+                'count_divisi' => $hasil['divisi'], 'count_jabatan' => $hasil['jabatan'],
+                'count_gagal' => count($hasil['gagal']),
+            ]);
+        }
+
         $prefix = $kering ? 'Pratinjau: ' : '';
 
         return back()->with(
@@ -382,8 +401,18 @@ class PengaturanController extends Controller
             ],
             $kering,
             $request->user()->id,
-            $validated['batas'] ?? null
+            $validated['batas'] ?? null,
+            GateSyncSetting::current()->grace_miss_count ?? 2
         );
+
+        if (! $kering) {
+            GateSyncLog::create([
+                'kind' => 'karyawan', 'source' => 'manual', 'is_dry_run' => false, 'user_id' => $request->user()?->id,
+                'count_baru' => count($hasil['baru']), 'count_diperbarui' => count($hasil['diperbarui']),
+                'count_gagal' => count($hasil['gagal']), 'count_dilewati' => $hasil['dilewati'],
+                'count_nonaktif' => $hasil['nonaktif'] ?? 0,
+            ]);
+        }
 
         $prefix = $kering ? 'Pratinjau: ' : '';
 
@@ -391,6 +420,67 @@ class PengaturanController extends Controller
             'status',
             $prefix.'Sinkron GATE selesai: '.count($hasil['baru']).' baru, '.count($hasil['diperbarui']).' diperbarui, '.count($hasil['gagal']).' gagal.'
                 .($hasil['gagal'] ? ' '.implode(' ', array_slice($hasil['gagal'], 0, 3)) : '')
+        );
+    }
+
+    public function simpanJadwalGate(Request $request)
+    {
+        $validated = $request->validate([
+            'schedule_enabled' => 'nullable|boolean',
+            'karyawan_interval_minutes' => 'required|integer|min:5|max:1440',
+            'master_daily_at' => 'required|date_format:H:i',
+            'jit_enabled' => 'nullable|boolean',
+            'grace_miss_count' => 'required|integer|min:1|max:10',
+        ]);
+        $validated['schedule_enabled'] = (bool) ($validated['schedule_enabled'] ?? false);
+        $validated['jit_enabled'] = (bool) ($validated['jit_enabled'] ?? false);
+
+        GateSyncSetting::simpan($validated);
+
+        return back()->with('status', 'Jadwal sinkron otomatis disimpan.');
+    }
+
+    public function sinkronSemuaGate(Request $request, SinkronisasiMasterService $master, SinkronisasiAnggotaService $anggota)
+    {
+        $validated = $request->validate([
+            'company_id' => ['nullable', 'string', 'max:50'],
+            'batas' => ['nullable', 'integer', 'min:1', 'max:1000'],
+            'dry_run' => ['nullable', 'boolean'],
+        ]);
+        $kering = (bool) ($validated['dry_run'] ?? false);
+
+        try {
+            $m = $master->sinkron($validated['company_id'] ?? null, $kering, $request->user()->id);
+            $k = $anggota->sinkron(
+                ['company_id' => $validated['company_id'] ?? null],
+                $kering,
+                $request->user()->id,
+                $validated['batas'] ?? null,
+                GateSyncSetting::current()->grace_miss_count ?? 2
+            );
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->with('status', 'Sinkron GATE gagal: '.$e->getMessage());
+        }
+
+        if (! $kering) {
+            GateSyncLog::create([
+                'kind' => 'semua', 'source' => 'manual', 'is_dry_run' => false, 'user_id' => $request->user()?->id,
+                'count_baru' => count($k['baru']), 'count_diperbarui' => count($k['diperbarui']),
+                'count_gagal' => count($k['gagal']), 'count_dilewati' => $k['dilewati'],
+                'count_nonaktif' => $k['nonaktif'] ?? 0,
+                'count_perusahaan' => $m['perusahaan'], 'count_departemen' => $m['departemen'],
+                'count_divisi' => $m['divisi'], 'count_jabatan' => $m['jabatan'],
+            ]);
+        }
+
+        $prefix = $kering ? 'Pratinjau: ' : '';
+
+        return back()->with(
+            'status',
+            $prefix.'Selesai: '.$m['perusahaan'].' perusahaan, '.$m['departemen'].' dept, '.$m['divisi'].' divisi, '.$m['jabatan'].' jabatan; '
+                .count($k['baru']).' anggota baru, '.count($k['diperbarui']).' diperbarui, '.($k['nonaktif'] ?? 0).' nonaktif, '.count($k['gagal']).' gagal.'
         );
     }
 

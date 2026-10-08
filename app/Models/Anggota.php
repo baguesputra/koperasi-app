@@ -19,6 +19,8 @@ class Anggota extends Model
     protected $fillable = [
         'user_id',
         'gate_id',
+        'gate_synced_at',
+        'gate_miss_count',
         'perusahaan_id',
         'departemen_id',
         'divisi_id',
@@ -48,6 +50,7 @@ class Anggota extends Model
     ];
 
     protected $casts = [
+        'gate_synced_at' => 'datetime',
         'tanggal_mulai_kerja' => 'date',
         'tanggal_jadi_anggota' => 'date',
         'tanggal_resign' => 'date',

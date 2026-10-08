@@ -187,6 +187,8 @@ Route::middleware(['auth', 'permission:pengaturan.kelola', 'password.confirm'])-
     Route::post('/pengaturan/chip', [PengaturanController::class, 'updateChip'])->name('pengaturan.chip.update');
     Route::post('/pengaturan/sinkron-gate', [PengaturanController::class, 'sinkronGate'])->name('pengaturan.sinkron-gate');
     Route::post('/pengaturan/sinkron-master-gate', [PengaturanController::class, 'sinkronMasterGate'])->name('pengaturan.sinkron-master-gate');
+    Route::post('/pengaturan/sinkron-semua-gate', [PengaturanController::class, 'sinkronSemuaGate'])->name('pengaturan.sinkron-semua-gate');
+    Route::post('/pengaturan/jadwal-gate', [PengaturanController::class, 'simpanJadwalGate'])->name('pengaturan.jadwal-gate');
     // --------- WhatsApp (Baileys) ------------
     Route::get('/pengaturan/wa', [PengaturanController::class, 'waData'])->name('pengaturan.wa.data');
     Route::post('/pengaturan/wa/logout', [PengaturanController::class, 'waLogout'])->name('pengaturan.wa.logout');

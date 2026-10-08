@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SinkronAnggotaJit;
 use App\Models\AuditLog;
+use App\Models\GateSyncSetting;
 use App\Models\User;
 use App\Services\Gate\GateClient;
 use App\Services\Gate\SinkronisasiAnggotaService;
@@ -106,6 +108,9 @@ class SsoController extends Controller
                     if ($barisGate = $gate->cariKaryawanByEmail($email)) {
                         $sinkron->enrichDariGate($user->fresh(), $barisGate);
                         $user = $user->fresh();
+                    }
+                    if (GateSyncSetting::current()->jit_enabled ?? true) {
+                        SinkronAnggotaJit::dispatch($user->id, $email)->afterCommit();
                     }
                 } catch (\Throwable $e) {
                     report($e);
