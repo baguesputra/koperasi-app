@@ -16,6 +16,28 @@ class EnsureAnggotaAktif
             return redirect()->route('portal.aktivasi.landing');
         }
 
+        // Block pengurus (admin, bendahara, ketua_koperasi) from transactonal portal routes
+        if ($user && $user->hasAnyRole(['admin', 'bendahara', 'ketua_koperasi'])) {
+            $transactonalRoutes = [
+                'portal.pinjaman.create',
+                'portal.pinjaman.store',
+                'portal.pinjaman.cek-nominal',
+                'portal.pinjaman.simulasi',
+                'portal.pengajuan-limit.create',
+                'portal.pengajuan-limit.store',
+                'portal.percepatan.create',
+                'portal.percepatan.store',
+                'portal.percepatan.preview',
+                'portal.klaim-dana-sosial.create',
+                'portal.klaim-dana-sosial.store',
+            ];
+
+            if ($request->routeIs($transactonalRoutes)) {
+                return redirect()->route('dashboard')
+                    ->with('status', 'Pengurus tidak memiliki akses menu transaksional anggota. Silakan gunakan dashboard utama.');
+            }
+        }
+
         return $next($request);
     }
 }
