@@ -7,9 +7,8 @@ export default function AnggotaLayout({ children }) {
     const { auth } = usePage().props;
     const initial = auth.user?.name?.charAt(0)?.toUpperCase() ?? '?';
     const roles = auth.user?.roles ?? [];
-    const isAnggota = roles.includes('anggota');
     const isPengurus = roles.some(r => ['admin', 'bendahara', 'ketua_koperasi'].includes(r));
-    const anggotaAktif = !isPengurus && (auth.user?.anggota_status ?? 'aktif') === 'aktif';
+    const anggotaAktif = (auth.user?.anggota_status ?? 'aktif') === 'aktif';
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [showPanduan, setShowPanduan] = useState(false);
     const dropdownRef = useRef(null);
@@ -90,7 +89,7 @@ export default function AnggotaLayout({ children }) {
                                     <p className="text-sm font-semibold text-slate-800 truncate">{auth.user?.name}</p>
                                     <p className="text-xs text-slate-400">{auth.user?.email}</p>
                                 </div>
-                                {isAnggota && (
+                                {auth.user?.anggota_status && (
                                     <Link
                                         href={route('portal.profil')}
                                         className="flex items-center gap-2.5 px-4 py-3 text-sm text-slate-600 hover:bg-slate-50 transition-colors"
