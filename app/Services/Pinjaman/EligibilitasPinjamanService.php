@@ -8,24 +8,40 @@ use App\Models\TabelTenor;
 
 class EligibilitasPinjamanService
 {
-    /** Memo setting limit per kategori selama request (ganti query berulang kategori sama). */
-    private static array $limitCache = [];
+    /** Memo seluruh setting limit terurut selama request (ganti query berulang). */
+    private static ?array $semuaLimitCache = null;
+
+    public static function resetCache(): void
+    {
+        self::$semuaLimitCache = null;
+    }
+
+    /** Semua baris setting limit terurut min_bulan menaik (null dianggap 0). */
+    private function semuaLimit(): array
+    {
+        if (self::$semuaLimitCache === null) {
+            self::$semuaLimitCache = SettingLimitPinjaman::orderBy('min_bulan')->get()->all();
+        }
+
+        return self::$semuaLimitCache;
+    }
 
     /**
      * Cek apakah anggota boleh mengajukan pinjaman baru.
      * Return array:
      *   - boleh: bool
      *   - alasan: string|null
-     *   - limit_tersedia: float (limit efektif = limitKategori - sisaTotal×cicilanPokokWeighted,
-     *                            atau full limit jika tidak ada pinjaman aktif)
+     *   - limit_tersedia: float (0 selama terkunci; rumus berjalan saat terbuka;
+     *                            full limit jika tidak ada pinjaman aktif)
      *   - sisa_angsuran: int (0 jika tidak ada pinjaman aktif; gabungan semua pinjaman aktif)
      *   - cicilan_pokok: float (0 jika tidak ada angsuran belum_bayar; weighted avg dari semua)
      *
      * Aturan:
      *   - Tidak ada pinjaman aktif -> boleh (limit penuh)
-     *   - Ada pinjaman aktif, anggota < 1 tahun -> tolak (wajib lunas)
-     *   - Ada pinjaman aktif, salah satu flag reloan sudah dipakai -> tolak (harus lunas dulu)
-     *   - Ada pinjaman aktif, semua flag reloan belum dipakai -> boleh (limit dikurangi)
+     *   - Sisa > 2 angsuran -> terkunci (limit 0, wajib melunasi hingga sisa <= 2)
+     *   - Sisa <= 2, anggota < 1 tahun -> tolak (wajib lunas)
+     *   - Sisa <= 2, salah satu flag reloan sudah dipakai -> tolak (harus lunas dulu)
+     *   - Sisa <= 2, semua flag reloan belum dipakai -> boleh (limit dikurangi rumus berjalan)
      */
     public function cek(Anggota $anggota): array
     {
@@ -61,6 +77,19 @@ class EligibilitasPinjamanService
 
         $sisaAngsuran = (int) $agg['sisa_total'];
         $cicilanPokok = (float) $agg['cicilan_pokok_weighted_avg'];
+
+        // Kuncian: angsuran yang dibayar tidak langsung membuka limit.
+        // Baru terbuka saat tersisa <= 2 angsuran; lunas penuh = limit awal pulih.
+        if ($sisaAngsuran > 2) {
+            return [
+                'boleh' => false,
+                'alasan' => 'Pinjaman sebelumnya belum lunas. Selesaikan pembayaran hingga tersisa maksimal 2 angsuran untuk membuka pengajuan berikutnya.',
+                'limit_tersedia' => 0.0,
+                'sisa_angsuran' => $sisaAngsuran,
+                'cicilan_pokok' => $cicilanPokok,
+            ];
+        }
+
         $limitMaksimal = $this->limitMaksimal($anggota);
         $limitTersedia = max(0.0, $limitMaksimal - ($sisaAngsuran * $cicilanPokok));
 
@@ -105,6 +134,8 @@ class EligibilitasPinjamanService
 
     /**
      * Hitung limit maksimal nominal pinjaman untuk anggota ini.
+     * Rentang masa keanggotaan (min_bulan–maks_bulan, maks null = tanpa batas)
+     * dibaca dari setting_limit_pinjaman agar bisa diubah admin.
      */
     public function limitMaksimal(Anggota $anggota): float
     {
@@ -112,28 +143,25 @@ class EligibilitasPinjamanService
             return (float) $anggota->limit_custom;
         }
 
-        $lamaTahun = $anggota->lama_keanggotaan_tahun;
+        $bulan = (int) floor($anggota->lama_keanggotaan_tahun * 12);
 
-        $kategori = match (true) {
-            $lamaTahun < 1 => 'kurang_1_tahun',
-            $lamaTahun < 3 => 'satu_sampai_3_tahun',
-            $lamaTahun < 5 => 'tiga_sampai_5_tahun',
-            default => 'lebih_5_tahun',
-        };
+        foreach ($this->semuaLimit() as $setting) {
+            $min = (int) ($setting->min_bulan ?? 0);
+            $maks = $setting->maks_bulan === null ? null : (int) $setting->maks_bulan;
 
-        $setting = self::$limitCache[$kategori]
-            ??= SettingLimitPinjaman::where('kategori', $kategori)->first();
+            if ($bulan >= $min && ($maks === null || $bulan <= $maks)) {
+                return (float) ($setting->limit_maksimal ?? 1_000_000);
+            }
+        }
 
-        return (float) ($setting->limit_maksimal ?? 1_000_000);
+        return 1_000_000.0;
     }
 
     /**
      * Limit efektif yang boleh diajukan anggota saat ini.
-     * Aggregate dari SEMUA pinjaman aktif (bisa >1 setelah reloan).
-     * Sisa = total dari semua angsuran belum_bayar (gabungan angsuran biasa +
-     *        angsuran_percepatan dari pengajuan aktif).
-     * Cicilan = weighted avg dari cicilan_pokok per pinjaman.
-     * Floor di 0 supaya aturan validasi natural menolak (nominal min:1).
+     * - Tanpa pinjaman aktif: limit maksimal penuh.
+     * - Sisa > 2: 0 (terkunci; angsuran yang dibayar belum membuka limit).
+     * - Sisa <= 2: rumus berjalan (maks - sisa × cicilan), floor 0.
      */
     public function limitTersedia(Anggota $anggota): float
     {
@@ -143,8 +171,13 @@ class EligibilitasPinjamanService
             return $this->limitMaksimal($anggota);
         }
 
-        $limitMaksimal = $this->limitMaksimal($anggota);
         $sisaTotal = (int) $agg['sisa_total'];
+
+        if ($sisaTotal > 2) {
+            return 0.0;
+        }
+
+        $limitMaksimal = $this->limitMaksimal($anggota);
         $cicilanPokok = (float) $agg['cicilan_pokok_weighted_avg'];
 
         return max(0.0, $limitMaksimal - ($sisaTotal * $cicilanPokok));

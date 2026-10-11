@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers\Bendahara;
 
-use App\Helpers\TerbilangHelper;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\KeputusanPinjamanNominalRequest;
 use App\Models\KasKoperasi;
 use App\Models\Pinjaman;
 use App\Services\Pinjaman\EligibilitasPinjamanService;
+use App\Services\Pinjaman\FormatPinjamanService;
 use App\Services\Pinjaman\PerhitunganBungaService;
 use App\Services\Pinjaman\PersetujuanPinjamanService;
 use Inertia\Inertia;
@@ -20,15 +20,16 @@ class PinjamanController extends Controller
         private PersetujuanPinjamanService $persetujuan,
         private PerhitunganBungaService $bunga,
         private EligibilitasPinjamanService $eligibilitas,
+        private FormatPinjamanService $format,
     ) {}
 
     public function index(): Response
     {
         $menungguTinjauan = Pinjaman::with('anggota')
-            ->where('status', 'diajukan')
+            ->where('status', 'approved_admin')
             ->latest('tanggal_pengajuan')
             ->get()
-            ->map($this->formatLengkap());
+            ->map(fn ($p) => $this->format->format($p));
 
         // Pinjaman yang diajukan sendiri oleh Ketua: setelah disetujui bendahara,
         // pencairannya dilakukan oleh bendahara (bukan Ketua) agar tak self-approve.
@@ -37,7 +38,7 @@ class PinjamanController extends Controller
             ->where('cair_oleh_bendahara', true)
             ->latest('tanggal_pengajuan')
             ->get()
-            ->map($this->formatLengkap());
+            ->map(fn ($p) => $this->format->format($p));
 
         $riwayat = Pinjaman::with('anggota')
             ->whereIn('status', ['approved_bendahara', 'aktif', 'lunas', 'ditolak'])
@@ -45,13 +46,12 @@ class PinjamanController extends Controller
             ->latest('updated_at')
             ->take(20)
             ->get()
-            ->map($this->formatLengkap());
+            ->map(fn ($p) => $this->format->format($p));
 
         return Inertia::render('Bendahara/Pinjaman/Index', [
             'menungguTinjauan' => $menungguTinjauan,
             'menungguPencairan' => $menungguPencairan,
             'riwayat' => $riwayat,
-            'ringkasanKas' => $this->ringkasanKas(),
         ]);
     }
 
@@ -60,29 +60,8 @@ class PinjamanController extends Controller
         $pinjaman->load('anggota');
 
         return Inertia::render('Bendahara/Pinjaman/Show', [
-            'pinjaman' => $this->formatLengkap()($pinjaman),
-            'ringkasanKas' => $this->ringkasanKas(),
+            'pinjaman' => $this->format->format($pinjaman),
         ]);
-    }
-
-    private function ringkasanKas(): array
-    {
-        $jurnal = app(\App\Services\Keuangan\JurnalKasService::class);
-        $pagu = $jurnal->sisaPaguBulan();
-        $agregat = Pinjaman::where('status', 'diajukan')
-            ->selectRaw('COUNT(*) as jumlah, SUM(COALESCE(nominal_diminta, nominal)) as total')
-            ->first();
-        $total = (float) ($agregat->total ?? 0);
-        $jumlah = (int) ($agregat->jumlah ?? 0);
-
-        return [
-            'total_menunggu' => $total,
-            'jumlah_menunggu' => $jumlah,
-            'saldo' => $pagu['saldo_operasional'],
-            'sisa_proyeksi' => $pagu['saldo_operasional'] - $total,
-            'pagu' => $pagu,
-            'klasifikasi' => $jurnal->klasifikasiBulan(),
-        ];
     }
 
     public function approve(KeputusanPinjamanNominalRequest $request, Pinjaman $pinjaman)
@@ -104,7 +83,11 @@ class PinjamanController extends Controller
 
     public function reject(KeputusanPinjamanNominalRequest $request, Pinjaman $pinjaman)
     {
-        $this->persetujuan->rejectBendahara($pinjaman, $request->catatan);
+        try {
+            $this->persetujuan->rejectBendahara($pinjaman, $request->catatan);
+        } catch (RuntimeException $e) {
+            return back()->withErrors(['keputusan' => $e->getMessage()]);
+        }
 
         return redirect()->route('bendahara.pinjaman.index')
             ->with('status', 'Pengajuan pinjaman ditolak.');
@@ -124,8 +107,7 @@ class PinjamanController extends Controller
         }
 
         $jadwal = $this->bunga->buatJadwal($nominal, $tenorFinal, (float) $pinjaman->persentase_bunga);
-        $pagu = app(\App\Services\Keuangan\JurnalKasService::class)->sisaPaguBulan();
-        $klasifikasi = app(\App\Services\Keuangan\JurnalKasService::class)->klasifikasiBulan();
+        $saldoOperasional = app(\App\Services\Keuangan\JurnalKasService::class)->saldoOperasional();
 
         return response()->json([
             'nominal' => $nominal,
@@ -137,10 +119,8 @@ class PinjamanController extends Controller
             'total_bunga' => array_sum(array_column($jadwal, 'nominal_bunga')),
             'total_bayar' => array_sum(array_column($jadwal, 'total_bayar')),
             'cicilan_pertama' => $jadwal[0] ?? null,
-            'kas_saldo' => $pagu['saldo_operasional'],
-            'kas_sisa' => $pagu['saldo_operasional'] - $nominal,
-            'pagu' => $pagu,
-            'klasifikasi' => $klasifikasi,
+            'kas_saldo' => $saldoOperasional,
+            'kas_sisa' => $saldoOperasional - $nominal,
         ]);
     }
 
@@ -154,64 +134,5 @@ class PinjamanController extends Controller
 
         return redirect()->route('bendahara.pinjaman.index')
             ->with('status', 'Pinjaman disetujui dan dana telah dicairkan.');
-    }
-
-    private function formatLengkap(): \Closure
-    {
-        return function ($p) {
-            $jadwal = $this->bunga->buatJadwal(
-                (float) $p->nominal,
-                $p->tenor_bulan,
-                (float) $p->persentase_bunga
-            );
-            $totalPokok = array_sum(array_column($jadwal, 'nominal_pokok'));
-            $totalBunga = array_sum(array_column($jadwal, 'nominal_bunga'));
-            $totalAngsuran = array_sum(array_column($jadwal, 'total_bayar'));
-
-            return [
-                'id' => $p->id,
-                'nominal' => (float) $p->nominal,
-                'terbilang' => TerbilangHelper::angkaKeTerbilang($p->nominal),
-                'tenor_bulan' => $p->tenor_bulan,
-                'nominal_diminta' => $p->nominal_diminta !== null ? (float) $p->nominal_diminta : (float) $p->nominal,
-                'tenor_diminta' => $p->tenor_diminta ?? $p->tenor_bulan,
-                'nominal_disetujui_bendahara' => $p->nominal_disetujui_bendahara !== null ? (float) $p->nominal_disetujui_bendahara : null,
-                'tenor_disetujui_bendahara' => $p->tenor_disetujui_bendahara,
-                'nominal_disetujui' => $p->nominal_disetujui !== null ? (float) $p->nominal_disetujui : null,
-                'tenor_disetujui' => $p->tenor_disetujui,
-                'kas' => [
-                    'saldo_bendahara' => $p->kas_saldo_bendahara !== null ? (float) $p->kas_saldo_bendahara : null,
-                    'saldo_ketua' => $p->kas_saldo_ketua !== null ? (float) $p->kas_saldo_ketua : null,
-                    'sisa_ketua' => $p->kas_sisa_ketua !== null ? (float) $p->kas_sisa_ketua : null,
-                    'saldo_sekarang' => app(\App\Services\Keuangan\JurnalKasService::class)->saldoOperasional(),
-                ],
-                'limit_tersedia' => (float) $this->eligibilitas->limitTersedia($p->anggota),
-                'tenor_maksimal_diminta' => $this->eligibilitas->tenorMaksimal((float) ($p->nominal_diminta ?? $p->nominal)),
-                'persentase_bunga' => (float) $p->persentase_bunga,
-                'keperluan' => $p->keperluan,
-                'rekening' => [
-                    'bank' => $p->snapshot_bank,
-                    'no_rekening' => $p->snapshot_no_rekening,
-                    'atas_nama' => $p->snapshot_atas_nama,
-                ],
-                'status' => $p->status,
-                'tanggal_pengajuan' => $p->tanggal_pengajuan->format('d M Y'),
-                'sudah_pakai_privilege_reloan' => $p->sudah_pakai_privilege_reloan,
-                'catatan_bendahara' => $p->catatan_bendahara,
-                'jadwal_angsuran' => $jadwal,
-                'total_angsuran' => $totalAngsuran,
-                'total_pokok_angsuran' => $totalPokok,
-                'total_bunga_angsuran' => $totalBunga,
-                'anggota' => [
-                    'nama' => $p->anggota->nama,
-                    'no_anggota' => $p->anggota->no_anggota,
-                    'no_karyawan' => $p->anggota->no_karyawan,
-                    'cabang' => $p->anggota->cabang,
-                    'foto_url' => $p->anggota->foto_url,
-                    'jabatan' => $p->anggota->jabatan,
-                    'lama_keanggotaan_tahun' => round($p->anggota->lama_keanggotaan_tahun, 1),
-                ],
-            ];
-        };
     }
 }

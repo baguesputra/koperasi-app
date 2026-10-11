@@ -56,8 +56,9 @@ class PengajuanPinjamanService
         // Tentukan status awal berdasar peran pengaju (pengajuan mandiri pengurus).
         [$statusAwal, $cairOlehBendahara, $catatanBendahara] = $this->statusAwalPengajuanMandiri($pengaju);
 
-        // Tandai privilege reloan dipakai setiap ada angsuran berjalan (1x per siklus,
-        // tanpa peduli sisa berapa pun). Jika sudah ada pinjaman aktif lain, update flag-nya juga.
+        // Tandai privilege reloan dipakai setiap ada angsuran berjalan (1x per siklus).
+        // Flag ini dipakai aturan eligibilitas saat kuncian terbuka (sisa <= 2).
+        // Jika sudah ada pinjaman aktif lain, update flag-nya juga.
         $pakaiPrivilegeReloan = $cekEligibilitas['sisa_angsuran'] > 0;
 
         $pinjaman = DB::transaction(function () use ($pengaju, $anggota, $nominal, $tenorBulan, $keperluan, $rekening, $statusAwal, $cairOlehBendahara, $catatanBendahara, $pakaiPrivilegeReloan, $audit) {
@@ -105,7 +106,7 @@ class PengajuanPinjamanService
             'pinjaman_diajukan',
             WaPesan::susun($anggota->nama, $anggota->no_karyawan,
                 'Pengajuan pinjaman Anda telah kami terima pada '.now()->translatedFormat('d F Y')." dengan rincian sebagai berikut:\n\n{$rincian}\n\n"
-                .'Status saat ini: *Menunggu verifikasi Bendahara*.'
+                .'Status saat ini: *Menunggu verifikasi Admin*.'
                 .' Pemberitahuan selanjutnya akan kami sampaikan melalui WhatsApp ini.')
         );
 
@@ -127,14 +128,16 @@ class PengajuanPinjamanService
 
     /**
      * Status awal saat pengurus mengajukan pinjaman untuk dirinya sendiri.
-     * - Bendahara: langsung disetujui bendahara, tinggal menunggu approval Ketua.
-     * - Ketua: hanya perlu persetujuan & pencairan Bendahara (bukan self-approve).
-     * - Lainnya (anggota): alur normal, menunggu tinjauan Bendahara.
+     * Semua pengajuan lewat Admin dulu (approved_admin), termasuk mandiri:
+     * - Bendahara: tahap Bendahara dilewati otomatis saat Admin meneruskan
+     *   (agar tak self-approve), tinggal menunggu approval Ketua.
+     * - Ketua: perlu pemeriksaan & pencairan Bendahara (bukan self-approve).
+     * - Lainnya (anggota): alur normal admin → bendahara → ketua.
      */
     private function statusAwalPengajuanMandiri(User $pengaju): array
     {
         if ($pengaju->hasRole('bendahara')) {
-            return ['approved_bendahara', false, 'Diajukan mandiri oleh Bendahara'];
+            return ['diajukan', false, 'Diajukan mandiri oleh Bendahara'];
         }
 
         if ($pengaju->hasRole('ketua_koperasi')) {

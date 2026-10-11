@@ -158,7 +158,7 @@ function kirimPengajuan() {
                             <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4">
                                 <p className="text-xs font-semibold text-amber-800 mb-1">Pengajuan Lebih Awal (Reloan)</p>
                                 <p className="text-xs text-amber-700 leading-relaxed">
-                                    Pinjaman aktif Anda masih berjalan ({sisaAngsuranAktif} cicilan × {formatRupiah(cicilanPokokAktif)} = {formatRupiah(sisaAngsuranAktif * cicilanPokokAktif)}).
+                                    Pinjaman aktif Anda tersisa {sisaAngsuranAktif} cicilan (maksimal 2 untuk pengajuan lebih awal) × {formatRupiah(cicilanPokokAktif)} = {formatRupiah(sisaAngsuranAktif * cicilanPokokAktif)}.
                                     Limit efektif dikurangi sisa cicilan pokok yang berjalan.
                                 </p>
                                 <div className="flex items-center justify-between mt-2 pt-2 border-t border-amber-200">
@@ -258,10 +258,14 @@ function kirimPengajuan() {
                         <div className="space-y-3">
                             <div className="flex gap-3">
                                 <div className="w-6 h-6 rounded-full bg-white/15 flex items-center justify-center text-xs font-bold shrink-0">1</div>
-                                <p className="text-sm text-slate-300">Pengajuan ditinjau oleh Bendahara Koperasi</p>
+                                <p className="text-sm text-slate-300">Pengajuan diverifikasi awal oleh Admin Koperasi</p>
                             </div>
                             <div className="flex gap-3">
                                 <div className="w-6 h-6 rounded-full bg-white/15 flex items-center justify-center text-xs font-bold shrink-0">2</div>
+                                <p className="text-sm text-slate-300">Pengajuan ditinjau oleh Bendahara Koperasi</p>
+                            </div>
+                            <div className="flex gap-3">
+                                <div className="w-6 h-6 rounded-full bg-white/15 flex items-center justify-center text-xs font-bold shrink-0">3</div>
                                 <p className="text-sm text-slate-300">Disetujui final oleh Ketua Koperasi</p>
                             </div>
                             <div className="flex gap-3">
@@ -289,7 +293,7 @@ function kirimPengajuan() {
                             <p className="text-sm font-bold text-slate-700">Ada Pertanyaan?</p>
                         </div>
                         <p className="text-sm text-slate-500">
-                            Hubungi Bendahara Koperasi untuk informasi lebih lanjut mengenai status pengajuan Anda.
+                            Hubungi pengurus Koperasi untuk informasi lebih lanjut mengenai status pengajuan Anda.
                         </p>
                     </div>
                 </div>

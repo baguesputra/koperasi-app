@@ -27,7 +27,7 @@ class AktivasiController extends Controller
             'simpananPokok' => (float) (SettingSimpanan::where('jenis', 'pokok')->value('nominal') ?? 50_000),
             'simpananWajib' => (float) (SettingSimpanan::where('jenis', 'wajib')->value('nominal') ?? 45_000),
             'danaSosial' => (float) (SettingSimpanan::where('jenis', 'dana_sosial')->value('nominal') ?? 5_000),
-            'limitAwal' => (float) (SettingLimitPinjaman::where('kategori', 'kurang_1_tahun')->value('limit_maksimal') ?? 1_000_000),
+            'limitAwal' => (float) (SettingLimitPinjaman::orderBy('min_bulan')->value('limit_maksimal') ?? 1_000_000),
             'pengajuanBerjalan' => PengajuanAktivasi::where('anggota_id', $anggota->id)
                 ->where('status', 'diajukan')
                 ->exists(),

@@ -59,10 +59,71 @@ class PersetujuanPinjamanService
         }
     }
 
-    public function approveBendahara(Pinjaman $pinjaman, string $catatan, ?float $nominal = null, ?int $tenorBulan = null): void
+    public function approveAdmin(Pinjaman $pinjaman, string $catatan): void
     {
         if ($pinjaman->status !== 'diajukan') {
-            throw new \RuntimeException('Hanya pinjaman berstatus Diajukan yang dapat disetujui Bendahara.');
+            throw new \RuntimeException('Hanya pinjaman berstatus Diajukan yang dapat diteruskan Admin.');
+        }
+
+        $mandiriBendahara = $pinjaman->catatan_bendahara === 'Diajukan mandiri oleh Bendahara';
+
+        $pinjaman->update([
+            'status' => $mandiriBendahara ? 'approved_bendahara' : 'approved_admin',
+            'catatan_admin' => $catatan,
+        ]);
+
+        AuditLog::catat(
+            aksi: 'pinjaman_teruskan_admin',
+            keterangan: "Pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) diteruskan oleh Admin. Diminta: ".WaPesan::rupiah($pinjaman->nominal_diminta ?? $pinjaman->nominal)
+                .($mandiriBendahara ? ' (pengajuan mandiri Bendahara: tahap Bendahara dilewati agar tak self-approve).' : ''),
+            dataLama: ['status' => 'diajukan'],
+            dataBaru: ['status' => $mandiriBendahara ? 'approved_bendahara' : 'approved_admin', 'catatan_admin' => $catatan]
+        );
+
+        $tahapBerikut = $mandiriBendahara ? 'Ketua' : 'Bendahara';
+        $isi = "Pengajuan pinjaman Anda telah kami informasikan dengan rincian:\n\n"
+            ."- Nomor Referensi: #{$pinjaman->id}\n"
+            .'- Nominal diminta: '.WaPesan::rupiah($pinjaman->nominal_diminta ?? $pinjaman->nominal)."\n"
+            ."- Tenor diminta: ".($pinjaman->tenor_diminta ?? $pinjaman->tenor_bulan)." bulan\n\n"
+            ."Status saat ini: *Diteruskan Admin* dan sedang menunggu pemeriksaan {$tahapBerikut}."
+            .' Pemberitahuan selanjutnya akan kami sampaikan melalui WhatsApp ini.';
+
+        WaService::keAnggota(
+            $pinjaman->anggota,
+            'pinjaman_diteruskan_admin',
+            WaPesan::susun($pinjaman->anggota->nama, $pinjaman->anggota->no_karyawan, $isi)
+        );
+    }
+
+    public function rejectAdmin(Pinjaman $pinjaman, string $catatan): void
+    {
+        if ($pinjaman->status !== 'diajukan') {
+            throw new \RuntimeException('Hanya pinjaman berstatus Diajukan yang dapat ditolak Admin.');
+        }
+
+        $pinjaman->update([
+            'status' => 'ditolak',
+            'catatan_admin' => $catatan,
+        ]);
+
+        AuditLog::catat(
+            aksi: 'pinjaman_tolak_admin',
+            keterangan: "Pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) ditolak oleh Admin. Nominal: ".WaPesan::rupiah($pinjaman->nominal_diminta ?? $pinjaman->nominal),
+            dataLama: ['status' => 'diajukan'],
+            dataBaru: ['status' => 'ditolak', 'catatan_admin' => $catatan]
+        );
+
+        WaService::keAnggota(
+            $pinjaman->anggota,
+            'pinjaman_ditolak',
+            $this->pesanDitolak('Admin', $pinjaman, $catatan)
+        );
+    }
+
+    public function approveBendahara(Pinjaman $pinjaman, string $catatan, ?float $nominal = null, ?int $tenorBulan = null): void
+    {
+        if ($pinjaman->status !== 'approved_admin') {
+            throw new \RuntimeException('Hanya pinjaman berstatus Diteruskan Admin yang dapat disetujui Bendahara.');
         }
 
         $nominalFinal = $nominal ?? (float) $pinjaman->nominal;
@@ -81,7 +142,7 @@ class PersetujuanPinjamanService
         AuditLog::catat(
             aksi: 'pinjaman_setujui_bendahara',
             keterangan: "Pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) disetujui oleh Bendahara. Diminta: ".WaPesan::rupiah($pinjaman->nominal_diminta ?? $pinjaman->nominal).', usulan: '.WaPesan::rupiah($nominalFinal)." ({$tenorFinal} bln). Kas operasional saat itu: ".WaPesan::rupiah($kasSaldo).', proyeksi sisa: '.WaPesan::rupiah($kasSaldo - $nominalFinal),
-            dataLama: ['status' => 'diajukan'],
+            dataLama: ['status' => 'approved_admin'],
             dataBaru: ['status' => 'approved_bendahara', 'nominal_disetujui_bendahara' => $nominalFinal, 'tenor_disetujui_bendahara' => $tenorFinal, 'kas_saldo_bendahara' => $kasSaldo, 'catatan_bendahara' => $catatan]
         );
 
@@ -102,6 +163,10 @@ class PersetujuanPinjamanService
 
     public function rejectBendahara(Pinjaman $pinjaman, string $catatan): void
     {
+        if ($pinjaman->status !== 'approved_admin') {
+            throw new \RuntimeException('Hanya pinjaman berstatus Diteruskan Admin yang dapat ditolak Bendahara.');
+        }
+
         $statusLama = $pinjaman->status;
         $pinjaman->update([
             'status' => 'ditolak',
@@ -169,20 +234,20 @@ class PersetujuanPinjamanService
         $nominalFinal ??= (float) ($pinjaman->nominal_disetujui_bendahara ?? $pinjaman->nominal);
         $tenorFinal ??= $pinjaman->tenor_disetujui_bendahara ?? $pinjaman->tenor_bulan;
         $kasSebelum = 0.0;
+        $saldoBank = 0.0;
         $nomorDokumen = $pinjaman->nomor_dokumen
             ?? app(PenomoranDokumenService::class)->berikutnya(
                 PenomoranDokumenService::JENIS_PINJAMAN,
                 now()
             );
-        $infoPagu = [];
-        DB::transaction(function () use ($pinjaman, $catatan, $nomorDokumen, $nominalFinal, $tenorFinal, &$kasSebelum, &$infoPagu) {
+        DB::transaction(function () use ($pinjaman, $catatan, $nomorDokumen, $nominalFinal, $tenorFinal, &$kasSebelum, &$saldoBank) {
             $kas = KasKoperasi::lockForUpdate()->firstOrFail();
             $kasSebelum = $this->jurnalKas->saldoOperasional($kas);
-            $infoPagu = $this->jurnalKas->sisaPaguBulan($kas);
+            $saldoBank = (float) $kas->saldo_bank;
 
-            if ($nominalFinal > $infoPagu['layak']) {
+            if ($nominalFinal > $saldoBank) {
                 throw new \RuntimeException(
-                    'Melebihi saldo bank. Pool pinjaman saat ini: '.WaPesan::rupiah($infoPagu['layak'])
+                    'Melebihi saldo bank. Saldo bank saat ini: '.WaPesan::rupiah($saldoBank)
                     .', nominal diminta: '.WaPesan::rupiah($nominalFinal).'.'
                 );
             }
@@ -224,9 +289,9 @@ class PersetujuanPinjamanService
 
         AuditLog::catat(
             aksi: $aksi,
-            keterangan: "Pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) {$deskripsi}. {$trail}. Kas operasional sebelum: ".WaPesan::rupiah($kasSebelum).', sisa: '.WaPesan::rupiah($kasSebelum - $nominalFinal).', pagu bulan: '.WaPesan::rupiah($infoPagu['pagu'] ?? 0),
+            keterangan: "Pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) {$deskripsi}. {$trail}. Kas operasional sebelum: ".WaPesan::rupiah($kasSebelum).', sisa: '.WaPesan::rupiah($kasSebelum - $nominalFinal).', saldo bank: '.WaPesan::rupiah($saldoBank),
             dataLama: ['status' => $statusLama],
-            dataBaru: ['status' => 'aktif', 'nominal' => $nominalFinal, 'tenor_bulan' => $tenorFinal, 'kas_saldo_ketua' => $kasSebelum, 'kas_sisa_ketua' => $kasSebelum - $nominalFinal, 'pagu' => $infoPagu, 'catatan_ketua' => $catatan, 'tanggal_pencairan' => now()->toDateTimeString()]
+            dataBaru: ['status' => 'aktif', 'nominal' => $nominalFinal, 'tenor_bulan' => $tenorFinal, 'kas_saldo_ketua' => $kasSebelum, 'kas_sisa_ketua' => $kasSebelum - $nominalFinal, 'saldo_bank' => $saldoBank, 'catatan_ketua' => $catatan, 'tanggal_pencairan' => now()->toDateTimeString()]
         );
 
         $isi = "Dengan hormat,\n\nSelamat! Pengajuan pinjaman Anda telah *DISETUJUI* oleh Ketua dan dana telah dicairkan pada "
@@ -252,6 +317,10 @@ class PersetujuanPinjamanService
 
     public function rejectKetua(Pinjaman $pinjaman, string $catatan): void
     {
+        if ($pinjaman->status !== 'approved_bendahara') {
+            throw new \RuntimeException('Hanya pinjaman berstatus Disetujui Bendahara yang dapat ditolak Ketua.');
+        }
+
         $statusLama = $pinjaman->status;
         $pinjaman->update([
             'status' => 'ditolak',

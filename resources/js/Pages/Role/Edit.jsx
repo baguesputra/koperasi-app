@@ -8,7 +8,6 @@ import Breadcrumb from '@/Components/ui/Breadcrumb';
 const kelompokLabel = {
     aktivasi: 'Aktivasi Anggota',
     anggota: 'Anggota',
-    klaim: 'Santunan Dana Sosial',
     simpanan: 'Simpanan',
     pinjaman: 'Pinjaman',
     angsuran: 'Angsuran',
@@ -21,13 +20,12 @@ const kelompokLabel = {
 
 const permissionLabel = {
     'aktivasi.approve-ketua': 'Setujui aktivasi anggota (tahap Ketua)',
-    'klaim.tinjau-bendahara': 'Verifikasi santunan dana sosial (tahap Bendahara)',
-    'klaim.approve-ketua': 'Setujui final santunan dana sosial (tahap Ketua)',
     'anggota.lihat': 'Lihat data anggota',
     'anggota.kelola': 'Tambah / ubah data anggota',
     'simpanan.lihat': 'Lihat data simpanan',
     'simpanan.konfirmasi': 'Konfirmasi simpanan bulanan',
     'pinjaman.lihat': 'Lihat semua data pinjaman',
+    'pinjaman.tinjau-admin': 'Verifikasi awal pinjaman (tahap Admin)',
     'pinjaman.tinjau-bendahara': 'Tinjau & setujui pinjaman (tahap Bendahara)',
     'pinjaman.approve-ketua': 'Setujui final pinjaman (tahap Ketua)',
     'angsuran.konfirmasi': 'Konfirmasi pembayaran angsuran',

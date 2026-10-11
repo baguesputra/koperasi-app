@@ -26,6 +26,7 @@ const menuGroups = [
     {
         label: 'Pemrosesan',
         items: [
+            { label: 'Verifikasi Awal Pinjaman', routeName: 'admin.pinjaman.index', icon: ClipboardCheck, permission: 'pinjaman.tinjau-admin' },
             { label: 'Tinjau Pinjaman', routeName: 'bendahara.pinjaman.index', icon: ClipboardCheck, permission: 'pinjaman.tinjau-bendahara' },
             { label: 'Persetujuan Pinjaman', routeName: 'ketua.pinjaman.index', icon: ClipboardCheck, permission: 'pinjaman.approve-ketua' },
             { label: 'Tinjau Perubahan Tenor', routeName: 'bendahara.percepatan.index', icon: Repeat, permission: 'pinjaman.tinjau-bendahara' },
@@ -34,8 +35,6 @@ const menuGroups = [
             { label: 'Konfirmasi Simpanan', routeName: 'bendahara.simpanan.index', icon: HeartHandshake, permission: 'simpanan.konfirmasi' },
             { label: 'Tinjau Limit', routeName: 'bendahara.pengajuan-limit.index', icon: TrendingUp, permission: 'limit.tinjau-bendahara' },
             { label: 'Pengajuan Limit', routeName: 'ketua.pengajuan-limit.index', icon: TrendingUp, permission: 'limit.approve-ketua' },
-            { label: 'Tinjau Santunan', routeName: 'bendahara.klaim-dana-sosial.index', icon: HeartHandshake, permission: 'klaim.tinjau-bendahara' },
-            { label: 'Persetujuan Santunan', routeName: 'ketua.klaim-dana-sosial.index', icon: HeartHandshake, permission: 'klaim.approve-ketua' },
             { label: 'Aktivasi Anggota', routeName: 'ketua.aktivasi.index', icon: Users, permission: 'aktivasi.approve-ketua' },
         ],
     },
@@ -60,14 +59,13 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
         : null;
     const tertutup = collapsed && !expanding;
     const badgeAngka = {
+        'admin.pinjaman.index': notifications?.menunggu_tinjauan_admin ?? 0,
         'bendahara.pinjaman.index': notifications?.menunggu_tinjauan_bendahara ?? 0,
         'ketua.pinjaman.index': notifications?.menunggu_approval_ketua ?? 0,
         'bendahara.percepatan.index': notifications?.menunggu_perubahan_tenor_bendahara ?? 0,
         'ketua.percepatan.index': notifications?.menunggu_perubahan_tenor_ketua ?? 0,
         'bendahara.pengajuan-limit.index': notifications?.menunggu_pengajuan_limit_bendahara ?? 0,
         'ketua.pengajuan-limit.index': notifications?.menunggu_pengajuan_limit ?? 0,
-        'bendahara.klaim-dana-sosial.index': notifications?.menunggu_klaim_bendahara ?? 0,
-        'ketua.klaim-dana-sosial.index': notifications?.menunggu_klaim_ketua ?? 0,
         'ketua.aktivasi.index': notifications?.menunggu_aktivasi ?? 0,
     };
 

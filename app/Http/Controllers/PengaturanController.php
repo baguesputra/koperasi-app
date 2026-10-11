@@ -171,7 +171,7 @@ class PengaturanController extends Controller
             'daftarRole' => $daftarRole,
             'roleList' => $roleList,
             'semuaPermission' => $semuaPermission,
-            'limitPinjaman' => $tabAktif === 'aturan-pinjaman' ? SettingLimitPinjaman::orderBy('id')->get() : [],
+            'limitPinjaman' => $tabAktif === 'aturan-pinjaman' ? SettingLimitPinjaman::orderBy('min_bulan')->get() : [],
             'tabelTenor' => $tabAktif === 'aturan-pinjaman' ? TabelTenor::orderBy('nominal_min')->get() : [],
             'bungaSaatIni' => $tabAktif === 'aturan-pinjaman' ? SettingBunga::orderByDesc('berlaku_dari_tanggal')->first() : null,
             'settingSimpanan' => $tabAktif === 'dana-operasional' ? SettingSimpanan::orderBy('id')->get() : [],
@@ -201,19 +201,87 @@ class PengaturanController extends Controller
 
     public function updateLimit(Request $request, SettingLimitPinjaman $limit)
     {
-        $request->validate(['limit_maksimal' => ['required', 'numeric', 'min:0']]);
+        $data = $request->validate([
+            'label' => ['sometimes', 'required', 'string', 'max:100'],
+            'min_bulan' => ['sometimes', 'required', 'integer', 'min:0', 'max:1200'],
+            'maks_bulan' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:1200'],
+            'limit_maksimal' => ['sometimes', 'required', 'numeric', 'min:0'],
+        ]);
+
+        $minBaru = $data['min_bulan'] ?? $limit->min_bulan ?? 0;
+        $maksBaru = array_key_exists('maks_bulan', $data) ? $data['maks_bulan'] : $limit->maks_bulan;
+
+        if ($maksBaru !== null && $maksBaru < $minBaru) {
+            return back()->withErrors(['maks_bulan' => 'Batas atas harus >= batas bawah atau dikosongkan (tanpa batas).']);
+        }
+
+        if ($this->rentangLimitBertabrakan($minBaru, $maksBaru, $limit->id)) {
+            return back()->withErrors(['min_bulan' => 'Rentang masa bertabrakan dengan baris lain.']);
+        }
 
         $nilaiLama = $limit->limit_maksimal;
-        $limit->update(['limit_maksimal' => $request->limit_maksimal]);
+        $limit->update($data);
 
         AuditLog::catat(
             'update_limit_pinjaman',
-            "Limit '{$limit->label}' diubah dari Rp ".number_format($nilaiLama, 0, ',', '.').' menjadi Rp '.number_format($request->limit_maksimal, 0, ',', '.'),
+            "Limit '{$limit->label}' diubah dari Rp ".number_format($nilaiLama, 0, ',', '.').' menjadi Rp '.number_format($limit->limit_maksimal, 0, ',', '.'),
             ['limit_maksimal' => $nilaiLama],
-            ['limit_maksimal' => $request->limit_maksimal]
+            $limit->fresh()->toArray()
         );
 
         return back()->with('status', 'Limit pinjaman berhasil diperbarui.');
+    }
+
+    public function storeLimit(Request $request)
+    {
+        $data = $request->validate([
+            'label' => ['required', 'string', 'max:100'],
+            'min_bulan' => ['required', 'integer', 'min:0', 'max:1200'],
+            'maks_bulan' => ['nullable', 'integer', 'min:0', 'max:1200'],
+            'limit_maksimal' => ['required', 'numeric', 'min:0'],
+        ]);
+
+        if ($data['maks_bulan'] !== null && $data['maks_bulan'] < $data['min_bulan']) {
+            return back()->withErrors(['maks_bulan' => 'Batas atas harus >= batas bawah atau dikosongkan (tanpa batas).']);
+        }
+
+        if ($this->rentangLimitBertabrakan($data['min_bulan'], $data['maks_bulan'])) {
+            return back()->withErrors(['min_bulan' => 'Rentang masa bertabrakan dengan baris lain.']);
+        }
+
+        $data['kategori'] = 'kustom_'.now()->format('YmdHis');
+        $limit = SettingLimitPinjaman::create($data);
+
+        AuditLog::catat('tambah_limit_pinjaman', "Rentang limit baru ditambahkan: '{$limit->label}'.", null, $limit->toArray());
+
+        return back()->with('status', 'Rentang limit berhasil ditambahkan.');
+    }
+
+    public function destroyLimit(SettingLimitPinjaman $limit)
+    {
+        AuditLog::catat('hapus_limit_pinjaman', "Rentang limit dihapus: '{$limit->label}'.", $limit->toArray(), null);
+
+        $limit->delete();
+
+        return back()->with('status', 'Rentang limit berhasil dihapus.');
+    }
+
+    private function rentangLimitBertabrakan(int $min, ?int $maks, ?int $kecualiId = null): bool
+    {
+        return SettingLimitPinjaman::where('id', '!=', $kecualiId)
+            ->where(function ($q) use ($min, $maks) {
+                $q->where(function ($r) use ($min, $maks) {
+                    $r->where('min_bulan', '<=', $min)
+                        ->where(fn ($s) => $s->whereNull('maks_bulan')->orWhere('maks_bulan', '>=', $min));
+                })->orWhere(function ($r) use ($min, $maks) {
+                    // Awal baris lain masuk ke dalam [min, maks]
+                    $r->where('min_bulan', '>=', $min);
+                    if ($maks !== null) {
+                        $r->where('min_bulan', '<=', $maks);
+                    }
+                });
+            })
+            ->exists();
     }
 
     public function storeTenor(Request $request)

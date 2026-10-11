@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Portal;
 
 use App\Http\Controllers\Controller;
-use App\Models\KlaimDanaSosial;
 use App\Models\PengajuanPercepatan;
 use App\Models\SettingSimpanan;
 use App\Models\TabelTenor;
@@ -49,11 +48,6 @@ class DashboardController extends Controller
 
         // Pengajuan limit yang sedang berjalan (diajukan ke bendahara / approved_bendahara ke ketua)
         $pengajuanLimitBerjalan = $anggota->pengajuanLimit()
-            ->whereIn('status', ['diajukan', 'approved_bendahara'])
-            ->latest('tanggal_pengajuan')
-            ->first();
-
-        $klaimBerjalan = KlaimDanaSosial::where('anggota_id', $anggota->id)
             ->whereIn('status', ['diajukan', 'approved_bendahara'])
             ->latest('tanggal_pengajuan')
             ->first();
@@ -209,11 +203,6 @@ class DashboardController extends Controller
                 'limit_disetujui_bendahara' => $pengajuanLimitBerjalan->limit_disetujui_bendahara !== null ? (float) $pengajuanLimitBerjalan->limit_disetujui_bendahara : null,
                 'status' => $pengajuanLimitBerjalan->status,
                 'tanggal_pengajuan' => $pengajuanLimitBerjalan->tanggal_pengajuan->format('d M Y'),
-            ] : null,
-            'klaimBerjalan' => $klaimBerjalan ? [
-                'jenis_label' => app(\App\Services\DanaSosial\KlaimDanaSosialService::class)->labelJenis($klaimBerjalan->jenis),
-                'status' => $klaimBerjalan->status,
-                'tanggal_pengajuan' => $klaimBerjalan->tanggal_pengajuan->format('d M Y'),
             ] : null,
             'resignMenunggu' => $resignMenunggu,
             'pengajuanDitolak' => $pengajuanDitolak ? [

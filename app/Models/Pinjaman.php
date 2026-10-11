@@ -45,6 +45,7 @@ class Pinjaman extends Model
         'versi_syarat',
         'ip_address_setuju',
         'user_agent_setuju',
+        'catatan_admin',
         'catatan_bendahara',
         'catatan_ketua',
         'sudah_pakai_percepatan',
@@ -187,10 +188,18 @@ class Pinjaman extends Model
     public function getVerificationTimeline(): array
     {
         $ditolak = $this->status === 'ditolak';
+        // Catatan 'Diajukan mandiri oleh Bendahara' adalah penanda awal, bukan keputusan.
+        $adaKeputusanBendahara = ! empty($this->catatan_bendahara)
+            && $this->catatan_bendahara !== 'Diajukan mandiri oleh Bendahara';
+        $ditolakAdmin = $ditolak && ! empty($this->catatan_admin) && ! $adaKeputusanBendahara && empty($this->catatan_ketua);
+        $ditolakBendahara = $ditolak && $adaKeputusanBendahara && empty($this->catatan_ketua);
         $ditolakKetua = $ditolak && ! empty($this->catatan_ketua);
+        $adminDone = in_array($this->status, ['approved_admin', 'approved_bendahara', 'approved_ketua', 'aktif', 'lunas'], true)
+            || $ditolakBendahara || $ditolakKetua;
         $bendaharaDone = in_array($this->status, ['approved_bendahara', 'approved_ketua', 'aktif', 'lunas'], true) || $ditolakKetua;
         $ketuaDone = in_array($this->status, ['approved_ketua', 'aktif', 'lunas'], true);
 
+        $adminData = $this->parseApprovalNote($this->catatan_admin);
         $bendaharaData = $this->parseApprovalNote($this->catatan_bendahara);
         $ketuaData = $this->parseApprovalNote($this->catatan_ketua);
 
@@ -203,10 +212,17 @@ class Pinjaman extends Model
                 'icon' => 'file-text',
             ],
             [
+                'label' => 'Verifikasi Admin',
+                'date' => $adminData['date'] ?? '-',
+                'user' => $adminData['user'] ?? 'Belum tercatat',
+                'status' => $ditolakAdmin ? 'rejected' : ($adminDone ? 'done' : 'current'),
+                'icon' => 'shield-check',
+            ],
+            [
                 'label' => 'Verifikasi Bendahara',
                 'date' => $bendaharaData['date'] ?? '-',
                 'user' => $bendaharaData['user'] ?? 'Belum tercatat',
-                'status' => $ditolak && ! $ditolakKetua ? 'rejected' : ($bendaharaDone ? 'done' : 'current'),
+                'status' => $ditolakBendahara ? 'rejected' : ($bendaharaDone ? 'done' : ($adminDone ? 'current' : 'pending')),
                 'icon' => 'shield-check',
             ],
             [

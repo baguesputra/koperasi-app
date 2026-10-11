@@ -40,7 +40,7 @@ class PinjamanMandiriTest extends TestCase
         ], $override));
     }
 
-    public function test_bendahara_mengajukan_langsung_approved_bendahara(): void
+    public function test_bendahara_mengajukan_lewat_admin_lalu_otomatis_ke_ketua(): void
     {
         $bendahara = $this->login('BEN-000001');
 
@@ -48,7 +48,7 @@ class PinjamanMandiriTest extends TestCase
 
         $this->assertDatabaseHas('pinjaman', [
             'pengaju_user_id' => $bendahara->id,
-            'status' => 'approved_bendahara',
+            'status' => 'diajukan',
             'cair_oleh_bendahara' => false,
         ]);
 
@@ -57,6 +57,15 @@ class PinjamanMandiriTest extends TestCase
             'Diajukan mandiri oleh Bendahara',
             $pinjaman->catatan_bendahara
         );
+
+        // Admin meneruskan → tahap bendahara dilewati otomatis (tak self-approve)
+        $this->login('ADM-000001');
+        $this->post(route('admin.pinjaman.approve', $pinjaman), ['catatan' => 'Diteruskan ke Ketua.'])
+            ->assertRedirect();
+
+        $pinjaman->refresh();
+        $this->assertSame('approved_bendahara', $pinjaman->status);
+        $this->assertNotNull($pinjaman->catatan_admin);
     }
 
     public function test_bendahara_mengajukan_muncul_di_antrean_ketua(): void
@@ -64,6 +73,10 @@ class PinjamanMandiriTest extends TestCase
         $bendahara = $this->login('BEN-000001');
         $this->ajukan();
         $pinjaman = Pinjaman::where('pengaju_user_id', $bendahara->id)->first();
+
+        $this->login('ADM-000001');
+        $this->post(route('admin.pinjaman.approve', $pinjaman), ['catatan' => 'Diteruskan ke Ketua.'])
+            ->assertRedirect();
 
         $this->login('KET-000001');
         $response = $this->get(route('ketua.pinjaman.index'));
@@ -89,6 +102,11 @@ class PinjamanMandiriTest extends TestCase
             'cair_oleh_bendahara' => true,
         ]);
 
+        // Admin meneruskan lebih dulu
+        $this->login('ADM-000001');
+        $this->post(route('admin.pinjaman.approve', $pinjaman), ['catatan' => 'Diteruskan ke Bendahara.'])
+            ->assertRedirect();
+
         // Bendahara menyetujui
         $this->login('BEN-000001');
         $this->post(route('bendahara.pinjaman.approve', $pinjaman), ['catatan' => 'Data lengkap.', 'nominal' => 500_000])
@@ -113,6 +131,9 @@ class PinjamanMandiriTest extends TestCase
         $ketua = $this->login('KET-000001');
         $this->ajukan();
         $pinjaman = Pinjaman::where('pengaju_user_id', $ketua->id)->first();
+
+        $this->login('ADM-000001');
+        $this->post(route('admin.pinjaman.approve', $pinjaman), ['catatan' => 'Diteruskan ke Bendahara.']);
 
         $this->login('BEN-000001');
         $this->post(route('bendahara.pinjaman.approve', $pinjaman), ['catatan' => 'Data lengkap.', 'nominal' => 500_000]);

@@ -1,9 +1,9 @@
 <?php
 
 use App\Http\Controllers\AnggotaController;
+use App\Http\Controllers\Admin\PinjamanController as AdminPinjamanController;
 use App\Http\Controllers\Auth\SsoController;
 use App\Http\Controllers\Bendahara\AngsuranController;
-use App\Http\Controllers\Bendahara\KlaimDanaSosialController as BendaharaKlaimDanaSosialController;
 use App\Http\Controllers\Bendahara\PengajuanLimitController as BendaharaPengajuanLimitController;
 use App\Http\Controllers\Bendahara\PercepatanController as BendaharaPercepatanController;
 use App\Http\Controllers\Bendahara\PinjamanController as BendaharaPinjamanController;
@@ -12,7 +12,6 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\JurnalKasController;
 use App\Http\Controllers\KasKoperasiController;
 use App\Http\Controllers\Ketua\AktivasiController as KetuaAktivasiController;
-use App\Http\Controllers\Ketua\KlaimDanaSosialController as KetuaKlaimDanaSosialController;
 use App\Http\Controllers\Ketua\PengajuanLimitController as KetuaPengajuanLimitController;
 use App\Http\Controllers\Ketua\PercepatanController as KetuaPercepatanController;
 use App\Http\Controllers\Ketua\PinjamanController as KetuaPinjamanController;
@@ -24,7 +23,6 @@ use App\Http\Controllers\PengeluaranController;
 use App\Http\Controllers\PinjamanController;
 use App\Http\Controllers\Portal\AktivasiController as PortalAktivasiController;
 use App\Http\Controllers\Portal\DashboardController as PortalDashboardController;
-use App\Http\Controllers\Portal\KlaimDanaSosialController as PortalKlaimDanaSosialController;
 use App\Http\Controllers\Portal\PengajuanLimitController as PortalPengajuanLimitController;
 use App\Http\Controllers\Portal\PercepatanController as PortalPercepatanController;
 use App\Http\Controllers\Portal\PinjamanController as PortalPinjamanController;
@@ -88,10 +86,6 @@ Route::middleware(['auth', 'permission:portal.akses'])->prefix('portal')->name('
         Route::get('/percepatan', [PortalPercepatanController::class, 'create'])->name('percepatan.create');
         Route::post('/percepatan', [PortalPercepatanController::class, 'store'])->name('percepatan.store')->middleware('idempotent');
         Route::post('/percepatan/preview', [PortalPercepatanController::class, 'preview'])->name('percepatan.preview');
-
-        // ------------ Klaim Dana Sosial ----------------
-        Route::get('/klaim-dana-sosial', [PortalKlaimDanaSosialController::class, 'create'])->name('klaim-dana-sosial.create');
-        Route::post('/klaim-dana-sosial', [PortalKlaimDanaSosialController::class, 'store'])->name('klaim-dana-sosial.store')->middleware('idempotent');
     });
 });
 
@@ -177,7 +171,9 @@ Route::middleware(['auth', 'permission:anggota.resign'])->group(function () {
 // ==========================================
 Route::middleware(['auth', 'permission:pengaturan.kelola', 'password.confirm'])->group(function () {
     Route::get('/pengaturan', [PengaturanController::class, 'index'])->name('pengaturan.index');
+    Route::post('/pengaturan/limit', [PengaturanController::class, 'storeLimit'])->name('pengaturan.limit.store');
     Route::put('/pengaturan/limit/{limit}', [PengaturanController::class, 'updateLimit'])->name('pengaturan.limit.update');
+    Route::delete('/pengaturan/limit/{limit}', [PengaturanController::class, 'destroyLimit'])->name('pengaturan.limit.destroy');
     Route::post('/pengaturan/tenor', [PengaturanController::class, 'storeTenor'])->name('pengaturan.tenor.store');
     Route::put('/pengaturan/tenor/{tenor}', [PengaturanController::class, 'updateTenor'])->name('pengaturan.tenor.update');
     Route::delete('/pengaturan/tenor/{tenor}', [PengaturanController::class, 'destroyTenor'])->name('pengaturan.tenor.destroy');
@@ -210,6 +206,17 @@ Route::middleware(['auth', 'permission:user.kelola', 'password.confirm'])->prefi
     Route::post('/pengguna/{user}/reset-password', [PenggunaController::class, 'resetPassword'])->name('pengguna.reset-password');
     Route::post('/pengguna/{user}/toggle-status', [PenggunaController::class, 'toggleStatus'])->name('pengguna.toggle-status');
     Route::delete('/pengguna/{user}', [PenggunaController::class, 'destroy'])->name('pengguna.destroy');
+});
+
+// ==========================================
+// PROSES ADMIN (verifikasi awal pinjaman)
+// ==========================================
+Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
+    Route::middleware('permission:pinjaman.tinjau-admin')->group(function () {
+        Route::get('/pinjaman', [AdminPinjamanController::class, 'index'])->name('pinjaman.index');
+        Route::post('/pinjaman/{pinjaman}/approve', [AdminPinjamanController::class, 'approve'])->name('pinjaman.approve')->middleware('idempotent');
+        Route::post('/pinjaman/{pinjaman}/reject', [AdminPinjamanController::class, 'reject'])->name('pinjaman.reject')->middleware('idempotent');
+    });
 });
 
 // ==========================================
@@ -246,13 +253,6 @@ Route::middleware('auth')->prefix('bendahara')->name('bendahara.')->group(functi
         Route::get('/simpanan', [BendaharaSimpananController::class, 'index'])->name('simpanan.index');
         Route::post('/simpanan/konfirmasi', [BendaharaSimpananController::class, 'konfirmasi'])->name('simpanan.konfirmasi')->middleware('idempotent');
     });
-
-    Route::middleware('permission:klaim.tinjau-bendahara')->group(function () {
-        Route::get('/klaim-dana-sosial', [BendaharaKlaimDanaSosialController::class, 'index'])->name('klaim-dana-sosial.index');
-        Route::get('/klaim-dana-sosial/{klaimDanaSosial}', [BendaharaKlaimDanaSosialController::class, 'show'])->name('klaim-dana-sosial.show');
-        Route::post('/klaim-dana-sosial/{klaimDanaSosial}/approve', [BendaharaKlaimDanaSosialController::class, 'approve'])->name('klaim-dana-sosial.approve')->middleware('idempotent');
-        Route::post('/klaim-dana-sosial/{klaimDanaSosial}/reject', [BendaharaKlaimDanaSosialController::class, 'reject'])->name('klaim-dana-sosial.reject')->middleware('idempotent');
-    });
 });
 
 // ==========================================
@@ -282,13 +282,6 @@ Route::middleware('auth')->prefix('ketua')->name('ketua.')->group(function () {
         Route::get('/aktivasi', [KetuaAktivasiController::class, 'index'])->name('aktivasi.index');
         Route::post('/aktivasi/{aktivasi}/approve', [KetuaAktivasiController::class, 'approve'])->name('aktivasi.approve')->middleware('idempotent');
         Route::post('/aktivasi/{aktivasi}/reject', [KetuaAktivasiController::class, 'reject'])->name('aktivasi.reject')->middleware('idempotent');
-    });
-
-    Route::middleware('permission:klaim.approve-ketua')->group(function () {
-        Route::get('/klaim-dana-sosial', [KetuaKlaimDanaSosialController::class, 'index'])->name('klaim-dana-sosial.index');
-        Route::get('/klaim-dana-sosial/{klaimDanaSosial}', [KetuaKlaimDanaSosialController::class, 'show'])->name('klaim-dana-sosial.show');
-        Route::post('/klaim-dana-sosial/{klaimDanaSosial}/approve', [KetuaKlaimDanaSosialController::class, 'approve'])->name('klaim-dana-sosial.approve')->middleware('idempotent');
-        Route::post('/klaim-dana-sosial/{klaimDanaSosial}/reject', [KetuaKlaimDanaSosialController::class, 'reject'])->name('klaim-dana-sosial.reject')->middleware('idempotent');
     });
 });
 
