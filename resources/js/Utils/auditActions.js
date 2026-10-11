@@ -7,7 +7,6 @@ const KATEGORI = {
     simpanan: 'Simpanan',
     angsuran: 'Angsuran',
     limit: 'Limit',
-    klaim: 'Santunan Dana Sosial',
     pengeluaran: 'Pengeluaran',
     anggota: 'Anggota',
     pengaturan: 'Pengaturan',
@@ -21,7 +20,6 @@ const KATEGORI_STYLE = {
     simpanan: 'bg-pink-50 text-pink-700',
     angsuran: 'bg-cyan-50 text-cyan-700',
     limit: 'bg-violet-50 text-violet-700',
-    klaim: 'bg-teal-50 text-teal-700',
     pengeluaran: 'bg-orange-50 text-orange-700',
     anggota: 'bg-teal-50 text-teal-700',
     pengaturan: 'bg-slate-100 text-slate-600',
@@ -41,6 +39,8 @@ const OUTCOME_STYLE = {
 const AKSI_MAP = {
     // Pinjaman
     pinjaman_diajukan: { label: 'Ajukan Pinjaman', outcome: 'biru', kategori: 'pinjaman' },
+    pinjaman_teruskan_admin: { label: 'Teruskan Pinjaman (Admin)', outcome: 'hijau', kategori: 'pinjaman' },
+    pinjaman_tolak_admin: { label: 'Tolak Pinjaman (Admin)', outcome: 'merah', kategori: 'pinjaman' },
     pinjaman_setujui_bendahara: { label: 'Setujui Pinjaman (Bendahara)', outcome: 'hijau', kategori: 'pinjaman' },
     pinjaman_tolak_bendahara: { label: 'Tolak Pinjaman (Bendahara)', outcome: 'merah', kategori: 'pinjaman' },
     pinjaman_cair_bendahara: { label: 'Cairkan Pinjaman (Bendahara)', outcome: 'ungu', kategori: 'pinjaman' },
@@ -72,15 +72,9 @@ const AKSI_MAP = {
     setujui_pengajuan_limit: { label: 'Setujui Kenaikan Limit (Ketua)', outcome: 'hijau', kategori: 'limit' },
     limit_ditolak: { label: 'Tolak Kenaikan Limit (Ketua)', outcome: 'merah', kategori: 'limit' },
 
-    // Santunan dana sosial
-    klaim_diajukan: { label: 'Ajukan Santunan Dana Sosial', outcome: 'biru', kategori: 'klaim' },
-    klaim_setujui_bendahara: { label: 'Verifikasi Santunan (Bendahara)', outcome: 'hijau', kategori: 'klaim' },
-    klaim_tolak_bendahara: { label: 'Tolak Santunan (Bendahara)', outcome: 'merah', kategori: 'klaim' },
-    klaim_disetujui: { label: 'Setujui Santunan (Ketua)', outcome: 'hijau', kategori: 'klaim' },
-    klaim_ditolak: { label: 'Tolak Santunan (Ketua)', outcome: 'merah', kategori: 'klaim' },
-
     // Keuangan
     pengeluaran_dicatat: { label: 'Catat Pengeluaran', outcome: 'kuning', kategori: 'pengeluaran' },
+    penuhi_pagu_kas_kecil: { label: 'Penuhi Pagu Kas Kecil', outcome: 'hijau', kategori: 'pengeluaran' },
     pinjaman_talangan_kembali: { label: 'Pengembalian Talangan Pinjaman', outcome: 'hijau', kategori: 'pinjaman' },
 
     // Anggota
@@ -91,6 +85,8 @@ const AKSI_MAP = {
 
     // Pengaturan
     update_limit_pinjaman: { label: 'Update Limit Pinjaman', outcome: 'kuning', kategori: 'pengaturan' },
+    tambah_limit_pinjaman: { label: 'Tambah Rentang Limit', outcome: 'biru', kategori: 'pengaturan' },
+    hapus_limit_pinjaman: { label: 'Hapus Rentang Limit', outcome: 'merah', kategori: 'pengaturan' },
     update_setting_kas: { label: 'Update Pagu Kas', outcome: 'kuning', kategori: 'pengaturan' },
     tambah_tenor: { label: 'Tambah Rentang Tenor', outcome: 'biru', kategori: 'pengaturan' },
     update_tenor: { label: 'Update Rentang Tenor', outcome: 'kuning', kategori: 'pengaturan' },

@@ -50,20 +50,15 @@ class KasPaguOperasionalTest extends TestCase
         );
     }
 
-    public function test_pool_pinjaman_mengikuti_saldo_bank(): void
+    public function test_sudah_cair_tercatat_di_jurnal_dan_mengurangi_bank(): void
     {
-        $info = app(JurnalKasService::class)->sisaPaguBulan();
-
-        $this->assertEquals($info['saldo_bank'], $info['pagu']);
-        $this->assertEquals(0.0, $info['cadangan']);
-        $this->assertEquals(0.0, $info['sudah_cair']);
-        $this->assertEquals($info['saldo_bank'], $info['layak']);
-    }
-
-    public function test_sudah_cair_mengikuti_pencairan_bulan_berjalan(): void
-    {
+        $bankSebelum = (float) KasKoperasi::first()->saldo_bank;
         $anggota = $this->buatAnggota();
         $pinjaman = $this->ajukan($anggota, 1_000_000);
+
+        $this->masuk('ADM-000001');
+        $this->post(route('admin.pinjaman.approve', $pinjaman), ['catatan' => 'Diteruskan ke Bendahara.'])
+            ->assertStatus(302);
 
         $this->masuk('BEN-000001');
         $this->post(route('bendahara.pinjaman.approve', $pinjaman), ['catatan' => 'Setuju, data lengkap.', 'nominal' => 1_000_000])
@@ -73,9 +68,8 @@ class KasPaguOperasionalTest extends TestCase
         $this->post(route('ketua.pinjaman.approve', $pinjaman), ['catatan' => 'Disetujui Ketua.', 'nominal' => 1_000_000])
             ->assertStatus(302);
 
-        $info = app(JurnalKasService::class)->sisaPaguBulan();
-
-        $this->assertEquals(1_000_000, $info['sudah_cair']);
+        $this->assertEquals($bankSebelum - 1_000_000, (float) KasKoperasi::first()->saldo_bank);
+        $this->assertSame(1, JurnalKas::where('kategori', 'pencairan_pinjaman')->where('referensi_id', $pinjaman->id)->count());
     }
 
     public function test_cair_ditolak_bila_melebihi_saldo_bank(): void
@@ -86,6 +80,10 @@ class KasPaguOperasionalTest extends TestCase
 
         $anggota = $this->buatAnggota();
         $pinjaman = $this->ajukan($anggota);
+
+        $this->masuk('ADM-000001');
+        $this->post(route('admin.pinjaman.approve', $pinjaman), ['catatan' => 'Diteruskan ke Bendahara.'])
+            ->assertStatus(302);
 
         $this->masuk('BEN-000001');
         $this->post(route('bendahara.pinjaman.approve', $pinjaman), ['catatan' => 'Setuju, data lengkap.', 'nominal' => 1_000_000])
@@ -99,21 +97,17 @@ class KasPaguOperasionalTest extends TestCase
         $this->assertSame(0, JurnalKas::where('kategori', 'pencairan_pinjaman')->where('referensi_id', $pinjaman->id)->count());
     }
 
-    public function test_update_pagu_via_pengaturan_tercatat_audit(): void
+    public function test_update_pagu_kas_kecil_via_pengaturan_tercatat_audit(): void
     {
         $this->masuk('ADM-000001');
         $this->withSession(['auth.password_confirmed_at' => time()]);
-        $setting = SettingKas::where('kunci', SettingKas::PAGU)->firstOrFail();
+        $setting = SettingKas::where('kunci', SettingKas::CADANGAN)->firstOrFail();
 
-        $this->post(route('pengaturan.kas.update', $setting), ['nominal' => 75_000_000])
+        $this->post(route('pengaturan.kas.update', $setting), ['nominal' => 7_500_000])
             ->assertStatus(302);
 
-        $this->assertEquals(75_000_000, (float) $setting->refresh()->nominal);
+        $this->assertEquals(7_500_000, (float) $setting->refresh()->nominal);
         $this->assertDatabaseHas('audit_log', ['aksi' => 'update_setting_kas']);
-
-        // sisaPaguBulan pagu = saldo bank (dinamis), bukan setting PAGU.
-        $info = app(JurnalKasService::class)->sisaPaguBulan();
-        $this->assertEquals(KasKoperasi::first()->saldo_bank, $info['pagu']);
     }
 
     public function test_rekonsiliasi_ok_setelah_seed(): void

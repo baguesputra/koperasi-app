@@ -9,8 +9,6 @@ class SettingKas extends Model
 {
     use HasFactory;
 
-    public const PAGU = 'pagu_pinjaman_bulanan';
-
     public const CADANGAN = 'cadangan_sosial_bulan';
 
     protected $table = 'setting_kas';

@@ -1,7 +1,7 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, Link, usePage } from '@inertiajs/react';
 import {
-    Users, PiggyBank, HandCoins, Wallet, TrendingUp, HeartHandshake, Landmark,
+    Users, PiggyBank, HandCoins, Wallet, TrendingUp, Landmark,
     ClipboardCheck, FileClock, Gauge,
     ChevronRight,
     HandCoins as PinjamanIcon, CheckCircle2,
@@ -11,7 +11,6 @@ import Card from '@/Components/ui/Card';
 import StatWidget from '@/Components/ui/StatWidget';
 import PageHeader from '@/Components/ui/PageHeader';
 import DashboardClock from '@/Components/ui/DashboardClock';
-import RingkasanKas from '@/Pages/PinjamanApproval/RingkasanKas';
 import { formatRupiah, formatRupiahSingkat } from '@/Utils/formatCurrency';
 import { statusStyle } from '@/Utils/status';
 
@@ -27,7 +26,7 @@ const kasSeries = [
     { key: 'pencairan', name: 'Pencairan Pinjaman', color: '#64748B', stack: 'keluar', radius: [4, 4, 0, 0] },
 ];
 
-export default function Dashboard({ stats, actionable, grafikTren, grafikKas, aktivitasTerbaru, ringkasanKas, rincianAntrean, infoPagu }) {
+export default function Dashboard({ stats, actionable, grafikTren, grafikKas, aktivitasTerbaru, rincianAntrean }) {
     const { auth } = usePage().props;
     const userPermissions = auth.user?.permissions ?? [];
 
@@ -39,7 +38,6 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
     const widgets = [
         { label: 'Kas Operasional Gabungan', value: formatRupiah(stats.kas_operasional ?? stats.total_keseluruhan), icon: Wallet, tone: 'navy', caption: 'Bank + kas kecil' },
         { label: 'Kas Kecil', value: formatRupiah(stats.saldo_kas_kecil ?? 0), icon: Wallet, tone: 'amber', caption: 'Uang tunai operasional' },
-        { label: 'Layak Cair Bulan Ini', value: formatRupiah(infoPagu?.layak ?? 0), icon: HeartHandshake, tone: 'amber', caption: `Saldo bank ${labelBulan}` },
         { label: 'Total Simpanan (Aktif)', value: formatRupiah(stats.total_simpanan_outstanding), icon: PiggyBank, tone: 'green', caption: 'Pokok + wajib' },
         { label: 'Pinjaman Outstanding', value: formatRupiah(stats.pinjaman_outstanding), icon: HandCoins, tone: 'amber', caption: 'Status aktif' },
         { label: 'Pendapatan Bunga Bulan Ini', value: formatRupiah(stats.pendapatan_bunga_bulan_ini), icon: TrendingUp, tone: 'green', caption: labelBulan },
@@ -49,6 +47,7 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
         {
             label: 'Pinjaman', icon: ClipboardCheck,
             aksi: [
+                { label: 'Verifikasi Awal', value: actionable.menunggu_tinjauan_admin, href: route('admin.pinjaman.index'), permission: 'pinjaman.tinjau-admin' },
                 { label: 'Verifikasi', value: actionable.menunggu_tinjauan_bendahara, href: route('bendahara.pinjaman.index'), permission: 'pinjaman.tinjau-bendahara' },
                 { label: 'Persetujuan', value: actionable.menunggu_approval_ketua, href: route('ketua.pinjaman.index'), permission: 'pinjaman.approve-ketua' },
             ],
@@ -68,13 +67,6 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
             ],
         },
         {
-            label: 'Santunan', icon: HeartHandshake,
-            aksi: [
-                { label: 'Verifikasi', value: actionable.klaim_bendahara, href: route('bendahara.klaim-dana-sosial.index'), permission: 'klaim.tinjau-bendahara' },
-                { label: 'Persetujuan', value: actionable.klaim_ketua, href: route('ketua.klaim-dana-sosial.index'), permission: 'klaim.approve-ketua' },
-            ],
-        },
-        {
             label: 'Anggota', icon: Users,
             aksi: [
                 { label: 'Aktivasi', value: actionable.aktivasi_anggota, href: route('ketua.aktivasi.index'), permission: 'aktivasi.approve-ketua' },
@@ -90,7 +82,6 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
     const grupMenunggu = grupAksi.filter((g) => g.total > 0);
     const jumlahMenunggu = grupMenunggu.length;
     const semuaBeres = jumlahMenunggu === 0;
-    const antreanUtama = grupMenunggu[0]?.tampil.find((a) => a.value > 0)?.href ?? null;
 
     function waktuRelatif(iso) {
         if (!iso) return '';
@@ -181,8 +172,6 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                     </div>
                 </div>
             </div>
-
-            <RingkasanKas ringkasan={ringkasanKas} judul="Beban Persetujuan Bulan Ini" tinjauHref={antreanUtama} />
 
             {/* Perlu Ditindaklanjuti */}
             <div className="mb-6">

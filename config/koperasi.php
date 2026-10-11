@@ -1,9 +1,7 @@
 <?php
 
 return [
-    // Arsip pengaturan lama, tak lagi dipakai pool pinjaman (pool = saldo bank dinamis).
-    'pagu_pinjaman_bulanan' => (float) env('KOPERASI_PAGU_PINJAMAN', 50_000_000),
-    // Pagu dana sosial per bulan: batas klaim santunan + pengeluaran dana sosial (P1-5).
+    // Pagu dana sosial per bulan: batas pengeluaran dana sosial.
     // Pool pinjaman kini dinamis mengikuti saldo Bank (bukan pagu bulanan tetap).
     'cadangan_sosial_bulan' => (float) env('KOPERASI_CADANGAN_SOSIAL', 5_000_000),
     'nama' => env('KOPERASI_NAMA', 'KOPERASI KARYAWAN'),

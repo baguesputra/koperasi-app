@@ -8,14 +8,13 @@ import StatusBadge from '@/Components/ui/StatusBadge';
 import PageHeader from '@/Components/ui/PageHeader';
 import Drawer from '@/Components/ui/Drawer';
 import KeputusanDrawer from './Partials/KeputusanDrawer';
-import RingkasanKas from '@/Pages/PinjamanApproval/RingkasanKas';
 import { formatRupiah } from '@/Utils/formatCurrency';
 
 const tabDasar = 'inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-t-lg border -mb-px';
 const tabAktif = `${tabDasar} bg-white border-slate-200 border-b-0 text-brand-navy`;
 const tabNonAktif = `${tabDasar} bg-slate-50 border-slate-200 text-slate-500 hover:bg-white hover:text-slate-700`;
 
-export default function Index({ menungguApproval, riwayat, ringkasanKas }) {
+export default function Index({ menungguApproval, riwayat }) {
     const [tab, setTab] = useState('baru');
     const [detailPinjaman, setDetailPinjaman] = useState(null);
     const [drawerOpen, setDrawerOpen] = useState(false);
@@ -34,8 +33,6 @@ export default function Index({ menungguApproval, riwayat, ringkasanKas }) {
             <Head title="Approval Pinjaman" />
 
             <PageHeader title="Approval Pinjaman" subtitle={`${menungguApproval.length} pengajuan menunggu approval final Anda`} />
-
-            <RingkasanKas ringkasan={ringkasanKas} judul="Beban Persetujuan Bulan Ini" />
 
             <Card padding="none">
                 {/* Tab lembaran dokumen */}
