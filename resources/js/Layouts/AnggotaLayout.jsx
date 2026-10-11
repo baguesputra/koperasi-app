@@ -1,6 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import { useState, useRef, useEffect } from 'react';
-import { User, LogOut, ChevronDown, Home, History, Plus, HeartHandshake, Info } from 'lucide-react';
+import { User, LogOut, ChevronDown, Home, History, Plus, Info } from 'lucide-react';
 import Panduan from '@/Pages/Portal/Panduan';
 
 export default function AnggotaLayout({ children }) {
@@ -139,7 +139,7 @@ export default function AnggotaLayout({ children }) {
             {anggotaAktif && (
             <nav aria-label="Navigasi utama" className="sm:hidden fixed bottom-0 inset-x-0 z-50 overflow-visible" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
                 <div className="relative overflow-visible bg-white border-t border-slate-200 shadow-[0_-4px_24px_rgba(15,30,54,0.08)]">
-                    <div className="grid grid-cols-5 items-end px-2 pt-1 pb-1 overflow-visible">
+                    <div className="grid grid-cols-4 items-end px-2 pt-1 pb-1 overflow-visible">
                         <TabItem href={route('portal.dashboard')} active={isCurrentRoute('portal.dashboard')} icon={Home} label="Beranda" />
                         <TabItem href={route('portal.riwayat')} active={isCurrentRoute('portal.riwayat')} icon={History} label="Riwayat" />
                         <div className="flex justify-center overflow-visible">
@@ -153,7 +153,6 @@ export default function AnggotaLayout({ children }) {
                                 <span className="text-[10px] font-bold leading-none text-white">Ajukan</span>
                             </Link>
                         </div>
-                        <TabItem href={route('portal.klaim-dana-sosial.create')} active={isCurrentRoute('portal.klaim-dana-sosial.create')} icon={HeartHandshake} label="Santunan" />
                         <TabItem href={route('portal.profil')} active={isCurrentRoute('portal.profil')} icon={User} label="Profil" />
                     </div>
                 </div>

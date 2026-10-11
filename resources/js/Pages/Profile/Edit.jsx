@@ -54,9 +54,9 @@ export default function Edit({ pengguna, ringkasan }) {
                         <p className="text-base font-bold text-slate-700">Ringkasan Personal</p>
                         <span className="text-xs font-semibold text-slate-400 bg-slate-50 px-2.5 py-1 rounded-full">Read-only</span>
                     </div>
-                    <p className="text-sm text-slate-400 mb-3">Pinjaman, simpanan, tenor, limit, dan santunan — detail lengkap di portal anggota.</p>
+                    <p className="text-sm text-slate-400 mb-3">Pinjaman, simpanan, tenor, dan limit — detail lengkap di portal anggota.</p>
 
-                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 px-3">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 px-3">
                         <div>
                             <div className="text-xs text-slate-500">Pinjaman</div>
                             <div className="text-2xl font-bold text-slate-800">{ringkasan.pinjaman_total} pengajuan</div>
@@ -76,11 +76,6 @@ export default function Edit({ pengguna, ringkasan }) {
                             <div className="text-xs text-slate-500">Tenor</div>
                             <div className="text-2xl font-bold text-purple-600">{ringkasan.tenor_berjalan} berjalan</div>
                             <div className="text-xs text-slate-400">Perubahan</div>
-                        </div>
-                        <div>
-                            <div className="text-xs text-slate-500">Santunan</div>
-                            <div className="text-2xl font-bold text-pink-600">{ringkasan.santunan_berjalan} berjalan</div>
-                            <div className="text-xs text-slate-400">Klaim</div>
                         </div>
                     </div>
 

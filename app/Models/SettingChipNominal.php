@@ -18,7 +18,6 @@ class SettingChipNominal extends Model
     protected $casts = ['nominal' => 'decimal:2', 'urutan' => 'integer'];
 
     public const GRUP_LABEL = [
-        'santunan' => 'Santunan Dana Sosial',
         'pengeluaran' => 'Pengeluaran',
         'topup' => 'Topup Bank',
         'sisih' => 'Sisih Kas Kecil',
@@ -27,7 +26,6 @@ class SettingChipNominal extends Model
     ];
 
     public const DEFAULT = [
-        'santunan' => [100_000, 300_000, 500_000],
         'pengeluaran' => [50_000, 100_000, 250_000, 500_000, 1_000_000],
         'topup' => [500_000, 1_000_000, 2_500_000, 5_000_000, 10_000_000],
         'sisih' => [500_000, 1_000_000, 2_500_000, 5_000_000, 10_000_000],

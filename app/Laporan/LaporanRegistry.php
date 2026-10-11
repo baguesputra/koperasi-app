@@ -593,8 +593,8 @@ class LaporanRegistry
                         ->selectRaw("SUM(CASE WHEN tipe='masuk' THEN jumlah ELSE -jumlah END) as sisa")
                         ->value('sisa');
 
-                    // P1-4: pisahkan keluar santunan vs keluar pinjaman (talangan) — 1 query GROUP BY.
-                    // Santunan bisa tercatat di kantong dana_sosial (lama) atau kas_kecil (fisik baru).
+                    // Pisahkan keluar dana sosial vs keluar pinjaman (talangan) — 1 query GROUP BY.
+                    // Pengeluaran dana sosial bisa tercatat di kantong dana_sosial (lama) atau kas_kecil (fisik baru).
                     $keluarAgg = DB::table('jurnal_kas')
                         ->where('tipe', 'keluar')
                         ->whereIn('kategori', ['pengeluaran_dana_sosial', 'talangan_sosial_ke_pinjaman'])

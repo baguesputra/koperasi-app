@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\PengajuanPercepatan;
-use App\Models\KlaimDanaSosial;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -28,8 +27,6 @@ class ProfileController extends Controller
                 'simpanan_total' => (float) $anggota->simpanan()->whereIn('jenis', ['pokok', 'wajib'])->sum('jumlah'),
                 'limit_berjalan' => $anggota->pengajuanLimit()->whereIn('status', $statusesMenunggu)->count(),
                 'tenor_berjalan' => PengajuanPercepatan::whereHas('pinjaman', fn ($q) => $q->where('anggota_id', $anggota->id))
-                    ->whereIn('status', $statusesMenunggu)->count(),
-                'santunan_berjalan' => KlaimDanaSosial::where('anggota_id', $anggota->id)
                     ->whereIn('status', $statusesMenunggu)->count(),
             ];
         }

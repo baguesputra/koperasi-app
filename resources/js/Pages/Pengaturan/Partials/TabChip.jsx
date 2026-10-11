@@ -5,7 +5,6 @@ import { formatRupiah, formatRupiahSingkat } from '@/Utils/formatCurrency';
 import TextField from '@/Components/ui/TextField';
 
 const LABEL_GRUP = {
-    santunan: 'Santunan Dana Sosial',
     pengeluaran: 'Pengeluaran',
     topup: 'Topup Bank',
     sisih: 'Sisih Kas Kecil',

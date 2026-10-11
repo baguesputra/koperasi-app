@@ -24,13 +24,13 @@ class SettingChipNominalTest extends TestCase
         $this->withSession(['auth.password_confirmed_at' => time()]);
     }
 
-    public function test_default_santunan_tanpa_data_db(): void
+    public function test_default_pengeluaran_tanpa_data_db(): void
     {
         SettingChipNominal::query()->delete();
 
         $this->assertSame(
-            [100_000.0, 300_000.0, 500_000.0],
-            SettingChipNominal::untuk('santunan')
+            [50_000.0, 100_000.0, 250_000.0, 500_000.0, 1_000_000.0],
+            SettingChipNominal::untuk('pengeluaran')
         );
     }
 
@@ -39,13 +39,13 @@ class SettingChipNominalTest extends TestCase
         $this->sebagaiAdmin();
 
         $this->post(route('pengaturan.chip.update'), [
-            'grup' => 'santunan',
+            'grup' => 'pengeluaran',
             'daftar' => [500_000, 100_000, 300_000],
         ])->assertStatus(302);
 
         $this->assertSame(
             [500_000.0, 100_000.0, 300_000.0],
-            SettingChipNominal::untuk('santunan')
+            SettingChipNominal::untuk('pengeluaran')
         );
         $this->assertDatabaseHas('audit_log', ['aksi' => 'update_chip_nominal']);
     }
@@ -54,14 +54,14 @@ class SettingChipNominalTest extends TestCase
     {
         $this->sebagaiAdmin();
         $this->post(route('pengaturan.chip.update'), [
-            'grup' => 'santunan',
+            'grup' => 'pengeluaran',
             'daftar' => [],
         ])->assertSessionHasErrors('daftar');
 
         $anggota = $this->buatAnggota();
         $this->actingAs($anggota->user);
         $this->post(route('pengaturan.chip.update'), [
-            'grup' => 'santunan',
+            'grup' => 'pengeluaran',
             'daftar' => [100_000],
         ])->assertForbidden();
     }
@@ -74,7 +74,7 @@ class SettingChipNominalTest extends TestCase
         $this->get(route('portal.dashboard'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->has('chipNominal.santunan')
+                ->has('chipNominal.pengeluaran')
                 ->has('chipNominal.pinjaman_usulan')
                 ->has('chipNominal.limit_baru'));
     }
