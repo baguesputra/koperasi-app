@@ -13,15 +13,16 @@ class PengeluaranService
 {
     public function __construct(private JurnalKasService $jurnalKas) {}
 
-    public function catat(string $jenis, float $jumlah, string $keterangan, string $tanggal, int $userId): Pengeluaran
+    public function catat(string $jenis, float $jumlah, string $keterangan, string $tanggal, int $userId, string $tipe = 'lain_lain'): Pengeluaran
     {
-        return DB::transaction(function () use ($jenis, $jumlah, $keterangan, $tanggal, $userId) {
+        return DB::transaction(function () use ($jenis, $jumlah, $keterangan, $tanggal, $userId, $tipe) {
             if ($jenis === 'dana_sosial') {
                 $this->validasiPaguSosial($jumlah, $tanggal);
             }
 
             $pengeluaran = Pengeluaran::create([
                 'jenis' => $jenis,
+                'tipe' => $tipe,
                 'jumlah' => $jumlah,
                 'keterangan' => $keterangan,
                 'tanggal' => $tanggal,
@@ -41,14 +42,16 @@ class PengeluaranService
 
             // Audit log untuk pencatatan pengeluaran
             $labelJenis = $jenis === 'koperasi' ? 'Pengeluaran Koperasi' : 'Pengeluaran Dana Sosial';
+            $labelTipe = Pengeluaran::TIPE_LABEL[$tipe] ?? $tipe;
 
             AuditLog::catat(
                 aksi: 'pengeluaran_dicatat',
-                keterangan: "{$labelJenis} dicatat: {$keterangan}, nominal: ".number_format($jumlah, 0, ',', '.').', dari Kas Kecil',
+                keterangan: "{$labelJenis} ({$labelTipe}) dicatat: {$keterangan}, nominal: ".number_format($jumlah, 0, ',', '.').', dari Kas Kecil',
                 dataLama: null,
                 dataBaru: [
                     'pengeluaran_id' => $pengeluaran->id,
                     'jenis' => $jenis,
+                    'tipe' => $tipe,
                     'jumlah' => $jumlah,
                     'keterangan' => $keterangan,
                     'tanggal' => $tanggal,
@@ -63,8 +66,8 @@ class PengeluaranService
 
     /**
      * Pagu dana sosial bulanan = setting cadangan_sosial_bulan. Berlaku untuk
-     * pengeluaran manual di halaman Pengeluaran dan klaim santunan (sama-sama
-     * lewat catat()). Bulan dihitung dari tanggal pengeluaran.
+     * pengeluaran manual di halaman Pengeluaran. Bulan dihitung dari tanggal
+     * pengeluaran.
      */
     private function validasiPaguSosial(float $jumlah, string $tanggal): void
     {

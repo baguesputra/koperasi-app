@@ -144,7 +144,15 @@ class KasKoperasiController extends Controller
         $request->validate([
             'jumlah' => ['required', 'numeric', 'min:1'],
             'keterangan' => ['nullable', 'string', 'max:255'],
+            'lain_lain' => ['nullable', 'boolean'],
+            'keterangan_lain' => ['nullable', 'required_if:lain_lain,true', 'string', 'max:255'],
         ]);
+
+        $keterangan = $request->keterangan ?: 'Topup saldo koperasi';
+
+        if ($request->boolean('lain_lain')) {
+            $keterangan = '[Lain-lain] '.$request->keterangan_lain.($request->keterangan ? ' — '.$request->keterangan : '');
+        }
 
         // Konsep Kas Tunggal: topup selalu masuk Bank.
         $this->jurnalKas->catat(
@@ -152,7 +160,7 @@ class KasKoperasiController extends Controller
             kategori: 'topup_bulanan',
             kantong: 'bank',
             jumlah: $request->jumlah,
-            keterangan: $request->keterangan ?: 'Topup saldo koperasi',
+            keterangan: $keterangan,
             referensiId: null,
             tanggal: now()->format('Y-m-d'),
             userId: auth()->id(),

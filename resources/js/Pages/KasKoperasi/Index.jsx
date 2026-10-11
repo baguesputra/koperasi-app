@@ -81,6 +81,8 @@ export default function Index({
     const { data, setData, post, processing, errors, reset } = useForm({
         jumlah: '',
         keterangan: '',
+        lain_lain: false,
+        keterangan_lain: '',
     });
 
     const sisihForm = useForm({
@@ -147,7 +149,8 @@ export default function Index({
             withIdempotencyKey({
                 preserveScroll: true,
                 onSuccess: () => {
-                    reset('jumlah', 'keterangan');
+                    reset('jumlah', 'keterangan', 'keterangan_lain');
+                    setData('lain_lain', false);
                     setShowForm(false);
                 },
             })
@@ -320,6 +323,26 @@ export default function Index({
                                 />
                             </FormField>
                         </div>
+                        <label className="flex items-center gap-2.5 mt-1 mb-3 cursor-pointer select-none">
+                            <input
+                                type="checkbox"
+                                checked={Boolean(data.lain_lain)}
+                                onChange={(e) => setData('lain_lain', e.target.checked)}
+                                className="w-5 h-5 rounded accent-brand-green"
+                            />
+                            <span className="text-sm font-semibold text-slate-600">Lain-lain</span>
+                        </label>
+                        {Boolean(data.lain_lain) && (
+                            <FormField label="Keterangan lain-lain" error={errors.keterangan_lain} required>
+                                <TextField
+                                    size="sm"
+                                    value={data.keterangan_lain}
+                                    onChange={(e) => setData('keterangan_lain', e.target.value)}
+                                    placeholder="Contoh: Hibah dari donatur"
+                                    autoFocus
+                                />
+                            </FormField>
+                        )}
                         <div className="flex items-center gap-2">
                             <Button type="submit" size="sm" disabled={processing} className="rounded-full shadow-md shadow-brand-green/25">
                                 {processing ? 'Menyimpan...' : `Simpan • ${data.jumlah ? formatRupiah(Number(data.jumlah)) : 'Rp 0'}`}

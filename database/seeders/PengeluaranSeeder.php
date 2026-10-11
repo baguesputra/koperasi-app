@@ -42,24 +42,25 @@ class PengeluaranSeeder extends Seeder
         ];
 
         $danaSosial = [
-            ['Bantuan biaya pengobatan anggota sakit (TOP-100007)', 750_000, 5],
-            ['Santunan duka keluarga anggota wafat', 1_000_000, 5],
-            ['Bantuan bencana banjir rumah anggota', 850_000, 4],
-            ['Santunan kematian anggota (TOP-100016)', 1_000_000, 3],
-            ['Bantuan biaya sekolah anak anggota kurang mampu', 600_000, 3],
-            ['Bantuan operasi anggota (TOP-100010)', 1_200_000, 2],
-            ['Sumbangan korban kebakaran lingkungan kerja', 700_000, 2],
-            ['Bantuan hari raya anggota prasejahtera', 500_000, 1],
-            ['Santunan persalinan anggota', 400_000, 0],
-            ['Bantuan pangan keluarga anggota terdampak PHK', 650_000, 0],
+            // [keterangan, jumlah, bulan lalu, tipe]
+            ['Bantuan biaya pengobatan anggota sakit (TOP-100007)', 750_000, 5, 'santunan'],
+            ['Santunan duka keluarga anggota wafat', 1_000_000, 5, 'santunan'],
+            ['Bantuan bencana banjir rumah anggota', 850_000, 4, 'santunan'],
+            ['Santunan kematian anggota (TOP-100016)', 1_000_000, 3, 'santunan'],
+            ['Bantuan biaya sekolah anak anggota kurang mampu', 600_000, 3, 'santunan'],
+            ['Bantuan operasi anggota (TOP-100010)', 1_200_000, 2, 'santunan'],
+            ['Sumbangan korban kebakaran lingkungan kerja', 700_000, 2, 'santunan'],
+            ['Bantuan hari raya anggota prasejahtera', 500_000, 1, 'santunan'],
+            ['Santunan persalinan anggota', 400_000, 0, 'santunan'],
+            ['Bantuan pangan keluarga anggota terdampak PHK', 650_000, 0, 'santunan'],
         ];
 
         foreach ($koperasi as [$ket, $jumlah, $bulanLalu]) {
             $service->catat('koperasi', $jumlah, $ket, $this->tanggal($bulanLalu), $bendaharaId);
         }
 
-        foreach ($danaSosial as [$ket, $jumlah, $bulanLalu]) {
-            $service->catat('dana_sosial', $jumlah, $ket, $this->tanggal($bulanLalu), $bendaharaId);
+        foreach ($danaSosial as [$ket, $jumlah, $bulanLalu, $tipe]) {
+            $service->catat('dana_sosial', $jumlah, $ket, $this->tanggal($bulanLalu), $bendaharaId, $tipe);
         }
     }
 

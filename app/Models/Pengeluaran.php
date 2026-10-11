@@ -12,7 +12,15 @@ class Pengeluaran extends Model
 
     protected $table = 'pengeluaran';
 
-    protected $fillable = ['jenis', 'jumlah', 'keterangan', 'tanggal', 'input_by'];
+    public const TIPE = ['pajak', 'santunan', 'lain_lain'];
+
+    public const TIPE_LABEL = [
+        'pajak' => 'Pajak',
+        'santunan' => 'Santunan',
+        'lain_lain' => 'Lain-lain',
+    ];
+
+    protected $fillable = ['jenis', 'tipe', 'jumlah', 'keterangan', 'tanggal', 'input_by'];
 
     protected $casts = [
         'jumlah' => 'decimal:2',

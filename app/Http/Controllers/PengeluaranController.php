@@ -19,8 +19,13 @@ class PengeluaranController extends Controller
     {
         $jenis = $request->input('jenis', 'koperasi');
         $bulan = $request->string('bulan');
+        $tipe = $request->string('tipe');
 
         $query = Pengeluaran::with('inputOleh')->where('jenis', $jenis);
+
+        if ($tipe->isNotEmpty() && in_array($tipe->value(), Pengeluaran::TIPE, true)) {
+            $query->where('tipe', $tipe->value());
+        }
 
         if ($request->filled('cari')) {
             $cari = $request->string('cari');
@@ -45,6 +50,8 @@ class PengeluaranController extends Controller
             ->withQueryString()
             ->through(fn ($p) => [
                 'id' => $p->id,
+                'tipe' => $p->tipe,
+                'tipe_label' => Pengeluaran::TIPE_LABEL[$p->tipe] ?? $p->tipe,
                 'jumlah' => (float) $p->jumlah,
                 'keterangan' => $p->keterangan,
                 'tanggal' => $p->tanggal->format('d M Y'),
@@ -76,7 +83,8 @@ class PengeluaranController extends Controller
         return Inertia::render('Pengeluaran/Index', [
             'pengeluaran' => $pengeluaran,
             'jenisAktif' => $jenis,
-            'filters' => $request->only(['cari', 'bulan']),
+            'filters' => $request->only(['cari', 'bulan', 'tipe']),
+            'tipeList' => Pengeluaran::TIPE_LABEL,
             'totalKoperasi' => (float) $totalKoperasi,
             'totalDanaSosial' => (float) $totalDanaSosial,
             'totalTampil' => (float) $totalTampil,
@@ -96,6 +104,7 @@ class PengeluaranController extends Controller
     {
         $request->validate([
             'jenis' => ['required', 'in:koperasi,dana_sosial'],
+            'tipe' => ['required', 'in:pajak,santunan,lain_lain'],
             'jumlah' => ['required', 'numeric', 'min:1'],
             'keterangan' => ['required', 'string', 'max:500'],
             'tanggal' => ['required', 'date'],
@@ -107,7 +116,8 @@ class PengeluaranController extends Controller
                 (float) $request->jumlah,
                 $request->keterangan,
                 $request->tanggal,
-                auth()->id()
+                auth()->id(),
+                $request->tipe
             );
         } catch (RuntimeException $e) {
             return back()->withErrors(['jumlah' => $e->getMessage()]);

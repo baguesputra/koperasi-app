@@ -57,6 +57,31 @@ class KasTopupPengeluaranTest extends TestCase
         ]);
     }
 
+    public function test_topup_lain_lain_wajib_isi_keterangan(): void
+    {
+        $this->masuk('ADM-000001');
+
+        // Dicentang tapi tanpa keterangan → ditolak
+        $this->post(route('kas-koperasi.topup'), [
+            'jumlah' => 1_000_000,
+            'lain_lain' => true,
+        ])->assertSessionHasErrors('keterangan_lain');
+
+        // Dengan keterangan → tersimpan berawalan [Lain-lain]
+        $this->post(route('kas-koperasi.topup'), [
+            'jumlah' => 1_000_000,
+            'keterangan' => 'Transfer masuk',
+            'lain_lain' => true,
+            'keterangan_lain' => 'Hibah donatur',
+        ])->assertStatus(302);
+
+        $this->assertDatabaseHas('jurnal_kas', [
+            'kategori' => 'topup_bulanan', 'kantong' => 'bank',
+            'tipe' => 'masuk', 'jumlah' => 1_000_000,
+            'keterangan' => '[Lain-lain] Hibah donatur — Transfer masuk',
+        ]);
+    }
+
     public function test_pengeluaran_koperasi_dari_saldo_kas_kecil(): void
     {
         $this->masuk('BEN-000001');
@@ -66,6 +91,7 @@ class KasTopupPengeluaranTest extends TestCase
             'jenis' => 'koperasi',
             'jumlah' => 250_000,
             'keterangan' => 'Bel ATK kantor sekretariat',
+            'tipe' => 'lain_lain',
             'tanggal' => now()->format('Y-m-d'),
         ])->assertStatus(302);
 
@@ -86,6 +112,7 @@ class KasTopupPengeluaranTest extends TestCase
             'jenis' => 'koperasi',
             'jumlah' => 250_000,
             'keterangan' => 'Belanja spidol zebra qzx123',
+            'tipe' => 'lain_lain',
             'tanggal' => now()->format('Y-m-d'),
         ])->assertStatus(302);
 
@@ -93,6 +120,7 @@ class KasTopupPengeluaranTest extends TestCase
             'jenis' => 'koperasi',
             'jumlah' => 100_000,
             'keterangan' => 'Biaya lama beda bulan qzx123',
+            'tipe' => 'pajak',
             'tanggal' => now()->subMonth()->format('Y-m-d'),
         ])->assertStatus(302);
 
@@ -125,6 +153,7 @@ class KasTopupPengeluaranTest extends TestCase
             'jenis' => 'dana_sosial',
             'jumlah' => 100_000,
             'keterangan' => 'Santunan anggota sakit',
+            'tipe' => 'santunan',
             'tanggal' => now()->format('Y-m-d'),
         ])->assertStatus(302);
 
@@ -150,6 +179,7 @@ class KasTopupPengeluaranTest extends TestCase
             'jenis' => 'dana_sosial',
             'jumlah' => 700_000,
             'keterangan' => 'Melebihi sisa pagu',
+            'tipe' => 'lain_lain',
             'tanggal' => now()->format('Y-m-d'),
         ])->assertSessionHasErrors('jumlah');
 
@@ -157,6 +187,7 @@ class KasTopupPengeluaranTest extends TestCase
             'jenis' => 'dana_sosial',
             'jumlah' => 600_000,
             'keterangan' => 'Santunan dalam pagu',
+            'tipe' => 'santunan',
             'tanggal' => now()->format('Y-m-d'),
         ])->assertSessionHasNoErrors();
 
@@ -164,6 +195,7 @@ class KasTopupPengeluaranTest extends TestCase
             'jenis' => 'dana_sosial',
             'jumlah' => 1,
             'keterangan' => 'Sisa pagu habis',
+            'tipe' => 'lain_lain',
             'tanggal' => now()->format('Y-m-d'),
         ])->assertSessionHasErrors('jumlah');
 
@@ -184,6 +216,7 @@ class KasTopupPengeluaranTest extends TestCase
             'jenis' => 'koperasi',
             'jumlah' => 2_000_000,
             'keterangan' => 'Belanja melebihi pagu sosial tapi koperasi bebas',
+            'tipe' => 'lain_lain',
             'tanggal' => now()->format('Y-m-d'),
         ])->assertStatus(302);
 
@@ -204,6 +237,7 @@ class KasTopupPengeluaranTest extends TestCase
             'jenis' => 'dana_sosial',
             'jumlah' => 1,
             'keterangan' => 'Santunan saat kas kecil habis',
+            'tipe' => 'santunan',
             'tanggal' => now()->format('Y-m-d'),
         ])->assertSessionHasErrors('jumlah');
 
@@ -220,10 +254,51 @@ class KasTopupPengeluaranTest extends TestCase
             'jenis' => 'koperasi',
             'jumlah' => $kasKecil + 1,
             'keterangan' => 'Melebihi saldo kas kecil',
+            'tipe' => 'lain_lain',
             'tanggal' => now()->format('Y-m-d'),
         ])->assertSessionHasErrors('jumlah');
 
         $this->assertTrue(JurnalKas::where('kategori', 'pengeluaran_koperasi')->where('keterangan', 'Melebihi saldo kas kecil')->doesntExist());
+    }
+
+    public function test_pengeluaran_tipe_wajib_dan_bisa_difilter(): void
+    {
+        $this->masuk('BEN-000001');
+
+        // Tanpa tipe → validasi menolak
+        $this->post(route('pengeluaran.store'), [
+            'jenis' => 'koperasi',
+            'jumlah' => 100_000,
+            'keterangan' => 'Tanpa tipe',
+            'tanggal' => now()->format('Y-m-d'),
+        ])->assertSessionHasErrors('tipe');
+
+        // Tipe di luar pilihan → validasi menolak
+        $this->post(route('pengeluaran.store'), [
+            'jenis' => 'koperasi',
+            'jumlah' => 100_000,
+            'keterangan' => 'Tipe asing',
+            'tipe' => 'operasional',
+            'tanggal' => now()->format('Y-m-d'),
+        ])->assertSessionHasErrors('tipe');
+
+        $this->post(route('pengeluaran.store'), [
+            'jenis' => 'koperasi',
+            'jumlah' => 120_000,
+            'keterangan' => 'Pajak parkir kantor',
+            'tipe' => 'pajak',
+            'tanggal' => now()->format('Y-m-d'),
+        ])->assertStatus(302);
+
+        $this->assertDatabaseHas('pengeluaran', ['keterangan' => 'Pajak parkir kantor', 'tipe' => 'pajak']);
+
+        $res = $this->get(route('pengeluaran.index', ['jenis' => 'koperasi', 'tipe' => 'pajak']))->assertOk();
+        $props = $res->viewData('page')['props'];
+        $this->assertSame(1, count($props['pengeluaran']['data']));
+        $this->assertSame('Pajak', $props['pengeluaran']['data'][0]['tipe_label']);
+
+        $resLain = $this->get(route('pengeluaran.index', ['jenis' => 'koperasi', 'tipe' => 'santunan']))->assertOk();
+        $this->assertSame(0, count($resLain->viewData('page')['props']['pengeluaran']['data']));
     }
 
     public function test_sisih_kas_kecil_memindahkan_dari_bank(): void

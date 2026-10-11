@@ -8,6 +8,7 @@ import Button from '@/Components/ui/Button';
 import PageHeader from '@/Components/ui/PageHeader';
 import TextField from '@/Components/ui/TextField';
 import FormField from '@/Components/ui/FormField';
+import Select from '@/Components/ui/Select';
 import Pagination from '@/Components/ui/Pagination';
 import ChipNominal from '@/Components/ui/ChipNominal';
 import { formatRupiah, formatRupiahSingkat } from '@/Utils/formatCurrency';
@@ -17,7 +18,7 @@ const jenisMeta = {
     dana_sosial: { label: 'Dana Sosial', ikon: HeartHandshake },
 };
 
-export default function Index({ pengeluaran, jenisAktif, filters = {}, totalKoperasi, totalDanaSosial, totalTampil, bulanAktif, totalKoperasiBulan, totalDanaSosialBulan, infoPaguSosial }) {
+export default function Index({ pengeluaran, jenisAktif, filters = {}, tipeList = {}, totalKoperasi, totalDanaSosial, totalTampil, bulanAktif, totalKoperasiBulan, totalDanaSosialBulan, infoPaguSosial }) {
     const { auth } = usePage().props;
     const bisaCatat = auth.user?.permissions?.includes('kas.topup');
     const [showForm, setShowForm] = useState(false);
@@ -28,17 +29,18 @@ export default function Index({ pengeluaran, jenisAktif, filters = {}, totalKope
 
     const { data, setData, post, processing, errors, reset } = useForm({
         jenis: jenisAktif,
+        tipe: 'lain_lain',
         jumlah: '',
         keterangan: '',
         tanggal: hariIni,
     });
 
-    const filterAktif = Boolean((filters.cari ?? '') || (filters.bulan ?? ''));
+    const filterAktif = Boolean((filters.cari ?? '') || (filters.bulan ?? '') || (filters.tipe ?? ''));
 
     function terapkan(overrides = {}) {
         router.get(
             route('pengeluaran.index'),
-            { jenis: jenisAktif, cari, bulan: filters.bulan, ...overrides },
+            { jenis: jenisAktif, cari, bulan: filters.bulan, tipe: filters.tipe, ...overrides },
             { preserveState: true, replace: true }
         );
     }
@@ -213,6 +215,19 @@ export default function Index({ pengeluaran, jenisAktif, filters = {}, totalKope
                                     />
                                 </div>
                             </FormField>
+                            <FormField label="Tipe Pengeluaran" error={errors.tipe} required>
+                                <Select
+                                    size="sm"
+                                    value={data.tipe}
+                                    onChange={(e) => setData('tipe', e.target.value)}
+                                    aria-label="Tipe pengeluaran"
+                                    required
+                                >
+                                    {Object.entries(tipeList).map(([key, label]) => (
+                                        <option key={key} value={key}>{label}</option>
+                                    ))}
+                                </Select>
+                            </FormField>
                         </div>
                         <FormField label="Keterangan" error={errors.keterangan} required>
                             <TextField
@@ -263,6 +278,18 @@ export default function Index({ pengeluaran, jenisAktif, filters = {}, totalKope
                             )}
                         </div>
                         <div className="flex gap-2">
+                            <Select
+                                size="sm"
+                                value={filters.tipe ?? ''}
+                                onChange={(e) => terapkan({ tipe: e.target.value })}
+                                aria-label="Filter tipe pengeluaran"
+                                className="flex-1 min-w-0 md:flex-none md:w-40 text-sm rounded-full border-slate-200 bg-slate-50/60"
+                            >
+                                <option value="">Semua tipe</option>
+                                {Object.entries(tipeList).map(([key, label]) => (
+                                    <option key={key} value={key}>{label}</option>
+                                ))}
+                            </Select>
                             <TextField
                                 size="sm"
                                 type="month"
@@ -286,6 +313,7 @@ export default function Index({ pengeluaran, jenisAktif, filters = {}, totalKope
                             <tr className="text-left bg-gradient-to-r from-slate-50 to-white border-b border-slate-200/80">
                                 <th className="px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap">Tanggal</th>
                                 <th className="px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-500">Keterangan</th>
+                                <th className="px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap">Tipe</th>
                                 <th className="hidden sm:table-cell px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap">Dicatat Oleh</th>
                                 <th className="px-4 py-2.5 text-right text-xs font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap">Jumlah</th>
                             </tr>
@@ -293,7 +321,7 @@ export default function Index({ pengeluaran, jenisAktif, filters = {}, totalKope
                         <tbody>
                             {pengeluaran.data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4} className="px-4 py-10 text-center">
+                                    <td colSpan={5} className="px-4 py-10 text-center">
                                         <p className="text-sm font-semibold text-slate-600">Belum ada pengeluaran tercatat</p>
                                         <p className="text-sm text-slate-400 mt-1">Coba ubah kata kunci atau bulan.</p>
                                         {filterAktif && (
@@ -312,6 +340,11 @@ export default function Index({ pengeluaran, jenisAktif, filters = {}, totalKope
                                         </td>
                                         <td className="px-4 py-2.5">
                                             <p className="text-sm text-slate-700 max-w-[280px] truncate" title={p.keterangan}>{p.keterangan}</p>
+                                        </td>
+                                        <td className="px-4 py-2.5 whitespace-nowrap">
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">
+                                                {p.tipe_label}
+                                            </span>
                                         </td>
                                         <td className="hidden sm:table-cell px-4 py-2.5 whitespace-nowrap">
                                             <div className="flex items-center gap-2">
