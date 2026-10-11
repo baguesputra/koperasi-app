@@ -14,10 +14,14 @@ class SettingLimitPinjaman extends Model
     protected $fillable = [
         'kategori',
         'label',
+        'min_bulan',
+        'maks_bulan',
         'limit_maksimal',
     ];
 
     protected $casts = [
+        'min_bulan' => 'integer',
+        'maks_bulan' => 'integer',
         'limit_maksimal' => 'decimal:2',
     ];
 }
