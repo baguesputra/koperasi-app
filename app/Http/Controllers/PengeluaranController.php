@@ -16,11 +16,10 @@ class PengeluaranController extends Controller
 
     public function index(Request $request): Response
     {
-        $jenis = $request->input('jenis', 'koperasi');
         $bulan = $request->string('bulan');
         $tipe = $request->string('tipe');
 
-        $query = Pengeluaran::with('inputOleh')->where('jenis', $jenis);
+        $query = Pengeluaran::with('inputOleh');
 
         if ($tipe->isNotEmpty() && in_array($tipe->value(), Pengeluaran::TIPE, true)) {
             $query->where('tipe', $tipe->value());
@@ -60,41 +59,26 @@ class PengeluaranController extends Controller
                 'input_oleh' => $p->inputOleh->name,
             ]);
 
-        $agregatJenis = Pengeluaran::selectRaw('jenis, SUM(jumlah) as total')->groupBy('jenis')->pluck('total', 'jenis');
-        $totalKoperasi = (float) ($agregatJenis['koperasi'] ?? 0);
-        $totalDanaSosial = (float) ($agregatJenis['dana_sosial'] ?? 0);
-
         $bulanAktif = preg_match('/^\d{4}-\d{2}$/', $bulan->value()) ? $bulan->value() : now()->format('Y-m');
         $awalAktif = Carbon::createFromFormat('Y-m', $bulanAktif)->startOfMonth()->startOfDay()->toDateTimeString();
         $akhirAktif = Carbon::createFromFormat('Y-m', $bulanAktif)->endOfMonth()->endOfDay()->toDateTimeString();
 
-        $perBulanAgg = Pengeluaran::whereBetween('tanggal', [$awalAktif, $akhirAktif])
-            ->selectRaw('jenis, SUM(jumlah) as total')
-            ->groupBy('jenis')
-            ->pluck('total', 'jenis');
-
-        $totalKoperasiBulan = (float) ($perBulanAgg['koperasi'] ?? 0);
-        $totalDanaSosialBulan = (float) ($perBulanAgg['dana_sosial'] ?? 0);
+        $totalBulan = (float) Pengeluaran::whereBetween('tanggal', [$awalAktif, $akhirAktif])->sum('jumlah');
 
         return Inertia::render('Pengeluaran/Index', [
             'pengeluaran' => $pengeluaran,
-            'jenisAktif' => $jenis,
             'filters' => $request->only(['cari', 'bulan', 'tipe']),
             'tipeList' => Pengeluaran::TIPE_LABEL,
             'akunList' => Pengeluaran::AKUN_LABEL,
-            'totalKoperasi' => (float) $totalKoperasi,
-            'totalDanaSosial' => (float) $totalDanaSosial,
             'totalTampil' => (float) $totalTampil,
             'bulanAktif' => $bulanAktif,
-            'totalKoperasiBulan' => $totalKoperasiBulan,
-            'totalDanaSosialBulan' => $totalDanaSosialBulan,
+            'totalBulan' => $totalBulan,
         ]);
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'jenis' => ['required', 'in:koperasi,dana_sosial'],
             'tipe' => ['required', 'in:pajak,santunan,lain_lain'],
             'akun' => ['required', 'in:bank,kas_kecil'],
             'jumlah' => ['required', 'numeric', 'min:1'],
@@ -103,8 +87,10 @@ class PengeluaranController extends Controller
         ]);
 
         try {
+            // Jenis dihapus dari tampilan: semua record baru = koperasi
+            // (jurnal pengeluaran_koperasi, terhitung beban SHU).
             $this->service->catat(
-                $request->jenis,
+                'koperasi',
                 (float) $request->jumlah,
                 $request->keterangan,
                 $request->tanggal,

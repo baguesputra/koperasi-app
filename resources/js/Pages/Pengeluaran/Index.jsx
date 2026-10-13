@@ -1,7 +1,7 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, router, usePage, useForm } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
-import { Plus, Search, X, RefreshCw, Wallet, HeartHandshake, ReceiptText, CalendarDays } from 'lucide-react';
+import { Plus, Search, X, RefreshCw, Wallet, ReceiptText, CalendarDays } from 'lucide-react';
 import useDebouncedValue from '@/Utils/useDebouncedValue';
 import Card from '@/Components/ui/Card';
 import Button from '@/Components/ui/Button';
@@ -11,14 +11,10 @@ import FormField from '@/Components/ui/FormField';
 import Select from '@/Components/ui/Select';
 import Pagination from '@/Components/ui/Pagination';
 import ChipNominal from '@/Components/ui/ChipNominal';
-import { formatRupiah, formatRupiahSingkat } from '@/Utils/formatCurrency';
+import { formatRupiah } from '@/Utils/formatCurrency';
 import { withIdempotencyKey } from '@/Utils/idempotency';
-const jenisMeta = {
-    koperasi: { label: 'Koperasi', ikon: Wallet },
-    dana_sosial: { label: 'Dana Sosial', ikon: HeartHandshake },
-};
 
-export default function Index({ pengeluaran, jenisAktif, filters = {}, tipeList = {}, akunList = {}, totalKoperasi, totalDanaSosial, totalTampil, bulanAktif, totalKoperasiBulan, totalDanaSosialBulan }) {
+export default function Index({ pengeluaran, filters = {}, tipeList = {}, akunList = {}, totalTampil, bulanAktif, totalBulan }) {
     const { auth } = usePage().props;
     const bisaCatat = auth.user?.permissions?.includes('kas.topup');
     const [showForm, setShowForm] = useState(false);
@@ -28,7 +24,6 @@ export default function Index({ pengeluaran, jenisAktif, filters = {}, tipeList 
     const hariIni = new Date().toISOString().slice(0, 10);
 
     const { data, setData, post, processing, errors, reset } = useForm({
-        jenis: jenisAktif,
         tipe: 'lain_lain',
         akun: 'kas_kecil',
         jumlah: '',
@@ -41,18 +36,14 @@ export default function Index({ pengeluaran, jenisAktif, filters = {}, tipeList 
     function terapkan(overrides = {}) {
         router.get(
             route('pengeluaran.index'),
-            { jenis: jenisAktif, cari, bulan: filters.bulan, tipe: filters.tipe, ...overrides },
+            { cari, bulan: filters.bulan, tipe: filters.tipe, ...overrides },
             { preserveState: true, replace: true }
         );
     }
 
-    function pindahTab(jenis) {
-        router.get(route('pengeluaran.index'), { jenis }, { preserveState: true, replace: true });
-    }
-
     function resetFilter() {
         setCari('');
-        router.get(route('pengeluaran.index'), { jenis: jenisAktif }, { preserveState: true, replace: true });
+        router.get(route('pengeluaran.index'), {}, { preserveState: true, replace: true });
     }
 
     useEffect(() => {
@@ -70,7 +61,6 @@ export default function Index({ pengeluaran, jenisAktif, filters = {}, tipeList 
     }, [filters.cari]);
 
     function bukaForm() {
-        setData('jenis', jenisAktif);
         setShowForm(true);
     }
 
@@ -85,8 +75,6 @@ export default function Index({ pengeluaran, jenisAktif, filters = {}, tipeList 
         );
     }
 
-    const meta = jenisMeta[jenisAktif] ?? jenisMeta.koperasi;
-    const IkonJenis = meta.ikon;
     const [tahunBulan, bulanAngka] = (bulanAktif ?? '').split('-').map(Number);
     const labelBulan = bulanAngka
         ? new Date(tahunBulan, bulanAngka - 1, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
@@ -96,7 +84,7 @@ export default function Index({ pengeluaran, jenisAktif, filters = {}, tipeList 
         <AppLayout>
             <Head title="Pengeluaran" />
 
-            <PageHeader title="Pengeluaran" subtitle="Catat keluar kas koperasi & dana sosial">
+            <PageHeader title="Pengeluaran" subtitle="Catat keluar kas">
                 {bisaCatat && !showForm && (
                     <Button size="sm" onClick={bukaForm} className="rounded-full shadow-md shadow-brand-green/25 hover:-translate-y-px active:translate-y-0">
                         <Plus size={16} />
@@ -108,49 +96,21 @@ export default function Index({ pengeluaran, jenisAktif, filters = {}, tipeList 
             <div className="rounded-2xl bg-gradient-to-r from-brand-navy to-brand-navy-light text-white px-5 py-4 mb-3 shadow-md shadow-brand-navy/20">
                 <div className="flex items-center gap-3">
                     <span className="w-11 h-11 rounded-2xl bg-white/15 inline-flex items-center justify-center shrink-0">
-                        <IkonJenis size={22} />
+                        <Wallet size={22} />
                     </span>
                     <div className="min-w-0 flex-1">
                         <p className="text-xs text-white/70">
-                            Total {meta.label}{filterAktif ? ' (hasil filter)' : ''}
+                            Total Pengeluaran{filterAktif ? ' (hasil filter)' : ''}
                         </p>
                         <p className="text-2xl font-bold tabular-nums leading-tight">- {formatRupiah(totalTampil)}</p>
                     </div>
                 </div>
                 <dl className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-white/15 text-sm">
                     <div className="rounded-xl bg-white/10 px-3 py-2">
-                        <dt className="text-xs text-white/70">Koperasi bulan ini</dt>
-                        <dd className="font-bold tabular-nums">- {formatRupiah(totalKoperasiBulan)}</dd>
-                    </div>
-                    <div className="rounded-xl bg-white/10 px-3 py-2">
-                        <dt className="text-xs text-white/70">Dana sosial bulan ini</dt>
-                        <dd className="font-bold tabular-nums">- {formatRupiah(totalDanaSosialBulan)}</dd>
+                        <dt className="text-xs text-white/70">Bulan {labelBulan}</dt>
+                        <dd className="font-bold tabular-nums">- {formatRupiah(totalBulan)}</dd>
                     </div>
                 </dl>
-            </div>
-
-            <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-full w-fit mb-4 max-w-full overflow-x-auto">
-                {Object.entries(jenisMeta).map(([key, m]) => {
-                    const Ikon = m.ikon;
-                    const aktif = jenisAktif === key;
-                    const total = key === 'koperasi' ? totalKoperasi : totalDanaSosial;
-                    return (
-                        <button
-                            key={key}
-                            onClick={() => pindahTab(key)}
-                            aria-pressed={aktif}
-                            className={`inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-full whitespace-nowrap transition-all ${
-                                aktif ? 'bg-white text-slate-800 shadow-md' : 'text-slate-500 hover:text-slate-700'
-                            }`}
-                        >
-                            <Ikon size={15} />
-                            {m.label}
-                            <span className={`text-xs tabular-nums ${aktif ? 'text-slate-400' : 'text-slate-400'}`}>
-                                {formatRupiahSingkat(total)}
-                            </span>
-                        </button>
-                    );
-                })}
             </div>
 
             {showForm && (
@@ -161,7 +121,7 @@ export default function Index({ pengeluaran, jenisAktif, filters = {}, tipeList 
                                 <ReceiptText size={16} />
                             </span>
                             <div>
-                                <p className="text-sm font-bold text-slate-800">Pengeluaran {meta.label}</p>
+                                <p className="text-sm font-bold text-slate-800">Pengeluaran</p>
                                 <p className="text-xs text-slate-400">Tersimpan ke jurnal kas keluar</p>
                             </div>
                         </div>
