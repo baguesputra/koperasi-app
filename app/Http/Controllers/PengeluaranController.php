@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Pengeluaran;
-use App\Models\SettingKas;
 use App\Services\Keuangan\PengeluaranService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -52,6 +51,8 @@ class PengeluaranController extends Controller
                 'id' => $p->id,
                 'tipe' => $p->tipe,
                 'tipe_label' => Pengeluaran::TIPE_LABEL[$p->tipe] ?? $p->tipe,
+                'akun' => $p->akun,
+                'akun_label' => Pengeluaran::AKUN_LABEL[$p->akun] ?? $p->akun,
                 'jumlah' => (float) $p->jumlah,
                 'keterangan' => $p->keterangan,
                 'tanggal' => $p->tanggal->format('d M Y'),
@@ -75,28 +76,18 @@ class PengeluaranController extends Controller
         $totalKoperasiBulan = (float) ($perBulanAgg['koperasi'] ?? 0);
         $totalDanaSosialBulan = (float) ($perBulanAgg['dana_sosial'] ?? 0);
 
-        $paguSosial = SettingKas::nilai(
-            SettingKas::CADANGAN,
-            (float) config('koperasi.cadangan_sosial_bulan', 5_000_000)
-        );
-
         return Inertia::render('Pengeluaran/Index', [
             'pengeluaran' => $pengeluaran,
             'jenisAktif' => $jenis,
             'filters' => $request->only(['cari', 'bulan', 'tipe']),
             'tipeList' => Pengeluaran::TIPE_LABEL,
+            'akunList' => Pengeluaran::AKUN_LABEL,
             'totalKoperasi' => (float) $totalKoperasi,
             'totalDanaSosial' => (float) $totalDanaSosial,
             'totalTampil' => (float) $totalTampil,
             'bulanAktif' => $bulanAktif,
             'totalKoperasiBulan' => $totalKoperasiBulan,
             'totalDanaSosialBulan' => $totalDanaSosialBulan,
-            'infoPaguSosial' => [
-                'bulan' => $bulanAktif,
-                'pagu' => $paguSosial,
-                'terpakai' => $totalDanaSosialBulan,
-                'sisa' => max(0, $paguSosial - $totalDanaSosialBulan),
-            ],
         ]);
     }
 
@@ -105,6 +96,7 @@ class PengeluaranController extends Controller
         $request->validate([
             'jenis' => ['required', 'in:koperasi,dana_sosial'],
             'tipe' => ['required', 'in:pajak,santunan,lain_lain'],
+            'akun' => ['required', 'in:bank,kas_kecil'],
             'jumlah' => ['required', 'numeric', 'min:1'],
             'keterangan' => ['required', 'string', 'max:500'],
             'tanggal' => ['required', 'date'],
@@ -117,7 +109,8 @@ class PengeluaranController extends Controller
                 $request->keterangan,
                 $request->tanggal,
                 auth()->id(),
-                $request->tipe
+                $request->tipe,
+                $request->akun
             );
         } catch (RuntimeException $e) {
             return back()->withErrors(['jumlah' => $e->getMessage()]);

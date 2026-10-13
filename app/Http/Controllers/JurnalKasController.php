@@ -14,9 +14,8 @@ use Inertia\Response;
 class JurnalKasController extends Controller
 {
     /**
-     * Buku kas: baris fisik (bank / kas kecil) diurutkan menaik selama satu
-     * bulan, plus saldo awal/akhir per akun. Transaksi non-kas dipisah agar
-     * daftar utama tetap murni arus kas.
+     * Buku kas: baris bank / kas kecil diurutkan menaik selama satu
+     * bulan, plus saldo awal/akhir per akun.
      */
     public function index(Request $request): Response
     {
@@ -35,9 +34,8 @@ class JurnalKasController extends Controller
             $tanggalAkhir = $tanggalAwal->copy()->endOfMonth();
         }
 
-        // Fisik = kategori bukan non-fisik; akun mempersempit ke bank / kas kecil.
-        $query = $this->baseQuery($kantongFilter, $kategoriFilter, $cari, $tanggalAwal, $tanggalAkhir)
-            ->whereNotIn('kategori', JurnalKasService::KATEGORI_NON_FISIK);
+        // Semua baris jurnal menggerakkan saldo fisik; akun mempersempit ke bank / kas kecil.
+        $query = $this->baseQuery($kantongFilter, $kategoriFilter, $cari, $tanggalAwal, $tanggalAkhir);
 
         if ($akunFilter === 'bank') {
             $query->where('kantong', '!=', 'kas_kecil');
@@ -53,14 +51,6 @@ class JurnalKasController extends Controller
 
         $riwayat = $query->orderBy('tanggal')->orderBy('id')
             ->limit(500)
-            ->get()
-            ->map(fn ($j) => $this->barisJurnal($j))
-            ->values();
-
-        $nonKas = $this->baseQuery($kantongFilter, $kategoriFilter, $cari, $tanggalAwal, $tanggalAkhir)
-            ->whereIn('kategori', JurnalKasService::KATEGORI_NON_FISIK)
-            ->orderBy('tanggal')->orderBy('id')
-            ->limit(200)
             ->get()
             ->map(fn ($j) => $this->barisJurnal($j))
             ->values();
@@ -91,13 +81,11 @@ class JurnalKasController extends Controller
                 'saldo_valid' => ! $adaFilterTambahan,
             ],
             'riwayat' => $riwayat,
-            'nonKas' => $nonKas,
         ]);
     }
 
     /**
      * Query dasar baris jurnal: filter kantong/kategori/cari + rentang bulan.
-     * Dipakai untuk daftar fisik maupun section non-kas.
      */
     private function baseQuery(
         string $kantongFilter,
@@ -128,7 +116,7 @@ class JurnalKasController extends Controller
     }
 
     /**
-     * Saldo akun sebelum periode: saldo_setelah baris fisik terakhirnya.
+     * Saldo akun sebelum periode: saldo_setelah baris terakhirnya.
      */
     private function saldoSebelum(string $akun, ?Carbon $tanggalAwal): float
     {
@@ -145,7 +133,7 @@ class JurnalKasController extends Controller
     }
 
     /**
-     * Saldo akun di akhir periode: saldo_setelah baris fisik terakhir dalam
+     * Saldo akun di akhir periode: saldo_setelah baris terakhir dalam
      * periode; fallback ke saldo awal kalau tidak ada mutasi.
      */
     private function saldoAkhirPeriode(string $akun, ?Carbon $tanggalAwal, ?Carbon $tanggalAkhir, float $saldoAwal): float
@@ -163,11 +151,11 @@ class JurnalKasController extends Controller
     }
 
     /**
-     * Baris fisik satu akun (bank atau kas kecil).
+     * Baris satu akun (bank atau kas kecil).
      */
     private function queryAkun(string $akun)
     {
-        $query = JurnalKas::whereNotIn('kategori', JurnalKasService::KATEGORI_NON_FISIK);
+        $query = JurnalKas::query();
 
         return $akun === 'kas_kecil'
             ? $query->where('kantong', 'kas_kecil')
@@ -180,6 +168,7 @@ class JurnalKasController extends Controller
             'id' => $j->id,
             'tipe' => $j->tipe,
             'kategori' => $j->kategori,
+            'sumber_topup' => $j->sumber_topup,
             'kantong' => $j->kantong,
             'akun' => JurnalKasService::kanalFisik($j->kantong, $j->kategori),
             'no_bukti' => $j->no_bukti,

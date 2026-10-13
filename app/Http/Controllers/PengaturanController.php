@@ -12,7 +12,6 @@ use App\Models\Jabatan;
 use App\Models\Perusahaan;
 use App\Models\SettingBunga;
 use App\Models\SettingChipNominal;
-use App\Models\SettingKas;
 use App\Models\SettingLimitPinjaman;
 use App\Models\SettingSimpanan;
 use App\Models\TabelTenor;
@@ -175,7 +174,6 @@ class PengaturanController extends Controller
             'tabelTenor' => $tabAktif === 'aturan-pinjaman' ? TabelTenor::orderBy('nominal_min')->get() : [],
             'bungaSaatIni' => $tabAktif === 'aturan-pinjaman' ? SettingBunga::orderByDesc('berlaku_dari_tanggal')->first() : null,
             'settingSimpanan' => $tabAktif === 'dana-operasional' ? SettingSimpanan::orderBy('id')->get() : [],
-            'settingKas' => $tabAktif === 'dana-operasional' ? SettingKas::orderBy('id')->get() : [],
             'chipNominal' => $tabAktif === 'dana-operasional' ? SettingChipNominal::dikelompokkan() : [],
             'ringkasanMaster' => $tabAktif === 'organisasi' ? [
                 'perusahaan' => Perusahaan::count(),
@@ -365,23 +363,6 @@ class PengaturanController extends Controller
         );
 
         return back()->with('status', 'Nominal simpanan berhasil diperbarui.');
-    }
-
-    public function updateKas(Request $request, SettingKas $setting)
-    {
-        $request->validate(['nominal' => ['required', 'numeric', 'min:0']]);
-
-        $nilaiLama = $setting->nominal;
-        $setting->update(['nominal' => $request->nominal]);
-
-        AuditLog::catat(
-            'update_setting_kas',
-            "Nominal '{$setting->label}' diubah dari Rp ".number_format($nilaiLama, 0, ',', '.').' menjadi Rp '.number_format($request->nominal, 0, ',', '.'),
-            ['nominal' => $nilaiLama],
-            ['nominal' => $request->nominal]
-        );
-
-        return back()->with('status', 'Pagu kas berhasil diperbarui.');
     }
 
     public function updateChip(Request $request)

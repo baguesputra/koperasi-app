@@ -18,7 +18,7 @@ const jenisMeta = {
     dana_sosial: { label: 'Dana Sosial', ikon: HeartHandshake },
 };
 
-export default function Index({ pengeluaran, jenisAktif, filters = {}, tipeList = {}, totalKoperasi, totalDanaSosial, totalTampil, bulanAktif, totalKoperasiBulan, totalDanaSosialBulan, infoPaguSosial }) {
+export default function Index({ pengeluaran, jenisAktif, filters = {}, tipeList = {}, akunList = {}, totalKoperasi, totalDanaSosial, totalTampil, bulanAktif, totalKoperasiBulan, totalDanaSosialBulan }) {
     const { auth } = usePage().props;
     const bisaCatat = auth.user?.permissions?.includes('kas.topup');
     const [showForm, setShowForm] = useState(false);
@@ -30,6 +30,7 @@ export default function Index({ pengeluaran, jenisAktif, filters = {}, tipeList 
     const { data, setData, post, processing, errors, reset } = useForm({
         jenis: jenisAktif,
         tipe: 'lain_lain',
+        akun: 'kas_kecil',
         jumlah: '',
         keterangan: '',
         tanggal: hariIni,
@@ -117,33 +118,14 @@ export default function Index({ pengeluaran, jenisAktif, filters = {}, tipeList 
                     </div>
                 </div>
                 <dl className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-white/15 text-sm">
-                    {jenisAktif === 'dana_sosial' ? (
-                        <>
-                            <div className="rounded-xl bg-white/10 px-3 py-2">
-                                <dt className="text-xs text-white/70">Pagu {labelBulan}</dt>
-                                <dd className="font-bold tabular-nums">{formatRupiah(infoPaguSosial.pagu)}</dd>
-                            </div>
-                            <div className="rounded-xl bg-white/10 px-3 py-2">
-                                <dt className="text-xs text-white/70">Terpakai bulan ini</dt>
-                                <dd className="font-bold tabular-nums">- {formatRupiah(infoPaguSosial.terpakai)}</dd>
-                            </div>
-                            <div className={`rounded-xl px-3 py-2 ${infoPaguSosial.sisa === 0 ? 'bg-red-500/30' : 'bg-white/10'}`}>
-                                <dt className="text-xs text-white/70">Sisa pagu bulan ini</dt>
-                                <dd className="font-bold tabular-nums">{formatRupiah(infoPaguSosial.sisa)}</dd>
-                            </div>
-                        </>
-                    ) : (
-                        <>
-                            <div className="rounded-xl bg-white/10 px-3 py-2">
-                                <dt className="text-xs text-white/70">Koperasi bulan ini</dt>
-                                <dd className="font-bold tabular-nums">- {formatRupiah(totalKoperasiBulan)}</dd>
-                            </div>
-                            <div className="rounded-xl bg-white/10 px-3 py-2">
-                                <dt className="text-xs text-white/70">Dana sosial bulan ini</dt>
-                                <dd className="font-bold tabular-nums">- {formatRupiah(totalDanaSosialBulan)}</dd>
-                            </div>
-                        </>
-                    )}
+                    <div className="rounded-xl bg-white/10 px-3 py-2">
+                        <dt className="text-xs text-white/70">Koperasi bulan ini</dt>
+                        <dd className="font-bold tabular-nums">- {formatRupiah(totalKoperasiBulan)}</dd>
+                    </div>
+                    <div className="rounded-xl bg-white/10 px-3 py-2">
+                        <dt className="text-xs text-white/70">Dana sosial bulan ini</dt>
+                        <dd className="font-bold tabular-nums">- {formatRupiah(totalDanaSosialBulan)}</dd>
+                    </div>
                 </dl>
             </div>
 
@@ -224,6 +206,19 @@ export default function Index({ pengeluaran, jenisAktif, filters = {}, tipeList 
                                     required
                                 >
                                     {Object.entries(tipeList).map(([key, label]) => (
+                                        <option key={key} value={key}>{label}</option>
+                                    ))}
+                                </Select>
+                            </FormField>
+                            <FormField label="Sumber Dana" error={errors.akun} required hint="Bank atau Kas Kecil — saldo mengikuti sumber terpilih.">
+                                <Select
+                                    size="sm"
+                                    value={data.akun}
+                                    onChange={(e) => setData('akun', e.target.value)}
+                                    aria-label="Sumber dana"
+                                    required
+                                >
+                                    {Object.entries(akunList).map(([key, label]) => (
                                         <option key={key} value={key}>{label}</option>
                                     ))}
                                 </Select>
@@ -314,6 +309,7 @@ export default function Index({ pengeluaran, jenisAktif, filters = {}, tipeList 
                                 <th className="px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap">Tanggal</th>
                                 <th className="px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-500">Keterangan</th>
                                 <th className="px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap">Tipe</th>
+                                <th className="hidden sm:table-cell px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap">Sumber</th>
                                 <th className="hidden sm:table-cell px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap">Dicatat Oleh</th>
                                 <th className="px-4 py-2.5 text-right text-xs font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap">Jumlah</th>
                             </tr>
@@ -321,7 +317,7 @@ export default function Index({ pengeluaran, jenisAktif, filters = {}, tipeList 
                         <tbody>
                             {pengeluaran.data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="px-4 py-10 text-center">
+                                    <td colSpan={6} className="px-4 py-10 text-center">
                                         <p className="text-sm font-semibold text-slate-600">Belum ada pengeluaran tercatat</p>
                                         <p className="text-sm text-slate-400 mt-1">Coba ubah kata kunci atau bulan.</p>
                                         {filterAktif && (
@@ -344,6 +340,11 @@ export default function Index({ pengeluaran, jenisAktif, filters = {}, tipeList 
                                         <td className="px-4 py-2.5 whitespace-nowrap">
                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">
                                                 {p.tipe_label}
+                                            </span>
+                                        </td>
+                                        <td className="hidden sm:table-cell px-4 py-2.5 whitespace-nowrap">
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-brand-navy/10 text-brand-navy">
+                                                {p.akun_label}
                                             </span>
                                         </td>
                                         <td className="hidden sm:table-cell px-4 py-2.5 whitespace-nowrap">

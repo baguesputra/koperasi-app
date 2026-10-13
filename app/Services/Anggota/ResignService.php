@@ -89,9 +89,9 @@ class ResignService
             ];
 
             // Pelunasan angsuran dari offset simpanan: tiap cicilan lunas dicatat
-            // 1 jurnal audit (NON_FISIK, tanpa gerak uang — pinjaman di-offset
-            // simpanan anggota). Uang fisik hanya bergerak saat sisa simpanan
-            // dikembalikan ke anggota (bank berkurang).
+            // 1 jurnal masuk Bank — pinjaman di-offset simpanan anggota.
+            // Uang fisik bergerak di bank; sisa simpanan dikembalikan
+            // ke anggota (bank berkurang).
             $totalPelunasan = 0.0;
             $rincianPinjaman = [];
             foreach ($pinjamanAktif as $pinjaman) {
@@ -552,14 +552,14 @@ class ResignService
             referensiId: $anggota->id,
             tanggal: $tanggalResign,
             userId: $aktor->id,
-            subJudul: 'Pelunasan dari uang simpanan anggota (offset, tanpa gerak kas)',
+            subJudul: 'Pelunasan dari uang simpanan anggota',
         );
     }
 
     /**
-     * Catat 1 transaksi pelunasan angsuran saat resign sebagai 1 jurnal audit
-     * (NON_FISIK): MASUK kantong:pinjaman, sub: "Pelunasan dari uang simpanan
-     * anggota". Tidak menggerakkan kas — dananya di-offset dari simpanan.
+     * Catat 1 transaksi pelunasan angsuran saat resign sebagai jurnal masuk
+     * Bank: MASUK kantong:pinjaman, sub: "Pelunasan dari uang simpanan
+     * anggota". Dananya di-offset dari simpanan.
      */
     private function catatPelunasanResign(
         float $jumlah,
@@ -582,7 +582,7 @@ class ResignService
             referensiId: $referensiId,
             tanggal: $tanggalResign,
             userId: $aktor->id,
-            subJudul: 'Pelunasan dari uang simpanan anggota (offset, tanpa gerak kas)',
+            subJudul: 'Pelunasan dari uang simpanan anggota',
         );
     }
 }

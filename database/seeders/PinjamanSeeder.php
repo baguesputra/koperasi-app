@@ -251,12 +251,13 @@ class PinjamanSeeder extends Seeder
             $this->jurnalKas->catat(
                 tipe: 'masuk',
                 kategori: 'topup_bulanan',
-                kantong: 'pinjaman',
+                kantong: 'bank',
                 jumlah: (float) $t['jumlah'],
                 keterangan: 'Topup saldo koperasi',
                 referensiId: null,
                 tanggal: $t['tanggal']->format('Y-m-d'),
                 userId: $benId,
+                sumberTopup: 'modal',
             );
         }
     }

@@ -20,7 +20,14 @@ class Pengeluaran extends Model
         'lain_lain' => 'Lain-lain',
     ];
 
-    protected $fillable = ['jenis', 'tipe', 'jumlah', 'keterangan', 'tanggal', 'input_by'];
+    public const AKUN = ['bank', 'kas_kecil'];
+
+    public const AKUN_LABEL = [
+        'bank' => 'Bank',
+        'kas_kecil' => 'Kas Kecil',
+    ];
+
+    protected $fillable = ['jenis', 'tipe', 'akun', 'jumlah', 'keterangan', 'tanggal', 'input_by'];
 
     protected $casts = [
         'jumlah' => 'decimal:2',

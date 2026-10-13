@@ -4,7 +4,6 @@ namespace App\Console\Commands;
 
 use App\Models\JurnalKas;
 use App\Models\KasKoperasi;
-use App\Services\Keuangan\JurnalKasService;
 use Illuminate\Console\Command;
 
 class RekonsiliasiKas extends Command
@@ -62,10 +61,6 @@ class RekonsiliasiKas extends Command
 
             if ($j->kantong === 'kas_kecil') {
                 $kas += $j->tipe === 'masuk' ? $jumlah : -$jumlah;
-            } elseif ($j->kantong === 'bank') {
-                $bank += $j->tipe === 'masuk' ? $jumlah : -$jumlah;
-            } elseif (in_array($j->kategori, JurnalKasService::KATEGORI_NON_FISIK, true)) {
-                continue;
             } elseif ($j->tipe === 'masuk') {
                 $bank += $jumlah;
             } else {

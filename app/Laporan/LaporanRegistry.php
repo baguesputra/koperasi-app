@@ -73,10 +73,9 @@ class LaporanRegistry
                     [$dari, $sampai] = self::rentang($r);
                     $kantongFilter = $r->input('kantong');
 
-                    // Basis kas fisik (Kas Tunggal): hanya baris bank/kas kecil.
+                    // Basis kas fisik: bank + kas kecil, semua baris jurnal.
                     // Kantong tinggal label klasifikasi, bukan rekening.
                     $agregat = DB::table('jurnal_kas')
-                        ->whereNotIn('kategori', JurnalKasService::KATEGORI_NON_FISIK)
                         ->whereBetween('tanggal', [$dari, $sampai])
                         ->when(
                             $kantongFilter && isset(JurnalKasService::KANTONG_SALDO[$kantongFilter]),
@@ -153,7 +152,7 @@ class LaporanRegistry
                     $baris('Saldo akhir (awal + bersih)', $akhirHitung, 'subtotal');
                     $baris('Saldo akhir aktual (buku kas)', $akhirTotal, 'subtotal');
 
-                    $catatan = 'Hanya transaksi kas fisik (bank & kas kecil); transaksi non-kas dikecualikan. Kantong berfungsi sebagai label klasifikasi, bukan rekening.';
+                    $catatan = 'Seluruh transaksi jurnal (bank & kas kecil). Kantong berfungsi sebagai label klasifikasi, bukan rekening.';
                     if ($kantongFilter && isset(JurnalKasService::KANTONG_LABEL[$kantongFilter])) {
                         $catatan .= ' Filter label kantong: '.JurnalKasService::KANTONG_LABEL[$kantongFilter].'.';
                     }
@@ -245,7 +244,7 @@ class LaporanRegistry
                             ['Total Pasiva', self::rupiah($pasiva)],
                             ['Selisih (Aktiva − Pasiva)', self::rupiah($selisih).($selisih == 0 ? ' — Seimbang' : ' — TIDAK SEIMBANG')],
                         ],
-                        'Kas & Bank dari saldo buku kas per cut-off; piutang = sisa pokok pinjaman dicairkan dikurangi pokok angsuran lunas (konfirmasi tanpa tanggal dianggap lunas); dana sosial = neto kantong dana sosial fisik; SHU = bunga '.self::rupiah($shu['bunga']).' − beban operasional '.self::rupiah($shu['beban'])." tahun {$tahun}; modal = selisih penyeimbang. Status keanggotaan aktif dibaca per tanggal cetak.",
+                        'Kas & Bank dari saldo buku kas per cut-off; piutang = sisa pokok pinjaman dicairkan dikurangi pokok angsuran lunas (konfirmasi tanpa tanggal dianggap lunas); dana sosial = neto kantong dana sosial; SHU = bunga angsuran + bunga bank '.self::rupiah($shu['bunga']).' − beban operasional '.self::rupiah($shu['beban'])." tahun {$tahun}; modal = selisih penyeimbang. Status keanggotaan aktif dibaca per tanggal cetak.",
                         $gayaBaris,
                     );
                 },
@@ -776,15 +775,13 @@ class LaporanRegistry
 
     /**
      * Kas fisik per tanggal: saldo_setelah baris terakhir tiap akun
-     * (bank / kas kecil) pada atau sebelum tanggal. Baris non-fisik
-     * tidak menggerakkan saldo sehingga dikecualikan.
+     * (bank / kas kecil) pada atau sebelum tanggal.
      * Pembanding berupa Carbon penuh (bukan string Y-m-d) supaya baris
      * bertime tetap tercakup di SQLite maupun MySQL.
      */
     private static function kasPerTanggal(Carbon $tanggal): array
     {
         $terakhir = fn (string $akun) => (float) (DB::table('jurnal_kas')
-            ->whereNotIn('kategori', JurnalKasService::KATEGORI_NON_FISIK)
             ->when(
                 $akun === 'kas_kecil',
                 fn ($q) => $q->where('kantong', 'kas_kecil'),
@@ -848,23 +845,22 @@ class LaporanRegistry
     }
 
     /**
-     * Dana sosial per tanggal: neto kantong dana_sosial fisik
-     * (masuk − keluar), tanpa baris non-fisik.
+     * Dana sosial per tanggal: neto kantong dana_sosial (masuk − keluar).
      */
     private static function danaSosialPerTanggal(Carbon $tanggal): float
     {
         return (float) (DB::table('jurnal_kas')
             ->where('kantong', 'dana_sosial')
-            ->whereNotIn('kategori', JurnalKasService::KATEGORI_NON_FISIK)
             ->where('tanggal', '<=', $tanggal)
             ->selectRaw("SUM(CASE WHEN tipe = 'masuk' THEN jumlah ELSE -jumlah END) as total")
             ->value('total') ?? 0);
     }
 
     /**
-     * SHU tahun berjalan: bunga angsuran lunas (normal + percepatan)
-     * dikurangi beban operasional kas. Dana sosial bukan beban SHU
-     * (arus dana, bukan laba) sehingga tidak dikurangkan.
+     * SHU tahun berjalan: bunga angsuran lunas (normal + percepatan) +
+     * bunga bank (topup sumber bunga_bank) dikurangi beban operasional kas.
+     * Dana sosial bukan beban SHU (arus dana, bukan laba) sehingga
+     * tidak dikurangkan. Topup modal bukan pendapatan SHU.
      */
     private static function shuTahunBerjalan(int $tahun): array
     {
@@ -877,13 +873,20 @@ class LaporanRegistry
                 ->sum('nominal_bunga');
         }
 
+        $bungaBank = (float) DB::table('jurnal_kas')
+            ->where('tipe', 'masuk')
+            ->where('kategori', 'topup_bulanan')
+            ->where('sumber_topup', 'bunga_bank')
+            ->whereBetween('tanggal', [$awal, $akhir])
+            ->sum('jumlah');
+
         $beban = (float) DB::table('jurnal_kas')
             ->where('tipe', 'keluar')
             ->where('kategori', 'pengeluaran_koperasi')
             ->whereBetween('tanggal', [$awal, $akhir])
             ->sum('jumlah');
 
-        return ['bunga' => $bunga, 'beban' => $beban, 'shu' => $bunga - $beban];
+        return ['bunga' => $bunga + $bungaBank, 'beban' => $beban, 'shu' => $bunga + $bungaBank - $beban];
     }
 
     private static function hasil(

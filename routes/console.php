@@ -27,7 +27,3 @@ Schedule::command('gate:sinkron-master')->dailyAt(
     GateSyncSetting::current()->master_daily_at ?? '02:00'
 )->when(fn () => GateSyncSetting::current()->schedule_enabled)
     ->withoutOverlapping()->onOneServer();
-
-// Pagu kas kecil: isi ulang otomatis dari bank tiap awal bulan (idempoten per bulan).
-Schedule::command('kas:penuhi-pagu')->monthlyOn(1, '00:05')
-    ->withoutOverlapping()->onOneServer();

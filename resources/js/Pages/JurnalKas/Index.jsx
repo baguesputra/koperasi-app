@@ -1,7 +1,7 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, router, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Wallet, Landmark, PiggyBank, HeartHandshake, Search, X, CalendarDays, ChevronLeft, ChevronRight, BookOpenText, ArrowDownCircle } from 'lucide-react';
+import { Wallet, Landmark, PiggyBank, HeartHandshake, Search, X, CalendarDays, ChevronLeft, ChevronRight, BookOpenText } from 'lucide-react';
 import Card from '@/Components/ui/Card';
 import PageHeader from '@/Components/ui/PageHeader';
 import Select from '@/Components/ui/Select';
@@ -23,7 +23,11 @@ const kantongMeta = {
 const akunMeta = {
     bank: { label: 'Bank', warna: 'bg-brand-navy/10 text-brand-navy', ikon: Landmark },
     kas_kecil: { label: 'Kas Kecil', warna: 'bg-amber-50 text-amber-700', ikon: Wallet },
-    audit: { label: 'Non-kas', warna: 'bg-slate-100 text-slate-500', ikon: BookOpenText },
+};
+
+const sumberTopupLabel = {
+    modal: 'Modal',
+    bunga_bank: 'Bunga Bank',
 };
 
 const tabAkun = [
@@ -32,7 +36,7 @@ const tabAkun = [
     { key: 'kas_kecil', label: 'Kas Kecil' },
 ];
 
-export default function Index({ filters = {}, bulanFilter, kantongOptions = {}, kategoriOptions = {}, ringkasanPeriode, riwayat = [], nonKas = [] }) {
+export default function Index({ filters = {}, bulanFilter, kantongOptions = {}, kategoriOptions = {}, ringkasanPeriode, riwayat = [] }) {
     const { auth } = usePage().props;
     const bisaLihat = auth.user?.permissions?.includes('jurnal.lihat');
     const [cari, setCari] = useState(filters.cari ?? '');
@@ -119,10 +123,13 @@ export default function Index({ filters = {}, bulanFilter, kantongOptions = {}, 
     }
 
     function barisKeterangan(r) {
+        const label = r.kategori === 'topup_bulanan' && r.sumber_topup
+            ? `${kategoriOptions[r.kategori] ?? r.kategori} — ${sumberTopupLabel[r.sumber_topup] ?? r.sumber_topup}`
+            : (kategoriOptions[r.kategori] ?? r.kategori);
         return (
             <div className="min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-sm font-semibold text-slate-700">{kategoriOptions[r.kategori] ?? r.kategori}</span>
+                    <span className="text-sm font-semibold text-slate-700">{label}</span>
                     <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500 whitespace-nowrap">
                         {kantongMeta[r.kantong]?.label ?? r.kantong}
                     </span>
@@ -380,49 +387,6 @@ export default function Index({ filters = {}, bulanFilter, kantongOptions = {}, 
                     </>
                 )}
             </Card>
-
-            {/* Transaksi non-kas */}
-            {nonKas.length > 0 && (
-                <Card padding="sm" className="shadow-md border-slate-200/70 mb-4">
-                    <details>
-                        <summary className="cursor-pointer flex items-center gap-2 text-sm font-bold text-slate-600 select-none py-1">
-                            <ArrowDownCircle size={16} className="text-slate-400" aria-hidden="true" />
-                            Transaksi non-kas ({nonKas.length})
-                            <span className="text-xs font-normal text-slate-400">— catatan pembukuan tanpa gerak kas</span>
-                        </summary>
-                        <table className="w-full text-sm border-collapse mt-2">
-                            <thead>
-                                <tr className="text-left text-[11px] uppercase tracking-wide text-slate-400 border-b border-slate-200">
-                                    <th scope="col" className="py-2 pr-2 font-semibold w-24">Tgl</th>
-                                    <th scope="col" className="py-2 pr-2 font-semibold w-32">No. Bukti</th>
-                                    <th scope="col" className="py-2 pr-2 font-semibold">Keterangan</th>
-                                    <th scope="col" className="py-2 pr-2 font-semibold text-right w-36">Masuk</th>
-                                    <th scope="col" className="py-2 font-semibold text-right w-36">Keluar</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {nonKas.map((r) => (
-                                    <tr key={r.id} className="border-b border-slate-50 align-top">
-                                        <td className="py-2.5 pr-2 text-xs text-slate-500 whitespace-nowrap tabular-nums">{r.tanggal}</td>
-                                        <td className="py-2.5 pr-2 text-xs text-slate-500 whitespace-nowrap tabular-nums font-mono">{r.no_bukti ?? '—'}</td>
-                                        <td className="py-2.5 pr-2">{barisKeterangan(r)}</td>
-                                        <td className="py-2.5 pr-2 text-right whitespace-nowrap tabular-nums">
-                                            {r.tipe === 'masuk'
-                                                ? <span className="font-bold text-slate-500">+ {formatRupiah(r.jumlah)}</span>
-                                                : <span className="text-slate-300">—</span>}
-                                        </td>
-                                        <td className="py-2.5 text-right whitespace-nowrap tabular-nums">
-                                            {r.tipe === 'keluar'
-                                                ? <span className="font-bold text-slate-500">- {formatRupiah(r.jumlah)}</span>
-                                                : <span className="text-slate-300">—</span>}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </details>
-                </Card>
-            )}
         </AppLayout>
     );
 }

@@ -5,7 +5,7 @@ export const SECTIONS = [
         grup: 'Kebijakan',
         items: [
             { key: 'aturan-pinjaman', label: 'Aturan Pinjaman', desc: 'Bunga, limit & tenor', icon: HandCoins },
-            { key: 'dana-operasional', label: 'Dana Operasional', desc: 'Simpanan, kas & chip', icon: PiggyBank },
+            { key: 'dana-operasional', label: 'Dana Operasional', desc: 'Simpanan & chip', icon: PiggyBank },
         ],
     },
     {

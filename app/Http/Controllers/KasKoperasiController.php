@@ -19,7 +19,7 @@ class KasKoperasiController extends Controller
 
     /**
      * Konsep Kas Tunggal: satu daftar arus kas gabungan semua kantong +
-     * filter bulan, kanal fisik (bank/kas kecil/audit), dan pencarian.
+     * filter bulan, kanal fisik (bank/kas kecil), dan pencarian.
      * Badge kanal + kantong di tiap baris jadi penanda jenis mutasi.
      */
     public function index(Request $request): Response
@@ -44,7 +44,7 @@ class KasKoperasiController extends Controller
             });
         }
 
-        if (in_array($kanalFilter, ['bank', 'kas_kecil', 'audit'], true)) {
+        if (in_array($kanalFilter, ['bank', 'kas_kecil'], true)) {
             $query = $this->denganFilterKanal($query, $kanalFilter);
         }
 
@@ -55,6 +55,7 @@ class KasKoperasiController extends Controller
                 'id' => $j->id,
                 'tipe' => $j->tipe,
                 'kategori' => $j->kategori,
+                'sumber_topup' => $j->sumber_topup,
                 'kantong' => $j->kantong,
                 'kanal' => JurnalKasService::kanalFisik($j->kantong, $j->kategori),
                 'jumlah' => (float) $j->jumlah,
@@ -74,7 +75,7 @@ class KasKoperasiController extends Controller
 
         $totalMasuk = 0.0;
         $totalKeluar = 0.0;
-        $ringkasanKanal = ['bank' => ['masuk' => 0.0, 'keluar' => 0.0], 'kas_kecil' => ['masuk' => 0.0, 'keluar' => 0.0], 'audit' => ['masuk' => 0.0, 'keluar' => 0.0]];
+        $ringkasanKanal = ['bank' => ['masuk' => 0.0, 'keluar' => 0.0], 'kas_kecil' => ['masuk' => 0.0, 'keluar' => 0.0]];
         foreach ($agregat as $row) {
             $total = (float) $row->total;
             if ($row->tipe === 'masuk') {
@@ -101,22 +102,16 @@ class KasKoperasiController extends Controller
     }
 
     /**
-     * Salinan query dengan filter kanal fisik: derivasi dari kantong +
-     * KATEGORI_NON_FISIK, diterjemahkan jadi kondisi WHERE biasa
-     * (lihat JurnalKasService::kanalFisik).
+     * Salinan query dengan filter kanal fisik (bank / kas kecil).
      */
     private function denganFilterKanal($query, string $kanal)
     {
         $q = clone $query;
 
-        if ($kanal === 'audit') {
-            $q->whereIn('kategori', JurnalKasService::KATEGORI_NON_FISIK);
-        } elseif ($kanal === 'kas_kecil') {
-            $q->where('kantong', 'kas_kecil')
-                ->whereNotIn('kategori', JurnalKasService::KATEGORI_NON_FISIK);
+        if ($kanal === 'kas_kecil') {
+            $q->where('kantong', 'kas_kecil');
         } else {
-            $q->where('kantong', '!=', 'kas_kecil')
-                ->whereNotIn('kategori', JurnalKasService::KATEGORI_NON_FISIK);
+            $q->where('kantong', '!=', 'kas_kecil');
         }
 
         return $q;
@@ -143,6 +138,7 @@ class KasKoperasiController extends Controller
     {
         $request->validate([
             'jumlah' => ['required', 'numeric', 'min:1'],
+            'sumber_topup' => ['required', 'in:modal,bunga_bank'],
             'keterangan' => ['nullable', 'string', 'max:255'],
             'lain_lain' => ['nullable', 'boolean'],
             'keterangan_lain' => ['nullable', 'required_if:lain_lain,true', 'string', 'max:255'],
@@ -154,7 +150,7 @@ class KasKoperasiController extends Controller
             $keterangan = '[Lain-lain] '.$request->keterangan_lain.($request->keterangan ? ' — '.$request->keterangan : '');
         }
 
-        // Konsep Kas Tunggal: topup selalu masuk Bank.
+        // Topup selalu masuk Bank, dengan sumber modal / bunga bank.
         $this->jurnalKas->catat(
             tipe: 'masuk',
             kategori: 'topup_bulanan',
@@ -164,6 +160,7 @@ class KasKoperasiController extends Controller
             referensiId: null,
             tanggal: now()->format('Y-m-d'),
             userId: auth()->id(),
+            sumberTopup: $request->sumber_topup,
         );
 
         return back()->with('status', 'Saldo berhasil ditambahkan.');

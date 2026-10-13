@@ -1,9 +1,8 @@
 import SectionCard from './SectionCard';
 import TabSimpanan from './TabSimpanan';
-import TabKas from './TabKas';
 import TabChip from './TabChip';
 
-export default function TabDanaOperasional({ settingSimpanan, settingKas, chipNominal, sectionAktif }) {
+export default function TabDanaOperasional({ settingSimpanan, chipNominal, sectionAktif }) {
     const grupChip = Object.keys(chipNominal ?? {}).length;
 
     return (
@@ -15,14 +14,6 @@ export default function TabDanaOperasional({ settingSimpanan, settingKas, chipNo
                 sectionAktif={sectionAktif}
             >
                 <TabSimpanan settingSimpanan={settingSimpanan} />
-            </SectionCard>
-            <SectionCard
-                id="kas"
-                judul="Kas Operasional"
-                ringkasan={(settingKas ?? []).length ? `${settingKas.length} pos` : null}
-                sectionAktif={sectionAktif}
-            >
-                <TabKas settingKas={settingKas} />
             </SectionCard>
             <SectionCard
                 id="chip"

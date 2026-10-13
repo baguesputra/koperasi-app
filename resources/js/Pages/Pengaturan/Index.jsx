@@ -23,7 +23,6 @@ const SUB_NAV = {
     ],
     'dana-operasional': [
         { id: 'simpanan', label: 'Simpanan' },
-        { id: 'kas', label: 'Kas' },
         { id: 'chip', label: 'Chip' },
     ],
     organisasi: [
@@ -47,7 +46,6 @@ export default function Index({
     tabelTenor,
     bungaSaatIni,
     settingSimpanan,
-    settingKas,
     chipNominal,
     ringkasanMaster,
     gateStatus,
@@ -162,7 +160,7 @@ export default function Index({
                     </div>
 
                     {tabAktif === 'aturan-pinjaman' && <TabAturanPinjaman bungaSaatIni={bungaSaatIni} limitPinjaman={limitPinjaman} tabelTenor={tabelTenor} sectionAktif={sectionAktif} />}
-                    {tabAktif === 'dana-operasional' && <TabDanaOperasional settingSimpanan={settingSimpanan} settingKas={settingKas} chipNominal={chipNominal} sectionAktif={sectionAktif} />}
+                    {tabAktif === 'dana-operasional' && <TabDanaOperasional settingSimpanan={settingSimpanan} chipNominal={chipNominal} sectionAktif={sectionAktif} />}
                     {tabAktif === 'wa' && <TabWa />}
                     {tabAktif === 'akses' && (
                         <SectionAkses

@@ -1,6 +1,6 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, usePage, useForm, router, Link } from '@inertiajs/react';
-import { Wallet, ArrowDownCircle, ArrowUpCircle, Plus, ChevronLeft, ChevronRight, Landmark, ReceiptText, CalendarDays, Search, X, FileSearch } from 'lucide-react';
+import { Wallet, ArrowDownCircle, ArrowUpCircle, Plus, ChevronLeft, ChevronRight, Landmark, ReceiptText, CalendarDays, Search, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Card from '@/Components/ui/Card';
 import Button from '@/Components/ui/Button';
@@ -54,11 +54,15 @@ const kantongLabel = {
     kas_kecil: 'Kas Kecil',
 };
 
-// Kanal fisik tempat uang bergerak: bank, kas_kecil, atau audit (tanpa gerak uang).
+// Kanal fisik tempat uang bergerak: bank atau kas kecil.
 const kanalMeta = {
     bank: { label: 'Bank', ikon: Landmark, warna: 'bg-brand-navy/10 text-brand-navy' },
     kas_kecil: { label: 'Kas Kecil', ikon: Wallet, warna: 'bg-amber-50 text-amber-700' },
-    audit: { label: 'Non-kas', ikon: FileSearch, warna: 'bg-slate-100 text-slate-500' },
+};
+
+const sumberTopupLabel = {
+    modal: 'Modal',
+    bunga_bank: 'Bunga Bank',
 };
 
 export default function Index({
@@ -80,6 +84,7 @@ export default function Index({
 
     const { data, setData, post, processing, errors, reset } = useForm({
         jumlah: '',
+        sumber_topup: 'modal',
         keterangan: '',
         lain_lain: false,
         keterangan_lain: '',
@@ -151,6 +156,7 @@ export default function Index({
                 onSuccess: () => {
                     reset('jumlah', 'keterangan', 'keterangan_lain');
                     setData('lain_lain', false);
+                    setData('sumber_topup', 'modal');
                     setShowForm(false);
                 },
             })
@@ -192,13 +198,21 @@ export default function Index({
 
     function tampilBadge(r) {
         // Badge kantong ganda kalau labelnya beda dengan kanal (mis. Bank + Pinjaman).
-        const sama = r.kantong === r.kanal || (r.kanal === 'audit' && r.kantong === 'audit');
+        const sama = r.kantong === r.kanal;
         return (
             <>
                 {badgeKanal(r.kanal)}
                 {!sama && badgeKantong(r.kantong)}
             </>
         );
+    }
+
+    function labelKategori(r) {
+        const dasar = kategoriLabel[r.kategori] ?? r.kategori;
+        if (r.kategori === 'topup_bulanan' && r.sumber_topup) {
+            return `${dasar} — ${sumberTopupLabel[r.sumber_topup] ?? r.sumber_topup}`;
+        }
+        return dasar;
     }
 
     function barisRuteAsal(r) {
@@ -321,6 +335,19 @@ export default function Index({
                                     onChange={(e) => setData('keterangan', e.target.value)}
                                     placeholder={`Topup ${labelBulan} dari pendapatan bunga`}
                                 />
+                            </FormField>
+                            <FormField label="Sumber Topup" error={errors.sumber_topup} required hint="Bunga Bank masuk pendapatan SHU; Modal tidak.">
+                                <Select
+                                    size="sm"
+                                    value={data.sumber_topup}
+                                    onChange={(e) => setData('sumber_topup', e.target.value)}
+                                    aria-label="Sumber topup"
+                                    required
+                                >
+                                    {Object.entries(sumberTopupLabel).map(([key, label]) => (
+                                        <option key={key} value={key}>{label}</option>
+                                    ))}
+                                </Select>
                             </FormField>
                         </div>
                         <label className="flex items-center gap-2.5 mt-1 mb-3 cursor-pointer select-none">
@@ -512,7 +539,7 @@ export default function Index({
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2 flex-wrap">
                                                     <p className="text-sm font-semibold text-slate-700">
-                                                        {kategoriLabel[r.kategori] ?? r.kategori}
+                                                        {labelKategori(r)}
                                                     </p>
                                                     {tampilBadge(r)}
                                                 </div>
@@ -532,9 +559,7 @@ export default function Index({
                                                     <span aria-hidden="true">{r.tipe === 'masuk' ? '+' : '-'} {formatRupiah(r.jumlah)}</span>
                                                 </p>
                                                 <p className="text-[11px] text-slate-400 whitespace-nowrap tabular-nums">
-                                                    {r.kanal === 'audit'
-                                                        ? 'Transaksi non-kas — kas tidak berubah'
-                                                        : `${r.kanal === 'bank' ? 'Saldo Bank' : 'Saldo Kas'}: ${formatRupiah(r.saldo_setelah)}`}
+                                                    {`${r.kanal === 'bank' ? 'Saldo Bank' : 'Saldo Kas'}: ${formatRupiah(r.saldo_setelah)}`}
                                                 </p>
                                             </div>
                                         </li>

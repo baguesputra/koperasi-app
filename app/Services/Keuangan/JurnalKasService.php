@@ -13,9 +13,9 @@ class JurnalKasService
 {
     /**
      * Nama kantong yang sah untuk kolom `kantong` jurnal.
-     * Sejak konsep Kas Tunggal, kantong virtual (pinjaman, dana_sosial,
-     * simpanan, pengembalian_simpanan) hanya LABEL klasifikasi audit —
-     * uang fisik hanya ada di `bank` dan `kas_kecil`.
+     * Uang fisik hanya ada di `bank` dan `kas_kecil`: kantong `kas_kecil`
+     * menggerakkan kas kecil, kantong lain (bank/pinjaman/dana_sosial/
+     * simpanan/pengembalian_simpanan sebagai label klasifikasi) menggerakkan bank.
      */
     public const KANTONG_SALDO = [
         'pinjaman' => 'saldo_pinjaman',
@@ -47,49 +47,29 @@ class JurnalKasService
     ];
 
     /**
-     * Kategori audit/offset murni (tanpa perpindahan uang fisik). Berlaku
-     * untuk baris histori (funding transit, talangan, transfer penyeimbang)
-     * maupun baris baru (pelunasan resign = offset simpanan, tanpa gerak kas).
+     * Sumber topup bank yang sah untuk kolom `sumber_topup` (hanya dipakai
+     * kategori `topup_bulanan`): modal vs bunga bank (pendapatan SHU).
      */
-    public const KATEGORI_NON_FISIK = [
-        'simpanan_resign_masuk',
-        'pelunasan_resign_pinjaman',
-        'pelunasan_resign_simpanan',
-        'talangan_sosial_ke_pinjaman',
-        'talangan_simpanan_ke_pinjaman',
-        'terima_talangan_dari_sosial',
-        'terima_talangan_dari_simpanan',
-        'kembali_talangan_dari_pinjaman',
-        'kembali_talangan_ke_simpanan',
-        'kembali_talangan_ke_sosial',
-        'transfer_ke_dana_pinjaman',
-        'terima_dari_pengembalian_simpanan',
+    public const SUMBER_TOPUP = ['modal', 'bunga_bank'];
+
+    public const SUMBER_TOPUP_LABEL = [
+        'modal' => 'Modal',
+        'bunga_bank' => 'Bunga Bank',
     ];
 
     /**
-     * Kanal fisik satu baris jurnal untuk tampilan: `bank`, `kas_kecil`, atau `audit`.
-     * Urutan meniru catat(): kategori NON_FISIK tidak menggerakkan saldo dulu,
-     * lalu kantong kas_kecil → kas kecil; selainnya → bank.
+     * Kanal fisik satu baris jurnal untuk tampilan: `bank` atau `kas_kecil`.
      */
     public static function kanalFisik(string $kantong, string $kategori): string
     {
-        if (in_array($kategori, self::KATEGORI_NON_FISIK, true)) {
-            return 'audit';
-        }
-
         return $kantong === 'kas_kecil' ? 'kas_kecil' : 'bank';
     }
 
     /**
-     * Jenis nomor bukti jurnal: non-fisik → JNK (memorial), masuk → JKM,
-     * keluar → JKK. Dipakai PenomoranDokumenService (counter tahunan).
+     * Jenis nomor bukti jurnal: masuk → JKM, keluar → JKK.
      */
     public static function jenisBukti(string $tipe, string $kategori): string
     {
-        if (in_array($kategori, self::KATEGORI_NON_FISIK, true)) {
-            return PenomoranDokumenService::JENIS_JNK;
-        }
-
         return $tipe === 'masuk' ? PenomoranDokumenService::JENIS_JKM : PenomoranDokumenService::JENIS_JKK;
     }
 
@@ -109,13 +89,13 @@ class JurnalKasService
      * Satu-satunya pintu untuk mengubah saldo kas + mencatat jurnal.
      * Selalu dipanggil sebagai 1 paket atomic dengan lock, supaya aman dari race condition.
      *
-     * Konsep Kas Tunggal: hanya `saldo_bank` / `saldo_kas_kecil` yang bergerak.
+     * Hanya `saldo_bank` / `saldo_kas_kecil` yang bergerak.
      * - kantong `kas_kecil` → kas kecil; kantong lain → bank.
      * - masuk → tambah; keluar → kurang (validasi saldo cukup).
-     * - KATEGORI_NON_FISIK: tulis jurnal audit saja, saldo tak tersentuh.
      *
      * @param  string  $kantong  label klasifikasi, salah satu dari self::KANTONG_SALDO
      * @param  string|null  $subJudul  catatan tambahan untuk transparansi
+     * @param  string|null  $sumberTopup  'modal'|'bunga_bank' (hanya kategori topup_bulanan)
      */
     public function catat(
         string $tipe,
@@ -126,30 +106,32 @@ class JurnalKasService
         ?int $referensiId,
         string $tanggal,
         int $userId,
-        ?string $subJudul = null
+        ?string $subJudul = null,
+        ?string $sumberTopup = null
     ): JurnalKas {
         if (! isset(self::KANTONG_SALDO[$kantong])) {
             throw new RuntimeException("Kantong '{$kantong}' tidak dikenal.");
         }
 
-        $kolomFisik = $kantong === 'kas_kecil' ? 'saldo_kas_kecil' : 'saldo_bank';
-        $nonFisik = in_array($kategori, self::KATEGORI_NON_FISIK, true);
+        if ($sumberTopup !== null && ! in_array($sumberTopup, self::SUMBER_TOPUP, true)) {
+            throw new RuntimeException("Sumber topup '{$sumberTopup}' tidak dikenal.");
+        }
 
-        return DB::transaction(function () use ($tipe, $kategori, $kantong, $jumlah, $keterangan, $referensiId, $tanggal, $userId, $subJudul, $kolomFisik, $nonFisik) {
+        $kolomFisik = $kantong === 'kas_kecil' ? 'saldo_kas_kecil' : 'saldo_bank';
+
+        return DB::transaction(function () use ($tipe, $kategori, $kantong, $jumlah, $keterangan, $referensiId, $tanggal, $userId, $subJudul, $sumberTopup, $kolomFisik) {
             $kas = KasKoperasi::lockForUpdate()->firstOrFail();
 
-            if (! $nonFisik) {
-                if ($tipe === 'masuk') {
-                    $kas->increment($kolomFisik, $jumlah);
-                } else {
-                    if ((float) $kas->{$kolomFisik} < $jumlah) {
-                        $label = $kolomFisik === 'saldo_bank' ? 'Bank' : 'Kas kecil';
-                        throw new RuntimeException(
-                            "Saldo {$label} tidak mencukupi. Saldo saat ini: Rp ".number_format((float) $kas->{$kolomFisik}, 0, ',', '.')
-                        );
-                    }
-                    $kas->decrement($kolomFisik, $jumlah);
+            if ($tipe === 'masuk') {
+                $kas->increment($kolomFisik, $jumlah);
+            } else {
+                if ((float) $kas->{$kolomFisik} < $jumlah) {
+                    $label = $kolomFisik === 'saldo_bank' ? 'Bank' : 'Kas kecil';
+                    throw new RuntimeException(
+                        "Saldo {$label} tidak mencukupi. Saldo saat ini: Rp ".number_format((float) $kas->{$kolomFisik}, 0, ',', '.')
+                    );
                 }
+                $kas->decrement($kolomFisik, $jumlah);
             }
 
             $kas->refresh();
@@ -157,10 +139,11 @@ class JurnalKasService
             return JurnalKas::create([
                 'tipe' => $tipe,
                 'kategori' => $kategori,
+                'sumber_topup' => $sumberTopup,
                 'kantong' => $kantong,
                 'no_bukti' => $this->noBuktiBerikutnya($tipe, $kategori, $tanggal),
                 'jumlah' => $jumlah,
-                'saldo_setelah' => $nonFisik ? 0 : $kas->{$kolomFisik},
+                'saldo_setelah' => $kas->{$kolomFisik},
                 'keterangan' => $keterangan,
                 'sub_judul' => $subJudul,
                 'referensi_id' => $referensiId,

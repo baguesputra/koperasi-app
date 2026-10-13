@@ -4,7 +4,6 @@ namespace App\Services\Keuangan;
 
 use App\Models\AuditLog;
 use App\Models\Pengeluaran;
-use App\Models\SettingKas;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -13,16 +12,17 @@ class PengeluaranService
 {
     public function __construct(private JurnalKasService $jurnalKas) {}
 
-    public function catat(string $jenis, float $jumlah, string $keterangan, string $tanggal, int $userId, string $tipe = 'lain_lain'): Pengeluaran
+    public function catat(string $jenis, float $jumlah, string $keterangan, string $tanggal, int $userId, string $tipe = 'lain_lain', string $akun = 'kas_kecil'): Pengeluaran
     {
-        return DB::transaction(function () use ($jenis, $jumlah, $keterangan, $tanggal, $userId, $tipe) {
-            if ($jenis === 'dana_sosial') {
-                $this->validasiPaguSosial($jumlah, $tanggal);
-            }
+        if (! in_array($akun, Pengeluaran::AKUN, true)) {
+            throw new RuntimeException("Sumber dana '{$akun}' tidak dikenal.");
+        }
 
+        return DB::transaction(function () use ($jenis, $jumlah, $keterangan, $tanggal, $userId, $tipe, $akun) {
             $pengeluaran = Pengeluaran::create([
                 'jenis' => $jenis,
                 'tipe' => $tipe,
+                'akun' => $akun,
                 'jumlah' => $jumlah,
                 'keterangan' => $keterangan,
                 'tanggal' => $tanggal,
@@ -32,7 +32,7 @@ class PengeluaranService
             $this->jurnalKas->catat(
                 tipe: 'keluar',
                 kategori: $jenis === 'koperasi' ? 'pengeluaran_koperasi' : 'pengeluaran_dana_sosial',
-                kantong: 'kas_kecil',
+                kantong: $akun,
                 jumlah: $jumlah,
                 keterangan: $keterangan,
                 referensiId: $pengeluaran->id,
@@ -43,52 +43,26 @@ class PengeluaranService
             // Audit log untuk pencatatan pengeluaran
             $labelJenis = $jenis === 'koperasi' ? 'Pengeluaran Koperasi' : 'Pengeluaran Dana Sosial';
             $labelTipe = Pengeluaran::TIPE_LABEL[$tipe] ?? $tipe;
+            $labelAkun = Pengeluaran::AKUN_LABEL[$akun] ?? $akun;
 
             AuditLog::catat(
                 aksi: 'pengeluaran_dicatat',
-                keterangan: "{$labelJenis} ({$labelTipe}) dicatat: {$keterangan}, nominal: ".number_format($jumlah, 0, ',', '.').', dari Kas Kecil',
+                keterangan: "{$labelJenis} ({$labelTipe}) dicatat: {$keterangan}, nominal: ".number_format($jumlah, 0, ',', '.').", dari {$labelAkun}",
                 dataLama: null,
                 dataBaru: [
                     'pengeluaran_id' => $pengeluaran->id,
                     'jenis' => $jenis,
                     'tipe' => $tipe,
+                    'akun' => $akun,
                     'jumlah' => $jumlah,
                     'keterangan' => $keterangan,
                     'tanggal' => $tanggal,
                     'input_by' => $userId,
-                    'kantong' => 'kas_kecil',
+                    'kantong' => $akun,
                 ]
             );
 
             return $pengeluaran;
         });
-    }
-
-    /**
-     * Pagu dana sosial bulanan = setting cadangan_sosial_bulan. Berlaku untuk
-     * pengeluaran manual di halaman Pengeluaran. Bulan dihitung dari tanggal
-     * pengeluaran.
-     */
-    private function validasiPaguSosial(float $jumlah, string $tanggal): void
-    {
-        $tgl = Carbon::parse($tanggal);
-        $pagu = SettingKas::nilai(
-            SettingKas::CADANGAN,
-            (float) config('koperasi.cadangan_sosial_bulan', 5_000_000)
-        );
-
-        $terpakai = (float) Pengeluaran::where('jenis', 'dana_sosial')
-            ->whereBetween('tanggal', [$tgl->copy()->startOfMonth()->startOfDay()->toDateTimeString(), $tgl->copy()->endOfMonth()->endOfDay()->toDateTimeString()])
-            ->sum('jumlah');
-
-        $sisa = $pagu - $terpakai;
-
-        if ($jumlah > $sisa) {
-            $rupiah = fn (float $n) => 'Rp '.number_format($n, 0, ',', '.');
-            throw new RuntimeException(
-                "Melebihi pagu dana sosial {$tgl->translatedFormat('F Y')}: "
-                ."pagu {$rupiah($pagu)}, terpakai {$rupiah($terpakai)}, sisa {$rupiah(max(0, $sisa))}."
-            );
-        }
     }
 }
