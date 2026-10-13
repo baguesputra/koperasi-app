@@ -51,7 +51,7 @@ class PengaturanTabTest extends TestCase
                 ->has('tabelTenor'));
     }
 
-    public function test_tab_dana_operasional_memuat_tiga_setting(): void
+    public function test_tab_dana_operasional_memuat_dua_setting(): void
     {
         $this->get(route('pengaturan.index', ['tab' => 'dana-operasional']))
             ->assertOk()
@@ -59,7 +59,6 @@ class PengaturanTabTest extends TestCase
                 ->component('Pengaturan/Index')
                 ->where('tabAktif', 'dana-operasional')
                 ->has('settingSimpanan')
-                ->has('settingKas')
                 ->has('chipNominal'));
     }
 

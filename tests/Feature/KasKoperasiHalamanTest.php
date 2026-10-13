@@ -104,7 +104,7 @@ class KasKoperasiHalamanTest extends TestCase
         $jurnal = [
             ['kategori' => 'pencairan_pinjaman', 'kantong' => 'pinjaman', 'tipe' => 'keluar', 'ket' => 'Kanal uji bank'],
             ['kategori' => 'pengeluaran_koperasi', 'kantong' => 'kas_kecil', 'tipe' => 'keluar', 'ket' => 'Kanal uji kas kecil'],
-            ['kategori' => 'talangan_sosial_ke_pinjaman', 'kantong' => 'pinjaman', 'tipe' => 'masuk', 'ket' => 'Kanal uji audit'],
+            ['kategori' => 'pelunasan_resign_pinjaman', 'kantong' => 'pinjaman', 'tipe' => 'masuk', 'ket' => 'Kanal uji resign bank'],
         ];
         foreach ($jurnal as $j) {
             JurnalKas::create([
@@ -126,10 +126,7 @@ class KasKoperasiHalamanTest extends TestCase
         $kanalPerKeterangan = array_column($props['riwayat']['data'], 'kanal', 'keterangan');
         $this->assertSame('bank', $kanalPerKeterangan['Kanal uji bank']);
         $this->assertSame('kas_kecil', $kanalPerKeterangan['Kanal uji kas kecil']);
-        $this->assertSame('audit', $kanalPerKeterangan['Kanal uji audit']);
-
-        $audit = array_column($props['riwayat']['data'], 'kategori', 'kanal');
-        $this->assertArrayHasKey('audit', $audit);
+        $this->assertSame('bank', $kanalPerKeterangan['Kanal uji resign bank']);
     }
 
     public function test_filter_kanal_mengisolasi_kas_fisik(): void
@@ -167,13 +164,6 @@ class KasKoperasiHalamanTest extends TestCase
             ->viewData('page')['props'];
         foreach ($kas['riwayat']['data'] as $baris) {
             $this->assertSame('kas_kecil', $baris['kantong']);
-        }
-
-        $audit = $this->get(route('kas-koperasi.index', ['kanal' => 'audit']))
-            ->assertOk()
-            ->viewData('page')['props'];
-        foreach ($audit['riwayat']['data'] as $baris) {
-            $this->assertSame('audit', $baris['kanal']);
         }
     }
 
@@ -231,10 +221,10 @@ class KasKoperasiHalamanTest extends TestCase
 
         $this->assertArrayHasKey('bank', $props['ringkasanKanal']);
         $this->assertArrayHasKey('kas_kecil', $props['ringkasanKanal']);
-        $this->assertArrayHasKey('audit', $props['ringkasanKanal']);
+        $this->assertArrayNotHasKey('audit', $props['ringkasanKanal']);
         $this->assertGreaterThanOrEqual(700_000, $props['ringkasanKanal']['bank']['masuk']);
         $this->assertSame(
-            $props['ringkasanKanal']['bank']['masuk'] + $props['ringkasanKanal']['kas_kecil']['masuk'] + $props['ringkasanKanal']['audit']['masuk'],
+            $props['ringkasanKanal']['bank']['masuk'] + $props['ringkasanKanal']['kas_kecil']['masuk'],
             $props['ringkasanPeriode']['total_masuk']
         );
     }

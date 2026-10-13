@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\JurnalKas;
 use App\Models\KasKoperasi;
 use App\Models\Pinjaman;
-use App\Models\SettingKas;
 use App\Services\Keuangan\JurnalKasService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\MembuatDataUji;
@@ -95,19 +94,6 @@ class KasPaguOperasionalTest extends TestCase
 
         $this->assertSame('approved_bendahara', $pinjaman->refresh()->status);
         $this->assertSame(0, JurnalKas::where('kategori', 'pencairan_pinjaman')->where('referensi_id', $pinjaman->id)->count());
-    }
-
-    public function test_update_pagu_kas_kecil_via_pengaturan_tercatat_audit(): void
-    {
-        $this->masuk('ADM-000001');
-        $this->withSession(['auth.password_confirmed_at' => time()]);
-        $setting = SettingKas::where('kunci', SettingKas::CADANGAN)->firstOrFail();
-
-        $this->post(route('pengaturan.kas.update', $setting), ['nominal' => 7_500_000])
-            ->assertStatus(302);
-
-        $this->assertEquals(7_500_000, (float) $setting->refresh()->nominal);
-        $this->assertDatabaseHas('audit_log', ['aksi' => 'update_setting_kas']);
     }
 
     public function test_rekonsiliasi_ok_setelah_seed(): void

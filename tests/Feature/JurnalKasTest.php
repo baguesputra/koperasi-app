@@ -109,14 +109,12 @@ class JurnalKasTest extends TestCase
             'tanggal' => now()->startOfMonth()->addDays(5),
         ], $user->id);
 
-        // Ekspektasi independen: saldo_setelah baris fisik bank terakhir sebelum / dalam bulan ini.
-        $akhirBulanLalu = JurnalKas::whereNotIn('kategori', JurnalKasService::KATEGORI_NON_FISIK)
-            ->where('kantong', '!=', 'kas_kecil')
+        // Ekspektasi independen: saldo_setelah baris bank terakhir sebelum / dalam bulan ini.
+        $akhirBulanLalu = JurnalKas::where('kantong', '!=', 'kas_kecil')
             ->where('tanggal', '<', now()->startOfMonth())
             ->orderByDesc('tanggal')->orderByDesc('id')
             ->first();
-        $terakhirBulanIni = JurnalKas::whereNotIn('kategori', JurnalKasService::KATEGORI_NON_FISIK)
-            ->where('kantong', '!=', 'kas_kecil')
+        $terakhirBulanIni = JurnalKas::where('kantong', '!=', 'kas_kecil')
             ->whereBetween('tanggal', [now()->startOfMonth(), now()->endOfMonth()])
             ->orderByDesc('tanggal')->orderByDesc('id')
             ->first();
@@ -166,7 +164,7 @@ class JurnalKasTest extends TestCase
         }
     }
 
-    public function test_transaksi_non_kas_terpisah_dari_daftar_utama(): void
+    public function test_semua_kategori_masuk_daftar_utama_sebagai_bank(): void
     {
         $user = $this->masuk('BEN-000001');
 
@@ -174,25 +172,24 @@ class JurnalKasTest extends TestCase
             'tipe' => 'masuk',
             'kategori' => 'topup_bulanan',
             'kantong' => 'bank',
-            'keterangan' => 'Fisik uji non kas',
+            'keterangan' => 'Fisik uji kanal bank',
             'saldo_setelah' => 5_000_000,
         ], $user->id);
         $this->buatJurnal([
             'tipe' => 'masuk',
-            'kategori' => 'talangan_sosial_ke_pinjaman',
+            'kategori' => 'pelunasan_resign_pinjaman',
             'kantong' => 'pinjaman',
-            'keterangan' => 'Non kas uji non kas',
-            'saldo_setelah' => 0,
+            'keterangan' => 'Pelunasan resign uji kanal bank',
+            'saldo_setelah' => 5_500_000,
         ], $user->id);
 
         $props = $this->get(route('jurnal-kas.index'))->assertOk()->viewData('page')['props'];
 
-        $this->assertContains('Fisik uji non kas', array_column($props['riwayat'], 'keterangan'));
-        $this->assertNotContains('Non kas uji non kas', array_column($props['riwayat'], 'keterangan'));
-
-        $this->assertContains('Non kas uji non kas', array_column($props['nonKas'], 'keterangan'));
-        foreach ($props['nonKas'] as $baris) {
-            $this->assertSame('audit', $baris['akun']);
+        $this->assertContains('Fisik uji kanal bank', array_column($props['riwayat'], 'keterangan'));
+        $this->assertContains('Pelunasan resign uji kanal bank', array_column($props['riwayat'], 'keterangan'));
+        $this->assertArrayNotHasKey('nonKas', $props);
+        foreach ($props['riwayat'] as $baris) {
+            $this->assertContains($baris['akun'], ['bank', 'kas_kecil']);
         }
     }
 

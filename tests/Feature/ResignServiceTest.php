@@ -107,17 +107,23 @@ class ResignServiceTest extends TestCase
 
         $kas = KasKoperasi::first();
 
-        // Pelunasan 600rb di-offset simpanan (tanpa gerak kas); sisa 400rb
-        // kembali ke anggota dari bank.
-        $this->assertEquals(4_600_000, (float) $kas->saldo_bank);
+        // Pelunasan 600rb di-offset simpanan (masuk bank); sisa 400rb
+        // kembali ke anggota dari bank: 5jt + 600rb − 400rb.
+        $this->assertEquals(5_200_000, (float) $kas->saldo_bank);
         $this->assertEquals(1_000_000, (float) $kas->saldo_kas_kecil);
 
-        // Jurnal pelunasan = audit saja (2 baris, saldo_setelah 0).
+        // Jurnal pelunasan masuk bank (bukan audit saldo 0).
         $this->assertEquals(
             600_000,
             (float) JurnalKas::where('kategori', 'pelunasan_resign_pinjaman')
                 ->where('tipe', 'masuk')
                 ->sum('jumlah')
+        );
+        $this->assertTrue(
+            JurnalKas::where('kategori', 'pelunasan_resign_pinjaman')
+                ->where('tipe', 'masuk')
+                ->where('saldo_setelah', '>', 0)
+                ->exists()
         );
         $this->assertSame(0, JurnalKas::where('kategori', 'pelunasan_resign_simpanan')->count());
         $this->assertSame(0, JurnalKas::where('kategori', 'simpanan_resign_masuk')->count());

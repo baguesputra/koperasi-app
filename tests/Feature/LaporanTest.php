@@ -93,8 +93,8 @@ class LaporanTest extends TestCase
         ]);
         JurnalKas::create([
             'tipe' => 'masuk', 'kategori' => 'pelunasan_resign_pinjaman', 'kantong' => 'pinjaman',
-            'jumlah' => 2_000_000, 'saldo_setelah' => 0,
-            'keterangan' => 'Non kas tes', 'tanggal' => now(), 'created_by' => $user->id,
+            'jumlah' => 2_000_000, 'saldo_setelah' => 7_600_000,
+            'keterangan' => 'Pelunasan resign tes', 'tanggal' => now(), 'created_by' => $user->id,
         ]);
 
         $this->get(route('laporan.show', ['jenis' => 'arus-kas', 'dari' => $bulanIni, 'sampai' => $bulanIni]))
@@ -102,10 +102,10 @@ class LaporanTest extends TestCase
             ->assertInertia(fn ($page) => $page->component('Laporan/Show')
                 ->where('hasil.kolom', ['Uraian', 'Nilai'])
                 ->where('hasil.ringkasan.0.1', 'Rp 5.000.000')
-                ->where('hasil.ringkasan.1.1', 'Rp 1.000.000')
+                ->where('hasil.ringkasan.1.1', 'Rp 3.000.000')
                 ->where('hasil.ringkasan.2.1', 'Rp 400.000')
-                ->where('hasil.ringkasan.3.1', 'Rp 600.000')
-                ->where('hasil.ringkasan.4.1', 'Rp 5.600.000')
+                ->where('hasil.ringkasan.3.1', 'Rp 2.600.000')
+                ->where('hasil.ringkasan.4.1', 'Rp 7.600.000')
                 ->where('hasil.rows', fn ($rows) => collect($rows)->flatten()->contains('Saldo akhir aktual (buku kas)')));
     }
 
@@ -198,6 +198,31 @@ class LaporanTest extends TestCase
         $this->assertSame('Rp 0 — Seimbang', collect($hasil['ringkasan'])->firstWhere(fn ($r) => $r[0] === 'Selisih (Aktiva − Pasiva)')[1]);
 
         $this->get(route('laporan.show', ['jenis' => 'neraca', 'tanggal' => $hariIni]))->assertOk();
+    }
+
+    public function test_shu_menghitung_bunga_bank_bukan_modal(): void
+    {
+        $user = $this->loginSebagai('BEN-000001');
+        $hariIni = now()->format('Y-m-d');
+
+        JurnalKas::create([
+            'tipe' => 'masuk', 'kategori' => 'topup_bulanan', 'sumber_topup' => 'bunga_bank', 'kantong' => 'bank',
+            'jumlah' => 100_000, 'saldo_setelah' => 100_000,
+            'keterangan' => 'Bunga bank SHU', 'tanggal' => now(), 'created_by' => $user->id,
+        ]);
+        JurnalKas::create([
+            'tipe' => 'masuk', 'kategori' => 'topup_bulanan', 'sumber_topup' => 'modal', 'kantong' => 'bank',
+            'jumlah' => 9_000_000, 'saldo_setelah' => 9_100_000,
+            'keterangan' => 'Modal SHU', 'tanggal' => now(), 'created_by' => $user->id,
+        ]);
+
+        $def = LaporanRegistry::ambil('neraca');
+        $hasil = $def['data'](request()->merge(['tanggal' => $hariIni]));
+
+        $nilai = fn (string $pos) => collect($hasil['rows'])->firstWhere(fn ($r) => $r[0] === $pos)[1];
+
+        // SHU = bunga angsuran 0 + bunga bank 100rb − beban 0. Modal tak masuk SHU.
+        $this->assertEquals(100_000, $nilai('SHU Tahun '.now()->year.' berjalan (bunga − beban)'));
     }
 
     public function test_neraca_piutang_mengikuti_cutoff(): void
