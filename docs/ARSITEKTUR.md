@@ -10,7 +10,7 @@ Rinci skema: `docs/ERD-Koperasi-App.md`. Rinci progres: `docs/DEVELOPMENT_LOG.md
 - Auth/API: Sanctum ^4.0 (guard `api`), session guard `web`; Socialite ^5.29 + `socialiteproviders/manager` + `saml2` provider custom `perusahaan`; `AUTH_MODE=local|sso`; throttle `sso-callback`.
 - Otorisasi: `spatie/laravel-permission` ^8.3; alias `role`, `permission`, `idempotent` di `bootstrap/app.php`.
 - Frontend lib: `lucide-react`, `recharts`, `@headlessui/react`, `workbox-window` + `vite-plugin-pwa` (PWA, `NetworkOnly` untuk `/api/*`, denylist `/auth/sso`); Ziggy global (`@routes`, `route()` di JSX).
-- Dokumen/data: `barryvdh/laravel-dompdf` (bukti pinjaman, slip resign, laporan PDF), `maatwebsite/excel` + `phpspreadsheet` (import/export), `endroid/qr-code` (verifikasi publik bukti), `dedoc/scramble` (docs API, UI Scalar di `/api/documentation`), `doctrine/dbal`.
+- Dokumen/data: `barryvdh/laravel-dompdf` (bukti pinjaman, slip resign, laporan PDF), `maatwebsite/excel` + `phpspreadsheet` (import/export), `endroid/qr-code` (verifikasi publik bukti), docs API tulis-tangan (`resources/views/api/dokumentasi.blade.php` di `/api/documentation`), `doctrine/dbal`.
 - Background: queue `queue:listen`, `laravel/pail`, tabel `jobs` + `cache`; `WaService` + `baileys-service/` (notif WA antrean); PDF WA dibangkitkan via queue.
 - Dev/test: `laravel/breeze`, `laravel/pint` (format), PHPUnit ^12.5, Faker, `concurrently`; `npm install --legacy-peer-deps`, `.npmrc ignore-scripts=true`.
 
@@ -21,10 +21,10 @@ Rinci skema: `docs/ERD-Koperasi-App.md`. Rinci progres: `docs/DEVELOPMENT_LOG.md
 - `app/Models/` (23): `User`, `Anggota`, `Pinjaman`, `Angsuran`, `AngsuranPercepatan`, `Simpanan`, `RekeningAnggota`, `PengajuanLimit`, `PengajuanPercepatan`, `KasKoperasi`, `JurnalKas`, `Pengeluaran`, `SettingBunga`, `SettingLimitPinjaman`, `SettingSimpanan`, `TabelTenor`, `AuditLog`, `PenomoranDokumen`, `WaLog`, master organisasi (`Perusahaan`, `Jabatan`, `Divisi`, `Departemen`) + cabang.
 - `app/Jobs/`, `app/Laporan/`, `app/Exports/`, `app/Imports/`, `app/Helpers/` (`TerbilangHelper`), `app/Providers/`, `app/Console/`.
 - `bootstrap/app.php`: middleware web (`HandleInertiaRequests`, `EnsurePasswordChanged`), alias, mapping exception 403/404/419/500 ke `Errors/Error` (atau JSON modal bila header `X-Inertia`); `api/*` selalu JSON.
-- `routes/`: `web.php` (portal, dashboard, lihat per-permission, laporan, topup, kelola anggota, resign, pengaturan + `password.confirm`, bendahara, ketua, migrasi, verifikasi publik QR, `POST /api/v1/sso/token`, UI Scalar `/api/documentation`); `api.php` (v1 + `throttle:api`: login/logout/user + 4 endpoint milik-sendiri `anggota/pinjaman-aktif`, `riwayat-pinjaman`, `limit`, `simpanan`); `auth.php`, `console.php`.
+- `routes/`: `web.php` (portal, dashboard, lihat per-permission, laporan, topup, kelola anggota, resign, pengaturan + `password.confirm`, bendahara, ketua, migrasi, verifikasi publik QR, `POST /api/v1/sso/token`, halaman docs `GET /api/documentation`); `api.php` (v1 + `throttle:api`: login/logout/user + 4 endpoint milik-sendiri `anggota/pinjaman-aktif`, `riwayat-pinjaman`, `limit`, `simpanan`); `auth.php`, `console.php`.
 - `resources/js/`: `app.jsx` (`createInertiaApp` + `ErrorModalProvider` + Workbox register PROD saja); `Pages/` cerminkan namespace route (`Portal/`, `Bendahara/`, `Ketua/`, `Anggota/`, `Pinjaman/`, `Simpanan/`, `KasKoperasi/`, `Laporan/`, `Pengaturan/`, `Migrasi/`, `Auth/`, `Errors/`); `Layouts/` (`App`, `Authenticated`, `Sidebar`, `Navbar`, `Anggota`, `Guest`) + `Partials/` (`Sidebar`, `Topbar`, `Navbar`, `MobileNav`); `Components/`, `Utils/`.
 - `database/`: 56 migrasi evolutif (kas multi-kantong, resign, percepatan, idempotency, WA log, master organisasi, foto, gate_id); `seeders/` (`PermissionSeeder`, akun demo); `factories/`, `export/`.
-- `config/`: `auth.mode`, `koperasi.php` (identitas + kota TTD), `syarat_pinjaman.php` (versi S&K), `idempotency.php`, `cabang.php`, `department.php`, `sanctum`, `queue`, `scramble` (docs API Scalar).
+- `config/`: `auth.mode`, `koperasi.php` (identitas + kota TTD), `syarat_pinjaman.php` (versi S&K), `idempotency.php`, `cabang.php`, `department.php`, `sanctum`, `queue`.
 - Lain: `docs/` (ERD, log, SSO-SAML2, TESTING, manual), `baileys-service/`, `tests/`, `public/images/logo.png` (logo sidebar + ikon PWA).
 
 ## 3. Alur request/data
@@ -34,7 +34,7 @@ Rinci skema: `docs/ERD-Koperasi-App.md`. Rinci progres: `docs/DEVELOPMENT_LOG.md
 - Kas: `JurnalKasService::catat` / `transferAntarKantong` satu-satunya pintu ubah saldo; peta `KANTONG_SALDO` (pinjaman, dana_sosial, pengembalian_simpanan/transit, simpanan); `lockForUpdate`, validasi saldo (kecuali transit), tulis `saldo_setelah` + `saldo_awal` untuk audit/rekonsiliasi.
 - Simpanan: konfirmasi massal Bendahara (`KonfirmasiSimpananService`) hasilkan 2 baris per anggota (Wajib + Dana Sosial); dana sosial disembunyikan dari riwayat anggota.
 - Auth: login `no_karyawan` + password (`LoginRequest`); flag `harus_ganti_password`; anggota redirect `portal.dashboard`, pengurus `dashboard`; mode SSO via Gate SAML2 (`sso.redirect`/`callback`, `/` redirect ke SSO bila guest).
-- API mobile: token Sanctum (login password saat `AUTH_MODE=local`; tukar sesi SSO via `POST /api/v1/sso/token` saat `sso`) → 4 endpoint milik-sendiri → Service sama; OpenAPI 3.1 via Scramble; PWA `NetworkOnly` untuk API.
+- API mobile: token Sanctum (login password saat `AUTH_MODE=local`; tukar sesi SSO via `POST /api/v1/sso/token` saat `sso`) → 4 endpoint milik-sendiri → Service sama; docs tulis-tangan + konsol try-it di `/api/documentation` (tanpa generator); PWA `NetworkOnly` untuk API.
 
 ## 4. Pattern/konvensi
 
