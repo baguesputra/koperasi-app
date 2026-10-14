@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\RiwayatPinjamanRequest;
 use App\Http\Requests\Api\SimpananRequest;
+use App\Models\Pinjaman;
 use App\Services\Pinjaman\EligibilitasPinjamanService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -90,7 +91,7 @@ class AnggotaController extends Controller
             'tanggal_pengajuan' => $p->tanggal_pengajuan?->format('Y-m-d'),
             'catatan_bendahara' => $p->catatan_bendahara,
             'catatan_ketua' => $p->catatan_ketua,
-            'angsuran' => $p->jadwalAktif()->values()->map(fn ($a) => [
+            'angsuran' => $this->jadwalDariEager($p)->values()->map(fn ($a) => [
                 'cicilan_ke' => $a->cicilan_ke,
                 'total_bayar' => (float) $a->total_bayar,
                 'status' => $a->status,
@@ -113,6 +114,32 @@ class AnggotaController extends Controller
                 'total' => $halaman->total(),
             ],
         ]);
+    }
+
+    /**
+     * Replika Pinjaman::jadwalAktif() murni dari relasi ter-eager
+     * (nol query baru) — pola sama seperti MigrasiController::progresPinjaman.
+     */
+    private function jadwalDariEager(Pinjaman $pinjaman)
+    {
+        if (! $pinjaman->relationLoaded('angsuran') || ! $pinjaman->relationLoaded('pengajuanPercepatan')) {
+            return $pinjaman->jadwalAktif();
+        }
+
+        $pengajuanAktif = $pinjaman->getRelationValue('pengajuanPercepatan')
+            ->where('status', 'aktif')->sortByDesc('created_at')->first();
+        $lama = $pinjaman->getRelationValue('angsuran')
+            ->where('status', '!=', 'digantikan')->sortBy('cicilan_ke')->values();
+
+        if (! $pengajuanAktif) {
+            return $lama;
+        }
+
+        if (! $pengajuanAktif->relationLoaded('angsuranBaru')) {
+            return $pinjaman->jadwalAktif();
+        }
+
+        return $lama->concat($pengajuanAktif->getRelationValue('angsuranBaru')->sortBy('cicilan_ke')->values());
     }
 
     /**

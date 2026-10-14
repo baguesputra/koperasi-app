@@ -3,11 +3,14 @@
 namespace Tests\Feature\Api;
 
 use App\Models\Angsuran;
+use App\Models\AngsuranPercepatan;
+use App\Models\PengajuanPercepatan;
 use App\Models\Pinjaman;
 use App\Models\Simpanan;
 use App\Models\User;
 use App\Services\Pinjaman\EligibilitasPinjamanService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\Concerns\MembuatDataUji;
 use Tests\TestCase;
 
@@ -228,6 +231,50 @@ class AnggotaApiTest extends TestCase
         $this->headerToken($token)
             ->getJson('/api/v1/anggota/simpanan?bulan_periode=salah')
             ->assertUnprocessable();
+    }
+
+    public function test_riwayat_maksimal_sepuluh_query_dengan_tiga_pinjaman(): void
+    {
+        $anggota = $this->buatAnggota('TOP-950061');
+        $p1 = $this->buatPinjamanAktif($anggota);
+        $this->buatPinjamanAktif($anggota, ['nominal' => 2_000_000]);
+        $p3 = $this->buatPinjamanAktif($anggota, ['nominal' => 3_000_000]);
+
+        // Satu percepatan aktif agar jalur concat jadwal ikut teruji.
+        $pp = PengajuanPercepatan::create([
+            'pinjaman_id' => $p3->id, 'tipe' => 'percepat',
+            'tenor_lama' => 2, 'tenor_baru' => 4, 'status' => 'aktif',
+            'keterangan' => 'Uji', 'tanggal_pengajuan' => now()->format('Y-m-d'),
+        ]);
+        AngsuranPercepatan::create([
+            'pengajuan_percepatan_id' => $pp->id, 'cicilan_ke' => 1,
+            'nominal_pokok' => 100_000, 'nominal_bunga' => 10_000, 'total_bayar' => 110_000,
+            'status' => 'belum_bayar', 'tanggal_jatuh_tempo' => now()->format('Y-m-d'),
+        ]);
+        // Jadwal lama yang digantikan tidak boleh muncul.
+        Angsuran::create([
+            'pinjaman_id' => $p3->id, 'cicilan_ke' => 9,
+            'nominal_pokok' => 1, 'nominal_bunga' => 1, 'total_bayar' => 2,
+            'status' => 'digantikan', 'tanggal_jatuh_tempo' => now()->format('Y-m-d'),
+        ]);
+
+        $token = $anggota->user->createToken('uji')->plainTextToken;
+
+        DB::enableQueryLog();
+        $res = $this->headerToken($token)->getJson('/api/v1/anggota/riwayat-pinjaman');
+        $queries = DB::getQueryLog();
+        DB::disableQueryLog();
+
+        $res->assertOk();
+        // Auth + anggota + count + page + 3 eager = ~8; tanpa eager-reuse > 13.
+        $this->assertLessThanOrEqual(10, count($queries), 'Riwayat boros query: '.count($queries));
+
+        $item = collect($res->json('data'))->firstWhere('id', $p3->id);
+        $cicilan = collect($item['angsuran'])->pluck('cicilan_ke')->all();
+        $this->assertContains(1, $cicilan);
+        $this->assertNotContains(9, $cicilan);
+        $this->assertNotEmpty($item['riwayat_perubahan']);
+        $this->assertSame($p1->id, collect($res->json('data'))->firstWhere('id', $p1->id)['id']);
     }
 
     public function test_dokumentasi_api_custom(): void
