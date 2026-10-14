@@ -79,7 +79,7 @@ class PengeluaranController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'tipe' => ['required', 'in:pajak,santunan,lain_lain'],
+            'tipe' => ['required', 'in:pajak,santunan,lain_lain,perlengkapan,perijinan,bank'],
             'akun' => ['required', 'in:bank,kas_kecil'],
             'jumlah' => ['required', 'numeric', 'min:1'],
             'keterangan' => ['required', 'string', 'max:500'],

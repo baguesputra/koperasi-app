@@ -293,6 +293,90 @@ class LaporanRegistry
                 },
             ],
 
+            'laba-rugi' => [
+                'judul' => 'Laporan Laba Rugi YTD',
+                'deskripsi' => 'Laba (bunga angsuran + bunga bank − beban per jenis) per bulan — dasar hitung SHU.',
+                'kategori' => 'Keuangan',
+                'ikon' => 'calculator',
+                'filter' => ['tipe' => 'tahun'],
+                'periodeDefault' => fn () => [now()->format('Y')],
+                'data' => function (Request $r) {
+                    $tahun = (int) ($r->input('tahun') ?? now()->format('Y'));
+                    $laba = self::labaTahunan($tahun);
+
+                    $kolom = ['Uraian', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des', 'Total'];
+                    $rows = [];
+                    $gayaBaris = [];
+                    $bagian = function (string $label) use (&$rows, &$gayaBaris) {
+                        $rows[] = array_merge([$label], array_fill(0, 13, null));
+                        $gayaBaris[] = 'section';
+                    };
+                    // Kembalikan total; panggil hanya untuk baris bertotal tak nol.
+                    $baris = function (string $uraian, array $perBulan, string $gaya = 'data') use (&$rows, &$gayaBaris) {
+                        $perBulan = array_values($perBulan);
+                        $total = array_sum($perBulan);
+                        $rows[] = array_merge([$uraian], $perBulan, [$total]);
+                        $gayaBaris[] = $gaya;
+
+                        return $total;
+                    };
+
+                    $bagian('A. Pendapatan');
+                    if (array_sum($laba['bunga']) != 0) {
+                        $baris('Pendapatan Bunga', $laba['bunga']);
+                    }
+                    if (array_sum($laba['bank']) != 0) {
+                        $baris('Bunga Bank', $laba['bank']);
+                    }
+                    $bruto = [];
+                    for ($b = 1; $b <= 12; $b++) {
+                        $bruto[$b] = $laba['bunga'][$b] + $laba['bank'][$b];
+                    }
+                    $baris('Laba Bruto', $bruto, 'subtotal');
+
+                    $bagian('B. Beban');
+                    $labelBeban = [
+                        'perlengkapan' => 'Beban Perlengkapan',
+                        'perijinan' => 'Beban Perijinan',
+                        'bank' => 'Beban Bank',
+                        'pajak' => 'Beban Pajak',
+                        'lain_lain' => 'Beban Lain-lain',
+                    ];
+                    $bebanTotal = array_fill(1, 12, 0.0);
+                    foreach ($labelBeban as $tipe => $label) {
+                        if (array_sum($laba['beban'][$tipe] ?? []) == 0) {
+                            continue;
+                        }
+                        $baris($label, $laba['beban'][$tipe]);
+                        foreach ($laba['beban'][$tipe] as $b => $v) {
+                            $bebanTotal[$b] += $v;
+                        }
+                    }
+                    $baris('Total Beban', $bebanTotal, 'subtotal');
+
+                    $bagian('C. Selisih Hasil Usaha');
+                    $shu = [];
+                    for ($b = 1; $b <= 12; $b++) {
+                        $shu[$b] = $bruto[$b] - $bebanTotal[$b];
+                    }
+                    $baris('Selisih Hasil Usaha', $shu, 'subtotal');
+
+                    return self::hasil(
+                        $kolom,
+                        range(1, 13),
+                        $rows,
+                        null,
+                        [
+                            ['Total pendapatan (bunga + bunga bank)', self::rupiah(array_sum($bruto))],
+                            ['Total beban operasional', self::rupiah(array_sum($bebanTotal))],
+                            ['Selisih Hasil Usaha '.$tahun, self::rupiah(array_sum($shu))],
+                        ],
+                        'Bunga = angsuran lunas (normal + percepatan) per tanggal konfirmasi bayar; lunas tanpa tanggal tidak masuk hitungan bulanan. Bunga bank = topup sumber bunga_bank. Beban = pengeluaran jenis koperasi per tipe (santunan bukan beban SHU; tipe tak dikenal masuk Lain-lain). Definisi sama dengan SHU di Neraca.',
+                        $gayaBaris,
+                    );
+                },
+            ],
+
             // ============ PINJAMAN ============
             'pinjaman-per-status' => [
                 'judul' => 'Rekap Pinjaman per Status',
@@ -854,6 +938,55 @@ class LaporanRegistry
             ->where('tanggal', '<=', $tanggal)
             ->selectRaw("SUM(CASE WHEN tipe = 'masuk' THEN jumlah ELSE -jumlah END) as total")
             ->value('total') ?? 0);
+    }
+
+    /**
+     * Laba setahun penuh: bunga angsuran + bunga bank per bulan 1–12,
+     * dan beban per tipe (hanya jenis koperasi, santunan dikecualikan).
+     * Pengelompokan di PHP agar portabel mysql/sqlite. Angsuran lunas tanpa
+     * tanggal konfirmasi dikecualikan (tak bisa masuk bucket bulan).
+     */
+    private static function labaTahunan(int $tahun): array
+    {
+        $awal = sprintf('%04d-01-01 00:00:00', $tahun);
+        $akhir = sprintf('%04d-12-31 23:59:59', $tahun);
+        $nol = array_fill(1, 12, 0.0);
+        $bunga = $bank = $nol;
+        $beban = [];
+
+        foreach ([Angsuran::class, AngsuranPercepatan::class] as $model) {
+            $angsuran = $model::where('status', 'lunas')
+                ->whereNotNull('tanggal_konfirmasi_bayar')
+                ->whereBetween('tanggal_konfirmasi_bayar', [$awal, $akhir])
+                ->get(['tanggal_konfirmasi_bayar', 'nominal_bunga']);
+            foreach ($angsuran as $a) {
+                $bunga[(int) $a->tanggal_konfirmasi_bayar->format('n')] += (float) $a->nominal_bunga;
+            }
+        }
+
+        $jurnal = DB::table('jurnal_kas')
+            ->where('tipe', 'masuk')
+            ->where('kategori', 'topup_bulanan')
+            ->where('sumber_topup', 'bunga_bank')
+            ->whereBetween('tanggal', [$awal, $akhir])
+            ->get(['tanggal', 'jumlah']);
+        foreach ($jurnal as $j) {
+            $bank[(int) Carbon::parse($j->tanggal)->format('n')] += (float) $j->jumlah;
+        }
+
+        $dikenal = ['perlengkapan', 'perijinan', 'bank', 'pajak', 'lain_lain'];
+        $keluar = DB::table('pengeluaran')
+            ->where('jenis', 'koperasi')
+            ->where('tipe', '!=', 'santunan')
+            ->whereBetween('tanggal', [$awal, $akhir])
+            ->get(['tanggal', 'tipe', 'jumlah']);
+        foreach ($keluar as $p) {
+            $tipe = in_array($p->tipe, $dikenal, true) ? $p->tipe : 'lain_lain';
+            $beban[$tipe] ??= $nol;
+            $beban[$tipe][(int) Carbon::parse($p->tanggal)->format('n')] += (float) $p->jumlah;
+        }
+
+        return ['bunga' => $bunga, 'bank' => $bank, 'beban' => $beban];
     }
 
     /**

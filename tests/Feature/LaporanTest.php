@@ -54,7 +54,7 @@ class LaporanTest extends TestCase
         $this->get(route('laporan.index'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page->component('Laporan/Index')
-                ->has('kelompok.Keuangan', 3)
+                ->has('kelompok.Keuangan', 4)
                 ->has('kelompok.Operasional', 2));
     }
 

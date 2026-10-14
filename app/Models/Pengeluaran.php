@@ -12,12 +12,15 @@ class Pengeluaran extends Model
 
     protected $table = 'pengeluaran';
 
-    public const TIPE = ['pajak', 'santunan', 'lain_lain'];
+    public const TIPE = ['pajak', 'santunan', 'lain_lain', 'perlengkapan', 'perijinan', 'bank'];
 
     public const TIPE_LABEL = [
         'pajak' => 'Pajak',
         'santunan' => 'Santunan',
         'lain_lain' => 'Lain-lain',
+        'perlengkapan' => 'Perlengkapan',
+        'perijinan' => 'Perijinan',
+        'bank' => 'Bank',
     ];
 
     public const AKUN = ['bank', 'kas_kecil'];
