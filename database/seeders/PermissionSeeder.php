@@ -31,6 +31,9 @@ class PermissionSeeder extends Seeder
             'user.kelola',
             'portal.akses',
             'migrasi.kelola',
+            'api.akses-pinjaman',
+            'api.akses-simpanan',
+            'api.akses-limit',
         ];
 
         foreach ($permissions as $permission) {

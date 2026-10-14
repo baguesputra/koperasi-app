@@ -30,6 +30,10 @@ class AppServiceProvider extends ServiceProvider
             $event->extendSocialite('perusahaan', PerusahaanProvider::class);
         });
 
+        RateLimiter::for('api', function (Request $request) {
+            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+        });
+
         RateLimiter::for('sso-callback', function (Request $request) {
             return Limit::perMinute(10)->by($request->ip())->response(function () {
                 return redirect()->route('login')->with('error', 'Terlalu banyak percobaan. Coba lagi nanti.');
