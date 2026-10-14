@@ -230,20 +230,31 @@ class AnggotaApiTest extends TestCase
             ->assertUnprocessable();
     }
 
-    public function test_dokumentasi_scalar_tersedia(): void
+    public function test_dokumentasi_api_custom(): void
     {
-        $this->get('/api/documentation')
-            ->assertOk()
-            ->assertSee('api-reference', false);
+        $res = $this->get('/api/documentation')->assertOk();
 
-        $doc = $this->getJson('/docs/api.json')
-            ->assertOk()
-            ->assertJsonPath('openapi', '3.1.0')
-            ->assertJsonPath('info.title', 'Koperasi App API');
-
-        foreach (['/v1/login', '/v1/anggota/pinjaman-aktif', '/v1/anggota/riwayat-pinjaman', '/v1/anggota/limit', '/v1/anggota/simpanan'] as $path) {
-            $this->assertArrayHasKey($path, $doc->json('paths'), "Path {$path} hilang dari spec");
+        // Semua endpoint harus terdokumentasi di halaman.
+        foreach (['/api/v1/login', '/api/v1/logout', '/api/v1/user', '/api/v1/sso/token', '/api/v1/anggota/pinjaman-aktif', '/api/v1/anggota/riwayat-pinjaman', '/api/v1/anggota/limit', '/api/v1/anggota/simpanan'] as $path) {
+            $res->assertSee($path, false);
         }
+
+        // Branding koperasi, tanpa jejak pihak ketiga.
+        $res->assertSee('Dokumentasi API v1', false)
+            ->assertSee('/images/logo.png', false)
+            ->assertDontSee('scalar', false)
+            ->assertDontSee('cdn.jsdelivr', false)
+            ->assertDontSee('fonts.', false);
+
+        // Sidebar navigasi + pencarian + data cURL per endpoint.
+        $res->assertSee('Daftar endpoint', false)
+            ->assertSee('Cari endpoint', false)
+            ->assertSee('Konsol coba', false)
+            ->assertSee('data-method="GET"', false)
+            ->assertSee('data-method="POST"', false);
+
+        // Spec JSON Scramble sudah dibuang total.
+        $this->get('/docs/api.json')->assertNotFound();
     }
 
     public function test_sso_token_dari_sesi_web(): void
