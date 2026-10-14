@@ -176,7 +176,7 @@ class LaporanRegistry
             ],
 
             'neraca' => [
-                'judul' => 'Neraca Sederhana',
+                'judul' => 'Laporan Neraca',
                 'deskripsi' => 'Posisi keuangan koperasi per tanggal cut-off: aktiva = kewajiban + ekuitas.',
                 'kategori' => 'Keuangan',
                 'ikon' => 'landmark',
@@ -252,7 +252,7 @@ class LaporanRegistry
 
             'pendapatan-bunga' => [
                 'judul' => 'Laporan Pendapatan Bunga',
-                'deskripsi' => 'Akumulasi bunga angsuran lunas per bulan — basis hitung SHU.',
+                'deskripsi' => 'Akumulasi bunga angsuran pinjaman yang lunas per bulan — khusus pinjaman, tidak termasuk bunga bank.',
                 'kategori' => 'Keuangan',
                 'ikon' => 'trending-up',
                 'filter' => ['tipe' => 'tahun'],
@@ -285,10 +285,12 @@ class LaporanRegistry
                     }
 
                     return self::hasil(
-                        ['Periode', 'Angsuran Lunas', 'Total Pokok', 'Total Bunga'],
-                        [1, 2, 3],
+                        ['Periode', 'Angsuran Lunas', 'Total Pokok', 'Bunga Angsuran'],
+                        [2, 3],
                         $rows,
-                        ['TOTAL '.$tahun, array_sum(array_column($rows, 1)), array_sum(array_column($rows, 2)), array_sum(array_column($rows, 3))]
+                        ['TOTAL '.$tahun, array_sum(array_column($rows, 1)), array_sum(array_column($rows, 2)), array_sum(array_column($rows, 3))],
+                        null,
+                        'Hanya bunga angsuran pinjaman (normal + percepatan) per tanggal konfirmasi bayar; bunga bank tidak termasuk. Angsuran lunas tanpa tanggal tidak masuk hitungan bulanan.'
                     );
                 },
             ],
@@ -533,7 +535,7 @@ class LaporanRegistry
 
                     return self::hasil(
                         ['Bulan', 'Penerima Wajib', 'Simpanan Wajib', 'Dana Sosial', 'Total'],
-                        [1, 2, 3, 4],
+                        [2, 3, 4],
                         $rows,
                         ['TOTAL', array_sum(array_column($rows, 1)), array_sum(array_column($rows, 2)), array_sum(array_column($rows, 3)), array_sum(array_column($rows, 4))]
                     );

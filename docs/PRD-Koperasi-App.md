@@ -231,8 +231,8 @@ Anggota ajukan limit (`portal.pengajuan-limit`) → Ketua tinjau/approve (`ketua
 | Kategori | Laporan | Fungsi |
 |---|---|---|
 | **Keuangan** | Arus Kas | Mutasi masuk/keluar per kantong, rentang bebas |
-| | Neraca Sederhana | Posisi saldo per tanggal cut-off |
-| | Pendapatan Bunga | Akumulasi bunga per bulan/tahun (basis SHU) |
+| | Laporan Neraca | Posisi saldo per tanggal cut-off |
+| | Pendapatan Bunga | Akumulasi bunga angsuran pinjaman per bulan/tahun |
 | **Pinjaman** | Rekap per Status | Daftar pinjaman beserta statusnya |
 | | Pinjaman Jatuh Tempo | Angsuran belum bayar bulan terpilih (follow-up) |
 | | Perubahan Tenor | Riwayat pengajuan percepatan/perpanjangan & hasilnya |

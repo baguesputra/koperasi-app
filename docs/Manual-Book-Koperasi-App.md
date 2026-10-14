@@ -223,8 +223,8 @@ Pesan menggunakan format resmi: kop `*KOPERASI KARYAWAN*`, salam Yth., rincian l
 
 **Keuangan:**
 1. **Laporan Arus Kas** — mutasi masuk/keluar per kantong, rentang bebas
-2. **Neraca Sederhana** — posisi saldo per tanggal cut-off
-3. **Pendapatan Bunga** — akumulasi bunga angsuran lunas per bulan/tahun (basis SHU)
+2. **Laporan Neraca** — posisi saldo per tanggal cut-off
+3. **Pendapatan Bunga** — akumulasi bunga angsuran pinjaman lunas per bulan/tahun (khusus pinjaman)
 
 **Pinjaman:**
 4. **Rekap Pinjaman per Status** — daftar pinjaman beserta statusnya
