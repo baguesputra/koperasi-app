@@ -20,6 +20,7 @@ class RoleSeeder extends Seeder
             'kas.lihat', 'kas.topup',
             'jurnal.lihat',
             'laporan.lihat',
+            'shu.kelola',
             'pengaturan.kelola', 'user.kelola',
             'migrasi.kelola',
         ]);
@@ -34,6 +35,7 @@ class RoleSeeder extends Seeder
             'kas.lihat', 'kas.topup',
             'jurnal.lihat',
             'laporan.lihat',
+            'shu.kelola',
             'portal.akses',
         ]);
 
@@ -47,6 +49,7 @@ class RoleSeeder extends Seeder
             'kas.lihat',
             'jurnal.lihat',
             'laporan.lihat',
+            'shu.kelola',
             'portal.akses',
         ]);
 

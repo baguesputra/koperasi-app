@@ -14,6 +14,7 @@ const kelompokLabel = {
     kas: 'Kas Koperasi',
     jurnal: 'Jurnal Kas',
     laporan: 'Laporan',
+    shu: 'Pembagian SHU',
     pengaturan: 'Pengaturan',
     portal: 'Portal Anggota',
 };
@@ -33,6 +34,7 @@ const permissionLabel = {
     'kas.topup': 'Tambah saldo kas koperasi',
     'jurnal.lihat': 'Lihat buku besar jurnal kas',
     'laporan.lihat': 'Akses halaman laporan',
+    'shu.kelola': 'Kelola pembagian SHU (hitung, finalisasi, bayar)',
     'pengaturan.kelola': 'Kelola pengaturan sistem',
     'portal.akses': 'Akses portal anggota',
 };

@@ -943,6 +943,23 @@ class LaporanRegistry
     }
 
     /**
+     * Total SHU setahun = Selisih Hasil Usaha (sumber sel D14 Excel SHU).
+     * Dipakai modul Pembagian SHU sebagai default total_shu periode.
+     */
+    public static function totalShu(int $tahun): float
+    {
+        $laba = self::labaTahunan($tahun);
+
+        $bruto = array_sum($laba['bunga']) + array_sum($laba['bank']);
+        $beban = 0.0;
+        foreach ($laba['beban'] as $perBulan) {
+            $beban += array_sum($perBulan);
+        }
+
+        return round($bruto - $beban, 2);
+    }
+
+    /**
      * Laba setahun penuh: bunga angsuran + bunga bank per bulan 1–12,
      * dan beban per tipe (hanya jenis koperasi, santunan dikecualikan).
      * Pengelompokan di PHP agar portabel mysql/sqlite. Angsuran lunas tanpa

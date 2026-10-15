@@ -31,6 +31,7 @@ use App\Http\Controllers\Portal\ProfilController;
 use App\Http\Controllers\Portal\RiwayatController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\ShuController;
 use App\Http\Controllers\SimpananController;
 use App\Http\Controllers\VerifikasiController;
 use Illuminate\Support\Facades\Route;
@@ -324,6 +325,19 @@ Route::get('/auth/sso/gagal', function () {
         'error' => session('error'),
     ]);
 })->middleware('guest')->name('sso.gagal');
+
+Route::middleware(['auth', 'permission:shu.kelola'])->prefix('shu')->name('shu.')->group(function () {
+    Route::get('/', [ShuController::class, 'index'])->name('index');
+    Route::post('/', [ShuController::class, 'store'])->name('store')->middleware('idempotent');
+    Route::get('/{shu}', [ShuController::class, 'show'])->name('show');
+    Route::put('/{shu}/persen', [ShuController::class, 'updatePersen'])->name('persen.update');
+    Route::post('/{shu}/hitung', [ShuController::class, 'hitung'])->name('hitung')->middleware('idempotent');
+    Route::post('/{shu}/rincian-pengelola', [ShuController::class, 'rincianPengelola'])->name('rincian-pengelola');
+    Route::post('/{shu}/finalisasi', [ShuController::class, 'finalisasi'])->name('finalisasi')->middleware('idempotent');
+    Route::post('/{shu}/bayar-semua', [ShuController::class, 'bayarSemua'])->name('bayar-semua')->middleware('idempotent');
+    Route::get('/{shu}/export', [ShuController::class, 'export'])->name('export');
+    Route::post('/detail/{detail}/bayar', [ShuController::class, 'bayar'])->name('detail.bayar')->middleware('idempotent');
+});
 
 Route::middleware(['auth', 'permission:migrasi.kelola'])->prefix('migrasi')->name('migrasi.')->group(function () {
     Route::get('/', [MigrasiController::class, 'index'])->name('index');
