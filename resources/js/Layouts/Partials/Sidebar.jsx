@@ -1,4 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
+import { useEffect, useRef } from 'react';
 import {
     LayoutDashboard, Users, PiggyBank, HandCoins,
     ClipboardCheck, CalendarCheck, HeartHandshake,
@@ -52,13 +53,15 @@ const menuGroups = [
 
 export default function Sidebar({ collapsed = false, expanding = false, onToggle }) {
     const { auth, notifications } = usePage().props;
+    const url = usePage().url;
+    const tautanAktif = useRef(null);
+    const tertutup = collapsed && !expanding;
     const userPermissions = auth.user?.permissions ?? [];
     const bisaPengaturan = userPermissions.includes('pengaturan.kelola');
     const initial = auth.user?.name?.charAt(0)?.toUpperCase() ?? '?';
     const csrfToken = typeof document !== 'undefined'
         ? document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
         : null;
-    const tertutup = collapsed && !expanding;
     const badgeAngka = {
         'admin.pinjaman.index': notifications?.menunggu_tinjauan_admin ?? 0,
         'bendahara.pinjaman.index': notifications?.menunggu_tinjauan_bendahara ?? 0,
@@ -73,6 +76,22 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
     function bisaAkses(permission) {
         return permission === null || userPermissions.includes(permission);
     }
+
+    /** Aktif bila route persis sama atau satu modul (prefix sama). */
+    function sedangAktif(routeName) {
+        if (!routeName) return false;
+        if (route().current(routeName)) return true;
+        const prefix = routeName.replace(/\.index$/, '');
+        return prefix !== routeName && route().current(`${prefix}.*`);
+    }
+
+    // Gulirkan menu aktif ke area terlihat tiap pindah halaman/reload.
+    // block:'nearest' = diam bila sudah terlihat; tanpa animasi.
+    useEffect(() => {
+        if (!tertutup) {
+            tautanAktif.current?.scrollIntoView({ block: 'nearest' });
+        }
+    }, [url, tertutup]);
 
     const visibleGroups = menuGroups
         .map((group) => ({
@@ -98,7 +117,7 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
                             {group.items.map((item) => {
                                 const Icon = item.icon;
                                 const href = item.routeName ? route(item.routeName) : '#';
-                                const isActive = item.routeName && route().current(item.routeName);
+                                const isActive = sedangAktif(item.routeName);
                                 const badge = item.routeName ? badgeAngka[item.routeName] : 0;
 
                                 if (item.disabled) {
@@ -118,6 +137,7 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
                                     <Link
                                         key={item.label + group.label}
                                         href={href}
+                                        ref={isActive ? tautanAktif : undefined}
                                         title={tertutup ? item.label : undefined}
                                         className={`flex items-center ${tertutup ? 'gap-0 justify-center' : 'gap-3'} px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
                                             isActive
