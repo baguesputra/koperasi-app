@@ -30,12 +30,12 @@ export default function RingkasanShu({ periode, persen, preview, ringkasan, isPr
     return (
         <div className="space-y-4">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <Card><Stat label="Total SHU" value={formatRupiah(periode.total_shu)} hint={`Laba Rugi YTD: ${formatRupiah(periode.total_laba)}`} /></Card>
-                <Card><Stat label="Pool anggota" value={formatRupiah(preview.pool_anggota)} hint={`${ringkasan.anggota} anggota • modal ${formatRupiah(preview.total_modal ?? ringkasan.total_modal)}`} /></Card>
-                <Card><Stat label="Dana dibagikan" value={formatRupiah(danaDibagi)} hint={`Pengurus+pengawas ${formatRupiah(pengurusPengawas)}`} /></Card>
-                <Card><Stat label="Dana tak dibagi" value={formatRupiah(preview.dana_tak_dibagi)} hint="Cadangan + pendidikan + wilker" /></Card>
-                <Card><Stat label="Diserahkan (floor 1000)" value={formatRupiah(ringkasan.total_bersih)} hint={`Bruto ${formatRupiah(ringkasan.total_bruto)}`} /></Card>
-                <Card><Stat label="Terbayar" value={formatRupiah(ringkasan.terbayar)} hint={`${ringkasan.sudah_bayar} dari ${ringkasan.anggota} anggota`} /></Card>
+                <Card><Stat label="Selisih Hasil Usaha" value={formatRupiah(periode.total_shu)} hint={`Sumber: Laba Rugi YTD ${formatRupiah(periode.total_laba)}`} /></Card>
+                <Card><Stat label="Simpanan + Transaksi untuk Anggota" value={formatRupiah(preview.pool_anggota)} hint={`${ringkasan.anggota} anggota • modal ${formatRupiah(preview.total_modal ?? ringkasan.total_modal)}`} /></Card>
+                <Card><Stat label="Dana yang Dibagikan" value={formatRupiah(danaDibagi)} hint={`Pengurus + pengawas ${formatRupiah(pengurusPengawas)}`} /></Card>
+                <Card><Stat label="Dana yang Tidak Dibagi" value={formatRupiah(preview.dana_tak_dibagi)} hint="Cadangan + pendidikan + wilker" /></Card>
+                <Card><Stat label="SHU Diserahkan" value={formatRupiah(ringkasan.total_bersih)} hint={`Jumlah SHU ${formatRupiah(ringkasan.total_bruto)}, dibulatkan ke bawah ribuan`} /></Card>
+                <Card><Stat label="Sudah Diserahkan" value={formatRupiah(ringkasan.terbayar)} hint={`${ringkasan.sudah_bayar} dari ${ringkasan.anggota} anggota`} /></Card>
             </div>
 
             <Card>
@@ -48,8 +48,8 @@ export default function RingkasanShu({ periode, persen, preview, ringkasan, isPr
                     )}
                 </div>
                 <p className="text-sm text-slate-500 mb-3">
-                    Dana tak dibagi (cadangan + pendidikan + wilker): {formatRupiah(preview.dana_tak_dibagi)} •
-                    Sisa pembulatan belum diserahkan: {formatRupiah(ringkasan.belum_diserahkan)}
+                    Dana yang tidak dibagi (cadangan + pendidikan + wilker): {formatRupiah(preview.dana_tak_dibagi)} •
+                    Sisa dana yang tidak dibagi: {formatRupiah(ringkasan.belum_diserahkan)}
                 </p>
 
                 <div className="h-16" role="img" aria-label="Diagram alokasi SHU per komponen">
@@ -70,11 +70,11 @@ export default function RingkasanShu({ periode, persen, preview, ringkasan, isPr
                 <div className="overflow-x-auto mt-2">
                     <table className="w-full text-sm">
                         <thead>
-                            <tr className="text-left text-xs uppercase tracking-wide text-slate-400 border-b border-slate-100">
-                                <th className="py-2 pr-2">Komponen</th>
-                                <th className="py-2 px-2 text-right">Persen</th>
-                                <th className="py-2 pl-2 text-right">Nominal</th>
-                            </tr>
+                                <tr className="text-left text-xs uppercase tracking-wide text-slate-400 border-b border-slate-100">
+                                    <th className="py-2 pr-2">Komponen</th>
+                                    <th className="py-2 px-2 text-right">Besaran Persentase</th>
+                                    <th className="py-2 pl-2 text-right">Nilainya</th>
+                                </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
                             {KOMPONEN_ORDER.map((k) => (

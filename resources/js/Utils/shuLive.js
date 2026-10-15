@@ -1,12 +1,12 @@
 export const KOMPONEN_LABEL = {
     cadangan: 'Cadangan',
-    jasa_simpanan: 'Jasa simpanan',
-    jasa_transaksi: 'Jasa transaksi',
-    pengurus: 'Pengurus',
-    pengawas: 'Pengawas',
-    pendidikan: 'Pendidikan',
-    sosial: 'Sosial',
-    wilker: 'Wilayah kerja',
+    jasa_simpanan: 'Jasa Partisipasi Atas Simpanan',
+    jasa_transaksi: 'Jasa Partisipasi Atas Transaksi',
+    pengurus: 'SHU Bagian Pengurus',
+    pengawas: 'SHU Bagian Pengawas',
+    pendidikan: 'SHU Dana Pendidikan',
+    sosial: 'SHU Dana Sosial',
+    wilker: 'SHU Pengembangan Wilayah Kerja',
 };
 
 export const KOMPONEN_ORDER = Object.keys(KOMPONEN_LABEL);

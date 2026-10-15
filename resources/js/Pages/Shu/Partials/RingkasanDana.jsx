@@ -9,12 +9,12 @@ import { formatRupiah } from '@/Utils/formatCurrency';
 export default function RingkasanDana({ preview }) {
     const k = preview.komponen ?? {};
     const baris = [
-        { label: 'Pool anggota (simpanan + transaksi)', nilai: preview.pool_anggota ?? 0 },
-        { label: 'Jasa pengurus', nilai: k.pengurus ?? 0 },
-        { label: 'Jasa pengawas', nilai: k.pengawas ?? 0 },
-        { label: 'Pengurus + pengawas', nilai: (k.pengurus ?? 0) + (k.pengawas ?? 0) },
-        { label: 'Dana yang dibagikan', nilai: preview.dana_dibagi ?? 0, penting: true },
-        { label: 'Dana tak dibagi (cadangan + pendidikan + wilker)', nilai: preview.dana_tak_dibagi ?? 0 },
+        { label: 'Simpanan + Transaksi untuk Anggota', nilai: preview.pool_anggota ?? 0 },
+        { label: 'Jasa Pengurus', nilai: k.pengurus ?? 0 },
+        { label: 'Jasa Pengawas', nilai: k.pengawas ?? 0 },
+        { label: 'Pengurus + Pengawas', nilai: (k.pengurus ?? 0) + (k.pengawas ?? 0) },
+        { label: 'Dana yang Dibagikan', nilai: preview.dana_dibagi ?? 0, penting: true },
+        { label: 'Dana yang Tidak Dibagi (Cadangan + Pendidikan + Wilker)', nilai: preview.dana_tak_dibagi ?? 0 },
     ];
 
     return (

@@ -67,7 +67,7 @@ export default function KomponenEditor({ periode, persenLive, setPersenLive, pre
         <div className="space-y-4">
             <Card>
                 <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <p className="text-base font-bold text-slate-800">Persentase komponen</p>
+                    <p className="text-base font-bold text-slate-800">Besaran Persentase</p>
                     <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-sky-100 text-sky-700">
                         Live — angka ikut berubah saat diketik
                     </span>
@@ -78,8 +78,8 @@ export default function KomponenEditor({ periode, persenLive, setPersenLive, pre
                     aria-atomic="true"
                     className={`text-sm mb-3 ${pesanValidasi.nada === 'ok' ? 'text-brand-green-dark font-semibold' : 'text-slate-600'}`}
                 >
-                    {pesanValidasi.teks} Pool anggota {formatRupiah(preview.pool_anggota)} •
-                    Dana dibagi {formatRupiah(preview.dana_dibagi)}
+                    {pesanValidasi.teks} Simpanan + Transaksi untuk Anggota {formatRupiah(preview.pool_anggota)} •
+                    Dana yang Dibagikan {formatRupiah(preview.dana_dibagi)}
                 </p>
 
                 <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden mb-4" aria-hidden="true">
@@ -97,7 +97,7 @@ export default function KomponenEditor({ periode, persenLive, setPersenLive, pre
                         const diubah = nilai !== awal;
                         return (
                             <div key={kunci} className={`rounded-xl px-3 py-2 ${diubah ? 'bg-amber-50 ring-1 ring-amber-300' : 'bg-slate-50'}`}>
-                                <label htmlFor={`persen-${kolom}`} className="block text-xs font-semibold text-slate-600 mb-1">
+                                <label htmlFor={`persen-${kolom}`} className="block text-xs font-semibold text-slate-600 mb-1 leading-tight min-h-8">
                                     {KOMPONEN_LABEL[kunci]}
                                 </label>
                                 <div className="flex items-baseline gap-1">
@@ -145,9 +145,9 @@ export default function KomponenEditor({ periode, persenLive, setPersenLive, pre
             <RingkasanDana preview={preview} />
 
             <Card>
-                <p className="text-base font-bold text-slate-800 mb-1">Rincian pengurus & pengawas</p>
+                <p className="text-base font-bold text-slate-800 mb-1">SHU Pengurus Koperasi & SHU Pengawas</p>
                 <p className="text-sm text-slate-500 mb-3">
-                    Nominal per orang hasil RAT. Alokasi pengurus {formatRupiah(preview.komponen?.pengurus ?? 0)} •
+                    Nominal per orang sesuai keputusan RAT. Saldo yang dialokasikan pengurus {formatRupiah(preview.komponen?.pengurus ?? 0)} •
                     pengawas {formatRupiah(preview.komponen?.pengawas ?? 0)}
                 </p>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -158,7 +158,7 @@ export default function KomponenEditor({ periode, persenLive, setPersenLive, pre
                         daftarAnggota={daftarAnggota}
                     />
                     <RincianTable
-                        judul="Pengawas"
+                        judul="SHU Pengawas"
                         baris={pengawas}
                         setBaris={setPengawas}
                         alokasi={preview.komponen?.pengawas ?? 0}
@@ -193,7 +193,7 @@ function PengurusTable({ baris, setBaris, alokasi, daftarAnggota }) {
 
     return (
         <div className="rounded-xl border border-slate-100 overflow-hidden">
-            <p className="text-sm font-bold text-slate-700 px-3 py-2 bg-slate-50">Pengurus (dari anggota)</p>
+            <p className="text-sm font-bold text-slate-700 px-3 py-2 bg-slate-50">SHU Pengurus Koperasi (dari anggota)</p>
             {baris.length === 0 && <p className="text-sm text-slate-400 px-3 py-3">Belum ada rincian.</p>}
             {baris.map((r, i) => (
                 <div key={i} className="px-3 py-2 border-t border-slate-50 space-y-2">
@@ -250,7 +250,7 @@ function PengurusTable({ baris, setBaris, alokasi, daftarAnggota }) {
                     Tambah orang
                 </button>
                 <p className="text-sm tabular-nums text-slate-600">
-                    {formatRupiah(total)} • sisa <strong className={sisa < 0 ? 'text-red-600' : ''}>{formatRupiah(sisa)}</strong>
+                    {formatRupiah(total)} • Sisa dana <strong className={sisa < 0 ? 'text-red-600' : ''}>{formatRupiah(sisa)}</strong>
                 </p>
             </div>
         </div>
@@ -316,7 +316,7 @@ function RincianTable({ judul, baris, setBaris, alokasi }) {
                     Tambah orang
                 </button>
                 <p className="text-sm tabular-nums text-slate-600">
-                    {formatRupiah(total)} • sisa <strong className={sisa < 0 ? 'text-red-600' : ''}>{formatRupiah(sisa)}</strong>
+                    {formatRupiah(total)} • Sisa dana <strong className={sisa < 0 ? 'text-red-600' : ''}>{formatRupiah(sisa)}</strong>
                 </p>
             </div>
         </div>

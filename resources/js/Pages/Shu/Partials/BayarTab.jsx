@@ -37,7 +37,7 @@ export default function BayarTab({ periode, ringkasan, akun, setAkun, tanggal, s
         <Card className="border-brand-green/30">
             <div className="flex flex-wrap items-center gap-3 mb-4">
                 <p className="text-base font-bold text-slate-800 flex-1 min-w-[160px]">
-                    Terbayar {formatRupiah(ringkasan.terbayar)} dari {formatRupiah(ringkasan.total_bersih)}
+                    Sudah Diserahkan {formatRupiah(ringkasan.terbayar)} dari {formatRupiah(ringkasan.total_bersih)}
                 </p>
                 <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-brand-green-light text-brand-green-dark">
                     {ringkasan.sudah_bayar} / {ringkasan.anggota} anggota

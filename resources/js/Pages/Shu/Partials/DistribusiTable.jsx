@@ -10,16 +10,16 @@ import { formatRupiah } from '@/Utils/formatCurrency';
 import { barisLive } from '@/Utils/shuLive';
 
 const KOLOM_SORT = [
-    { kunci: 'no', label: 'No' },
-    { kunci: 'nama', label: 'Anggota' },
-    { kunci: 'simp_wajib', label: 'Simp Wajib' },
-    { kunci: 'simp_pokok', label: 'Simp Pokok' },
-    { kunci: 'modal', label: 'Modal' },
-    { kunci: 'transaksi', label: 'Transaksi' },
-    { kunci: 'shu_modal', label: 'Atas Modal', live: true },
-    { kunci: 'shu_transaksi', label: 'Atas Transaksi', live: true },
-    { kunci: 'shu_bruto', label: 'Jumlah SHU', live: true },
-    { kunci: 'shu_bersih', label: 'SHU Diserahkan', live: true },
+    { kunci: 'no', label: 'No', grup: null },
+    { kunci: 'nama', label: 'Nama Anggota', grup: null },
+    { kunci: 'simp_wajib', label: 'Simp Wajib', grup: 'Partisipasi Anggota' },
+    { kunci: 'simp_pokok', label: 'Simp Pokok', grup: 'Partisipasi Anggota' },
+    { kunci: 'modal', label: 'Modal (SP + SW)', grup: 'Partisipasi Anggota' },
+    { kunci: 'transaksi', label: 'Transaksi', grup: 'Partisipasi Anggota' },
+    { kunci: 'shu_modal', label: 'Atas Modal', grup: 'SHU Anggota', live: true },
+    { kunci: 'shu_transaksi', label: 'Atas Transaksi', grup: 'SHU Anggota', live: true },
+    { kunci: 'shu_bruto', label: 'Jumlah SHU', grup: null, live: true },
+    { kunci: 'shu_bersih', label: 'SHU Diserahkan', grup: null, live: true },
 ];
 
 /**
@@ -100,6 +100,12 @@ export default function DistribusiTable({ periode, detail, sums = {}, filters = 
             <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                     <thead>
+                        <tr className="text-center text-xs uppercase tracking-wide text-slate-400 border-b border-slate-100">
+                            <th colSpan={2} className="py-1.5" />
+                            <th colSpan={4} className="py-1.5 border-x border-slate-100">Partisipasi Anggota</th>
+                            <th colSpan={2} className="py-1.5 border-x border-slate-100">SHU Anggota</th>
+                            <th colSpan={bisaBayar ? 4 : 3} className="py-1.5" />
+                        </tr>
                         <tr className="text-left text-xs uppercase tracking-wide text-slate-400 border-b border-slate-100">
                             {KOLOM_SORT.map((k) => (
                                 <th key={k.kunci} className={thClass(k.kunci)}>
@@ -173,8 +179,10 @@ export default function DistribusiTable({ periode, detail, sums = {}, filters = 
                             <td className="px-4 py-2.5 text-right tabular-nums">{formatRupiah(sums.pokok ?? 0)}</td>
                             <td className="px-4 py-2.5 text-right tabular-nums">{formatRupiah(sums.modal ?? 0)}</td>
                             <td className="px-4 py-2.5 text-right tabular-nums">{formatRupiah(sums.transaksi ?? 0)}</td>
-                            <td colSpan={4} className="px-4 py-2.5 text-right tabular-nums">{formatRupiah(sums.bruto ?? 0)}</td>
-                            <td colSpan={bisaBayar ? 3 : 2} className="px-4 py-2.5 text-right tabular-nums">{formatRupiah(sums.bersih ?? 0)}</td>
+                            <td colSpan={2} />
+                            <td className="px-4 py-2.5 text-right tabular-nums">{formatRupiah(sums.bruto ?? 0)}</td>
+                            <td className="px-4 py-2.5 text-right tabular-nums">{formatRupiah(sums.bersih ?? 0)}</td>
+                            <td colSpan={bisaBayar ? 2 : 1} />
                         </tr>
                     </tfoot>
                 </table>
