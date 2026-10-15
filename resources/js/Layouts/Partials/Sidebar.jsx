@@ -168,7 +168,10 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
 
             {/* Profil & aksi akun */}
             {tertutup ? (
-                <div className="border-t border-slate-100 px-2 py-3 shrink-0 flex flex-col items-center gap-1">
+                <div
+                    key="kaki-ciut"
+                    className="border-t border-slate-100 px-2 py-4 shrink-0 flex flex-col items-center animate-sidebar-fade"
+                >
                     <Link
                         href={route('profile.edit')}
                         title="Profil Saya"
@@ -176,28 +179,12 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
                     >
                         {initial}
                     </Link>
-                    {bisaPengaturan && (
-                        <Link
-                            href={route('pengaturan.index')}
-                            title="Pengaturan"
-                            className={`w-9 h-9 rounded-xl text-slate-400 hover:text-brand-navy hover:bg-slate-50 flex items-center justify-center transition-colors ${fokusRing}`}
-                        >
-                            <Settings size={18} />
-                        </Link>
-                    )}
-                    <form method="POST" action={route('logout')}>
-                        <input type="hidden" name="_token" value={csrfToken} />
-                        <button
-                            type="submit"
-                            title="Keluar"
-                            className={`w-9 h-9 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center transition-colors ${fokusRing}`}
-                        >
-                            <LogOut size={18} />
-                        </button>
-                    </form>
                 </div>
             ) : (
-                <div className="border-t border-slate-100 px-4 py-3 shrink-0 flex items-center gap-1">
+                <div
+                    key="kaki-buka"
+                    className="border-t border-slate-100 px-4 py-3 shrink-0 flex items-center gap-1 animate-sidebar-fade"
+                >
                     <Link
                         href={route('profile.edit')}
                         title="Profil Saya"

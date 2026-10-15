@@ -42,3 +42,20 @@ body {
 .table-head-static thead th {
     position: static;
 }
+
+/* Fade halus tiap footer sidebar bertukar (ciut <-> terbuka). */
+@media (prefers-reduced-motion: no-preference) {
+    @keyframes sidebar-fade {
+        from {
+            opacity: 0;
+            transform: translateY(4px);
+        }
+        to {
+            opacity: 1;
+            transform: none;
+        }
+    }
+    .animate-sidebar-fade {
+        animation: sidebar-fade 200ms ease-out;
+    }
+}
