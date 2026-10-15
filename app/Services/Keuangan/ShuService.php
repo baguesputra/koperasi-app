@@ -220,7 +220,7 @@ class ShuService
     {
         $this->wajibDraft($periode);
         $periode->update([
-            'pengurus_rincian' => $this->normalkanRincian($pengurus),
+            'pengurus_rincian' => $this->normalkanRincianPengurus($pengurus),
             'pengawas_rincian' => $this->normalkanRincian($pengawas),
         ]);
 
@@ -236,7 +236,9 @@ class ShuService
 
     public function finalisasi(ShuPeriode $periode, int $userId): ShuPeriode
     {
-        $this->wajibDraft($periode);
+        if ($periode->status !== 'diajukan') {
+            throw new RuntimeException('Hanya periode yang Diajukan (selesai dibahas) bisa difinalisasi.');
+        }
 
         // Snapshot total SHU terbaru dari Laba Rugi bila masih nol.
         if ((float) $periode->total_shu <= 0) {
@@ -331,10 +333,58 @@ class ShuService
         return $n;
     }
 
+    /** Ajukan draft sebagai bahan meeting: dikunci seperti final. */
+    public function ajukan(ShuPeriode $periode, int $userId): ShuPeriode
+    {
+        $this->wajibDraft($periode);
+
+        if ($periode->detail()->count() === 0) {
+            throw new RuntimeException('Hitung dulu rincian anggota sebelum diajukan.');
+        }
+
+        $periode->update([
+            'status' => 'diajukan',
+            'diajukan_by' => $userId,
+            'diajukan_at' => now(),
+        ]);
+
+        AuditLog::catat(
+            aksi: 'shu_diajukan',
+            keterangan: "SHU {$periode->tahun_buku} diajukan untuk dibahas.",
+            dataBaru: ['shu_periode_id' => $periode->id],
+            userId: $userId,
+        );
+
+        return $periode->refresh();
+    }
+
+    /** Kembalikan bahan meeting ke draft untuk revisi. */
+    public function kembalikanKeDraft(ShuPeriode $periode, int $userId): ShuPeriode
+    {
+        if (! $periode->isDiajukan()) {
+            throw new RuntimeException('Hanya periode Diajukan yang bisa dikembalikan ke draft.');
+        }
+
+        $periode->update([
+            'status' => 'draft',
+            'diajukan_by' => null,
+            'diajukan_at' => null,
+        ]);
+
+        AuditLog::catat(
+            aksi: 'shu_dikembalikan',
+            keterangan: "SHU {$periode->tahun_buku} dikembalikan ke draft (revisi).",
+            dataBaru: ['shu_periode_id' => $periode->id],
+            userId: $userId,
+        );
+
+        return $periode->refresh();
+    }
+
     private function wajibDraft(ShuPeriode $periode): void
     {
-        if ($periode->isFinal()) {
-            throw new RuntimeException('Periode SHU sudah final, tidak bisa diubah.');
+        if (! $periode->bisaDiubah()) {
+            throw new RuntimeException('Periode SHU sudah diajukan/final, tidak bisa diubah.');
         }
     }
 
@@ -353,6 +403,46 @@ class ShuService
             if ($v < 0) {
                 throw new RuntimeException('Persentase tidak boleh negatif.');
             }
+        }
+
+        return $hasil;
+    }
+
+    /** Pengurus wajib dipilih dari anggota (disnapshot namanya); jabatan teks bebas. */
+    private function normalkanRincianPengurus(?array $rincian): ?array
+    {
+        if ($rincian === null) {
+            return null;
+        }
+        $hasil = [];
+        foreach ($rincian as $r) {
+            // Baris lama (teks bebas tanpa anggota_id) tetap terbaca apa adanya.
+            if (empty($r['anggota_id'])) {
+                if (trim((string) ($r['nama'] ?? '')) === '') {
+                    continue;
+                }
+                $hasil[] = [
+                    'anggota_id' => null,
+                    'nama' => trim((string) $r['nama']),
+                    'jabatan' => trim((string) ($r['jabatan'] ?? '')),
+                    'nominal' => (float) ($r['nominal'] ?? 0),
+                ];
+                continue;
+            }
+            $anggota = Anggota::find($r['anggota_id']);
+            if (! $anggota) {
+                throw new RuntimeException('Anggota pengurus tidak ditemukan.');
+            }
+            $nominal = (float) ($r['nominal'] ?? 0);
+            if ($nominal <= 0) {
+                continue;
+            }
+            $hasil[] = [
+                'anggota_id' => $anggota->id,
+                'nama' => $anggota->nama,
+                'jabatan' => trim((string) ($r['jabatan'] ?? '')),
+                'nominal' => $nominal,
+            ];
         }
 
         return $hasil;

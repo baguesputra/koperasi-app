@@ -29,6 +29,8 @@ class ShuPeriode extends Model
         'status',
         'finalized_by',
         'finalized_at',
+        'diajukan_by',
+        'diajukan_at',
     ];
 
     protected $casts = [
@@ -44,6 +46,7 @@ class ShuPeriode extends Model
         'pct_wilker' => 'decimal:4',
         'pengurus_rincian' => 'array',
         'pengawas_rincian' => 'array',
+        'diajukan_at' => 'datetime',
         'finalized_at' => 'datetime',
     ];
 
@@ -71,6 +74,16 @@ class ShuPeriode extends Model
     public function isFinal(): bool
     {
         return $this->status === 'final';
+    }
+
+    public function isDiajukan(): bool
+    {
+        return $this->status === 'diajukan';
+    }
+
+    public function bisaDiubah(): bool
+    {
+        return $this->status === 'draft';
     }
 
     /** Total persen seluruh komponen (Excel: harus 100%). */

@@ -144,16 +144,27 @@ class ShuTest extends TestCase
             $this->assertTrue(true);
         }
 
-        $service->finalisasi($periode, $user->id);
-        $this->assertTrue($periode->refresh()->isFinal());
-
-        // Ubah persen setelah final → ditolak.
+        // Finalisasi langsung dari draft → ditolak (wajib Diajukan dulu).
         try {
-            $service->ubahPersen($periode->refresh(), ShuService::PERSEN_DEFAULT, $user->id);
-            $this->fail('Ubah persen setelah final harus ditolak.');
+            $service->finalisasi($periode, $user->id);
+            $this->fail('Finalisasi dari draft harus ditolak.');
         } catch (\RuntimeException) {
             $this->assertTrue(true);
         }
+
+        $service->ajukan($periode, $user->id);
+        $this->assertSame('diajukan', $periode->refresh()->status);
+
+        // Ubah persen setelah diajukan → ditolak.
+        try {
+            $service->ubahPersen($periode->refresh(), ShuService::PERSEN_DEFAULT, $user->id);
+            $this->fail('Ubah persen setelah diajukan harus ditolak.');
+        } catch (\RuntimeException) {
+            $this->assertTrue(true);
+        }
+
+        $service->finalisasi($periode->refresh(), $user->id);
+        $this->assertTrue($periode->refresh()->isFinal());
 
         $saldoSebelum = (float) KasKoperasi::first()->saldo_bank;
         $service->bayarDetail($detail->refresh(), 'bank', "{$tahun}-12-31", $user->id);
@@ -175,6 +186,115 @@ class ShuTest extends TestCase
         } catch (\RuntimeException) {
             $this->assertTrue(true);
         }
+    }
+
+    public function test_aju_kembali_dan_hitung_ulang_ditolak(): void
+    {
+        $user = $this->admin();
+        $tahun = (int) now()->subYear()->format('Y');
+
+        $service = app(ShuService::class);
+        $periode = $service->buatPeriode($tahun, null, 5_000_000, $user->id);
+
+        // Ajukan tanpa rincian hitung → ditolak.
+        try {
+            $service->ajukan($periode, $user->id);
+            $this->fail('Ajukan tanpa hitung harus ditolak.');
+        } catch (\RuntimeException) {
+            $this->assertTrue(true);
+        }
+
+        $a = $this->buatAnggota('Anggota Aju', 'ANG-SHU-E');
+        $this->setor($a, 'pokok', 50_000, "{$tahun}-02-15", $user->id);
+        $service->hitung($periode, $user->id);
+        $service->ajukan($periode, $user->id);
+
+        // Hitung ulang setelah diajukan → ditolak.
+        try {
+            $service->hitung($periode->refresh(), $user->id);
+            $this->fail('Hitung ulang setelah diajukan harus ditolak.');
+        } catch (\RuntimeException) {
+            $this->assertTrue(true);
+        }
+
+        // Kembalikan → bisa diubah lagi.
+        $service->kembalikanKeDraft($periode->refresh(), $user->id);
+        $this->assertSame('draft', $periode->refresh()->status);
+        $service->hitung($periode->refresh(), $user->id);
+        $this->assertSame(1, $periode->detail()->count());
+
+        // Kembalikan dari draft → ditolak.
+        try {
+            $service->kembalikanKeDraft($periode->refresh(), $user->id);
+            $this->fail('Kembalikan dari draft harus ditolak.');
+        } catch (\RuntimeException) {
+            $this->assertTrue(true);
+        }
+    }
+
+    public function test_buat_periode_langsung_terhitung(): void
+    {
+        $user = $this->admin();
+        $tahun = (int) now()->subYear()->format('Y');
+
+        $a = $this->buatAnggota('Anggota Auto', 'ANG-SHU-F');
+        $this->setor($a, 'pokok', 50_000, "{$tahun}-02-15", $user->id);
+
+        $res = $this->post(route('shu.store'), ['tahun_buku' => $tahun]);
+
+        $periode = ShuPeriode::where('tahun_buku', $tahun)->firstOrFail();
+        $res->assertRedirect(route('shu.show', ['shu' => $periode->id, 'tab' => 'distribusi']));
+        $this->assertSame(1, $periode->detail()->count());
+    }
+
+    public function test_distribusi_default_urut_no_dan_export_mirror_excel(): void
+    {
+        $user = $this->admin();
+        $tahun = (int) now()->subYear()->format('Y');
+
+        $a = $this->buatAnggota('Anggota Awal', 'ANG-SHU-G');
+        $b = $this->buatAnggota('Anggota Akhir', 'ANG-SHU-H');
+        $this->setor($a, 'pokok', 50_000, "{$tahun}-02-15", $user->id);
+        $this->setor($b, 'pokok', 50_000, "{$tahun}-02-15", $user->id);
+
+        $service = app(ShuService::class);
+        $periode = $service->buatPeriode($tahun, null, 10_000_000, $user->id);
+        $service->hitung($periode, $user->id);
+
+        $this->get(route('shu.show', $periode))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Shu/Show')
+                ->where('detail.data.0.nama', 'Anggota Awal')
+                ->where('detail.data.1.nama', 'Anggota Akhir')
+                ->where('detail.data.0.no', 1)
+                ->where('detail.data.1.no', 2));
+
+        $res = $this->get(route('shu.export', $periode));
+        $res->assertOk();
+    }
+
+    public function test_pengurus_dari_anggota_disnapshot_namanya(): void
+    {
+        $user = $this->admin();
+        $tahun = (int) now()->subYear()->format('Y');
+
+        $a = $this->buatAnggota('Calon Pengurus', 'ANG-SHU-I');
+
+        $service = app(ShuService::class);
+        $periode = $service->buatPeriode($tahun, null, 10_000_000, $user->id);
+        $service->simpanRincianPengelola(
+            $periode,
+            [['anggota_id' => $a->id, 'jabatan' => 'Ketua', 'nominal' => 1_000_000]],
+            [['nama' => 'Pengawas Luar', 'nominal' => 900_000]],
+            $user->id,
+        );
+
+        $rincian = $periode->refresh()->pengurus_rincian;
+        $this->assertSame($a->id, $rincian[0]['anggota_id']);
+        $this->assertSame('Calon Pengurus', $rincian[0]['nama']);
+        $this->assertSame('Ketua', $rincian[0]['jabatan']);
+        $this->assertSame('Pengawas Luar', $periode->pengawas_rincian[0]['nama']);
     }
 
     public function test_persen_harus_total_100(): void

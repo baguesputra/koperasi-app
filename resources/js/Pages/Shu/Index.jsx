@@ -1,5 +1,5 @@
 import AppLayout from '@/Layouts/AppLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import Card from '@/Components/ui/Card';
@@ -7,6 +7,7 @@ import Button from '@/Components/ui/Button';
 import PageHeader from '@/Components/ui/PageHeader';
 import TextField from '@/Components/ui/TextField';
 import FormField from '@/Components/ui/FormField';
+import Select from '@/Components/ui/Select';
 import BackLink from '@/Components/ui/BackLink';
 import { formatRupiah } from '@/Utils/formatCurrency';
 import { withIdempotencyKey } from '@/Utils/idempotency';
@@ -22,7 +23,7 @@ const LABEL_PERSEN = {
     pct_wilker: 'Wilayah kerja',
 };
 
-export default function Index({ periode = [], persenDefault = {}, tahunSaran }) {
+export default function Index({ periode = [], filters = {}, persenDefault = {}, tahunSaran }) {
     const [showForm, setShowForm] = useState(false);
     const { data, setData, post, processing, errors, reset } = useForm({
         tahun_buku: tahunSaran ?? new Date().getFullYear(),
@@ -108,6 +109,19 @@ export default function Index({ periode = [], persenDefault = {}, tahunSaran }) 
             )}
 
             <Card padding="none">
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-100">
+                    <Select
+                        value={filters.status ?? ''}
+                        onChange={(e) => router.get(route('shu.index'), { status: e.target.value }, { preserveState: true, replace: true })}
+                        aria-label="Filter status periode"
+                        className="!w-auto"
+                    >
+                        <option value="">Semua status</option>
+                        <option value="draft">Draft</option>
+                        <option value="diajukan">Diajukan</option>
+                        <option value="final">Final</option>
+                    </Select>
+                </div>
                 {periode.length === 0 ? (
                     <p className="px-4 py-10 text-center text-sm text-slate-400">Belum ada periode SHU.</p>
                 ) : (
@@ -125,8 +139,8 @@ export default function Index({ periode = [], persenDefault = {}, tahunSaran }) 
                                             {p.finalized_at ? ` • Final ${p.finalized_at}` : ''}
                                         </p>
                                     </div>
-                                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${p.status === 'final' ? 'bg-brand-green-light text-brand-green-dark' : 'bg-amber-100 text-amber-700'}`}>
-                                        {p.status === 'final' ? 'Final' : 'Draft'}
+                                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${badgeStatus(p.status)}`}>
+                                        {labelStatus(p.status)}
                                     </span>
                                 </Link>
                             </li>
@@ -136,4 +150,16 @@ export default function Index({ periode = [], persenDefault = {}, tahunSaran }) 
             </Card>
         </AppLayout>
     );
+}
+
+function badgeStatus(status) {
+    if (status === 'final') return 'bg-brand-green-light text-brand-green-dark';
+    if (status === 'diajukan') return 'bg-sky-100 text-sky-700';
+    return 'bg-amber-100 text-amber-700';
+}
+
+function labelStatus(status) {
+    if (status === 'final') return 'Final';
+    if (status === 'diajukan') return 'Diajukan';
+    return 'Draft';
 }
