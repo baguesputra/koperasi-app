@@ -18,14 +18,18 @@ function warna(kunci) {
     return (WARNA[kunci] ?? '#94A3B8').replace('##', '#');
 }
 
-export default function RingkasanShu({ periode, persen, preview, ringkasan, isPreview }) {
+export default function RingkasanShu({ periode, persen, custom = [], preview, ringkasan, isPreview }) {
     const komponen = preview.komponen ?? {};
+    const customList = preview.custom ?? custom ?? [];
     const pengurusPengawas = (komponen.pengurus ?? 0) + (komponen.pengawas ?? 0);
     const danaDibagi = (preview.pool_anggota ?? 0) + pengurusPengawas;
+    const customKeys = customList.map((c) => c.slug).filter(Boolean);
     const dataBar = [{
         nama: 'alokasi',
         ...Object.fromEntries(KOMPONEN_ORDER.map((k) => [k, (periode.total_shu || 0) > 0 ? (komponen[k] / periode.total_shu) * 100 : 0])),
+        ...Object.fromEntries(customKeys.map((s) => [s, (periode.total_shu || 0) > 0 ? ((komponen[s] ?? 0) / periode.total_shu) * 100 : 0])),
     }];
+    const jumlahKomponen = KOMPONEN_ORDER.length + customKeys.length;
 
     return (
         <div className="space-y-4">
@@ -33,14 +37,14 @@ export default function RingkasanShu({ periode, persen, preview, ringkasan, isPr
                 <Card><Stat label="Selisih Hasil Usaha" value={formatRupiah(periode.total_shu)} hint={`Sumber: Laba Rugi YTD ${formatRupiah(periode.total_laba)}`} /></Card>
                 <Card><Stat label="Simpanan + Transaksi untuk Anggota" value={formatRupiah(preview.pool_anggota)} hint={`${ringkasan.anggota} anggota • modal ${formatRupiah(preview.total_modal ?? ringkasan.total_modal)}`} /></Card>
                 <Card><Stat label="Dana yang Dibagikan" value={formatRupiah(danaDibagi)} hint={`Pengurus + pengawas ${formatRupiah(pengurusPengawas)}`} /></Card>
-                <Card><Stat label="Dana yang Tidak Dibagi" value={formatRupiah(preview.dana_tak_dibagi)} hint="Cadangan + pendidikan + wilker" /></Card>
+                <Card><Stat label="Dana yang Tidak Dibagi" value={formatRupiah(preview.dana_tak_dibagi)} hint="Total SHU − dana dibagikan (termasuk tambahan)" /></Card>
                 <Card><Stat label="SHU Diserahkan" value={formatRupiah(ringkasan.total_bersih)} hint={`Jumlah SHU ${formatRupiah(ringkasan.total_bruto)}, dibulatkan ke bawah ribuan`} /></Card>
                 <Card><Stat label="Sudah Diserahkan" value={formatRupiah(ringkasan.terbayar)} hint={`${ringkasan.sudah_bayar} dari ${ringkasan.anggota} anggota`} /></Card>
             </div>
 
             <Card>
                 <div className="flex items-center gap-2 mb-1">
-                    <p className="text-base font-bold text-slate-800">Alokasi 8 komponen</p>
+                    <p className="text-base font-bold text-slate-800">Alokasi {jumlahKomponen} komponen</p>
                     {isPreview && (
                         <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
                             Preview — belum disimpan
@@ -48,7 +52,7 @@ export default function RingkasanShu({ periode, persen, preview, ringkasan, isPr
                     )}
                 </div>
                 <p className="text-sm text-slate-500 mb-3">
-                    Dana yang tidak dibagi (cadangan + pendidikan + wilker): {formatRupiah(preview.dana_tak_dibagi)} •
+                    Dana yang tidak dibagi: {formatRupiah(preview.dana_tak_dibagi)} •
                     Sisa dana yang tidak dibagi: {formatRupiah(ringkasan.belum_diserahkan)}
                 </p>
 
@@ -58,10 +62,16 @@ export default function RingkasanShu({ periode, persen, preview, ringkasan, isPr
                             <XAxis type="number" hide domain={[0, 100]} />
                             <YAxis type="category" dataKey="nama" hide />
                             <Tooltip
-                                formatter={(nilai, kunci) => [`${Number(nilai).toFixed(1)}% (${formatRupiah(komponen[kunci] ?? 0)})`, KOMPONEN_LABEL[kunci] ?? kunci]}
+                                formatter={(nilai, kunci) => {
+                                    const labelCustom = customList.find((c) => c.slug === kunci)?.label;
+                                    return [`${Number(nilai).toFixed(1)}% (${formatRupiah(komponen[kunci] ?? 0)})`, labelCustom ?? KOMPONEN_LABEL[kunci] ?? kunci];
+                                }}
                             />
                             {KOMPONEN_ORDER.map((k) => (
                                 <Bar key={k} dataKey={k} stackId="alokasi" fill={warna(k)} />
+                            ))}
+                            {customKeys.map((s) => (
+                                <Bar key={s} dataKey={s} stackId="alokasi" fill={warna(s)} />
                             ))}
                         </BarChart>
                     </ResponsiveContainer>
@@ -87,6 +97,18 @@ export default function RingkasanShu({ periode, persen, preview, ringkasan, isPr
                                         {Math.round((persen?.[PCT_COL[k]] ?? 0) * 10000) / 100}%
                                     </td>
                                     <td className="py-2 pl-2 text-right tabular-nums font-semibold">{formatRupiah(komponen[k] ?? 0)}</td>
+                                </tr>
+                            ))}
+                            {customList.map((c) => (
+                                <tr key={c.slug}>
+                                    <td className="py-2 pr-2">
+                                        <span className="inline-block w-2.5 h-2.5 rounded-sm mr-2" style={{ backgroundColor: warna(c.slug) }} aria-hidden="true" />
+                                        {c.label} <span className="text-xs text-slate-400">(tambahan)</span>
+                                    </td>
+                                    <td className="py-2 px-2 text-right tabular-nums">
+                                        {Math.round((c.persen ?? 0) * 10000) / 100}%
+                                    </td>
+                                    <td className="py-2 pl-2 text-right tabular-nums font-semibold">{formatRupiah(c.nominal ?? komponen[c.slug] ?? 0)}</td>
                                 </tr>
                             ))}
                         </tbody>

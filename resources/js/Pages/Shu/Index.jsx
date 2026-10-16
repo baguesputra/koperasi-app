@@ -1,7 +1,7 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import Card from '@/Components/ui/Card';
 import Button from '@/Components/ui/Button';
 import PageHeader from '@/Components/ui/PageHeader';
@@ -29,6 +29,7 @@ export default function Index({ periode = [], filters = {}, persenDefault = {}, 
         tahun_buku: tahunSaran ?? new Date().getFullYear(),
         total_shu: '',
         persen: persenDefault,
+        komponen_custom: [],
     });
 
     function submit(e) {
@@ -96,6 +97,52 @@ export default function Index({ periode = [], filters = {}, persenDefault = {}, 
                             ))}
                         </div>
                         {errors.persen && <p className="text-sm text-red-600 mb-2">{errors.persen}</p>}
+                        <div className="mb-4 rounded-xl border border-slate-200 overflow-hidden">
+                            <div className="flex items-center justify-between px-3 py-2 bg-slate-50">
+                                <p className="text-sm font-semibold text-slate-700">Komponen tambahan <span className="font-normal text-slate-400">(opsional, dana tak dibagi)</span></p>
+                                <button
+                                    type="button"
+                                    onClick={() => setData('komponen_custom', [...(data.komponen_custom ?? []), { label: '', persen: 0 }])}
+                                    className="text-sm font-semibold text-brand-green-dark inline-flex items-center gap-1 hover:underline"
+                                >
+                                    <Plus size={14} />
+                                    Tambah pembagian
+                                </button>
+                            </div>
+                            {(data.komponen_custom ?? []).length === 0 && (
+                                <p className="text-sm text-slate-400 px-3 py-2">Belum ada. Total 8 bawaan + tambahan harus 100%.</p>
+                            )}
+                            {(data.komponen_custom ?? []).map((r, i) => (
+                                <div key={i} className="flex items-center gap-2 px-3 py-2 border-t border-slate-50">
+                                    <FormField label={i === 0 ? 'Nama' : ''} className="flex-1" error={errors[`komponen_custom.${i}.label`]}>
+                                        <TextField
+                                            placeholder="cth. Dana Khusus"
+                                            value={r.label ?? ''}
+                                            onChange={(e) => setData('komponen_custom', (data.komponen_custom ?? []).map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))}
+                                        />
+                                    </FormField>
+                                    <FormField label={i === 0 ? '% ' : ''} className="w-28" error={errors[`komponen_custom.${i}.persen`]}>
+                                        <TextField
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            max="100"
+                                            value={Math.round((r.persen ?? 0) * 10000) / 100}
+                                            onChange={(e) => setData('komponen_custom', (data.komponen_custom ?? []).map((x, j) => (j === i ? { ...x, persen: (parseFloat(e.target.value) || 0) / 100 } : x)))}
+                                        />
+                                    </FormField>
+                                    <button
+                                        type="button"
+                                        onClick={() => setData('komponen_custom', (data.komponen_custom ?? []).filter((_, j) => j !== i))}
+                                        aria-label={`Hapus komponen tambahan ${i + 1}`}
+                                        className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 self-end"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                        {errors.komponen_custom && <p className="text-sm text-red-600 mb-2">{errors.komponen_custom}</p>}
                         <div className="flex gap-2">
                             <Button type="submit" disabled={processing}>
                                 {processing ? 'Menyimpan...' : 'Simpan Periode'}

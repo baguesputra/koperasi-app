@@ -34,17 +34,22 @@ export default function Show({ periode, ringkasan, detail, sums = {}, daftarAngg
 
     // Live state: persen draft yang sedang diketik (mirror Excel, belum tersimpan).
     const [persenLive, setPersenLive] = useState(periode.persen);
+    const [customLive, setCustomLive] = useState(periode.komponen_custom ?? []);
     const persenTersimpan = useMemo(() => JSON.stringify(periode.persen), [periode.persen]);
-    const isPreview = JSON.stringify(persenLive) !== persenTersimpan;
+    const customTersimpan = useMemo(() => JSON.stringify(periode.komponen_custom ?? []), [periode]);
+    const isPreview = JSON.stringify(persenLive) !== persenTersimpan || JSON.stringify(customLive) !== customTersimpan;
 
     // Sinkron ulang setelah server menyimpan (Simpan Persen / Hitung Ulang).
     useEffect(() => {
         setPersenLive(periode.persen);
     }, [persenTersimpan]);
+    useEffect(() => {
+        setCustomLive(periode.komponen_custom ?? []);
+    }, [customTersimpan]);
 
     const preview = useMemo(
-        () => ringkasLive(periode.total_shu, persenLive, ringkasan.total_modal, ringkasan.total_transaksi),
-        [periode.total_shu, persenLive, ringkasan.total_modal, ringkasan.total_transaksi]
+        () => ringkasLive(periode.total_shu, persenLive, ringkasan.total_modal, ringkasan.total_transaksi, customLive),
+        [periode.total_shu, persenLive, ringkasan.total_modal, ringkasan.total_transaksi, customLive]
     );
 
     const liveRows = isPreview && periode.status === 'draft'
@@ -151,8 +156,10 @@ export default function Show({ periode, ringkasan, detail, sums = {}, daftarAngg
                     <RingkasanShu
                         periode={periode}
                         persen={isPreview ? persenLive : periode.persen}
+                        custom={isPreview ? customLive : (ringkasan.custom ?? periode.komponen_custom ?? [])}
                         preview={isPreview ? preview : {
                             komponen: ringkasan.komponen,
+                            custom: ringkasan.custom ?? [],
                             pool_anggota: ringkasan.pool_anggota,
                             dana_tak_dibagi: ringkasan.dana_tak_dibagi,
                         }}
@@ -166,6 +173,8 @@ export default function Show({ periode, ringkasan, detail, sums = {}, daftarAngg
                         periode={periode}
                         persenLive={persenLive}
                         setPersenLive={setPersenLive}
+                        customLive={customLive}
+                        setCustomLive={setCustomLive}
                         preview={preview}
                         sudahDihitung={ringkasan.anggota > 0}
                         daftarAnggota={daftarAnggota}

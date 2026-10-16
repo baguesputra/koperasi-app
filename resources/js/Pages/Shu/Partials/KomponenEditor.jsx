@@ -8,20 +8,20 @@ import TextField from '@/Components/ui/TextField';
 import FormField from '@/Components/ui/FormField';
 import { formatRupiah } from '@/Utils/formatCurrency';
 import { withIdempotencyKey } from '@/Utils/idempotency';
-import { KOMPONEN_LABEL, KOMPONEN_ORDER, PCT_COL, persenValid, pesanPenyeimbang, selisihPersen, totalPersen } from '@/Utils/shuLive';
+import { KOMPONEN_LABEL, KOMPONEN_ORDER, PCT_COL, persenValid, pesanPenyeimbang, selisihPersen, slugKomponen, totalPersen } from '@/Utils/shuLive';
 import RingkasanDana from './RingkasanDana';
 
 /**
- * Editor 8 persen + rincian pengurus/pengawas.
+ * Editor 8 persen bawaan (permanen) + N komponen tambahan + rincian pengurus/pengawas.
  * Semua angka preview dihitung live di browser (mirror Excel);
  * Simpan = persist ke server, Hitung Ulang = recalc rincian anggota.
  */
-export default function KomponenEditor({ periode, persenLive, setPersenLive, preview, sudahDihitung, daftarAnggota = [] }) {
+export default function KomponenEditor({ periode, persenLive, setPersenLive, customLive, setCustomLive, preview, sudahDihitung, daftarAnggota = [] }) {
     const { errors } = usePage().props;
     const [menyimpan, setMenyimpan] = useState(false);
-    const total = totalPersen(persenLive);
-    const valid = persenValid(persenLive);
-    const selisih = selisihPersen(persenLive);
+    const total = totalPersen(persenLive, customLive);
+    const valid = persenValid(persenLive, customLive);
+    const selisih = selisihPersen(persenLive, customLive);
     const pesanValidasi = pesanPenyeimbang(periode.persen, persenLive, total, valid, selisih);
 
     const [pengurus, setPengurus] = useState(periode.pengurus_rincian ?? []);
@@ -37,9 +37,24 @@ export default function KomponenEditor({ periode, persenLive, setPersenLive, pre
         setMenyimpan(true);
         router.put(
             route('shu.persen.update', periode.id),
-            { persen: persenLive },
+            {
+                persen: persenLive,
+                komponen_custom: (customLive ?? []).map((r) => ({ label: r.label, persen: r.persen })),
+            },
             { preserveScroll: true, onFinish: () => setMenyimpan(false) }
         );
+    }
+
+    function tambahCustom() {
+        setCustomLive([...(customLive ?? []), { label: '', persen: 0 }]);
+    }
+
+    function ubahCustom(i, field, nilai) {
+        setCustomLive((customLive ?? []).map((r, j) => (j === i ? { ...r, [field]: nilai } : r)));
+    }
+
+    function hapusCustom(i) {
+        setCustomLive((customLive ?? []).filter((_, j) => j !== i));
     }
 
     function hitung() {
@@ -122,7 +137,67 @@ export default function KomponenEditor({ periode, persenLive, setPersenLive, pre
                     })}
                 </div>
 
+                <div className="rounded-xl border border-slate-200 overflow-hidden mb-4">
+                    <div className="flex items-center justify-between px-3 py-2 bg-slate-50">
+                        <p className="text-sm font-bold text-slate-700">Komponen tambahan <span className="font-normal text-slate-400">(dana tak dibagi)</span></p>
+                        <button
+                            type="button"
+                            onClick={tambahCustom}
+                            className="text-sm font-semibold text-brand-green-dark inline-flex items-center gap-1 hover:underline"
+                        >
+                            <Plus size={14} />
+                            Tambah pembagian
+                        </button>
+                    </div>
+                    {(customLive ?? []).length === 0 && (
+                        <p className="text-sm text-slate-400 px-3 py-3">Belum ada komponen tambahan. 8 bawaan di atas permanen dan tidak bisa dihapus.</p>
+                    )}
+                    {(customLive ?? []).map((r, i) => {
+                        const slug = r.slug || slugKomponen(r.label);
+                        const nilaiPersen = Math.round((parseFloat(r.persen) || 0) * 10000) / 100;
+                        return (
+                            <div key={r.slug ?? `baru-${i}`} className="flex items-center gap-2 px-3 py-2 border-t border-slate-50">
+                                <FormField label={i === 0 ? 'Nama pembagian' : ''} className="flex-1">
+                                    <TextField
+                                        placeholder="cth. Dana Cadangan Khusus"
+                                        value={r.label ?? ''}
+                                        onChange={(e) => ubahCustom(i, 'label', e.target.value)}
+                                        aria-label={`Nama komponen tambahan ${i + 1}`}
+                                    />
+                                </FormField>
+                                <FormField label={i === 0 ? '% ' : ''} className="w-28">
+                                    <TextField
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        max="100"
+                                        value={nilaiPersen}
+                                        onChange={(e) => ubahCustom(i, 'persen', (parseFloat(e.target.value) || 0) / 100)}
+                                        className="text-right tabular-nums"
+                                        aria-label={`Persen komponen tambahan ${i + 1}`}
+                                    />
+                                </FormField>
+                                <div className="w-32 hidden sm:block">
+                                    {i === 0 && <p className="text-xs text-slate-400 mb-1">Nominal</p>}
+                                    <p className="text-sm tabular-nums text-slate-600 truncate" title={formatRupiah(preview.komponen?.[slug] ?? 0)}>
+                                        {formatRupiah(preview.komponen?.[slug] ?? 0)}
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => hapusCustom(i)}
+                                    aria-label={`Hapus komponen tambahan ${r.label || i + 1}`}
+                                    className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 self-end"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            </div>
+                        );
+                    })}
+                </div>
+
                 {errors.persen && <p className="text-sm text-red-600 mb-2">{errors.persen}</p>}
+                {errors.komponen_custom && <p className="text-sm text-red-600 mb-2">{errors.komponen_custom}</p>}
 
                 <div className="flex flex-wrap gap-2">
                     <Button size="sm" onClick={simpanPersen} disabled={menyimpan || !valid}>
