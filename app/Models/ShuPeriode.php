@@ -61,9 +61,27 @@ class ShuPeriode extends Model
         'wilker' => 'pct_wilker',
     ];
 
+    /** 8 bawaan permanen — tidak bisa dihapus/rename, custom dilarang pakai kunci ini. */
+    public const KUNCI_BAWAAN = [
+        'cadangan',
+        'jasa_simpanan',
+        'jasa_transaksi',
+        'pengurus',
+        'pengawas',
+        'pendidikan',
+        'sosial',
+        'wilker',
+    ];
+
     public function detail(): HasMany
     {
         return $this->hasMany(ShuDetail::class, 'shu_periode_id');
+    }
+
+    /** Komponen tambahan per periode (selain 8 bawaan permanen). */
+    public function customKomponen(): HasMany
+    {
+        return $this->hasMany(ShuKomponen::class, 'shu_periode_id')->orderBy('label');
     }
 
     public function finalisator(): BelongsTo
@@ -86,18 +104,25 @@ class ShuPeriode extends Model
         return $this->status === 'draft';
     }
 
-    /** Total persen seluruh komponen (Excel: harus 100%). */
+    /** Total persen 8 bawaan + custom (Excel: harus 100%). */
     public function totalPersen(): float
     {
         $total = 0.0;
         foreach (self::KOMPONEN as $kolom) {
             $total += (float) ($this->{$kolom} ?? 0);
         }
+        $custom = $this->relationLoaded('customKomponen')
+            ? $this->customKomponen->sum(fn ($r) => (float) $r->persen)
+            : (float) ($this->customKomponen()->sum('persen') ?? 0);
+        $total += $custom;
 
         return $total;
     }
 
-    /** Nominal per komponen = total_shu × persen (mirror kolom D sheet Komponen SHU). */
+    /**
+     * Nominal per komponen = total_shu × persen (mirror kolom D sheet Komponen SHU).
+     * Return flat: 8 kunci bawaan + slug custom (tanpa tabrakan, divalidasi di service).
+     */
     public function nominalKomponen(): array
     {
         $total = (float) $this->total_shu;
@@ -105,7 +130,29 @@ class ShuPeriode extends Model
         foreach (self::KOMPONEN as $nama => $kolom) {
             $hasil[$nama] = round($total * (float) ($this->{$kolom} ?? 0), 2);
         }
+        $rows = $this->relationLoaded('customKomponen')
+            ? $this->customKomponen
+            : $this->customKomponen()->get();
+        foreach ($rows as $r) {
+            $hasil[$r->slug] = round($total * (float) $r->persen, 2);
+        }
 
         return $hasil;
+    }
+
+    /** Daftar custom untuk payload Inertia/export: [{slug, label, persen, nominal}]. */
+    public function daftarCustom(): array
+    {
+        $total = (float) $this->total_shu;
+        $rows = $this->relationLoaded('customKomponen')
+            ? $this->customKomponen
+            : $this->customKomponen()->orderBy('label')->get();
+
+        return $rows->map(fn ($r) => [
+            'slug' => $r->slug,
+            'label' => $r->label,
+            'persen' => (float) $r->persen,
+            'nominal' => round($total * (float) $r->persen, 2),
+        ])->all();
     }
 }

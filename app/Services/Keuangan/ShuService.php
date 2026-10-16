@@ -50,20 +50,25 @@ class ShuService
         return LaporanRegistry::totalShu($tahun);
     }
 
-    public function buatPeriode(int $tahun, ?array $persen, ?float $totalShu, int $userId): ShuPeriode
+    public function buatPeriode(int $tahun, ?array $persen, ?float $totalShu, int $userId, ?array $custom = null): ShuPeriode
     {
         if (ShuPeriode::where('tahun_buku', $tahun)->exists()) {
             throw new RuntimeException("Periode SHU tahun {$tahun} sudah ada.");
         }
 
-        $persen = $this->normalkanPersen($persen ?? self::PERSEN_DEFAULT);
+        [$persen, $custom] = $this->normalkanPersenDanCustom($persen ?? self::PERSEN_DEFAULT, $custom ?? []);
 
-        $periode = ShuPeriode::create([
-            'tahun_buku' => $tahun,
-            'total_shu' => $totalShu ?? $this->totalShuDariLaba($tahun),
-            ...$persen,
-            'status' => 'draft',
-        ]);
+        $periode = DB::transaction(function () use ($tahun, $persen, $custom, $totalShu) {
+            $periode = ShuPeriode::create([
+                'tahun_buku' => $tahun,
+                'total_shu' => $totalShu ?? $this->totalShuDariLaba($tahun),
+                ...$persen,
+                'status' => 'draft',
+            ]);
+            $this->sinkronCustom($periode, $custom);
+
+            return $periode;
+        });
 
         AuditLog::catat(
             aksi: 'shu_periode_dibuat',
@@ -75,10 +80,19 @@ class ShuService
         return $periode;
     }
 
-    public function ubahPersen(ShuPeriode $periode, array $persen, int $userId): ShuPeriode
+    public function ubahPersen(ShuPeriode $periode, array $persen, int $userId, ?array $custom = null): ShuPeriode
     {
         $this->wajibDraft($periode);
-        $periode->update($this->normalkanPersen($persen));
+        // $custom null = custom lama dipertahankan (ikut validasi total);
+        // array (boleh kosong) = sync ke daftar itu (tambah/hapus custom).
+        $custom ??= $periode->customKomponen()->get(['slug', 'label', 'persen'])
+            ->map(fn ($r) => ['label' => $r->label, 'persen' => (float) $r->persen])->all();
+        [$persen, $custom] = $this->normalkanPersenDanCustom($persen, $custom);
+
+        DB::transaction(function () use ($periode, $persen, $custom) {
+            $periode->update($persen);
+            $this->sinkronCustom($periode, $custom);
+        });
 
         AuditLog::catat(
             aksi: 'shu_persen_diubah',
@@ -193,17 +207,20 @@ class ShuService
                 COALESCE(SUM(CASE WHEN status_bayar = \'sudah\' THEN shu_bersih ELSE 0 END),0) as terbayar')
             ->first();
 
+        $periode->loadMissing('customKomponen');
         $poolAnggota = $komponen['jasa_simpanan'] + $komponen['jasa_transaksi'];
         $sisaPembulatan = round($poolAnggota - (float) ($agregat->bruto ?? 0), 2);
         $belumDiserahkan = round((float) ($agregat->bruto ?? 0) - (float) ($agregat->bersih ?? 0), 2);
         $danaDibagi = $poolAnggota + $komponen['pengurus'] + $komponen['pengawas'];
-        $danaTakDibagi = $komponen['cadangan'] + $komponen['pendidikan'] + $komponen['wilker'];
+        // Tak dibagi = sisa total (cadangan + pendidikan + sosial + wilker + semua custom).
+        $danaTakDibagi = round((float) $periode->total_shu - $danaDibagi, 2);
 
         return [
             'komponen' => $komponen,
+            'custom' => $periode->daftarCustom(),
             'pool_anggota' => round($poolAnggota, 2),
             'dana_dibagi' => round($danaDibagi, 2),
-            'dana_tak_dibagi' => round($danaTakDibagi, 2),
+            'dana_tak_dibagi' => $danaTakDibagi,
             'anggota' => (int) ($agregat->anggota ?? 0),
             'total_modal' => (float) ($agregat->modal ?? 0),
             'total_transaksi' => (float) ($agregat->transaksi ?? 0),
@@ -388,16 +405,16 @@ class ShuService
         }
     }
 
-    /** Validasi 8 persen total 100% (toleransi floating point). */
-    private function normalkanPersen(array $persen): array
+    /**
+     * Validasi 8 bawaan (permanen, tak bisa dihapus) + N custom, total 100%.
+     * Return [persenBawaan, customNormal].
+     */
+    private function normalkanPersenDanCustom(array $persen, ?array $custom): array
     {
         $kolom = array_values(ShuPeriode::KOMPONEN);
         $hasil = [];
         foreach ($kolom as $k) {
             $hasil[$k] = round((float) ($persen[$k] ?? 0), 4);
-        }
-        if (abs(array_sum($hasil) - 1.0) > 0.0001) {
-            throw new RuntimeException('Total persentase 8 komponen harus 100%.');
         }
         foreach ($hasil as $v) {
             if ($v < 0) {
@@ -405,7 +422,85 @@ class ShuService
             }
         }
 
+        $custom = $this->normalkanCustom($custom ?? []);
+        $totalCustom = array_sum(array_column($custom, 'persen'));
+        if (abs(array_sum($hasil) + $totalCustom - 1.0) > 0.0001) {
+            throw new RuntimeException('Total persentase 8 komponen + tambahan harus 100%.');
+        }
+
+        return [$hasil, $custom];
+    }
+
+    /**
+     * Validasi komponen tambahan. 8 bawaan dilindungi: slug custom yang
+     * tabrakan ditolak. Return [{slug, label, persen}].
+     */
+    private function normalkanCustom(array $custom): array
+    {
+        $hasil = [];
+        $slugTerpakai = [];
+        $labelTerpakai = [];
+        foreach (array_values($custom) as $i => $r) {
+            if (! is_array($r)) {
+                throw new RuntimeException('Format komponen tambahan tidak valid.');
+            }
+            $label = trim((string) ($r['label'] ?? ''));
+            if ($label === '') {
+                throw new RuntimeException('Nama komponen tambahan wajib diisi.');
+            }
+            if (mb_strlen($label) > 100) {
+                throw new RuntimeException("Nama komponen '{$label}' maksimal 100 karakter.");
+            }
+            $persen = round((float) ($r['persen'] ?? 0), 4);
+            if ($persen < 0 || $persen > 1) {
+                throw new RuntimeException("Persentase '{$label}' harus 0–100%.");
+            }
+            // Nol persen = diabaikan (tidak disimpan) agar daftar tetap bersih.
+            if ($persen <= 0) {
+                continue;
+            }
+            $slug = $this->slugKomponen($label);
+            if (in_array($slug, ShuPeriode::KUNCI_BAWAAN, true)) {
+                throw new RuntimeException("Nama '{$label}' menyerupai komponen bawaan, gunakan nama lain.");
+            }
+            $kunciLabel = mb_strtolower($label);
+            if (isset($slugTerpakai[$slug]) || isset($labelTerpakai[$kunciLabel])) {
+                throw new RuntimeException("Komponen tambahan '{$label}' duplikat.");
+            }
+            $slugTerpakai[$slug] = true;
+            $labelTerpakai[$kunciLabel] = true;
+            $hasil[] = ['slug' => $slug, 'label' => $label, 'persen' => $persen];
+        }
+        if (count($hasil) > 20) {
+            throw new RuntimeException('Maksimal 20 komponen tambahan per periode.');
+        }
+
         return $hasil;
+    }
+
+    private function slugKomponen(string $label): string
+    {
+        $slug = mb_strtolower(trim($label));
+        $slug = (string) preg_replace('/[^a-z0-9]+/u', '_', $slug);
+        $slug = trim($slug, '_');
+        if ($slug === '') {
+            $slug = 'komponen';
+        }
+
+        return mb_substr($slug, 0, 50);
+    }
+
+    /** Sync tabel custom: tambah/update baru, hapus yang tidak ada di daftar. */
+    private function sinkronCustom(ShuPeriode $periode, array $custom): void
+    {
+        $slugs = array_column($custom, 'slug');
+        $periode->customKomponen()->whereNotIn('slug', $slugs)->delete();
+        foreach ($custom as $r) {
+            $periode->customKomponen()->updateOrCreate(
+                ['slug' => $r['slug']],
+                ['label' => $r['label'], 'persen' => $r['persen']]
+            );
+        }
     }
 
     /** Pengurus wajib dipilih dari anggota (disnapshot namanya); jabatan teks bebas. */

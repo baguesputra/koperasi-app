@@ -50,6 +50,9 @@ class ShuController extends Controller
             'total_shu' => ['nullable', 'numeric', 'min:0'],
             'persen' => ['nullable', 'array'],
             'persen.*' => ['numeric', 'min:0', 'max:1'],
+            'komponen_custom' => ['nullable', 'array', 'max:20'],
+            'komponen_custom.*.label' => ['required_with:komponen_custom', 'string', 'max:100'],
+            'komponen_custom.*.persen' => ['required_with:komponen_custom.*.label', 'numeric', 'min:0', 'max:1'],
         ]);
 
         try {
@@ -58,11 +61,12 @@ class ShuController extends Controller
                 $data['persen'] ?? null,
                 isset($data['total_shu']) ? (float) $data['total_shu'] : null,
                 auth()->id(),
+                $data['komponen_custom'] ?? [],
             );
             // Langsung hitung supaya tab Distribusi/Ringkasan terisi saat dibuka.
             $ringkasan = $this->service->hitung($periode, auth()->id());
         } catch (RuntimeException $e) {
-            return back()->withErrors(['tahun_buku' => $e->getMessage()]);
+            return back()->withErrors(['tahun_buku' => $e->getMessage(), 'persen' => $e->getMessage(), 'komponen_custom' => $e->getMessage()]);
         }
 
         return redirect()->route('shu.show', ['shu' => $periode->id, 'tab' => 'distribusi'])
@@ -146,6 +150,7 @@ class ShuController extends Controller
         }));
 
         $totalLaba = $this->service->totalShuDariLaba($shu->tahun_buku);
+        $shu->loadMissing('customKomponen');
 
         return Inertia::render('Shu/Show', [
             'periode' => [
@@ -156,6 +161,7 @@ class ShuController extends Controller
                 'status' => $shu->status,
                 'is_final' => $shu->isFinal(),
                 'persen' => collect(ShuPeriode::KOMPONEN)->mapWithKeys(fn ($kolom) => [$kolom => (float) $shu->{$kolom}]),
+                'komponen_custom' => $shu->daftarCustom(),
                 'pengurus_rincian' => $shu->pengurus_rincian ?? [],
                 'pengawas_rincian' => $shu->pengawas_rincian ?? [],
                 'finalized_at' => $shu->finalized_at?->format('d M Y H:i'),
@@ -181,14 +187,17 @@ class ShuController extends Controller
         $data = $request->validate([
             'persen' => ['required', 'array'],
             'persen.*' => ['numeric', 'min:0', 'max:1'],
+            'komponen_custom' => ['nullable', 'array', 'max:20'],
+            'komponen_custom.*.label' => ['required_with:komponen_custom', 'string', 'max:100'],
+            'komponen_custom.*.persen' => ['required_with:komponen_custom.*.label', 'numeric', 'min:0', 'max:1'],
         ]);
 
         try {
-            $shu = $this->service->ubahPersen($shu, $data['persen'], auth()->id());
+            $shu = $this->service->ubahPersen($shu, $data['persen'], auth()->id(), $data['komponen_custom'] ?? null);
             // Simpan persen sekaligus hitung ulang (ala Excel: ubah % → angka ikut).
             $ringkasan = $this->service->hitung($shu, auth()->id());
         } catch (RuntimeException $e) {
-            return back()->withErrors(['persen' => $e->getMessage()]);
+            return back()->withErrors(['persen' => $e->getMessage(), 'komponen_custom' => $e->getMessage()]);
         }
 
         return back()->with('status', "Persentase disimpan & rincian dihitung ulang ({$ringkasan['anggota']} anggota).");
@@ -317,6 +326,7 @@ class ShuController extends Controller
             ->all();
 
         $ringkasan = $this->service->ringkasan($shu);
+        $shu->loadMissing('customKomponen');
 
         $baris = [
             ["DISTRIBUSI SHU PER ANGGOTA — TAHUN BUKU {$shu->tahun_buku}"],
@@ -325,6 +335,9 @@ class ShuController extends Controller
             [],
             ['Total SHU', (float) $shu->total_shu],
             ['Pool anggota', $ringkasan['pool_anggota']],
+            ...array_map(fn ($c) => ["Tambahan: {$c['label']}", $c['nominal']], $ringkasan['custom'] ?? []),
+            ['Dana dibagikan', $ringkasan['dana_dibagi']],
+            ['Dana tidak dibagi', $ringkasan['dana_tak_dibagi']],
             ['Total bruto', $ringkasan['total_bruto']],
             ['Total diserahkan', $ringkasan['total_bersih']],
             ['Sisa belum diserahkan (pembulatan)', $ringkasan['belum_diserahkan']],
