@@ -311,4 +311,88 @@ class ShuTest extends TestCase
 
         $this->assertFalse(ShuPeriode::where('tahun_buku', $tahun)->exists());
     }
+
+    public function test_komponen_tambahan_masuk_dana_tak_dibagi(): void
+    {
+        $user = $this->admin();
+        $tahun = (int) now()->subYear()->format('Y');
+
+        $persen = ShuService::PERSEN_DEFAULT;
+        // Ambil 3% dari wilker untuk komponen tambahan.
+        $persen['pct_wilker'] = 0.02;
+
+        $service = app(ShuService::class);
+        $periode = $service->buatPeriode($tahun, $persen, 10_000_000, $user->id, [
+            ['label' => 'Dana Khusus', 'persen' => 0.03],
+        ]);
+
+        $this->assertSame(1, $periode->customKomponen()->count());
+        $ringkasan = $service->ringkasan($periode);
+
+        // Nominal custom = 3% × total.
+        $this->assertEqualsWithDelta(300_000, $ringkasan['komponen']['dana_khusus'] ?? 0, 1);
+        // Dana dibagi tetap pool + pengurus + pengawas; custom ikut tak dibagi.
+        $this->assertEqualsWithDelta(
+            10_000_000 - $ringkasan['dana_dibagi'],
+            $ringkasan['dana_tak_dibagi'],
+            1
+        );
+        $this->assertCount(1, $ringkasan['custom']);
+        $this->assertSame('Dana Khusus', $ringkasan['custom'][0]['label']);
+    }
+
+    public function test_komponen_tambahan_total_tetap_100_dan_tolak_nama_bawaan(): void
+    {
+        $user = $this->admin();
+        $tahun = (int) now()->subYear()->format('Y');
+        $service = app(ShuService::class);
+
+        // Total 103% → ditolak.
+        try {
+            $service->buatPeriode($tahun, ShuService::PERSEN_DEFAULT, 1_000_000, $user->id, [
+                ['label' => 'Dana X', 'persen' => 0.03],
+            ]);
+            $this->fail('Total >100% harus ditolak.');
+        } catch (\RuntimeException) {
+            $this->assertTrue(true);
+        }
+
+        // Nama menyerupai bawaan → ditolak.
+        try {
+            $persen = ShuService::PERSEN_DEFAULT;
+            $persen['pct_wilker'] = 0.0;
+            $service->buatPeriode($tahun, $persen, 1_000_000, $user->id, [
+                ['label' => 'Cadangan', 'persen' => 0.05],
+            ]);
+            $this->fail('Nama bawaan harus ditolak.');
+        } catch (\RuntimeException) {
+            $this->assertTrue(true);
+        }
+
+        $this->assertFalse(ShuPeriode::where('tahun_buku', $tahun)->exists());
+    }
+
+    public function test_komponen_tambahan_bisa_dihapus_bawaan_tetap_ada(): void
+    {
+        $user = $this->admin();
+        $tahun = (int) now()->subYear()->format('Y');
+        $service = app(ShuService::class);
+
+        $persen = ShuService::PERSEN_DEFAULT;
+        $persen['pct_wilker'] = 0.02;
+        $periode = $service->buatPeriode($tahun, $persen, 5_000_000, $user->id, [
+            ['label' => 'Dana Sementara', 'persen' => 0.03],
+        ]);
+        $this->assertSame(1, $periode->refresh()->customKomponen()->count());
+
+        // Hapus custom dengan sync kosong + kembalikan wilker ke 5%.
+        $service->ubahPersen($periode->refresh(), ShuService::PERSEN_DEFAULT, $user->id, []);
+        $this->assertSame(0, $periode->refresh()->customKomponen()->count());
+
+        // 8 bawaan tetap utuh.
+        $this->assertEqualsWithDelta(1.0, $periode->refresh()->totalPersen(), 0.0001);
+        foreach (ShuPeriode::KOMPONEN as $kolom) {
+            $this->assertNotNull($periode->{$kolom});
+        }
+    }
 }
