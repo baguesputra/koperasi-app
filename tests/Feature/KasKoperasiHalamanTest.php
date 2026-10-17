@@ -228,4 +228,119 @@ class KasKoperasiHalamanTest extends TestCase
             $props['ringkasanPeriode']['total_masuk']
         );
     }
+
+    public function test_filter_tipe_mengisolasi_masuk_dan_keluar(): void
+    {
+        $user = $this->masuk('ADM-000001');
+        JurnalKas::create([
+            'tipe' => 'masuk',
+            'kategori' => 'topup_bulanan',
+            'kantong' => 'bank',
+            'jumlah' => 500_000,
+            'saldo_setelah' => 0,
+            'keterangan' => 'Topup uji tipe masuk',
+            'tanggal' => now(),
+            'created_by' => $user->id,
+        ]);
+        JurnalKas::create([
+            'tipe' => 'keluar',
+            'kategori' => 'pengeluaran_koperasi',
+            'kantong' => 'kas_kecil',
+            'jumlah' => 50_000,
+            'saldo_setelah' => 0,
+            'keterangan' => 'Pengeluaran uji tipe keluar',
+            'tanggal' => now(),
+            'created_by' => $user->id,
+        ]);
+
+        $masuk = $this->get(route('kas-koperasi.index', ['tipe' => 'masuk']))
+            ->assertOk()
+            ->viewData('page')['props'];
+        $this->assertContains('Topup uji tipe masuk', array_column($masuk['riwayat']['data'], 'keterangan'));
+        $this->assertNotContains('Pengeluaran uji tipe keluar', array_column($masuk['riwayat']['data'], 'keterangan'));
+        foreach ($masuk['riwayat']['data'] as $baris) {
+            $this->assertSame('masuk', $baris['tipe']);
+        }
+
+        $keluar = $this->get(route('kas-koperasi.index', ['tipe' => 'keluar']))
+            ->assertOk()
+            ->viewData('page')['props'];
+        $this->assertContains('Pengeluaran uji tipe keluar', array_column($keluar['riwayat']['data'], 'keterangan'));
+        $this->assertNotContains('Topup uji tipe masuk', array_column($keluar['riwayat']['data'], 'keterangan'));
+        foreach ($keluar['riwayat']['data'] as $baris) {
+            $this->assertSame('keluar', $baris['tipe']);
+        }
+    }
+
+    public function test_filter_tanggal_mengisolasi_satu_hari(): void
+    {
+        $user = $this->masuk('ADM-000001');
+        $hariIni = now()->format('Y-m-d');
+        $hariKemarin = now()->subDay()->format('Y-m-d');
+
+        JurnalKas::create([
+            'tipe' => 'masuk',
+            'kategori' => 'topup_bulanan',
+            'kantong' => 'bank',
+            'jumlah' => 500_000,
+            'saldo_setelah' => 0,
+            'keterangan' => 'Topup uji tanggal hari ini',
+            'tanggal' => $hariIni,
+            'created_by' => $user->id,
+        ]);
+        JurnalKas::create([
+            'tipe' => 'masuk',
+            'kategori' => 'topup_bulanan',
+            'kantong' => 'bank',
+            'jumlah' => 300_000,
+            'saldo_setelah' => 0,
+            'keterangan' => 'Topup uji tanggal kemarin',
+            'tanggal' => $hariKemarin,
+            'created_by' => $user->id,
+        ]);
+
+        $props = $this->get(route('kas-koperasi.index', ['tanggal' => $hariIni]))
+            ->assertOk()
+            ->viewData('page')['props'];
+
+        $this->assertSame($hariIni, $props['filters']['tanggal']);
+        $this->assertContains('Topup uji tanggal hari ini', array_column($props['riwayat']['data'], 'keterangan'));
+        $this->assertNotContains('Topup uji tanggal kemarin', array_column($props['riwayat']['data'], 'keterangan'));
+    }
+
+    public function test_ringkasan_per_tanggal_terkirim_dengan_total_masuk_keluar(): void
+    {
+        $user = $this->masuk('ADM-000001');
+        $tgl = now()->startOfMonth()->addDays(3)->format('Y-m-d');
+
+        JurnalKas::create([
+            'tipe' => 'masuk',
+            'kategori' => 'topup_bulanan',
+            'kantong' => 'bank',
+            'jumlah' => 500_000,
+            'saldo_setelah' => 0,
+            'keterangan' => 'Topup uji ringkasan tanggal',
+            'tanggal' => $tgl,
+            'created_by' => $user->id,
+        ]);
+        JurnalKas::create([
+            'tipe' => 'keluar',
+            'kategori' => 'pengeluaran_koperasi',
+            'kantong' => 'kas_kecil',
+            'jumlah' => 100_000,
+            'saldo_setelah' => 0,
+            'keterangan' => 'Pengeluaran uji ringkasan tanggal',
+            'tanggal' => $tgl,
+            'created_by' => $user->id,
+        ]);
+
+        $props = $this->get(route('kas-koperasi.index', ['tanggal' => $tgl]))
+            ->assertOk()
+            ->viewData('page')['props'];
+
+        $this->assertArrayHasKey('ringkasanPerTanggal', $props);
+        $this->assertArrayHasKey($tgl, $props['ringkasanPerTanggal']);
+        $this->assertGreaterThanOrEqual(500_000, $props['ringkasanPerTanggal'][$tgl]['masuk']);
+        $this->assertGreaterThanOrEqual(100_000, $props['ringkasanPerTanggal'][$tgl]['keluar']);
+    }
 }

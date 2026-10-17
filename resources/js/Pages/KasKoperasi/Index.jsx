@@ -72,6 +72,7 @@ export default function Index({
     filters = {},
     ringkasanPeriode,
     ringkasanKanal,
+    ringkasanPerTanggal,
     riwayat,
 }) {
     const { auth } = usePage().props;
@@ -80,6 +81,8 @@ export default function Index({
     const [showSisih, setShowSisih] = useState(false);
     const [cari, setCari] = useState(filters.cari ?? '');
     const cariDebounced = useDebouncedValue(cari);
+    const [tipe, setTipe] = useState(filters.tipe ?? '');
+    const [tanggal, setTanggal] = useState(filters.tanggal ?? '');
     const pertama = useRef(true);
 
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -98,7 +101,7 @@ export default function Index({
     function terapkan(overrides = {}) {
         router.get(
             route('kas-koperasi.index'),
-            { bulan: bulanFilter, kanal: filters.kanal ?? '', cari, ...overrides },
+            { bulan: bulanFilter, kanal: filters.kanal ?? '', cari, tipe, tanggal, ...overrides },
             { preserveState: true, replace: true }
         );
     }
@@ -111,6 +114,8 @@ export default function Index({
 
     function resetFilter() {
         setCari('');
+        setTipe('');
+        setTanggal('');
         router.get(route('kas-koperasi.index'), { bulan: bulanFilter }, { preserveState: true, replace: true });
     }
 
@@ -128,6 +133,14 @@ export default function Index({
         setCari(filters.cari ?? '');
     }, [filters.cari]);
 
+    useEffect(() => {
+        setTipe(filters.tipe ?? '');
+    }, [filters.tipe]);
+
+    useEffect(() => {
+        setTanggal(filters.tanggal ?? '');
+    }, [filters.tanggal]);
+
     const labelBulan = useMemo(() => {
         const [tahun, bulanAngka] = bulanFilter.split('-').map(Number);
         return new Date(tahun, bulanAngka - 1, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
@@ -135,14 +148,15 @@ export default function Index({
 
     const bulanIni = new Date();
     const kunciBulanIni = `${bulanIni.getFullYear()}-${String(bulanIni.getMonth() + 1).padStart(2, '0')}`;
-    const filterAktif = Boolean(filters.kanal || filters.cari);
+    const filterAktif = Boolean(filters.kanal || filters.cari || filters.tipe || filters.tanggal);
 
     // Kelompokkan baris per tanggal (riwayat sudah urut tanggal desc).
     const grupHari = useMemo(() => {
         const peta = new Map();
         for (const r of riwayat.data) {
-            if (!peta.has(r.tanggal)) peta.set(r.tanggal, { hari: r.hari, baris: [] });
-            peta.get(r.tanggal).baris.push(r);
+            const kunci = r.tanggalIso ?? r.tanggal;
+            if (!peta.has(kunci)) peta.set(kunci, { tanggal: r.tanggal, hari: r.hari, baris: [] });
+            peta.get(kunci).baris.push(r);
         }
         return [...peta.entries()];
     }, [riwayat.data]);
@@ -435,14 +449,37 @@ export default function Index({
 
             <Card padding="sm" className="shadow-md border-slate-200/70 mb-4">
                 <div className="flex flex-col md:flex-row md:items-center gap-2 pb-3 mb-1 border-b border-slate-100">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 flex-1">
+                    <div className="grid grid-cols-2 md:grid-cols-12 gap-2 flex-1">
                         <Select size="sm" value={filters.kanal ?? ''} onChange={(e) => terapkan({ kanal: e.target.value })} aria-label="Filter akun kas" className={fokusRing}>
                             <option value="">Semua akun kas</option>
                             {Object.entries(kanalMeta).map(([key, meta]) => (
                                 <option key={key} value={key}>{meta.label}</option>
                             ))}
                         </Select>
-                        <div className="flex items-center rounded-xl border border-slate-300 bg-white overflow-hidden">
+                        <div className="md:col-span-2 flex items-center gap-1">
+                            <button
+                                onClick={() => { setTipe(''); terapkan(); }}
+                                aria-label="Filter semua tipe"
+                                className={`px-2 py-2 rounded-lg text-xs font-medium transition-colors shrink-0 ${tipe === '' ? 'bg-brand-green-light text-brand-green-dark' : 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-50'}`}
+                            >
+                                Semua
+                            </button>
+                            <button
+                                onClick={() => { setTipe('masuk'); terapkan(); }}
+                                aria-label="Filter pemasukan"
+                                className={`px-2 py-2 rounded-lg text-xs font-medium transition-colors shrink-0 ${tipe === 'masuk' ? 'bg-emerald-100 text-emerald-700' : 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-50'}`}
+                            >
+                                Masuk
+                            </button>
+                            <button
+                                onClick={() => { setTipe('keluar'); terapkan(); }}
+                                aria-label="Filter pengeluaran"
+                                className={`px-2 py-2 rounded-lg text-xs font-medium transition-colors shrink-0 ${tipe === 'keluar' ? 'bg-red-50 text-red-700' : 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-50'}`}
+                            >
+                                Keluar
+                            </button>
+                        </div>
+                        <div className="md:col-span-3 flex items-center rounded-xl border border-slate-300 bg-white overflow-hidden">
                             <button onClick={() => geserBulan(-1)} aria-label="Bulan sebelumnya" className={`px-2 py-2.5 text-slate-500 hover:text-slate-700 ${fokusRing}`}>
                                 <ChevronLeft size={16} />
                             </button>
@@ -457,7 +494,17 @@ export default function Index({
                                 <ChevronRight size={16} />
                             </button>
                         </div>
-                        <div className="relative col-span-2 md:col-span-2">
+                        <div className="md:col-span-2 flex items-center rounded-xl border border-slate-300 bg-white overflow-hidden">
+                            <CalendarDays size={16} className="text-slate-400 shrink-0" />
+                            <input
+                                type="date"
+                                value={tanggal}
+                                onChange={(e) => { setTanggal(e.target.value); terapkan(); }}
+                                aria-label="Pilih tanggal"
+                                className="w-full px-1 py-2.5 text-base text-slate-700 border-x border-slate-200 bg-transparent focus:outline-none pl-6"
+                            />
+                        </div>
+                        <div className="relative col-span-full md:col-span-2">
                             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                             <TextField
                                 size="sm"
@@ -521,12 +568,17 @@ export default function Index({
                     </div>
                 ) : (
                     <ul className="divide-y divide-slate-50">
-                        {grupHari.map(([tanggal, grup]) => (
-                            <li key={tanggal} className="pt-3 first:pt-1">
+                        {grupHari.map(([tanggalIso, grup]) => (
+                            <li key={tanggalIso} className="pt-3 first:pt-1">
                                 <div className="flex items-baseline gap-2 px-1 pb-1.5">
-                                    <p className="text-sm font-bold text-slate-700">{tanggal}</p>
+                                    <p className="text-sm font-bold text-slate-700">{grup.tanggal}</p>
                                     <p className="text-xs text-slate-400">{grup.hari}</p>
                                     <p className="text-xs text-slate-400 ml-auto tabular-nums">{grup.baris.length} mutasi</p>
+                                </div>
+                                <div className="flex items-center gap-3 px-1 pb-1 text-xs">
+                                    <span className="text-emerald-600 font-semibold">+{formatRupiah(ringkasanPerTanggal[tanggalIso]?.masuk ?? 0)}</span>
+                                    <span className="text-red-600 font-semibold">-{formatRupiah(ringkasanPerTanggal[tanggalIso]?.keluar ?? 0)}</span>
+                                    <span className="ml-auto text-slate-500">Saldo {formatRupiah((ringkasanPerTanggal[tanggalIso]?.masuk ?? 0) - (ringkasanPerTanggal[tanggalIso]?.keluar ?? 0))}</span>
                                 </div>
                                 <ul className="border-t border-slate-100/70">
                                     {grup.baris.map((r) => (

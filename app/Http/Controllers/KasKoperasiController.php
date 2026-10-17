@@ -27,6 +27,8 @@ class KasKoperasiController extends Controller
         $kas = KasKoperasi::firstOrFail();
         $bulanFilter = $request->input('bulan', now()->format('Y-m'));
         $kanalFilter = (string) $request->input('kanal', '');
+        $tipeFilter = (string) $request->input('tipe', '');
+        $tanggalFilter = (string) $request->input('tanggal', '');
         $cari = trim((string) $request->input('cari', ''));
 
         $query = JurnalKas::query();
@@ -48,6 +50,14 @@ class KasKoperasiController extends Controller
             $query = $this->denganFilterKanal($query, $kanalFilter);
         }
 
+        if (in_array($tipeFilter, ['masuk', 'keluar'], true)) {
+            $query->where('tipe', $tipeFilter);
+        }
+
+        if ($tanggalFilter && preg_match('/^\d{4}-\d{2}-\d{2}$/', $tanggalFilter)) {
+            $query->whereDate('tanggal', $tanggalFilter);
+        }
+
         $riwayat = (clone $query)->latest('tanggal')->latest('id')
             ->paginate(20)
             ->withQueryString()
@@ -63,6 +73,7 @@ class KasKoperasiController extends Controller
                 'keterangan' => $j->keterangan,
                 'sub_judul' => $j->sub_judul,
                 'tanggal' => $j->tanggal->format('d M Y'),
+                'tanggalIso' => $j->tanggal->format('Y-m-d'),
                 'hari' => $j->tanggal->translatedFormat('l'),
                 'rute_asal' => $this->ruteAsal($j),
             ]);
@@ -87,16 +98,32 @@ class KasKoperasiController extends Controller
             $ringkasanKanal[$kanal][$row->tipe] += $total;
         }
 
+        // 1 query agregat GROUP BY per tanggal + tipe untuk ringkasan harian.
+        $agregatTanggal = (clone $query)
+            ->selectRaw('DATE(tanggal) as tanggal_hari, tipe, SUM(jumlah) as total')
+            ->groupBy('tanggal_hari', 'tipe')
+            ->get();
+
+        $ringkasanPerTanggal = [];
+        foreach ($agregatTanggal as $row) {
+            $tgl = $row->tanggal_hari;
+            if (! isset($ringkasanPerTanggal[$tgl])) {
+                $ringkasanPerTanggal[$tgl] = ['masuk' => 0.0, 'keluar' => 0.0];
+            }
+            $ringkasanPerTanggal[$tgl][$row->tipe] = (float) $row->total;
+        }
+
         return Inertia::render('KasKoperasi/Index', [
             'saldoBank' => (float) $kas->saldo_bank,
             'saldoKasKecil' => (float) $kas->saldo_kas_kecil,
             'bulanFilter' => $bulanFilter,
-            'filters' => ['kanal' => $kanalFilter, 'cari' => $cari],
+            'filters' => ['kanal' => $kanalFilter, 'cari' => $cari, 'tipe' => $tipeFilter, 'tanggal' => $tanggalFilter],
             'ringkasanPeriode' => [
                 'total_masuk' => $totalMasuk,
                 'total_keluar' => $totalKeluar,
             ],
             'ringkasanKanal' => $ringkasanKanal,
+            'ringkasanPerTanggal' => $ringkasanPerTanggal,
             'riwayat' => $riwayat,
         ]);
     }
