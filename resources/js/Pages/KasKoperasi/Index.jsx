@@ -84,6 +84,7 @@ export default function Index({
     const cariDebounced = useDebouncedValue(cari);
     const [tipe, setTipe] = useState(filters.tipe ?? '');
     const [tanggal, setTanggal] = useState(filters.tanggal ?? '');
+    const [memuatFilter, setMemuatFilter] = useState(false);
     const pertama = useRef(true);
 
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -100,24 +101,75 @@ export default function Index({
     });
 
     function terapkan(overrides = {}) {
+        const params = {
+            bulan: bulanFilter,
+            kanal: filters.kanal ?? '',
+            cari,
+            tipe,
+            tanggal,
+            ...overrides,
+        };
+
+        Object.keys(params).forEach((k) => {
+            if (params[k] === null || params[k] === undefined) {
+                delete params[k];
+            }
+        });
+
         router.get(
             route('kas-koperasi.index'),
-            { bulan: bulanFilter, kanal: filters.kanal ?? '', cari, tipe, tanggal, ...overrides },
-            { preserveState: true, replace: true }
+            params,
+            {
+                preserveState: true,
+                replace: true,
+                onStart: () => setMemuatFilter(true),
+                onFinish: () => setMemuatFilter(false),
+            }
         );
+    }
+
+    function handlePilihTipe(tipeBaru) {
+        setTipe(tipeBaru);
+        terapkan({ tipe: tipeBaru });
+    }
+
+    function handlePilihTanggal(tanggalBaru) {
+        setTanggal(tanggalBaru);
+        const overrides = { tanggal: tanggalBaru };
+        if (tanggalBaru && tanggalBaru.length >= 7) {
+            overrides.bulan = tanggalBaru.slice(0, 7);
+        }
+        terapkan(overrides);
+    }
+
+    function handleHapusTanggal() {
+        setTanggal('');
+        terapkan({ tanggal: '' });
     }
 
     function geserBulan(delta) {
         const [tahun, bulanAngka] = bulanFilter.split('-').map(Number);
         const d = new Date(tahun, bulanAngka - 1 + delta, 1);
-        terapkan({ bulan: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` });
+        terapkan({
+            bulan: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+            tanggal: '',
+        });
     }
 
     function resetFilter() {
         setCari('');
         setTipe('');
         setTanggal('');
-        router.get(route('kas-koperasi.index'), { bulan: bulanFilter }, { preserveState: true, replace: true });
+        router.get(
+            route('kas-koperasi.index'),
+            { bulan: bulanFilter },
+            {
+                preserveState: true,
+                replace: true,
+                onStart: () => setMemuatFilter(true),
+                onFinish: () => setMemuatFilter(false),
+            }
+        );
     }
 
     useEffect(() => {
@@ -459,21 +511,24 @@ export default function Index({
                         </Select>
                         <div className="md:col-span-2 flex items-center gap-1">
                             <button
-                                onClick={() => { setTipe(''); terapkan(); }}
+                                type="button"
+                                onClick={() => handlePilihTipe('')}
                                 aria-label="Filter semua tipe"
                                 className={`px-2 py-2 rounded-lg text-xs font-medium transition-colors shrink-0 ${tipe === '' ? 'bg-brand-green-light text-brand-green-dark' : 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-50'}`}
                             >
                                 Semua
                             </button>
                             <button
-                                onClick={() => { setTipe('masuk'); terapkan(); }}
+                                type="button"
+                                onClick={() => handlePilihTipe('masuk')}
                                 aria-label="Filter pemasukan"
                                 className={`px-2 py-2 rounded-lg text-xs font-medium transition-colors shrink-0 ${tipe === 'masuk' ? 'bg-emerald-100 text-emerald-700' : 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-50'}`}
                             >
                                 Masuk
                             </button>
                             <button
-                                onClick={() => { setTipe('keluar'); terapkan(); }}
+                                type="button"
+                                onClick={() => handlePilihTipe('keluar')}
                                 aria-label="Filter pengeluaran"
                                 className={`px-2 py-2 rounded-lg text-xs font-medium transition-colors shrink-0 ${tipe === 'keluar' ? 'bg-red-50 text-red-700' : 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-50'}`}
                             >
@@ -481,29 +536,39 @@ export default function Index({
                             </button>
                         </div>
                         <div className="md:col-span-3 flex items-center rounded-xl border border-slate-300 bg-white overflow-hidden">
-                            <button onClick={() => geserBulan(-1)} aria-label="Bulan sebelumnya" className={`px-2 py-2.5 text-slate-500 hover:text-slate-700 ${fokusRing}`}>
+                            <button type="button" onClick={() => geserBulan(-1)} aria-label="Bulan sebelumnya" className={`px-2 py-2.5 text-slate-500 hover:text-slate-700 ${fokusRing}`}>
                                 <ChevronLeft size={16} />
                             </button>
                             <input
                                 type="month"
                                 value={bulanFilter}
-                                onChange={(e) => e.target.value && terapkan({ bulan: e.target.value })}
+                                onChange={(e) => e.target.value && terapkan({ bulan: e.target.value, tanggal: '' })}
                                 aria-label="Pilih bulan"
                                 className="w-full px-1 py-2.5 text-base text-slate-700 border-x border-slate-200 bg-transparent focus:outline-none"
                             />
-                            <button onClick={() => geserBulan(1)} aria-label="Bulan berikutnya" className={`px-2 py-2.5 text-slate-500 hover:text-slate-700 ${fokusRing}`}>
+                            <button type="button" onClick={() => geserBulan(1)} aria-label="Bulan berikutnya" className={`px-2 py-2.5 text-slate-500 hover:text-slate-700 ${fokusRing}`}>
                                 <ChevronRight size={16} />
                             </button>
                         </div>
-                        <div className="md:col-span-2 flex items-center rounded-xl border border-slate-300 bg-white overflow-hidden">
-                            <CalendarDays size={16} className="text-slate-400 shrink-0" />
+                        <div className="relative md:col-span-2 flex items-center rounded-xl border border-slate-300 bg-white overflow-hidden">
+                            <CalendarDays size={16} className="text-slate-400 shrink-0 ml-2 pointer-events-none" />
                             <input
                                 type="date"
                                 value={tanggal}
-                                onChange={(e) => { setTanggal(e.target.value); terapkan(); }}
+                                onChange={(e) => handlePilihTanggal(e.target.value)}
                                 aria-label="Pilih tanggal"
-                                className="w-full px-1 py-2.5 text-base text-slate-700 border-x border-slate-200 bg-transparent focus:outline-none pl-6"
+                                className="w-full px-1 py-2.5 text-base text-slate-700 bg-transparent focus:outline-none pl-2 pr-7"
                             />
+                            {tanggal && (
+                                <button
+                                    type="button"
+                                    onClick={handleHapusTanggal}
+                                    aria-label="Hapus filter tanggal"
+                                    className="absolute right-2 text-slate-400 hover:text-slate-600 p-0.5"
+                                >
+                                    <X size={14} />
+                                </button>
+                            )}
                         </div>
                         <div className="relative col-span-full md:col-span-2">
                             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
@@ -547,81 +612,83 @@ export default function Index({
                         Mutasi kas <span className="font-bold text-slate-800">{labelBulan}</span>
                     </p>
                 </div>
-                {riwayat.data.length === 0 ? (
-                    <div className="text-center py-12 px-4">
-                        <Wallet size={28} aria-hidden="true" className="mx-auto text-slate-300 mb-3" />
-                        <p className="text-sm font-semibold text-slate-600">
-                            Belum ada mutasi kas untuk {labelBulan}.
-                        </p>
-                        {filterAktif && (
-                            <Button type="button" variant="outline" size="sm" className="mt-3 rounded-full" onClick={resetFilter}>
-                                Tampilkan semua
-                            </Button>
-                        )}
-                        {bisaTopup && !filterAktif && bulanFilter === kunciBulanIni && (
-                            <div className="mt-3">
-                                <Button type="button" size="sm" className="rounded-full" onClick={() => setShowForm(true)}>
-                                    <Plus size={16} aria-hidden="true" />
-                                    Topup Bank
+                <div className={`transition-opacity duration-150 ${memuatFilter ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+                    {riwayat.data.length === 0 ? (
+                        <div className="text-center py-12 px-4">
+                            <Wallet size={28} aria-hidden="true" className="mx-auto text-slate-300 mb-3" />
+                            <p className="text-sm font-semibold text-slate-600">
+                                Belum ada mutasi kas untuk {labelBulan}.
+                            </p>
+                            {filterAktif && (
+                                <Button type="button" variant="outline" size="sm" className="mt-3 rounded-full" onClick={resetFilter}>
+                                    Tampilkan semua
                                 </Button>
-                            </div>
-                        )}
-                    </div>
-                ) : (
-                    <ul className="divide-y divide-slate-50">
-                        {grupHari.map(([tanggalIso, grup]) => (
-                            <li key={tanggalIso} className="pt-3 first:pt-1">
-                                <div className="flex items-baseline gap-2 px-1 pb-1.5">
-                                    <p className="text-sm font-bold text-slate-700">{grup.tanggal}</p>
-                                    <p className="text-xs text-slate-400">{grup.hari}</p>
-                                    <p className="text-xs text-slate-400 ml-auto tabular-nums">{grup.baris.length} mutasi</p>
+                            )}
+                            {bisaTopup && !filterAktif && bulanFilter === kunciBulanIni && (
+                                <div className="mt-3">
+                                    <Button type="button" size="sm" className="rounded-full" onClick={() => setShowForm(true)}>
+                                        <Plus size={16} aria-hidden="true" />
+                                        Topup Bank
+                                    </Button>
                                 </div>
-                                <div className="flex items-center gap-3 px-1 pb-1 text-xs">
-                                    <span className="text-emerald-600 font-semibold">+{formatRupiah(ringkasanPerTanggal[tanggalIso]?.masuk ?? 0)}</span>
-                                    <span className="text-red-600 font-semibold">-{formatRupiah(ringkasanPerTanggal[tanggalIso]?.keluar ?? 0)}</span>
-                                    <span className="ml-auto text-slate-500">Saldo {formatRupiah((ringkasanPerTanggal[tanggalIso]?.masuk ?? 0) - (ringkasanPerTanggal[tanggalIso]?.keluar ?? 0))}</span>
-                                </div>
-                                <ul className="border-t border-slate-100/70">
-                                    {grup.baris.map((r) => (
-                                        <li key={r.id} className="flex items-center gap-3 px-1 py-3 hover:bg-gradient-to-r hover:from-slate-50 hover:to-transparent rounded-xl transition-all">
-                                            {r.tipe === 'masuk' ? (
-                                                <ArrowDownCircle size={22} aria-hidden="true" className="text-brand-green shrink-0" />
-                                            ) : (
-                                                <ArrowUpCircle size={22} aria-hidden="true" className="text-red-500 shrink-0" />
-                                            )}
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2 flex-wrap">
-                                                    <p className="text-sm font-semibold text-slate-700">
-                                                        {labelKategori(r)}
-                                                    </p>
-                                                    {tampilBadge(r)}
-                                                </div>
-                                                {r.sub_judul && (
-                                                    <p className="text-xs italic text-slate-500 mt-0.5 truncate" title={r.sub_judul}>{r.sub_judul}</p>
+                            )}
+                        </div>
+                    ) : (
+                        <ul className="divide-y divide-slate-50">
+                            {grupHari.map(([tanggalIso, grup]) => (
+                                <li key={tanggalIso} className="pt-3 first:pt-1">
+                                    <div className="flex items-baseline gap-2 px-1 pb-1.5">
+                                        <p className="text-sm font-bold text-slate-700">{grup.tanggal}</p>
+                                        <p className="text-xs text-slate-400">{grup.hari}</p>
+                                        <p className="text-xs text-slate-400 ml-auto tabular-nums">{grup.baris.length} mutasi</p>
+                                    </div>
+                                    <div className="flex items-center gap-3 px-1 pb-1 text-xs">
+                                        <span className="text-emerald-600 font-semibold">+{formatRupiah(ringkasanPerTanggal[tanggalIso]?.masuk ?? 0)}</span>
+                                        <span className="text-red-600 font-semibold">-{formatRupiah(ringkasanPerTanggal[tanggalIso]?.keluar ?? 0)}</span>
+                                        <span className="ml-auto text-slate-500">Saldo {formatRupiah((ringkasanPerTanggal[tanggalIso]?.masuk ?? 0) - (ringkasanPerTanggal[tanggalIso]?.keluar ?? 0))}</span>
+                                    </div>
+                                    <ul className="border-t border-slate-100/70">
+                                        {grup.baris.map((r) => (
+                                            <li key={r.id} className="flex items-center gap-3 px-1 py-3 hover:bg-gradient-to-r hover:from-slate-50 hover:to-transparent rounded-xl transition-all">
+                                                {r.tipe === 'masuk' ? (
+                                                    <ArrowDownCircle size={22} aria-hidden="true" className="text-brand-green shrink-0" />
+                                                ) : (
+                                                    <ArrowUpCircle size={22} aria-hidden="true" className="text-red-500 shrink-0" />
                                                 )}
-                                                <div className="flex items-center gap-2 mt-0.5">
-                                                    {r.keterangan && (
-                                                        <p className="text-xs text-slate-400 truncate" title={r.keterangan}>{r.keterangan}</p>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <p className="text-sm font-semibold text-slate-700">
+                                                            {labelKategori(r)}
+                                                        </p>
+                                                        {tampilBadge(r)}
+                                                    </div>
+                                                    {r.sub_judul && (
+                                                        <p className="text-xs italic text-slate-500 mt-0.5 truncate" title={r.sub_judul}>{r.sub_judul}</p>
                                                     )}
-                                                    {barisRuteAsal(r)}
+                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                        {r.keterangan && (
+                                                            <p className="text-xs text-slate-400 truncate" title={r.keterangan}>{r.keterangan}</p>
+                                                        )}
+                                                        {barisRuteAsal(r)}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div className="text-right shrink-0 pl-2">
-                                                <p className={`text-sm font-bold whitespace-nowrap tabular-nums ${r.tipe === 'masuk' ? 'text-brand-green-dark' : 'text-red-600'}`}>
-                                                    <span className="sr-only">{r.tipe === 'masuk' ? 'Masuk' : 'Keluar'} </span>
-                                                    <span aria-hidden="true">{r.tipe === 'masuk' ? '+' : '-'} {formatRupiah(r.jumlah)}</span>
-                                                </p>
-                                                <p className="text-[11px] text-slate-400 whitespace-nowrap tabular-nums">
-                                                    {`${r.kanal === 'bank' ? 'Saldo Bank' : 'Saldo Kas'}: ${formatRupiah(r.saldo_setelah)}`}
-                                                </p>
-                                            </div>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </li>
-                        ))}
-                    </ul>
-                )}
+                                                <div className="text-right shrink-0 pl-2">
+                                                    <p className={`text-sm font-bold whitespace-nowrap tabular-nums ${r.tipe === 'masuk' ? 'text-brand-green-dark' : 'text-red-600'}`}>
+                                                        <span className="sr-only">{r.tipe === 'masuk' ? 'Masuk' : 'Keluar'} </span>
+                                                        <span aria-hidden="true">{r.tipe === 'masuk' ? '+' : '-'} {formatRupiah(r.jumlah)}</span>
+                                                    </p>
+                                                    <p className="text-[11px] text-slate-400 whitespace-nowrap tabular-nums">
+                                                        {`${r.kanal === 'bank' ? 'Saldo Bank' : 'Saldo Kas'}: ${formatRupiah(r.saldo_setelah)}`}
+                                                    </p>
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
             </Card>
 
             <Pagination links={riwayat.links} />

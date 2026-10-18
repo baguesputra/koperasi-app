@@ -25,15 +25,22 @@ class KasKoperasiController extends Controller
     public function index(Request $request): Response
     {
         $kas = KasKoperasi::firstOrFail();
-        $bulanFilter = $request->input('bulan', now()->format('Y-m'));
+        $bulanFilter = (string) $request->input('bulan', now()->format('Y-m'));
         $kanalFilter = (string) $request->input('kanal', '');
         $tipeFilter = (string) $request->input('tipe', '');
         $tanggalFilter = (string) $request->input('tanggal', '');
         $cari = trim((string) $request->input('cari', ''));
 
+        // Jika filter tanggal diisi, selaraskan bulanFilter dengan bulan dari tanggal tersebut
+        if ($tanggalFilter && preg_match('/^\d{4}-\d{2}-\d{2}$/', $tanggalFilter)) {
+            $bulanFilter = substr($tanggalFilter, 0, 7);
+        }
+
         $query = JurnalKas::query();
 
-        if ($bulanFilter && preg_match('/^\d{4}-\d{2}$/', $bulanFilter)) {
+        if ($tanggalFilter && preg_match('/^\d{4}-\d{2}-\d{2}$/', $tanggalFilter)) {
+            $query->whereBetween('tanggal', ["{$tanggalFilter} 00:00:00", "{$tanggalFilter} 23:59:59"]);
+        } elseif ($bulanFilter && preg_match('/^\d{4}-\d{2}$/', $bulanFilter)) {
             $awal = Carbon::createFromFormat('Y-m', $bulanFilter)->startOfMonth()->startOfDay()->toDateTimeString();
             $akhir = Carbon::createFromFormat('Y-m', $bulanFilter)->endOfMonth()->endOfDay()->toDateTimeString();
             $query->whereBetween('tanggal', [$awal, $akhir]);
@@ -52,10 +59,6 @@ class KasKoperasiController extends Controller
 
         if (in_array($tipeFilter, ['masuk', 'keluar'], true)) {
             $query->where('tipe', $tipeFilter);
-        }
-
-        if ($tanggalFilter && preg_match('/^\d{4}-\d{2}-\d{2}$/', $tanggalFilter)) {
-            $query->whereDate('tanggal', $tanggalFilter);
         }
 
         $riwayat = (clone $query)->latest('tanggal')->latest('id')
@@ -98,19 +101,29 @@ class KasKoperasiController extends Controller
             $ringkasanKanal[$kanal][$row->tipe] += $total;
         }
 
-        // 1 query agregat GROUP BY per tanggal + tipe untuk ringkasan harian.
-        $agregatTanggal = (clone $query)
-            ->selectRaw('DATE(tanggal) as tanggal_hari, tipe, SUM(jumlah) as total')
-            ->groupBy('tanggal_hari', 'tipe')
-            ->get();
+        // Hitung agregat harian HANYA untuk tanggal yang ada di halaman aktif ($riwayat)
+        $tanggalDiHalaman = collect($riwayat->items())->pluck('tanggalIso')->unique()->values();
 
         $ringkasanPerTanggal = [];
-        foreach ($agregatTanggal as $row) {
-            $tgl = $row->tanggal_hari;
-            if (! isset($ringkasanPerTanggal[$tgl])) {
-                $ringkasanPerTanggal[$tgl] = ['masuk' => 0.0, 'keluar' => 0.0];
+        if ($tanggalDiHalaman->isNotEmpty()) {
+            $agregatTanggal = (clone $query)
+                ->where(function ($q) use ($tanggalDiHalaman) {
+                    foreach ($tanggalDiHalaman as $tgl) {
+                        $q->orWhereBetween('tanggal', ["{$tgl} 00:00:00", "{$tgl} 23:59:59"]);
+                    }
+                })
+                ->selectRaw('DATE(tanggal) as tanggal_hari, tipe, SUM(jumlah) as total')
+                ->groupBy('tanggal_hari', 'tipe')
+                ->get();
+
+            foreach ($agregatTanggal as $row) {
+                $tgl = (string) $row->tanggal_hari;
+                $kunciTgl = substr($tgl, 0, 10);
+                if (! isset($ringkasanPerTanggal[$kunciTgl])) {
+                    $ringkasanPerTanggal[$kunciTgl] = ['masuk' => 0.0, 'keluar' => 0.0];
+                }
+                $ringkasanPerTanggal[$kunciTgl][$row->tipe] = (float) $row->total;
             }
-            $ringkasanPerTanggal[$tgl][$row->tipe] = (float) $row->total;
         }
 
         return Inertia::render('KasKoperasi/Index', [
