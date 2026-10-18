@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exports\ArrayExport;
 use App\Models\Anggota;
 use App\Models\ShuDetail;
+use App\Models\ShuKomponenPembayaran;
 use App\Models\ShuPeriode;
 use App\Services\Keuangan\ShuService;
 use Illuminate\Http\Request;
@@ -168,6 +169,7 @@ class ShuController extends Controller
                 'diajukan_at' => $shu->diajukan_at?->format('d M Y H:i'),
             ],
             'ringkasan' => $this->service->ringkasan($shu),
+            'komponen_bayar' => $this->service->daftarPembayaranKomponen($shu),
             'detail' => $detail,
             'daftarAnggota' => Anggota::where('status', 'aktif')->orderBy('nama')->get(['id', 'nama', 'no_karyawan', 'cabang']),
             'sums' => [
@@ -299,6 +301,38 @@ class ShuController extends Controller
         }
 
         return back()->with('status', "{$n} SHU anggota dibayar.");
+    }
+
+    public function bayarKomponen(Request $request, ShuKomponenPembayaran $bayar)
+    {
+        $data = $request->validate([
+            'akun' => ['required', 'in:bank,kas_kecil'],
+            'tanggal' => ['required', 'date'],
+        ]);
+
+        try {
+            $this->service->bayarKomponen($bayar, $data['akun'], $data['tanggal'], auth()->id());
+        } catch (RuntimeException $e) {
+            return back()->withErrors(['bayar' => $e->getMessage()]);
+        }
+
+        return back()->with('status', "Pembayaran {$bayar->nama_komponen} berhasil dicatat di kas koperasi.");
+    }
+
+    public function bayarSemuaKomponen(Request $request, ShuPeriode $shu)
+    {
+        $data = $request->validate([
+            'akun' => ['required', 'in:bank,kas_kecil'],
+            'tanggal' => ['required', 'date'],
+        ]);
+
+        try {
+            $n = $this->service->bayarSemuaKomponen($shu, $data['akun'], $data['tanggal'], auth()->id());
+        } catch (RuntimeException $e) {
+            return back()->withErrors(['bayar' => $e->getMessage()]);
+        }
+
+        return back()->with('status', "{$n} komponen SHU berhasil dibayar dan dicatat di kas koperasi.");
     }
 
     public function export(ShuPeriode $shu)

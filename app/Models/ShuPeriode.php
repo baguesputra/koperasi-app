@@ -84,6 +84,12 @@ class ShuPeriode extends Model
         return $this->hasMany(ShuKomponen::class, 'shu_periode_id')->orderBy('label');
     }
 
+    /** Pelacakan pembayaran komponen SHU non-anggota (pengurus, pengawas, dana alokasi, custom). */
+    public function pembayaranKomponen(): HasMany
+    {
+        return $this->hasMany(ShuKomponenPembayaran::class, 'shu_periode_id');
+    }
+
     public function finalisator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'finalized_by');

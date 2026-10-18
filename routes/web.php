@@ -337,8 +337,10 @@ Route::middleware(['auth', 'permission:shu.kelola'])->prefix('shu')->name('shu.'
     Route::post('/{shu}/ajukan', [ShuController::class, 'ajukan'])->name('ajukan')->middleware('idempotent');
     Route::post('/{shu}/kembalikan', [ShuController::class, 'kembalikan'])->name('kembalikan')->middleware('idempotent');
     Route::post('/{shu}/bayar-semua', [ShuController::class, 'bayarSemua'])->name('bayar-semua')->middleware('idempotent');
+    Route::post('/{shu}/bayar-semua-komponen', [ShuController::class, 'bayarSemuaKomponen'])->name('bayar-semua-komponen')->middleware('idempotent');
     Route::get('/{shu}/export', [ShuController::class, 'export'])->name('export');
     Route::post('/detail/{detail}/bayar', [ShuController::class, 'bayar'])->name('detail.bayar')->middleware('idempotent');
+    Route::post('/komponen-bayar/{bayar}', [ShuController::class, 'bayarKomponen'])->name('komponen.bayar')->middleware('idempotent');
 });
 
 Route::middleware(['auth', 'permission:migrasi.kelola'])->prefix('migrasi')->name('migrasi.')->group(function () {

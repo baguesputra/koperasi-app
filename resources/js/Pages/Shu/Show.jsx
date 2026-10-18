@@ -26,7 +26,7 @@ const BADGE = {
     final: 'bg-brand-green-light text-brand-green-dark',
 };
 
-export default function Show({ periode, ringkasan, detail, sums = {}, daftarAnggota = [], filters = {} }) {
+export default function Show({ periode, ringkasan, detail, sums = {}, daftarAnggota = [], filters = {}, komponen_bayar = [] }) {
     const tabAwal = typeof window !== 'undefined'
         ? new URLSearchParams(window.location.search).get('tab')
         : null;
@@ -206,6 +206,7 @@ export default function Show({ periode, ringkasan, detail, sums = {}, daftarAngg
                     <BayarTab
                         periode={periode}
                         ringkasan={ringkasan}
+                        komponenBayar={komponen_bayar}
                         akun={bayarAkun}
                         setAkun={setBayarAkun}
                         tanggal={bayarTanggal}

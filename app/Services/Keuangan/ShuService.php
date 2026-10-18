@@ -7,9 +7,11 @@ use App\Models\Anggota;
 use App\Models\AuditLog;
 use App\Models\Pinjaman;
 use App\Models\ShuDetail;
+use App\Models\ShuKomponenPembayaran;
 use App\Models\ShuPeriode;
 use App\Models\Simpanan;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -215,6 +217,14 @@ class ShuService
         // Tak dibagi = sisa total (cadangan + pendidikan + sosial + wilker + semua custom).
         $danaTakDibagi = round((float) $periode->total_shu - $danaDibagi, 2);
 
+        $komponenBayar = $periode->relationLoaded('pembayaranKomponen')
+            ? $periode->pembayaranKomponen
+            : $periode->pembayaranKomponen()->get();
+        $totalNominalKomponen = (float) $komponenBayar->sum('nominal');
+        $terbayarKomponen = (float) $komponenBayar->where('status_bayar', 'sudah')->sum('nominal');
+        $sudahBayarKomponen = (int) $komponenBayar->where('status_bayar', 'sudah')->count();
+        $jumlahKomponenBayar = (int) $komponenBayar->count();
+
         return [
             'komponen' => $komponen,
             'custom' => $periode->daftarCustom(),
@@ -230,6 +240,10 @@ class ShuService
             'belum_diserahkan' => $belumDiserahkan,
             'sudah_bayar' => (int) ($agregat->sudah_bayar ?? 0),
             'terbayar' => (float) ($agregat->terbayar ?? 0),
+            'total_komponen_bayar' => $totalNominalKomponen,
+            'terbayar_komponen' => $terbayarKomponen,
+            'sudah_bayar_komponen' => $sudahBayarKomponen,
+            'jumlah_komponen_bayar' => $jumlahKomponenBayar,
         ];
     }
 
@@ -267,6 +281,8 @@ class ShuService
             'finalized_by' => $userId,
             'finalized_at' => now(),
         ]);
+
+        $this->syncPembayaranKomponen($periode);
 
         AuditLog::catat(
             aksi: 'shu_difinalisasi',
@@ -348,6 +364,197 @@ class ShuService
             });
 
         return $n;
+    }
+
+    /**
+     * Sinkronisasi komponen SHU yang dibayarkan kasnya (non-anggota).
+     * Cadangan dikecualikan karena memupuk modal sendiri (uang mengendap di kas koperasi).
+     */
+    public function syncPembayaranKomponen(ShuPeriode $periode): Collection
+    {
+        $komponen = $periode->nominalKomponen();
+        $periode->loadMissing('customKomponen');
+
+        $target = [
+            'pengurus' => [
+                'nama' => 'Jasa Pengurus Koperasi',
+                'nominal' => (float) ($komponen['pengurus'] ?? 0),
+                'rincian' => $periode->pengurus_rincian ?? [],
+            ],
+            'pengawas' => [
+                'nama' => 'Jasa Pengawas',
+                'nominal' => (float) ($komponen['pengawas'] ?? 0),
+                'rincian' => $periode->pengawas_rincian ?? [],
+            ],
+            'pendidikan' => [
+                'nama' => 'Dana Pendidikan',
+                'nominal' => (float) ($komponen['pendidikan'] ?? 0),
+                'rincian' => null,
+            ],
+            'sosial' => [
+                'nama' => 'Dana Sosial',
+                'nominal' => (float) ($komponen['sosial'] ?? 0),
+                'rincian' => null,
+            ],
+            'wilker' => [
+                'nama' => 'Dana Wilayah Kerja',
+                'nominal' => (float) ($komponen['wilker'] ?? 0),
+                'rincian' => null,
+            ],
+        ];
+
+        foreach ($periode->customKomponen as $c) {
+            $target[$c->slug] = [
+                'nama' => $c->label,
+                'nominal' => (float) ($komponen[$c->slug] ?? 0),
+                'rincian' => null,
+            ];
+        }
+
+        DB::transaction(function () use ($periode, $target) {
+            $existing = $periode->pembayaranKomponen()->get()->keyBy('kode_komponen');
+
+            // Hapus yang tidak ada di target jika belum dibayar
+            foreach ($existing as $kode => $row) {
+                if (! isset($target[$kode]) && $row->status_bayar !== 'sudah') {
+                    $row->delete();
+                }
+            }
+
+            foreach ($target as $kode => $data) {
+                if ($data['nominal'] <= 0 && ! isset($existing[$kode])) {
+                    continue;
+                }
+
+                if (isset($existing[$kode])) {
+                    $row = $existing[$kode];
+                    if ($row->status_bayar !== 'sudah') {
+                        $row->update([
+                            'nama_komponen' => $data['nama'],
+                            'nominal' => $data['nominal'],
+                            'rincian' => $data['rincian'],
+                        ]);
+                    }
+                } else {
+                    $periode->pembayaranKomponen()->create([
+                        'kode_komponen' => $kode,
+                        'nama_komponen' => $data['nama'],
+                        'nominal' => $data['nominal'],
+                        'status_bayar' => 'belum',
+                        'rincian' => $data['rincian'],
+                    ]);
+                }
+            }
+        });
+
+        return $periode->pembayaranKomponen()->orderBy('id')->get();
+    }
+
+    public function daftarPembayaranKomponen(ShuPeriode $periode): array
+    {
+        $list = $this->syncPembayaranKomponen($periode);
+
+        return $list->map(fn ($k) => [
+            'id' => $k->id,
+            'kode_komponen' => $k->kode_komponen,
+            'nama_komponen' => $k->nama_komponen,
+            'nominal' => (float) $k->nominal,
+            'status_bayar' => $k->status_bayar,
+            'tanggal_bayar' => $k->tanggal_bayar?->format('Y-m-d'),
+            'dibayar_pada' => $k->dibayar_pada?->format('d M Y H:i'),
+            'akun' => $k->akun,
+            'jurnal_id' => $k->jurnal_id,
+            'rincian' => $k->rincian ?? [],
+        ])->all();
+    }
+
+    /** Bayar satu komponen alokasi SHU non-anggota tunai/transfer via JurnalKas (periode harus final). */
+    public function bayarKomponen(ShuKomponenPembayaran $bayar, string $akun, string $tanggal, int $userId): ShuKomponenPembayaran
+    {
+        $periode = $bayar->periode;
+        if (! $periode->isFinal()) {
+            throw new RuntimeException('Periode SHU belum difinalisasi.');
+        }
+        if ($bayar->sudahDibayar()) {
+            throw new RuntimeException("Komponen '{$bayar->nama_komponen}' sudah dibayar.");
+        }
+        if (! in_array($akun, ['bank', 'kas_kecil'], true)) {
+            throw new RuntimeException("Sumber dana '{$akun}' tidak dikenal.");
+        }
+        if ((float) $bayar->nominal <= 0) {
+            throw new RuntimeException("Nominal '{$bayar->nama_komponen}' Rp 0.");
+        }
+
+        return DB::transaction(function () use ($bayar, $periode, $akun, $tanggal, $userId) {
+            $nominal = (float) $bayar->nominal;
+
+            $subJudul = null;
+            if (! empty($bayar->rincian) && is_array($bayar->rincian)) {
+                $teks = collect($bayar->rincian)->map(function ($r) {
+                    $nama = trim((string) ($r['nama'] ?? ''));
+                    $jabatan = trim((string) ($r['jabatan'] ?? ''));
+                    $nom = (float) ($r['nominal'] ?? 0);
+                    $label = $nama.($jabatan !== '' ? " ({$jabatan})" : '');
+
+                    return $label.': Rp '.number_format($nom, 0, ',', '.');
+                })->filter()->implode(' • ');
+                $subJudul = mb_substr($teks, 0, 255);
+            }
+
+            $jurnal = $this->jurnalKas->catat(
+                tipe: 'keluar',
+                kategori: 'pembayaran_shu',
+                kantong: $akun,
+                jumlah: $nominal,
+                keterangan: "Pembayaran SHU {$periode->tahun_buku} — {$bayar->nama_komponen}",
+                referensiId: $bayar->id,
+                tanggal: Carbon::parse($tanggal)->format('Y-m-d'),
+                userId: $userId,
+                subJudul: $subJudul ?: null,
+            );
+
+            $bayar->update([
+                'status_bayar' => 'sudah',
+                'tanggal_bayar' => Carbon::parse($tanggal)->format('Y-m-d'),
+                'dibayar_pada' => now(),
+                'dibayar_oleh' => $userId,
+                'jurnal_id' => $jurnal->id,
+                'akun' => $akun,
+            ]);
+
+            AuditLog::catat(
+                aksi: 'shu_komponen_dibayar',
+                keterangan: "SHU {$periode->tahun_buku} {$bayar->nama_komponen} dibayar: ".number_format($nominal, 0, ',', '.')." via {$akun}",
+                dataBaru: ['shu_komponen_pembayaran_id' => $bayar->id, 'jurnal_id' => $jurnal->id],
+                userId: $userId,
+            );
+
+            return $bayar->refresh();
+        });
+    }
+
+    /** Bayar massal seluruh komponen belum bayar (periode final). Return jumlah terbayar. */
+    public function bayarSemuaKomponen(ShuPeriode $periode, string $akun, string $tanggal, int $userId): int
+    {
+        if (! $periode->isFinal()) {
+            throw new RuntimeException('Periode SHU belum difinalisasi.');
+        }
+
+        $this->syncPembayaranKomponen($periode);
+
+        $komponens = $periode->pembayaranKomponen()
+            ->where('status_bayar', 'belum')
+            ->where('nominal', '>', 0)
+            ->orderBy('id')
+            ->get();
+
+        $count = 0;
+        foreach ($komponens as $k) {
+            $this->bayarKomponen($k, $akun, $tanggal, $userId);
+            $count++;
+        }
+
+        return $count;
     }
 
     /** Ajukan draft sebagai bahan meeting: dikunci seperti final. */

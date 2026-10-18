@@ -7,6 +7,7 @@ use App\Models\JurnalKas;
 use App\Models\KasKoperasi;
 use App\Models\Pinjaman;
 use App\Models\ShuDetail;
+use App\Models\ShuKomponenPembayaran;
 use App\Models\ShuPeriode;
 use App\Models\Simpanan;
 use App\Models\User;
@@ -394,5 +395,101 @@ class ShuTest extends TestCase
         foreach (ShuPeriode::KOMPONEN as $kolom) {
             $this->assertNotNull($periode->{$kolom});
         }
+    }
+
+    public function test_finalisasi_otomatis_sync_komponen_pembayaran_kecuali_cadangan_dan_anggota(): void
+    {
+        $user = $this->admin();
+        $tahun = (int) now()->subYear()->format('Y');
+
+        $a = $this->buatAnggota('Anggota Test Sync', 'ANG-SHU-SYNC');
+        $this->setor($a, 'pokok', 50_000, "{$tahun}-02-15", $user->id);
+
+        $service = app(ShuService::class);
+        $periode = $service->buatPeriode($tahun, null, 10_000_000, $user->id);
+        $service->hitung($periode, $user->id);
+        $service->ajukan($periode, $user->id);
+        $service->finalisasi($periode, $user->id);
+
+        $komponenBayar = $periode->pembayaranKomponen()->get();
+        $kodes = $komponenBayar->pluck('kode_komponen')->all();
+        $this->assertNotContains('cadangan', $kodes);
+        $this->assertNotContains('jasa_simpanan', $kodes);
+        $this->assertNotContains('jasa_transaksi', $kodes);
+
+        $this->assertContains('pengurus', $kodes);
+        $this->assertContains('pengawas', $kodes);
+        $this->assertContains('pendidikan', $kodes);
+        $this->assertContains('wilker', $kodes);
+    }
+
+    public function test_bayar_komponen_catat_jurnal_dan_kurangi_kas_fisik_dengan_rincian(): void
+    {
+        $user = $this->admin();
+        $tahun = (int) now()->subYear()->format('Y');
+
+        $a = $this->buatAnggota('Pengurus Satu', 'ANG-SHU-P1');
+        $this->setor($a, 'pokok', 50_000, "{$tahun}-02-15", $user->id);
+
+        $service = app(ShuService::class);
+        $periode = $service->buatPeriode($tahun, null, 10_000_000, $user->id);
+        $service->simpanRincianPengelola($periode, [
+            ['anggota_id' => $a->id, 'nama' => $a->nama, 'jabatan' => 'Ketua', 'nominal' => 1_000_000],
+            ['anggota_id' => null, 'nama' => 'Pengurus Luar', 'jabatan' => 'Sekretaris', 'nominal' => 500_000],
+        ], null, $user->id);
+
+        $service->hitung($periode, $user->id);
+        $service->ajukan($periode, $user->id);
+        $service->finalisasi($periode, $user->id);
+
+        $bayarPengurus = ShuKomponenPembayaran::where('shu_periode_id', $periode->id)
+            ->where('kode_komponen', 'pengurus')
+            ->firstOrFail();
+
+        $saldoSebelum = (float) KasKoperasi::first()->saldo_bank;
+        $service->bayarKomponen($bayarPengurus, 'bank', "{$tahun}-12-31", $user->id);
+
+        $bayarPengurus->refresh();
+        $this->assertSame('sudah', $bayarPengurus->status_bayar);
+        $this->assertNotNull($bayarPengurus->jurnal_id);
+
+        $jurnal = JurnalKas::findOrFail($bayarPengurus->jurnal_id);
+        $this->assertSame('pembayaran_shu', $jurnal->kategori);
+        $this->assertSame('keluar', $jurnal->tipe);
+        $this->assertEquals((float) $bayarPengurus->nominal, (float) $jurnal->jumlah);
+        $this->assertStringContainsString('Pengurus Satu', $jurnal->sub_judul);
+        $this->assertStringContainsString('Ketua', $jurnal->sub_judul);
+        $this->assertEqualsWithDelta($saldoSebelum - (float) $bayarPengurus->nominal, (float) KasKoperasi::first()->saldo_bank, 1);
+
+        try {
+            $service->bayarKomponen($bayarPengurus, 'bank', "{$tahun}-12-31", $user->id);
+            $this->fail('Bayar ganda komponen harus ditolak.');
+        } catch (\RuntimeException) {
+            $this->assertTrue(true);
+        }
+    }
+
+    public function test_bayar_semua_komponen_sekaligus(): void
+    {
+        $user = $this->admin();
+        $tahun = (int) now()->subYear()->format('Y');
+
+        $a = $this->buatAnggota('Anggota Tes Massal', 'ANG-SHU-M1');
+        $this->setor($a, 'pokok', 50_000, "{$tahun}-02-15", $user->id);
+
+        $service = app(ShuService::class);
+        $periode = $service->buatPeriode($tahun, null, 10_000_000, $user->id);
+        $service->hitung($periode, $user->id);
+        $service->ajukan($periode, $user->id);
+        $service->finalisasi($periode, $user->id);
+
+        $count = $service->bayarSemuaKomponen($periode, 'bank', "{$tahun}-12-31", $user->id);
+        $this->assertGreaterThan(0, $count);
+
+        $sisaBelum = ShuKomponenPembayaran::where('shu_periode_id', $periode->id)
+            ->where('status_bayar', 'belum')
+            ->where('nominal', '>', 0)
+            ->count();
+        $this->assertSame(0, $sisaBelum);
     }
 }

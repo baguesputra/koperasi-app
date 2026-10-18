@@ -48,6 +48,7 @@ class LaporanRegistry
         'kembali_talangan_ke_sosial' => 'Pengembalian Talangan ke Sosial',
         'sisih_kas_kecil' => 'Sisih Kas Kecil',
         'terima_sisih_kas_kecil' => 'Terima Sisih Kas Kecil',
+        'pembayaran_shu' => 'Pembayaran SHU',
     ];
 
     public const STATUS_PINJAMAN = [
