@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Exports\ArrayExport;
+use App\Exports\ShuExport;
 use App\Models\Anggota;
 use App\Models\ShuDetail;
 use App\Models\ShuKomponenPembayaran;
@@ -337,46 +337,9 @@ class ShuController extends Controller
 
     public function export(ShuPeriode $shu)
     {
-        // Urutan kolom + baris (No) mirror sheet Distribusi SHU Excel.
-        $rows = ShuDetail::with('anggota:id,nama,no_karyawan')
-            ->where('shu_periode_id', $shu->id)
-            ->join('anggota', 'anggota.id', '=', 'shu_detail.anggota_id')
-            ->orderBy('anggota.id')
-            ->select('shu_detail.*')
-            ->get()
-            ->map(fn ($d, $i) => [
-                $i + 1,
-                $d->anggota->nama,
-                (float) $d->simp_wajib,
-                (float) $d->simp_pokok,
-                (float) $d->modal,
-                (float) $d->transaksi,
-                (float) $d->shu_modal,
-                (float) $d->shu_transaksi,
-                (float) $d->shu_bruto,
-                (float) $d->shu_bersih,
-                null, // Tanda tangan (diisi manual saat RAT)
-            ])
-            ->all();
-
-        $ringkasan = $this->service->ringkasan($shu);
-        $shu->loadMissing('customKomponen');
-
-        $baris = [
-            ["DISTRIBUSI SHU PER ANGGOTA — TAHUN BUKU {$shu->tahun_buku}"],
-            ['No', 'Nama Anggota', 'Simp Wajib', 'Simp Pokok', 'Modal (SP + SW)', 'Transaksi', 'Atas Modal', 'Atas Transaksi', 'Jumlah SHU', 'SHU di Serahkan', 'Tanda Tangan'],
-            ...$rows,
-            [],
-            ['Total SHU', (float) $shu->total_shu],
-            ['Pool anggota', $ringkasan['pool_anggota']],
-            ...array_map(fn ($c) => ["Tambahan: {$c['label']}", $c['nominal']], $ringkasan['custom'] ?? []),
-            ['Dana dibagikan', $ringkasan['dana_dibagi']],
-            ['Dana tidak dibagi', $ringkasan['dana_tak_dibagi']],
-            ['Total bruto', $ringkasan['total_bruto']],
-            ['Total diserahkan', $ringkasan['total_bersih']],
-            ['Sisa belum diserahkan (pembulatan)', $ringkasan['belum_diserahkan']],
-        ];
-
-        return Excel::download(new ArrayExport($baris), "distribusi-shu-{$shu->tahun_buku}.xlsx");
+        return Excel::download(
+            new ShuExport($shu),
+            "Komponen Pembagian SHU {$shu->tahun_buku}.xlsx"
+        );
     }
 }

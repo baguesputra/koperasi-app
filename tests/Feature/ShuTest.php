@@ -273,6 +273,21 @@ class ShuTest extends TestCase
 
         $res = $this->get(route('shu.export', $periode));
         $res->assertOk();
+        $this->assertStringContainsString("Komponen Pembagian SHU {$periode->tahun_buku}.xlsx", (string) $res->headers->get('content-disposition'));
+
+        $filePath = $res->getFile()->getPathname();
+        $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();
+        $spreadsheet = $reader->load($filePath);
+        $this->assertSame(['Komponen SHU', "Distribusi SHU {$periode->tahun_buku}"], $spreadsheet->getSheetNames());
+
+        $sheet1 = $spreadsheet->getSheetByName('Komponen SHU');
+        $this->assertSame('Komponen SHU', $sheet1->getCell('A1')->getValue());
+        $this->assertSame('Cadangan ', $sheet1->getCell('B6')->getValue());
+
+        $sheet2 = $spreadsheet->getSheetByName("Distribusi SHU {$periode->tahun_buku}");
+        $this->assertSame('DISTRIBUSI SHU PERANGGOTA ', $sheet2->getCell('A1')->getValue());
+        $this->assertSame('Anggota Awal', $sheet2->getCell('B7')->getValue());
+        $this->assertSame('Anggota Akhir', $sheet2->getCell('B8')->getValue());
     }
 
     public function test_pengurus_dari_anggota_disnapshot_namanya(): void
