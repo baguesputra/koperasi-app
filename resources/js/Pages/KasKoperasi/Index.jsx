@@ -121,7 +121,9 @@ export default function Index({
             params,
             {
                 preserveState: true,
+                preserveScroll: true,
                 replace: true,
+                only: ['riwayat', 'ringkasanPeriode', 'ringkasanKanal', 'ringkasanPerTanggal', 'filters', 'bulanFilter'],
                 onStart: () => setMemuatFilter(true),
                 onFinish: () => setMemuatFilter(false),
             }
@@ -165,7 +167,9 @@ export default function Index({
             { bulan: bulanFilter },
             {
                 preserveState: true,
+                preserveScroll: true,
                 replace: true,
+                only: ['riwayat', 'ringkasanPeriode', 'ringkasanKanal', 'ringkasanPerTanggal', 'filters', 'bulanFilter'],
                 onStart: () => setMemuatFilter(true),
                 onFinish: () => setMemuatFilter(false),
             }

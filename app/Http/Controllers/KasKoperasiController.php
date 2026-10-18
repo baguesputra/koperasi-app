@@ -24,7 +24,6 @@ class KasKoperasiController extends Controller
      */
     public function index(Request $request): Response
     {
-        $kas = KasKoperasi::firstOrFail();
         $bulanFilter = (string) $request->input('bulan', now()->format('Y-m'));
         $kanalFilter = (string) $request->input('kanal', '');
         $tipeFilter = (string) $request->input('tipe', '');
@@ -126,9 +125,14 @@ class KasKoperasiController extends Controller
             }
         }
 
+        $ambilKas = function () {
+            static $kas = null;
+            return $kas ??= KasKoperasi::firstOrFail();
+        };
+
         return Inertia::render('KasKoperasi/Index', [
-            'saldoBank' => (float) $kas->saldo_bank,
-            'saldoKasKecil' => (float) $kas->saldo_kas_kecil,
+            'saldoBank' => fn () => (float) $ambilKas()->saldo_bank,
+            'saldoKasKecil' => fn () => (float) $ambilKas()->saldo_kas_kecil,
             'bulanFilter' => $bulanFilter,
             'filters' => ['kanal' => $kanalFilter, 'cari' => $cari, 'tipe' => $tipeFilter, 'tanggal' => $tanggalFilter],
             'ringkasanPeriode' => [

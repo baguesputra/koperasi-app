@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { router } from '@inertiajs/react';
 
-export default function Pagination({ links, routeName, params = {} }) {
+export default function Pagination({ links, routeName, params = {}, preserveScroll = true }) {
     if (!links || links.length <= 3) return null;
 
     const renderLabel = (label) => {
@@ -24,7 +24,7 @@ export default function Pagination({ links, routeName, params = {} }) {
                 <button
                     key={i}
                     disabled={!link.url}
-                    onClick={() => link.url && router.get(link.url, {}, { preserveState: true })}
+                    onClick={() => link.url && router.get(link.url, {}, { preserveState: true, preserveScroll })}
                     className={`px-3.5 py-2 text-sm font-semibold rounded-lg transition-colors ${
                         link.active
                             ? 'bg-brand-green text-white'
