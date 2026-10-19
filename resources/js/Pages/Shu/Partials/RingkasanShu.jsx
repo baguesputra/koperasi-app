@@ -66,8 +66,19 @@ export default function RingkasanShu({ periode, persen, custom = [], preview, ri
                 </p>
 
                 <div className="h-16" role="img" aria-label="Diagram alokasi SHU per komponen">
+                    <style>{`
+                        .recharts-inactive-bar {
+                            opacity: 0.65;
+                            transition: opacity 0.2s ease;
+                        }
+                    `}</style>
                     <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={dataBar} layout="vertical" margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+                        <BarChart
+                            data={dataBar}
+                            layout="vertical"
+                            barSize={32}
+                            margin={{ top: 8, right: 2, bottom: 8, left: 2 }}
+                        >
                             <XAxis type="number" hide domain={[0, 100]} />
                             <YAxis type="category" dataKey="nama" hide />
                             <Tooltip
@@ -104,7 +115,8 @@ export default function RingkasanShu({ periode, persen, custom = [], preview, ri
                                     dataKey={k}
                                     stackId="alokasi"
                                     fill={warna(k)}
-                                    activeBar={{ fillOpacity: 0.82 }}
+                                    shape={NormalBarSegment}
+                                    activeBar={ActiveBarSegment}
                                 />
                             ))}
                             {customKeys.map((s) => (
@@ -113,7 +125,8 @@ export default function RingkasanShu({ periode, persen, custom = [], preview, ri
                                     dataKey={s}
                                     stackId="alokasi"
                                     fill={warna(s)}
-                                    activeBar={{ fillOpacity: 0.82 }}
+                                    shape={NormalBarSegment}
+                                    activeBar={ActiveBarSegment}
                                 />
                             ))}
                         </BarChart>
@@ -173,3 +186,46 @@ function Stat({ label, value, hint }) {
         </div>
     );
 }
+
+function NormalBarSegment(props) {
+    const { x, y, width, height, fill } = props;
+    if (!width || width <= 0) return null;
+    return (
+        <rect
+            x={x}
+            y={y}
+            width={width}
+            height={height}
+            fill={fill}
+            className="transition-all duration-200 ease-out"
+            style={{ cursor: 'pointer' }}
+        />
+    );
+}
+
+function ActiveBarSegment(props) {
+    const { x, y, width, height, fill } = props;
+    if (!width || width <= 0) return null;
+    const r = Math.min(6, width / 2);
+    return (
+        <g>
+            <rect
+                x={x}
+                y={y - 4}
+                width={width}
+                height={height + 8}
+                fill={fill}
+                rx={r}
+                ry={r}
+                stroke="#ffffff"
+                strokeWidth={2}
+                className="transition-all duration-200 ease-out"
+                style={{
+                    filter: 'drop-shadow(0 6px 12px rgba(0, 0, 0, 0.22))',
+                    cursor: 'pointer',
+                }}
+            />
+        </g>
+    );
+}
+
