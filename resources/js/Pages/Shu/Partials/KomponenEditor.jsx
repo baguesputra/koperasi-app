@@ -16,7 +16,7 @@ import RingkasanDana from './RingkasanDana';
  * Semua angka preview dihitung live di browser (mirror Excel);
  * Simpan = persist ke server, Hitung Ulang = recalc rincian anggota.
  */
-export default function KomponenEditor({ periode, persenLive, setPersenLive, customLive, setCustomLive, preview, sudahDihitung, daftarAnggota = [] }) {
+export default function KomponenEditor({ periode, persenLive, setPersenLive, customLive, setCustomLive, preview, ringkasan, sudahDihitung, daftarAnggota = [] }) {
     const { errors } = usePage().props;
     const [menyimpan, setMenyimpan] = useState(false);
     const total = totalPersen(persenLive, customLive);
@@ -217,7 +217,7 @@ export default function KomponenEditor({ periode, persenLive, setPersenLive, cus
                 )}
             </Card>
 
-            <RingkasanDana preview={preview} />
+            <RingkasanDana preview={preview} ringkasan={ringkasan} />
 
             <Card>
                 <p className="text-base font-bold text-slate-800 mb-1">SHU Pengurus Koperasi & SHU Pengawas</p>

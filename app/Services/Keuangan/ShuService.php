@@ -217,6 +217,16 @@ class ShuService
         // Tak dibagi = sisa total (cadangan + pendidikan + sosial + wilker + semua custom).
         $danaTakDibagi = round((float) $periode->total_shu - $danaDibagi, 2);
 
+        $rincianPengurus = $periode->pengurus_rincian ?? [];
+        $totalPengurusRiil = ! empty($rincianPengurus) ? (float) collect($rincianPengurus)->sum('nominal') : 0.0;
+        $sisaPengurus = $totalPengurusRiil > 0 ? max(0.0, round((float) ($komponen['pengurus'] ?? 0) - $totalPengurusRiil, 2)) : 0.0;
+
+        $rincianPengawas = $periode->pengawas_rincian ?? [];
+        $totalPengawasRiil = ! empty($rincianPengawas) ? (float) collect($rincianPengawas)->sum('nominal') : 0.0;
+        $sisaPengawas = $totalPengawasRiil > 0 ? max(0.0, round((float) ($komponen['pengawas'] ?? 0) - $totalPengawasRiil, 2)) : 0.0;
+
+        $totalSisaDana = round($belumDiserahkan + $sisaPengurus + $sisaPengawas, 2);
+
         $komponenBayar = $periode->relationLoaded('pembayaranKomponen')
             ? $periode->pembayaranKomponen
             : $periode->pembayaranKomponen()->get();
@@ -238,6 +248,16 @@ class ShuService
             'total_bersih' => (float) ($agregat->bersih ?? 0),
             'sisa_pembulatan' => $sisaPembulatan,
             'belum_diserahkan' => $belumDiserahkan,
+            'sisa_dana' => [
+                'anggota' => $belumDiserahkan,
+                'pengurus' => $sisaPengurus,
+                'pengawas' => $sisaPengawas,
+                'total' => $totalSisaDana,
+                'alokasi_pengurus' => (float) ($komponen['pengurus'] ?? 0),
+                'dibagikan_pengurus' => $totalPengurusRiil,
+                'alokasi_pengawas' => (float) ($komponen['pengawas'] ?? 0),
+                'dibagikan_pengawas' => $totalPengawasRiil,
+            ],
             'sudah_bayar' => (int) ($agregat->sudah_bayar ?? 0),
             'terbayar' => (float) ($agregat->terbayar ?? 0),
             'total_komponen_bayar' => $totalNominalKomponen,
@@ -375,16 +395,24 @@ class ShuService
         $komponen = $periode->nominalKomponen();
         $periode->loadMissing('customKomponen');
 
+        $rincianPengurus = $periode->pengurus_rincian ?? [];
+        $totalPengurusRiil = ! empty($rincianPengurus) ? (float) collect($rincianPengurus)->sum('nominal') : 0.0;
+        $nominalPengurus = $totalPengurusRiil > 0 ? $totalPengurusRiil : (float) ($komponen['pengurus'] ?? 0);
+
+        $rincianPengawas = $periode->pengawas_rincian ?? [];
+        $totalPengawasRiil = ! empty($rincianPengawas) ? (float) collect($rincianPengawas)->sum('nominal') : 0.0;
+        $nominalPengawas = $totalPengawasRiil > 0 ? $totalPengawasRiil : (float) ($komponen['pengawas'] ?? 0);
+
         $target = [
             'pengurus' => [
                 'nama' => 'Jasa Pengurus Koperasi',
-                'nominal' => (float) ($komponen['pengurus'] ?? 0),
-                'rincian' => $periode->pengurus_rincian ?? [],
+                'nominal' => $nominalPengurus,
+                'rincian' => $rincianPengurus,
             ],
             'pengawas' => [
                 'nama' => 'Jasa Pengawas',
-                'nominal' => (float) ($komponen['pengawas'] ?? 0),
-                'rincian' => $periode->pengawas_rincian ?? [],
+                'nominal' => $nominalPengawas,
+                'rincian' => $rincianPengawas,
             ],
             'pendidikan' => [
                 'nama' => 'Dana Pendidikan',

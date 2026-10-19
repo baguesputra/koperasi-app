@@ -198,6 +198,17 @@ export default function BayarTab({ periode, ringkasan, komponenBayar = [], akun,
                                                     )}
                                                 </div>
 
+                                                {k.kode_komponen === 'pengurus' && (ringkasan.sisa_dana?.pengurus ?? 0) > 0 && (
+                                                    <p className="text-[11px] text-emerald-700 mt-0.5">
+                                                        Alokasi {formatRupiah(ringkasan.sisa_dana?.alokasi_pengurus ?? 0)} • Sisa {formatRupiah(ringkasan.sisa_dana.pengurus)} tetap di kas
+                                                    </p>
+                                                )}
+                                                {k.kode_komponen === 'pengawas' && (ringkasan.sisa_dana?.pengawas ?? 0) > 0 && (
+                                                    <p className="text-[11px] text-emerald-700 mt-0.5">
+                                                        Alokasi {formatRupiah(ringkasan.sisa_dana?.alokasi_pengawas ?? 0)} • Sisa {formatRupiah(ringkasan.sisa_dana.pengawas)} tetap di kas
+                                                    </p>
+                                                )}
+
                                                 {/* Expandable rincian personil */}
                                                 {adaRincian && isOpen && (
                                                     <div className="mt-2 pl-3 border-l-2 border-brand-green/30 space-y-1 bg-slate-50/70 p-2 rounded-r-lg">
@@ -263,7 +274,7 @@ export default function BayarTab({ periode, ringkasan, komponenBayar = [], akun,
                                         {formatRupiah(ringkasan.total_komponen_bayar ?? 0)}
                                     </td>
                                     <td colSpan={2} className="py-2.5 px-3 text-right text-xs text-slate-500 font-normal">
-                                        * Dana Cadangan {formatRupiah(ringkasan.komponen?.cadangan ?? 0)} memupuk modal & tetap di kas.
+                                        * Sisa dana pengurus/pengawas & pembulatan anggota ({formatRupiah(ringkasan.sisa_dana?.total ?? 0)}) serta Cadangan ({formatRupiah(ringkasan.komponen?.cadangan ?? 0)}) tetap di kas.
                                     </td>
                                 </tr>
                             </tfoot>

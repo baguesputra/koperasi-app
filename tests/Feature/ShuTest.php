@@ -507,4 +507,52 @@ class ShuTest extends TestCase
             ->count();
         $this->assertSame(0, $sisaBelum);
     }
+
+    public function test_detail_sisa_dana_tidak_diserahkan_dan_pembayaran_riil_pengelola(): void
+    {
+        $user = $this->admin();
+        $tahun = (int) now()->subYear()->format('Y');
+
+        $a = $this->buatAnggota('Anggota Sisa 1', 'ANG-SHU-S1');
+        $this->setor($a, 'pokok', 50_000, "{$tahun}-02-15", $user->id);
+        $this->setor($a, 'wajib', 950_000, "{$tahun}-06-15", $user->id);
+
+        $service = app(ShuService::class);
+        $periode = $service->buatPeriode($tahun, null, 10_000_000, $user->id);
+
+        // Alokasi Pengurus 15% = 1.500.000, dibagikan 1.400.000 -> sisa 100.000
+        // Alokasi Pengawas 5% = 500.000, dibagikan 450.000 -> sisa 50.000
+        $service->simpanRincianPengelola($periode, [
+            ['anggota_id' => $a->id, 'nama' => $a->nama, 'jabatan' => 'Ketua', 'nominal' => 1_400_000],
+        ], [
+            ['nama' => 'Pengawas A', 'nominal' => 450_000],
+        ], $user->id);
+
+        $ringkasan = $service->hitung($periode, $user->id);
+
+        $this->assertArrayHasKey('sisa_dana', $ringkasan);
+        $this->assertEquals(100_000.0, $ringkasan['sisa_dana']['pengurus']);
+        $this->assertEquals(50_000.0, $ringkasan['sisa_dana']['pengawas']);
+        $this->assertEquals($ringkasan['belum_diserahkan'], $ringkasan['sisa_dana']['anggota']);
+        $this->assertEquals($ringkasan['belum_diserahkan'] + 150_000.0, $ringkasan['sisa_dana']['total']);
+
+        $service->ajukan($periode, $user->id);
+        $service->finalisasi($periode, $user->id);
+
+        $bayarPengurus = ShuKomponenPembayaran::where('shu_periode_id', $periode->id)
+            ->where('kode_komponen', 'pengurus')
+            ->firstOrFail();
+        $bayarPengawas = ShuKomponenPembayaran::where('shu_periode_id', $periode->id)
+            ->where('kode_komponen', 'pengawas')
+            ->firstOrFail();
+
+        // Nominal pembayaran kas adalah nominal riil yang dibagikan
+        $this->assertEquals(1_400_000.0, (float) $bayarPengurus->nominal);
+        $this->assertEquals(450_000.0, (float) $bayarPengawas->nominal);
+
+        // Bayar pengurus: kas bank hanya berkurang 1.400.000 (sisa 100.000 tetap di bank)
+        $saldoAwal = (float) KasKoperasi::first()->saldo_bank;
+        $service->bayarKomponen($bayarPengurus, 'bank', "{$tahun}-12-31", $user->id);
+        $this->assertEquals($saldoAwal - 1_400_000.0, (float) KasKoperasi::first()->saldo_bank);
+    }
 }

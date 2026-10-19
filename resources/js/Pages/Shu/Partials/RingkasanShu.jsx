@@ -2,6 +2,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recha
 import Card from '@/Components/ui/Card';
 import { formatRupiah } from '@/Utils/formatCurrency';
 import { KOMPONEN_LABEL, KOMPONEN_ORDER, PCT_COL } from '@/Utils/shuLive';
+import SisaDanaDetail from './SisaDanaDetail';
 
 const WARNA = {
     cadangan: '#0F766E',
@@ -24,6 +25,12 @@ export default function RingkasanShu({ periode, persen, custom = [], preview, ri
     const pengurusPengawas = (komponen.pengurus ?? 0) + (komponen.pengawas ?? 0);
     const danaDibagi = (preview.pool_anggota ?? 0) + pengurusPengawas;
     const customKeys = customList.map((c) => c.slug).filter(Boolean);
+    const sisaDana = ringkasan.sisa_dana ?? {
+        anggota: ringkasan.belum_diserahkan ?? 0,
+        pengurus: 0,
+        pengawas: 0,
+        total: ringkasan.belum_diserahkan ?? 0,
+    };
     const dataBar = [{
         nama: 'alokasi',
         ...Object.fromEntries(KOMPONEN_ORDER.map((k) => [k, (periode.total_shu || 0) > 0 ? (komponen[k] / periode.total_shu) * 100 : 0])),
@@ -40,6 +47,8 @@ export default function RingkasanShu({ periode, persen, custom = [], preview, ri
                 <Card><Stat label="Dana yang Tidak Dibagi" value={formatRupiah(preview.dana_tak_dibagi)} hint="Total SHU − dana dibagikan (termasuk tambahan)" /></Card>
                 <Card><Stat label="SHU Diserahkan" value={formatRupiah(ringkasan.total_bersih)} hint={`Jumlah SHU ${formatRupiah(ringkasan.total_bruto)}, dibulatkan ke bawah ribuan`} /></Card>
                 <Card><Stat label="Sudah Diserahkan" value={formatRupiah(ringkasan.terbayar)} hint={`${ringkasan.sudah_bayar} dari ${ringkasan.anggota} anggota`} /></Card>
+                <Card><Stat label="Sisa Dana Tidak Diserahkan" value={formatRupiah(sisaDana.total)} hint="Tetap mengendap di kas bank koperasi" /></Card>
+                <Card><Stat label="Sisa Pembulatan Anggota" value={formatRupiah(sisaDana.anggota)} hint="Selisih FLOOR 1.000 anggota" /></Card>
             </div>
 
             <Card>
@@ -115,6 +124,8 @@ export default function RingkasanShu({ periode, persen, custom = [], preview, ri
                     </table>
                 </div>
             </Card>
+
+            <SisaDanaDetail sisaDana={sisaDana} />
         </div>
     );
 }

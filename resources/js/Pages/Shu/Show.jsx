@@ -176,6 +176,7 @@ export default function Show({ periode, ringkasan, detail, sums = {}, daftarAngg
                         customLive={customLive}
                         setCustomLive={setCustomLive}
                         preview={preview}
+                        ringkasan={ringkasan}
                         sudahDihitung={ringkasan.anggota > 0}
                         daftarAnggota={daftarAnggota}
                     />
