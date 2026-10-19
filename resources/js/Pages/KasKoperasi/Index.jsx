@@ -4,7 +4,7 @@ import {
     Wallet, ArrowDownCircle, ArrowUpCircle, Plus, ChevronLeft, ChevronRight,
     Landmark, CalendarDays, Search, X, ArrowRightLeft, Check
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
 import Card from '@/Components/ui/Card';
 import Button from '@/Components/ui/Button';
 import Pagination from '@/Components/ui/Pagination';
@@ -1092,22 +1092,24 @@ export default function Index({
                 </div>
 
                 {/* 4. Subheader Info */}
-                <div className="flex items-center justify-between gap-1.5 px-4 pt-3 pb-1">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                        <CalendarDays size={15} className="text-slate-400 shrink-0" />
-                        <p className="text-xs sm:text-sm text-slate-500 truncate">
+                <div className="flex items-center justify-between gap-1.5 px-4 sm:px-5 py-3 bg-white border-b border-slate-100">
+                    <div className="flex items-center gap-2 min-w-0">
+                        <CalendarDays size={16} className="text-slate-400 shrink-0" />
+                        <p className="text-xs sm:text-sm text-slate-600 truncate">
                             Mutasi kas <span className="font-bold text-slate-800">{labelBulan}</span>
                             {filters.tanggal && <span className="text-brand-navy font-semibold"> • {filters.tanggal}</span>}
+                            {filters.kanal && <span className="text-slate-600"> • {kanalMeta[filters.kanal]?.label}</span>}
                         </p>
                     </div>
-                    <span className="text-xs text-slate-400 font-medium tabular-nums">
+                    <span className="text-xs text-slate-500 font-semibold tabular-nums px-2.5 py-0.5 rounded-full bg-slate-100 border border-slate-200/60">
                         {riwayat.total ?? 0} data
                     </span>
                 </div>
+
                 <div className={`transition-opacity duration-150 ${memuatFilter ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
                     {riwayat.data.length === 0 ? (
-                        <div className="text-center py-12 px-4">
-                            <Wallet size={28} aria-hidden="true" className="mx-auto text-slate-300 mb-3" />
+                        <div className="text-center py-14 px-4">
+                            <Wallet size={32} aria-hidden="true" className="mx-auto text-slate-300 mb-3" />
                             <p className="text-sm font-semibold text-slate-600">
                                 Belum ada mutasi kas untuk {labelBulan}.
                             </p>
@@ -1118,7 +1120,7 @@ export default function Index({
                             )}
                             {bisaTopup && !filterAktif && bulanFilter === kunciBulanIni && (
                                 <div className="mt-3">
-                                    <Button type="button" size="sm" className="rounded-full" onClick={() => { setTabDrawer('pemasukan'); setShowDrawer(true); }}>
+                                    <Button type="button" size="sm" className="rounded-full shadow-xs" onClick={() => { setTabDrawer('pemasukan'); setShowDrawer(true); }}>
                                         <Plus size={16} aria-hidden="true" />
                                         Mutasi
                                     </Button>
@@ -1126,59 +1128,195 @@ export default function Index({
                             )}
                         </div>
                     ) : (
-                        <ul className="divide-y divide-slate-50">
-                            {grupHari.map(([tanggalIso, grup]) => (
-                                <li key={tanggalIso} className="pt-3 first:pt-1">
-                                    <div className="flex items-baseline gap-2 px-1 pb-1.5">
-                                        <p className="text-sm font-bold text-slate-700">{grup.tanggal}</p>
-                                        <p className="text-xs text-slate-400">{grup.hari}</p>
-                                        <p className="text-xs text-slate-400 ml-auto tabular-nums">{grup.baris.length} mutasi</p>
-                                    </div>
-                                    <div className="flex items-center gap-3 px-1 pb-1 text-xs">
-                                        <span className="text-emerald-600 font-semibold">+{formatRupiah(ringkasanPerTanggal[tanggalIso]?.masuk ?? 0)}</span>
-                                        <span className="text-red-600 font-semibold">-{formatRupiah(ringkasanPerTanggal[tanggalIso]?.keluar ?? 0)}</span>
-                                        <span className="ml-auto text-slate-500">Saldo {formatRupiah((ringkasanPerTanggal[tanggalIso]?.masuk ?? 0) - (ringkasanPerTanggal[tanggalIso]?.keluar ?? 0))}</span>
-                                    </div>
-                                    <ul className="border-t border-slate-100/70">
-                                        {grup.baris.map((r) => (
-                                            <li key={r.id} className="flex items-center gap-3 px-1 py-3 hover:bg-gradient-to-r hover:from-slate-50 hover:to-transparent rounded-xl transition-all">
-                                                {r.tipe === 'masuk' ? (
-                                                    <ArrowDownCircle size={22} aria-hidden="true" className="text-brand-green shrink-0" />
-                                                ) : (
-                                                    <ArrowUpCircle size={22} aria-hidden="true" className="text-red-500 shrink-0" />
-                                                )}
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2 flex-wrap">
-                                                        <p className="text-sm font-semibold text-slate-700">
-                                                            {labelKategori(r)}
-                                                        </p>
-                                                        {tampilBadge(r)}
-                                                    </div>
-                                                    {r.sub_judul && (
-                                                        <p className="text-xs italic text-slate-500 mt-0.5 truncate" title={r.sub_judul}>{r.sub_judul}</p>
+                        <>
+                            {/* Desktop & Tablet View: Accounting Ledger Table */}
+                            <div className="hidden md:block overflow-x-auto">
+                                <table className="w-full text-left border-collapse text-sm">
+                                    <thead>
+                                        <tr className="border-b border-slate-200/80 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                                            <th className="px-5 py-3 w-36 whitespace-nowrap">Tanggal</th>
+                                            <th className="px-4 py-3 min-w-[260px]">Transaksi & Keterangan</th>
+                                            <th className="px-4 py-3 w-32 whitespace-nowrap">Akun Kas</th>
+                                            <th className="px-4 py-3 w-36 text-right whitespace-nowrap text-emerald-700">Masuk (+)</th>
+                                            <th className="px-4 py-3 w-36 text-right whitespace-nowrap text-rose-700">Keluar (-)</th>
+                                            <th className="px-5 py-3 w-40 text-right whitespace-nowrap text-slate-700">Saldo Kas</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {grupHari.map(([tanggalIso, grup]) => {
+                                            const ringkasanHari = ringkasanPerTanggal[tanggalIso] ?? { masuk: 0, keluar: 0 };
+                                            const netHari = (ringkasanHari.masuk ?? 0) - (ringkasanHari.keluar ?? 0);
+                                            return (
+                                                <Fragment key={tanggalIso}>
+                                                    {/* Header Grup Tanggal */}
+                                                    <tr className="bg-slate-100/70 border-t border-slate-200/70 text-xs text-slate-600">
+                                                        <td colSpan={3} className="px-5 py-2">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="font-bold text-slate-800">{grup.tanggal}</span>
+                                                                <span className="text-slate-500">({grup.hari})</span>
+                                                                <span className="text-[11px] font-normal text-slate-400">• {grup.baris.length} mutasi</span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-4 py-2 text-right font-bold text-emerald-600 tabular-nums text-xs whitespace-nowrap">
+                                                            {ringkasanHari.masuk > 0 ? `+${formatRupiah(ringkasanHari.masuk)}` : '—'}
+                                                        </td>
+                                                        <td className="px-4 py-2 text-right font-bold text-rose-600 tabular-nums text-xs whitespace-nowrap">
+                                                            {ringkasanHari.keluar > 0 ? `-${formatRupiah(ringkasanHari.keluar)}` : '—'}
+                                                        </td>
+                                                        <td className="px-5 py-2 text-right text-xs text-slate-500 tabular-nums font-semibold whitespace-nowrap">
+                                                            Net: {netHari >= 0 ? `+${formatRupiah(netHari)}` : `-${formatRupiah(Math.abs(netHari))}`}
+                                                        </td>
+                                                    </tr>
+
+                                                    {/* Baris Transaksi */}
+                                                    {grup.baris.map((r) => (
+                                                        <tr key={r.id} className="hover:bg-slate-50/80 transition-colors">
+                                                            <td className="px-5 py-3 text-xs text-slate-500 whitespace-nowrap align-top">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className={`w-2 h-2 rounded-full shrink-0 ${r.tipe === 'masuk' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                                                                    <span>{r.tanggal}</span>
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-4 py-3 align-top">
+                                                                <div className="min-w-0">
+                                                                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                                                                        <p className="font-semibold text-slate-800 text-sm">
+                                                                            {labelKategori(r)}
+                                                                        </p>
+                                                                        {tampilBadge(r)}
+                                                                    </div>
+                                                                    {r.sub_judul && (
+                                                                        <p className="text-xs text-slate-600 italic mb-0.5 truncate max-w-lg" title={r.sub_judul}>
+                                                                            {r.sub_judul}
+                                                                        </p>
+                                                                    )}
+                                                                    <div className="flex items-center gap-2 text-xs text-slate-400">
+                                                                        {r.keterangan && (
+                                                                            <span className="truncate max-w-md" title={r.keterangan}>{r.keterangan}</span>
+                                                                        )}
+                                                                        {barisRuteAsal(r)}
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-4 py-3 align-top whitespace-nowrap">
+                                                                {badgeKanal(r.kanal)}
+                                                            </td>
+                                                            <td className="px-4 py-3 text-right align-top tabular-nums whitespace-nowrap">
+                                                                {r.tipe === 'masuk' ? (
+                                                                    <span className="font-bold text-emerald-600 text-sm">
+                                                                        +{formatRupiah(r.jumlah)}
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-slate-300 font-normal text-sm">—</span>
+                                                                )}
+                                                            </td>
+                                                            <td className="px-4 py-3 text-right align-top tabular-nums whitespace-nowrap">
+                                                                {r.tipe === 'keluar' ? (
+                                                                    <span className="font-bold text-rose-600 text-sm">
+                                                                        -{formatRupiah(r.jumlah)}
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-slate-300 font-normal text-sm">—</span>
+                                                                )}
+                                                            </td>
+                                                            <td className="px-5 py-3 text-right align-top tabular-nums whitespace-nowrap">
+                                                                <p className="font-semibold text-slate-800 text-sm">
+                                                                    {formatRupiah(r.saldo_setelah)}
+                                                                </p>
+                                                                <p className="text-[10px] text-slate-400 uppercase tracking-wider">
+                                                                    {r.kanal === 'bank' ? 'Bank' : 'Kas Kecil'}
+                                                                </p>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </Fragment>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Mobile View: Modern Financial Transaction Rows with Generous Breathing Room */}
+                            <div className="md:hidden divide-y divide-slate-100">
+                                {grupHari.map(([tanggalIso, grup]) => {
+                                    const ringkasanHari = ringkasanPerTanggal[tanggalIso] ?? { masuk: 0, keluar: 0 };
+                                    return (
+                                        <div key={tanggalIso} className="pt-2">
+                                            {/* Header Tanggal Mobile */}
+                                            <div className="px-4 py-2 bg-slate-50/90 border-y border-slate-100 flex items-center justify-between text-xs">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="font-bold text-slate-800">{grup.tanggal}</span>
+                                                    <span className="text-slate-400">• {grup.hari}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 font-semibold tabular-nums text-[11px]">
+                                                    {ringkasanHari.masuk > 0 && (
+                                                        <span className="text-emerald-600">+{formatRupiahSingkat(ringkasanHari.masuk)}</span>
                                                     )}
-                                                    <div className="flex items-center gap-2 mt-0.5">
-                                                        {r.keterangan && (
-                                                            <p className="text-xs text-slate-400 truncate" title={r.keterangan}>{r.keterangan}</p>
-                                                        )}
-                                                        {barisRuteAsal(r)}
+                                                    {ringkasanHari.keluar > 0 && (
+                                                        <span className="text-rose-600">-{formatRupiahSingkat(ringkasanHari.keluar)}</span>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* List Transaksi Mobile */}
+                                            <div className="divide-y divide-slate-100">
+                                                {grup.baris.map((r) => (
+                                                    <div key={r.id} className="px-4 py-3.5 hover:bg-slate-50/60 transition-colors">
+                                                        <div className="flex items-start justify-between gap-3">
+                                                            {/* Kiri: Icon + Info */}
+                                                            <div className="flex items-start gap-3 min-w-0 flex-1">
+                                                                <span className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+                                                                    r.tipe === 'masuk'
+                                                                        ? 'bg-emerald-50 text-emerald-600 border border-emerald-200/50'
+                                                                        : 'bg-rose-50 text-rose-600 border border-rose-200/50'
+                                                                }`}>
+                                                                    {r.tipe === 'masuk' ? (
+                                                                        <ArrowDownCircle size={18} />
+                                                                    ) : (
+                                                                        <ArrowUpCircle size={18} />
+                                                                    )}
+                                                                </span>
+                                                                <div className="min-w-0 flex-1">
+                                                                    <p className="text-sm font-semibold text-slate-800 truncate">
+                                                                        {labelKategori(r)}
+                                                                    </p>
+                                                                    {r.sub_judul && (
+                                                                        <p className="text-[11px] text-slate-500 italic truncate mt-0.5" title={r.sub_judul}>
+                                                                            {r.sub_judul}
+                                                                        </p>
+                                                                    )}
+                                                                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                                                        {tampilBadge(r)}
+                                                                    </div>
+                                                                    {r.keterangan && (
+                                                                        <p className="text-[11px] text-slate-400 truncate mt-1" title={r.keterangan}>
+                                                                            {r.keterangan}
+                                                                        </p>
+                                                                    )}
+                                                                    {barisRuteAsal(r)}
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Kanan: Nominal + Saldo */}
+                                                            <div className="text-right shrink-0">
+                                                                <p className={`text-sm font-bold tabular-nums whitespace-nowrap ${
+                                                                    r.tipe === 'masuk' ? 'text-emerald-600' : 'text-rose-600'
+                                                                }`}>
+                                                                    {r.tipe === 'masuk' ? '+' : '-'} {formatRupiah(r.jumlah)}
+                                                                </p>
+                                                                <p className="text-[10px] text-slate-400 tabular-nums whitespace-nowrap mt-0.5">
+                                                                    Saldo: {formatRupiah(r.saldo_setelah)}
+                                                                </p>
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                <div className="text-right shrink-0 pl-2">
-                                                    <p className={`text-sm font-bold whitespace-nowrap tabular-nums ${r.tipe === 'masuk' ? 'text-brand-green-dark' : 'text-red-600'}`}>
-                                                        <span className="sr-only">{r.tipe === 'masuk' ? 'Masuk' : 'Keluar'} </span>
-                                                        <span aria-hidden="true">{r.tipe === 'masuk' ? '+' : '-'} {formatRupiah(r.jumlah)}</span>
-                                                    </p>
-                                                    <p className="text-[11px] text-slate-400 whitespace-nowrap tabular-nums">
-                                                        {`${r.kanal === 'bank' ? 'Saldo Bank' : 'Saldo Kas'}: ${formatRupiah(r.saldo_setelah)}`}
-                                                    </p>
-                                                </div>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </li>
-                            ))}
-                        </ul>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </>
                     )}
                 </div>
             </Card>
