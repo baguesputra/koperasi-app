@@ -2,7 +2,7 @@ import AppLayout from '@/Layouts/AppLayout';
 import { Head, usePage, useForm, router, Link } from '@inertiajs/react';
 import {
     Wallet, ArrowDownCircle, ArrowUpCircle, Plus, ChevronLeft, ChevronRight,
-    Landmark, ReceiptText, CalendarDays, Search, X, ArrowRightLeft
+    Landmark, ReceiptText, CalendarDays, Search, X, ArrowRightLeft, SlidersHorizontal
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Card from '@/Components/ui/Card';
@@ -85,6 +85,7 @@ export default function Index({
     const { auth } = usePage().props;
     const bisaTopup = auth.user?.permissions?.includes('kas.topup');
     const [showDrawer, setShowDrawer] = useState(false);
+    const [showFilterDrawer, setShowFilterDrawer] = useState(false);
     const [tabDrawer, setTabDrawer] = useState('pemasukan');
     const [cari, setCari] = useState(filters.cari ?? '');
     const cariDebounced = useDebouncedValue(cari);
@@ -243,7 +244,8 @@ export default function Index({
 
     const bulanIni = new Date();
     const kunciBulanIni = `${bulanIni.getFullYear()}-${String(bulanIni.getMonth() + 1).padStart(2, '0')}`;
-    const filterAktif = Boolean(filters.kanal || filters.cari || filters.tipe || filters.tanggal || filters.tipe_pengeluaran);
+    const jumlahFilterLanjutan = [filters.kanal, filters.tanggal, filters.tipe_pengeluaran].filter(Boolean).length;
+    const filterAktif = Boolean(filters.kanal || filters.cari || filters.tanggal || filters.tipe_pengeluaran);
 
     // Kelompokkan baris per tanggal (riwayat sudah urut tanggal desc).
     const grupHari = useMemo(() => {
@@ -701,61 +703,193 @@ export default function Index({
                 )}
             </Drawer>
 
-            <Card padding="sm" className="shadow-md border-slate-200/70 mb-4">
-                <div className="flex flex-col md:flex-row md:items-center gap-2 pb-3 mb-1 border-b border-slate-100">
-                    <div className="grid grid-cols-2 md:grid-cols-12 gap-2 flex-1">
-                        <div className="col-span-1 md:col-span-2">
-                            <Select size="sm" value={filters.kanal ?? ''} onChange={(e) => terapkan({ kanal: e.target.value })} aria-label="Filter akun kas" className={fokusRing}>
-                                <option value="">Semua akun kas</option>
-                                {Object.entries(kanalMeta).map(([key, meta]) => (
-                                    <option key={key} value={key}>{meta.label}</option>
+            <Drawer
+                show={showFilterDrawer}
+                onClose={() => setShowFilterDrawer(false)}
+                title="Filter Mutasi Kas"
+                maxWidth="lg"
+            >
+                <div className="space-y-5">
+                    {/* Akun Kas Fisik */}
+                    <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+                            Akun Kas Fisik
+                        </label>
+                        <div className="grid grid-cols-3 gap-2">
+                            <button
+                                type="button"
+                                onClick={() => terapkan({ kanal: '' })}
+                                className={`py-2 px-2.5 rounded-xl text-xs font-semibold border transition-all text-center ${
+                                    !filters.kanal
+                                        ? 'bg-brand-navy text-white border-brand-navy shadow-xs'
+                                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                                }`}
+                            >
+                                Semua Akun
+                            </button>
+                            {Object.entries(kanalMeta).map(([k, meta]) => {
+                                const Ikon = meta.ikon;
+                                const aktif = filters.kanal === k;
+                                return (
+                                    <button
+                                        key={k}
+                                        type="button"
+                                        onClick={() => terapkan({ kanal: k })}
+                                        className={`py-2 px-2.5 rounded-xl text-xs font-semibold border transition-all inline-flex items-center justify-center gap-1.5 ${
+                                            aktif
+                                                ? 'bg-brand-navy text-white border-brand-navy shadow-xs'
+                                                : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                                        }`}
+                                    >
+                                        <Ikon size={14} />
+                                        {meta.label}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Tanggal Spesifik (Harian) */}
+                    <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+                            Tanggal Spesifik (Harian)
+                        </label>
+                        <div className="relative">
+                            <CalendarDays size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                            <input
+                                type="date"
+                                value={tanggal}
+                                onChange={(e) => handlePilihTanggal(e.target.value)}
+                                aria-label="Pilih tanggal spesifik"
+                                className="w-full px-3 py-2.5 pl-9 text-sm text-slate-700 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-green/30"
+                            />
+                            {tanggal && (
+                                <button
+                                    type="button"
+                                    onClick={handleHapusTanggal}
+                                    aria-label="Hapus filter tanggal"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                                >
+                                    <X size={16} />
+                                </button>
+                            )}
+                        </div>
+                        <p className="text-[11px] text-slate-400 mt-1">Kosongkan untuk menampilkan seluruh mutasi bulan {labelBulan}.</p>
+                    </div>
+
+                    {/* Kategori Tipe Pengeluaran */}
+                    {Object.keys(tipePengeluaranList).length > 0 && (
+                        <div>
+                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+                                Kategori Pengeluaran
+                            </label>
+                            <Select
+                                size="sm"
+                                value={tipePengeluaran}
+                                onChange={(e) => handlePilihTipePengeluaran(e.target.value)}
+                                aria-label="Filter tipe pengeluaran"
+                                className="w-full"
+                            >
+                                <option value="">Semua Kategori Pengeluaran</option>
+                                {Object.entries(tipePengeluaranList).map(([key, label]) => (
+                                    <option key={key} value={key}>{label}</option>
                                 ))}
                             </Select>
+                            <p className="text-[11px] text-slate-400 mt-1">Hanya memfilter transaksi pengeluaran.</p>
                         </div>
-                        <div className="col-span-1 md:col-span-2 flex items-center gap-1">
+                    )}
+
+                    {/* Tombol aksi drawer */}
+                    <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-2">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                resetFilter();
+                                setShowFilterDrawer(false);
+                            }}
+                            className="text-xs font-bold text-red-600 hover:text-red-700 py-2 px-3 rounded-lg hover:bg-red-50 transition-colors"
+                        >
+                            Reset Filter
+                        </button>
+                        <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => setShowFilterDrawer(false)}
+                            className="rounded-full shadow-xs"
+                        >
+                            Tutup
+                        </Button>
+                    </div>
+                </div>
+            </Drawer>
+
+            <Card padding="none" className="shadow-md border-slate-200/70 mb-4 overflow-hidden">
+                {/* 1. Tab Arus Kas (Primary Status Bar) */}
+                <div className="grid grid-cols-3 border-b border-slate-100 bg-slate-50/70 p-1.5 gap-1.5">
+                    <button
+                        type="button"
+                        onClick={() => handlePilihTipe('')}
+                        aria-label="Tampilkan semua mutasi"
+                        className={`py-2 px-2 rounded-xl text-center transition-all ${
+                            tipe === ''
+                                ? 'bg-white shadow-xs text-brand-navy font-bold'
+                                : 'text-slate-600 hover:text-slate-900 font-medium hover:bg-white/50'
+                        }`}
+                    >
+                        <span className="block text-xs uppercase tracking-wide">Semua</span>
+                        <span className="text-[11px] text-slate-400 font-semibold tabular-nums">
+                            {riwayat.total ?? 0} mutasi
+                        </span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => handlePilihTipe('masuk')}
+                        aria-label="Filter pemasukan"
+                        className={`py-2 px-2 rounded-xl text-center transition-all ${
+                            tipe === 'masuk'
+                                ? 'bg-emerald-600 text-white shadow-xs font-bold'
+                                : 'text-emerald-700 hover:bg-emerald-50/60 font-medium'
+                        }`}
+                    >
+                        <span className="flex items-center justify-center gap-1 text-xs uppercase tracking-wide">
+                            <ArrowDownCircle size={13} className={tipe === 'masuk' ? 'text-white' : 'text-emerald-600'} />
+                            Masuk
+                        </span>
+                        <span className={`text-[11px] font-bold tabular-nums block ${tipe === 'masuk' ? 'text-emerald-100' : 'text-emerald-600'}`}>
+                            +{formatRupiahSingkat(ringkasanPeriode.total_masuk)}
+                        </span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => handlePilihTipe('keluar')}
+                        aria-label="Filter pengeluaran"
+                        className={`py-2 px-2 rounded-xl text-center transition-all ${
+                            tipe === 'keluar'
+                                ? 'bg-red-600 text-white shadow-xs font-bold'
+                                : 'text-red-700 hover:bg-red-50/60 font-medium'
+                        }`}
+                    >
+                        <span className="flex items-center justify-center gap-1 text-xs uppercase tracking-wide">
+                            <ArrowUpCircle size={13} className={tipe === 'keluar' ? 'text-white' : 'text-red-600'} />
+                            Keluar
+                        </span>
+                        <span className={`text-[11px] font-bold tabular-nums block ${tipe === 'keluar' ? 'text-red-100' : 'text-red-600'}`}>
+                            -{formatRupiahSingkat(ringkasanPeriode.total_keluar)}
+                        </span>
+                    </button>
+                </div>
+
+                {/* 2. Toolbar Navigasi & Pencarian */}
+                <div className="p-3 border-b border-slate-100 flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center justify-between">
+                    {/* Stepper Bulan */}
+                    <div className="flex items-center justify-between sm:justify-start gap-2">
+                        <div className="flex items-center rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden flex-1 sm:flex-initial">
                             <button
                                 type="button"
-                                onClick={() => handlePilihTipe('')}
-                                aria-label="Filter semua tipe"
-                                className={`px-2 py-2 rounded-lg text-xs font-medium transition-colors shrink-0 ${tipe === '' ? 'bg-brand-green-light text-brand-green-dark' : 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-50'}`}
+                                onClick={() => geserBulan(-1)}
+                                aria-label="Bulan sebelumnya"
+                                className={`px-3 py-2 text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition-colors ${fokusRing}`}
                             >
-                                Semua
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => handlePilihTipe('masuk')}
-                                aria-label="Filter pemasukan"
-                                className={`px-2 py-2 rounded-lg text-xs font-medium transition-colors shrink-0 ${tipe === 'masuk' ? 'bg-emerald-100 text-emerald-700' : 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-50'}`}
-                            >
-                                Masuk
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => handlePilihTipe('keluar')}
-                                aria-label="Filter pengeluaran"
-                                className={`px-2 py-2 rounded-lg text-xs font-medium transition-colors shrink-0 ${tipe === 'keluar' ? 'bg-red-50 text-red-700' : 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-50'}`}
-                            >
-                                Keluar
-                            </button>
-                        </div>
-                        {tipe === 'keluar' && Object.keys(tipePengeluaranList).length > 0 && (
-                            <div className="col-span-2 md:col-span-2">
-                                <Select
-                                    size="sm"
-                                    value={tipePengeluaran}
-                                    onChange={(e) => handlePilihTipePengeluaran(e.target.value)}
-                                    aria-label="Filter tipe pengeluaran"
-                                    className={fokusRing}
-                                >
-                                    <option value="">Semua Tipe</option>
-                                    {Object.entries(tipePengeluaranList).map(([key, label]) => (
-                                        <option key={key} value={key}>{label}</option>
-                                    ))}
-                                </Select>
-                            </div>
-                        )}
-                        <div className={`col-span-2 ${tipe === 'keluar' ? 'md:col-span-2' : 'md:col-span-3'} flex items-center rounded-xl border border-slate-300 bg-white overflow-hidden`}>
-                            <button type="button" onClick={() => geserBulan(-1)} aria-label="Bulan sebelumnya" className={`px-2 py-2.5 text-slate-500 hover:text-slate-700 ${fokusRing}`}>
                                 <ChevronLeft size={16} />
                             </button>
                             <input
@@ -763,73 +897,157 @@ export default function Index({
                                 value={bulanFilter}
                                 onChange={(e) => e.target.value && terapkan({ bulan: e.target.value, tanggal: '' })}
                                 aria-label="Pilih bulan"
-                                className="w-full px-1 py-2.5 text-base text-slate-700 border-x border-slate-200 bg-transparent focus:outline-none"
+                                className="w-full sm:w-auto px-2 py-1.5 text-xs sm:text-sm font-semibold text-slate-700 bg-transparent focus:outline-none border-x border-slate-100 tabular-nums text-center cursor-pointer"
                             />
-                            <button type="button" onClick={() => geserBulan(1)} aria-label="Bulan berikutnya" className={`px-2 py-2.5 text-slate-500 hover:text-slate-700 ${fokusRing}`}>
+                            <button
+                                type="button"
+                                onClick={() => geserBulan(1)}
+                                aria-label="Bulan berikutnya"
+                                className={`px-3 py-2 text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition-colors ${fokusRing}`}
+                            >
                                 <ChevronRight size={16} />
                             </button>
                         </div>
-                        <div className="relative col-span-2 md:col-span-2 flex items-center rounded-xl border border-slate-300 bg-white overflow-hidden">
-                            <CalendarDays size={16} className="text-slate-400 shrink-0 ml-2 pointer-events-none" />
+                        {bulanFilter !== kunciBulanIni && (
+                            <button
+                                type="button"
+                                onClick={() => terapkan({ bulan: kunciBulanIni, tanggal: '' })}
+                                className="text-xs font-bold text-brand-green-dark bg-brand-green-light rounded-full px-2.5 py-1.5 hover:bg-brand-green/20 transition-colors whitespace-nowrap"
+                            >
+                                Bulan ini
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Search & Filter Button */}
+                    <div className="flex items-center gap-2 flex-1 max-w-full sm:max-w-md">
+                        <div className="relative flex-1">
+                            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                             <input
-                                type="date"
-                                value={tanggal}
-                                onChange={(e) => handlePilihTanggal(e.target.value)}
-                                aria-label="Pilih tanggal"
-                                className="w-full px-1 py-2.5 text-base text-slate-700 bg-transparent focus:outline-none pl-2 pr-7"
+                                type="text"
+                                value={cari}
+                                onChange={(e) => setCari(e.target.value)}
+                                placeholder="Cari keterangan..."
+                                aria-label="Cari keterangan"
+                                className="w-full pl-9 pr-8 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-green/30 transition-all placeholder:text-slate-400"
                             />
-                            {tanggal && (
+                            {cari && (
                                 <button
                                     type="button"
-                                    onClick={handleHapusTanggal}
-                                    aria-label="Hapus filter tanggal"
-                                    className="absolute right-2 text-slate-400 hover:text-slate-600 p-0.5"
+                                    onClick={() => setCari('')}
+                                    aria-label="Hapus pencarian"
+                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
                                 >
                                     <X size={14} />
                                 </button>
                             )}
                         </div>
-                        <div className={`relative col-span-full ${tipe === 'keluar' ? 'md:col-span-2' : 'md:col-span-3'}`}>
-                            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                            <TextField
-                                size="sm"
-                                value={cari}
-                                onChange={(e) => setCari(e.target.value)}
-                                placeholder="Cari keterangan..."
-                                aria-label="Cari keterangan"
-                                className="pl-10 pr-9"
-                            />
-                            {cari && (
-                                <button onClick={() => setCari('')} aria-label="Hapus pencarian" className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                                    <X size={16} />
-                                </button>
+
+                        <button
+                            type="button"
+                            onClick={() => setShowFilterDrawer(true)}
+                            aria-label="Buka filter lanjutan"
+                            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all border shrink-0 ${
+                                jumlahFilterLanjutan > 0
+                                    ? 'bg-brand-navy text-white border-brand-navy shadow-xs'
+                                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                            }`}
+                        >
+                            <SlidersHorizontal size={15} />
+                            <span>Filter</span>
+                            {jumlahFilterLanjutan > 0 && (
+                                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-brand-green text-brand-navy text-[10px] font-black tabular-nums">
+                                    {jumlahFilterLanjutan}
+                                </span>
                             )}
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                        {bulanFilter !== kunciBulanIni && (
-                            <button onClick={() => terapkan({ bulan: kunciBulanIni })} className="text-xs font-bold text-brand-green-dark bg-brand-green-light rounded-full px-2.5 py-1.5 hover:bg-brand-green/20 transition-colors whitespace-nowrap">
-                                Bulan ini
-                            </button>
-                        )}
-                        {filterAktif && (
-                            <button onClick={resetFilter} className="text-xs font-bold text-slate-500 hover:text-slate-700 rounded-full px-2.5 py-1.5 whitespace-nowrap">
-                                Reset
-                            </button>
-                        )}
-                        <span className="inline-flex items-center px-2.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap bg-brand-green-light text-brand-green-dark tabular-nums">
-                            +{formatRupiahSingkat(ringkasanPeriode.total_masuk)}
-                        </span>
-                        <span className="inline-flex items-center px-2.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap bg-red-50 text-red-700 tabular-nums">
-                            -{formatRupiahSingkat(ringkasanPeriode.total_keluar)}
-                        </span>
+                        </button>
                     </div>
                 </div>
-                <div className="flex items-center gap-1.5 min-w-0 px-1 pt-1">
-                    <CalendarDays size={15} className="text-slate-400 shrink-0" />
-                    <p className="text-sm text-slate-500 truncate">
-                        Mutasi kas <span className="font-bold text-slate-800">{labelBulan}</span>
-                    </p>
+
+                {/* 3. Active Filter Chips */}
+                {filterAktif && (
+                    <div className="flex flex-wrap items-center gap-1.5 px-3 py-2 bg-slate-50/80 border-b border-slate-100 text-xs">
+                        <span className="text-slate-400 text-[11px] font-medium mr-0.5">Filter aktif:</span>
+
+                        {filters.kanal && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white border border-slate-200 text-slate-700 font-medium shadow-2xs">
+                                <span>Akun: {kanalMeta[filters.kanal]?.label ?? filters.kanal}</span>
+                                <button
+                                    type="button"
+                                    onClick={() => terapkan({ kanal: '' })}
+                                    className="hover:text-red-500 rounded-full p-0.5 transition-colors"
+                                    aria-label="Hapus filter akun"
+                                >
+                                    <X size={12} />
+                                </button>
+                            </span>
+                        )}
+
+                        {filters.tanggal && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white border border-slate-200 text-slate-700 font-medium shadow-2xs">
+                                <CalendarDays size={12} className="text-slate-400" />
+                                <span>{filters.tanggal}</span>
+                                <button
+                                    type="button"
+                                    onClick={handleHapusTanggal}
+                                    className="hover:text-red-500 rounded-full p-0.5 transition-colors"
+                                    aria-label="Hapus filter tanggal"
+                                >
+                                    <X size={12} />
+                                </button>
+                            </span>
+                        )}
+
+                        {filters.tipe_pengeluaran && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-50 border border-red-200/70 text-red-700 font-medium shadow-2xs">
+                                <span>Tipe: {tipePengeluaranList[filters.tipe_pengeluaran] ?? filters.tipe_pengeluaran}</span>
+                                <button
+                                    type="button"
+                                    onClick={() => handlePilihTipePengeluaran('')}
+                                    className="hover:text-red-900 rounded-full p-0.5 transition-colors"
+                                    aria-label="Hapus filter tipe pengeluaran"
+                                >
+                                    <X size={12} />
+                                </button>
+                            </span>
+                        )}
+
+                        {filters.cari && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white border border-slate-200 text-slate-700 font-medium shadow-2xs">
+                                <span>"{filters.cari}"</span>
+                                <button
+                                    type="button"
+                                    onClick={() => setCari('')}
+                                    className="hover:text-red-500 rounded-full p-0.5 transition-colors"
+                                    aria-label="Hapus filter cari"
+                                >
+                                    <X size={12} />
+                                </button>
+                            </span>
+                        )}
+
+                        <button
+                            type="button"
+                            onClick={resetFilter}
+                            className="text-[11px] font-bold text-red-600 hover:text-red-800 hover:underline px-1.5 py-0.5 ml-auto sm:ml-0"
+                        >
+                            Reset Semua
+                        </button>
+                    </div>
+                )}
+
+                {/* 4. Subheader Info */}
+                <div className="flex items-center justify-between gap-1.5 px-4 pt-3 pb-1">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                        <CalendarDays size={15} className="text-slate-400 shrink-0" />
+                        <p className="text-xs sm:text-sm text-slate-500 truncate">
+                            Mutasi kas <span className="font-bold text-slate-800">{labelBulan}</span>
+                            {filters.tanggal && <span className="text-brand-navy font-semibold"> • {filters.tanggal}</span>}
+                        </p>
+                    </div>
+                    <span className="text-xs text-slate-400 font-medium tabular-nums">
+                        {riwayat.total ?? 0} data
+                    </span>
                 </div>
                 <div className={`transition-opacity duration-150 ${memuatFilter ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
                     {riwayat.data.length === 0 ? (
