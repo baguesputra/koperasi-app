@@ -16,7 +16,7 @@ import BayarTab from './Partials/BayarTab';
 const TABS = [
     { kunci: 'ringkasan', label: 'Ringkasan' },
     { kunci: 'komponen', label: 'Komponen SHU' },
-    { kunci: 'distribusi', label: 'Distribusi SHU' },
+    { kunci: 'distribusi', label: 'Distribusi SHU Anggota' },
     { kunci: 'bayar', label: 'Bayar' },
 ];
 
