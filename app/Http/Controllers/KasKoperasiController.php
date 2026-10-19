@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\JurnalKas;
 use App\Models\KasKoperasi;
+use App\Models\Pengeluaran;
 use App\Services\Keuangan\JurnalKasService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -29,6 +30,7 @@ class KasKoperasiController extends Controller
         $tipeFilter = (string) $request->input('tipe', '');
         $tanggalFilter = (string) $request->input('tanggal', '');
         $cari = trim((string) $request->input('cari', ''));
+        $tipePengeluaranFilter = (string) $request->input('tipe_pengeluaran', '');
 
         // Jika filter tanggal diisi, selaraskan bulanFilter dengan bulan dari tanggal tersebut
         if ($tanggalFilter && preg_match('/^\d{4}-\d{2}-\d{2}$/', $tanggalFilter)) {
@@ -60,7 +62,16 @@ class KasKoperasiController extends Controller
             $query->where('tipe', $tipeFilter);
         }
 
-        $riwayat = (clone $query)->latest('tanggal')->latest('id')
+        if ($tipePengeluaranFilter && in_array($tipePengeluaranFilter, Pengeluaran::TIPE, true)) {
+            $pengeluaranIds = Pengeluaran::where('tipe', $tipePengeluaranFilter)->pluck('id');
+            $query->whereIn('kategori', ['pengeluaran_koperasi', 'pengeluaran_dana_sosial'])
+                ->whereIn('referensi_id', $pengeluaranIds);
+        }
+
+        $riwayat = (clone $query)
+            ->with(['pengeluaran:id,tipe,akun'])
+            ->latest('tanggal')
+            ->latest('id')
             ->paginate(20)
             ->withQueryString()
             ->through(fn ($j) => [
@@ -68,6 +79,8 @@ class KasKoperasiController extends Controller
                 'tipe' => $j->tipe,
                 'kategori' => $j->kategori,
                 'sumber_topup' => $j->sumber_topup,
+                'tipe_pengeluaran' => $j->pengeluaran?->tipe,
+                'tipe_pengeluaran_label' => $j->pengeluaran ? (Pengeluaran::TIPE_LABEL[$j->pengeluaran->tipe] ?? $j->pengeluaran->tipe) : null,
                 'kantong' => $j->kantong,
                 'kanal' => JurnalKasService::kanalFisik($j->kantong, $j->kategori),
                 'jumlah' => (float) $j->jumlah,
@@ -134,7 +147,15 @@ class KasKoperasiController extends Controller
             'saldoBank' => fn () => (float) $ambilKas()->saldo_bank,
             'saldoKasKecil' => fn () => (float) $ambilKas()->saldo_kas_kecil,
             'bulanFilter' => $bulanFilter,
-            'filters' => ['kanal' => $kanalFilter, 'cari' => $cari, 'tipe' => $tipeFilter, 'tanggal' => $tanggalFilter],
+            'filters' => [
+                'kanal' => $kanalFilter,
+                'cari' => $cari,
+                'tipe' => $tipeFilter,
+                'tanggal' => $tanggalFilter,
+                'tipe_pengeluaran' => $tipePengeluaranFilter,
+            ],
+            'tipePengeluaranList' => Pengeluaran::TIPE_LABEL,
+            'akunPengeluaranList' => Pengeluaran::AKUN_LABEL,
             'ringkasanPeriode' => [
                 'total_masuk' => $totalMasuk,
                 'total_keluar' => $totalKeluar,
@@ -186,6 +207,7 @@ class KasKoperasiController extends Controller
             'keterangan' => ['nullable', 'string', 'max:255'],
             'lain_lain' => ['nullable', 'boolean'],
             'keterangan_lain' => ['nullable', 'required_if:lain_lain,true', 'string', 'max:255'],
+            'tanggal' => ['nullable', 'date'],
         ]);
 
         $keterangan = $request->keterangan ?: 'Topup saldo koperasi';
@@ -193,6 +215,8 @@ class KasKoperasiController extends Controller
         if ($request->boolean('lain_lain')) {
             $keterangan = '[Lain-lain] '.$request->keterangan_lain.($request->keterangan ? ' — '.$request->keterangan : '');
         }
+
+        $tanggal = $request->filled('tanggal') ? $request->tanggal : now()->format('Y-m-d');
 
         // Topup selalu masuk Bank, dengan sumber modal / bunga bank.
         $this->jurnalKas->catat(
@@ -202,7 +226,7 @@ class KasKoperasiController extends Controller
             jumlah: $request->jumlah,
             keterangan: $keterangan,
             referensiId: null,
-            tanggal: now()->format('Y-m-d'),
+            tanggal: $tanggal,
             userId: auth()->id(),
             sumberTopup: $request->sumber_topup,
         );

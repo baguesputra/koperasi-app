@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react';
 import {
     LayoutDashboard, Users, PiggyBank, HandCoins,
     ClipboardCheck, CalendarCheck, HeartHandshake,
-    Wallet, FileBarChart, Receipt, TrendingUp, BookOpenText, Percent,
+    Wallet, FileBarChart, TrendingUp, BookOpenText, Percent,
     ChevronLeft, ChevronRight, Repeat, Settings, LogOut
 } from 'lucide-react';
 
@@ -44,7 +44,6 @@ const menuGroups = [
         items: [
             { label: 'Kas Koperasi', routeName: 'kas-koperasi.index', icon: Wallet, permission: 'kas.lihat' },
             { label: 'Jurnal Kas', routeName: 'jurnal-kas.index', icon: BookOpenText, permission: 'jurnal.lihat' },
-            { label: 'Pengeluaran', routeName: 'pengeluaran.index', icon: Receipt, permission: 'kas.lihat' },
             { label: 'Pembagian SHU', routeName: 'shu.index', icon: Percent, permission: 'shu.kelola' },
             { label: 'Laporan', routeName: 'laporan.index', icon: FileBarChart, permission: 'laporan.lihat' },
         ],

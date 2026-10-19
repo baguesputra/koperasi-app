@@ -36,4 +36,9 @@ class JurnalKas extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+
+    public function pengeluaran(): BelongsTo
+    {
+        return $this->belongsTo(Pengeluaran::class, 'referensi_id');
+    }
 }

@@ -38,6 +38,7 @@ class PengeluaranService
                 referensiId: $pengeluaran->id,
                 tanggal: $tanggal,
                 userId: $userId,
+                subJudul: Pengeluaran::TIPE_LABEL[$tipe] ?? $tipe,
             );
 
             // Audit log untuk pencatatan pengeluaran

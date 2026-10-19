@@ -1,6 +1,9 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, usePage, useForm, router, Link } from '@inertiajs/react';
-import { Wallet, ArrowDownCircle, ArrowUpCircle, Plus, ChevronLeft, ChevronRight, Landmark, ReceiptText, CalendarDays, Search, X } from 'lucide-react';
+import {
+    Wallet, ArrowDownCircle, ArrowUpCircle, Plus, ChevronLeft, ChevronRight,
+    Landmark, ReceiptText, CalendarDays, Search, X, ArrowRightLeft
+} from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Card from '@/Components/ui/Card';
 import Button from '@/Components/ui/Button';
@@ -10,6 +13,7 @@ import StatWidget from '@/Components/ui/StatWidget';
 import TextField from '@/Components/ui/TextField';
 import FormField from '@/Components/ui/FormField';
 import Select from '@/Components/ui/Select';
+import Drawer from '@/Components/ui/Drawer';
 import useDebouncedValue from '@/Utils/useDebouncedValue';
 import ChipNominal from '@/Components/ui/ChipNominal';
 import { formatRupiah, formatRupiahSingkat } from '@/Utils/formatCurrency';
@@ -71,6 +75,8 @@ export default function Index({
     saldoKasKecil,
     bulanFilter,
     filters = {},
+    tipePengeluaranList = {},
+    akunPengeluaranList = {},
     ringkasanPeriode,
     ringkasanKanal,
     ringkasanPerTanggal,
@@ -78,21 +84,32 @@ export default function Index({
 }) {
     const { auth } = usePage().props;
     const bisaTopup = auth.user?.permissions?.includes('kas.topup');
-    const [showForm, setShowForm] = useState(false);
-    const [showSisih, setShowSisih] = useState(false);
+    const [showDrawer, setShowDrawer] = useState(false);
+    const [tabDrawer, setTabDrawer] = useState('pemasukan');
     const [cari, setCari] = useState(filters.cari ?? '');
     const cariDebounced = useDebouncedValue(cari);
     const [tipe, setTipe] = useState(filters.tipe ?? '');
+    const [tipePengeluaran, setTipePengeluaran] = useState(filters.tipe_pengeluaran ?? '');
     const [tanggal, setTanggal] = useState(filters.tanggal ?? '');
     const [memuatFilter, setMemuatFilter] = useState(false);
     const pertama = useRef(true);
+    const hariIni = new Date().toISOString().slice(0, 10);
 
-    const { data, setData, post, processing, errors, reset } = useForm({
+    const pemasukanForm = useForm({
         jumlah: '',
         sumber_topup: 'modal',
         keterangan: '',
         lain_lain: false,
         keterangan_lain: '',
+        tanggal: hariIni,
+    });
+
+    const pengeluaranForm = useForm({
+        tipe: 'lain_lain',
+        akun: 'kas_kecil',
+        jumlah: '',
+        keterangan: '',
+        tanggal: hariIni,
     });
 
     const sisihForm = useForm({
@@ -107,11 +124,12 @@ export default function Index({
             cari,
             tipe,
             tanggal,
+            tipe_pengeluaran: tipePengeluaran,
             ...overrides,
         };
 
         Object.keys(params).forEach((k) => {
-            if (params[k] === null || params[k] === undefined) {
+            if (params[k] === null || params[k] === undefined || params[k] === '') {
                 delete params[k];
             }
         });
@@ -132,7 +150,22 @@ export default function Index({
 
     function handlePilihTipe(tipeBaru) {
         setTipe(tipeBaru);
-        terapkan({ tipe: tipeBaru });
+        const overrides = { tipe: tipeBaru };
+        if (tipeBaru !== 'keluar') {
+            setTipePengeluaran('');
+            overrides.tipe_pengeluaran = '';
+        }
+        terapkan(overrides);
+    }
+
+    function handlePilihTipePengeluaran(tpBaru) {
+        setTipePengeluaran(tpBaru);
+        const overrides = { tipe_pengeluaran: tpBaru };
+        if (tpBaru) {
+            setTipe('keluar');
+            overrides.tipe = 'keluar';
+        }
+        terapkan(overrides);
     }
 
     function handlePilihTanggal(tanggalBaru) {
@@ -161,6 +194,7 @@ export default function Index({
     function resetFilter() {
         setCari('');
         setTipe('');
+        setTipePengeluaran('');
         setTanggal('');
         router.get(
             route('kas-koperasi.index'),
@@ -195,6 +229,10 @@ export default function Index({
     }, [filters.tipe]);
 
     useEffect(() => {
+        setTipePengeluaran(filters.tipe_pengeluaran ?? '');
+    }, [filters.tipe_pengeluaran]);
+
+    useEffect(() => {
         setTanggal(filters.tanggal ?? '');
     }, [filters.tanggal]);
 
@@ -205,7 +243,7 @@ export default function Index({
 
     const bulanIni = new Date();
     const kunciBulanIni = `${bulanIni.getFullYear()}-${String(bulanIni.getMonth() + 1).padStart(2, '0')}`;
-    const filterAktif = Boolean(filters.kanal || filters.cari || filters.tipe || filters.tanggal);
+    const filterAktif = Boolean(filters.kanal || filters.cari || filters.tipe || filters.tanggal || filters.tipe_pengeluaran);
 
     // Kelompokkan baris per tanggal (riwayat sudah urut tanggal desc).
     const grupHari = useMemo(() => {
@@ -218,17 +256,31 @@ export default function Index({
         return [...peta.entries()];
     }, [riwayat.data]);
 
-    function submit(e) {
+    function submitPemasukan(e) {
         e.preventDefault();
-        post(
+        pemasukanForm.post(
             route('kas-koperasi.topup'),
             withIdempotencyKey({
                 preserveScroll: true,
                 onSuccess: () => {
-                    reset('jumlah', 'keterangan', 'keterangan_lain');
-                    setData('lain_lain', false);
-                    setData('sumber_topup', 'modal');
-                    setShowForm(false);
+                    pemasukanForm.reset('jumlah', 'keterangan', 'keterangan_lain');
+                    pemasukanForm.setData('lain_lain', false);
+                    pemasukanForm.setData('sumber_topup', 'modal');
+                    setShowDrawer(false);
+                },
+            })
+        );
+    }
+
+    function submitPengeluaran(e) {
+        e.preventDefault();
+        pengeluaranForm.post(
+            route('pengeluaran.store'),
+            withIdempotencyKey({
+                preserveScroll: true,
+                onSuccess: () => {
+                    pengeluaranForm.reset('jumlah', 'keterangan');
+                    setShowDrawer(false);
                 },
             })
         );
@@ -242,7 +294,7 @@ export default function Index({
                 preserveScroll: true,
                 onSuccess: () => {
                     sisihForm.reset('jumlah', 'keterangan');
-                    setShowSisih(false);
+                    setShowDrawer(false);
                 },
             })
         );
@@ -274,6 +326,11 @@ export default function Index({
             <>
                 {badgeKanal(r.kanal)}
                 {!sama && badgeKantong(r.kantong)}
+                {r.tipe_pengeluaran_label && (
+                    <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200/60 whitespace-nowrap">
+                        {r.tipe_pengeluaran_label}
+                    </span>
+                )}
             </>
         );
     }
@@ -304,216 +361,322 @@ export default function Index({
             <Head title="Kas Koperasi" />
 
             <PageHeader title="Kas Koperasi" subtitle="Saldo dan mutasi kas koperasi">
-                {(bisaTopup && !showForm) || (bisaTopup && !showSisih) ? (
+                {bisaTopup && (
                     <div className="flex items-center gap-2 flex-wrap">
-                        {bisaTopup && !showForm && (
-                            <Button size="sm" onClick={() => setShowForm(true)} className="rounded-full shadow-md shadow-brand-green/25 hover:-translate-y-px active:translate-y-0">
-                                <Plus size={16} aria-hidden="true" />
-                                Topup Bank
-                            </Button>
-                        )}
-                        {bisaTopup && !showSisih && (
-                            <Button size="sm" variant="secondary" onClick={() => setShowSisih(true)} className="rounded-full shadow-md hover:-translate-y-px active:translate-y-0">
-                                <Plus size={16} aria-hidden="true" />
-                                Sisih Kas Kecil
-                            </Button>
-                        )}
+                        <Button
+                            size="sm"
+                            onClick={() => { setTabDrawer('pemasukan'); setShowDrawer(true); }}
+                            className="rounded-full shadow-md shadow-brand-green/25 hover:-translate-y-px active:translate-y-0"
+                        >
+                            <Plus size={16} aria-hidden="true" />
+                            Pemasukan / Pengeluaran
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => { setTabDrawer('sisih'); setShowDrawer(true); }}
+                            className="rounded-full shadow-md hover:-translate-y-px active:translate-y-0"
+                        >
+                            <ArrowRightLeft size={14} aria-hidden="true" />
+                            Sisih Kas Kecil
+                        </Button>
                     </div>
-                ) : null}
+                )}
             </PageHeader>
 
-            <div className="rounded-2xl bg-gradient-to-r from-brand-navy to-brand-navy-light text-white px-5 py-4 mb-3 shadow-md shadow-brand-navy/20">
-                <div className="flex items-center gap-3">
-                    <span className="w-11 h-11 rounded-2xl bg-white/15 inline-flex items-center justify-center shrink-0">
-                        <Landmark size={22} />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                        <p className="text-xs text-white/70">Kas (Bank + Kas Kecil)</p>
-                        <p className="text-2xl font-bold tabular-nums leading-tight">{formatRupiah((saldoBank ?? 0) + (saldoKasKecil ?? 0))}</p>
-                    </div>
+            <Drawer
+                show={showDrawer}
+                onClose={() => setShowDrawer(false)}
+                title="Pemasukan & Pengeluaran Kas"
+                maxWidth="xl"
+            >
+                <div className="flex rounded-xl bg-slate-100 p-1 mb-5">
+                    <button
+                        type="button"
+                        onClick={() => setTabDrawer('pemasukan')}
+                        className={`flex-1 py-2 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+                            tabDrawer === 'pemasukan'
+                                ? 'bg-white text-emerald-700 shadow-sm'
+                                : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                    >
+                        <ArrowDownCircle size={15} className={tabDrawer === 'pemasukan' ? 'text-emerald-600' : 'text-slate-400'} />
+                        Pemasukan
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setTabDrawer('pengeluaran')}
+                        className={`flex-1 py-2 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+                            tabDrawer === 'pengeluaran'
+                                ? 'bg-white text-red-700 shadow-sm'
+                                : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                    >
+                        <ArrowUpCircle size={15} className={tabDrawer === 'pengeluaran' ? 'text-red-600' : 'text-slate-400'} />
+                        Pengeluaran
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setTabDrawer('sisih')}
+                        className={`flex-1 py-2 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+                            tabDrawer === 'sisih'
+                                ? 'bg-white text-amber-700 shadow-sm'
+                                : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                    >
+                        <ArrowRightLeft size={14} className={tabDrawer === 'sisih' ? 'text-amber-600' : 'text-slate-400'} />
+                        Sisih Kas Kecil
+                    </button>
                 </div>
-                <dl className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3 pt-3 border-t border-white/15 text-sm">
-                    <div className="rounded-xl bg-white/10 px-3 py-2">
-                        <dt className="text-xs text-white/70">Masuk {labelBulan}</dt>
-                        <dd className="font-bold tabular-nums text-emerald-300">+ {formatRupiah(ringkasanPeriode.total_masuk)}</dd>
-                    </div>
-                    <div className="rounded-xl bg-white/10 px-3 py-2">
-                        <dt className="text-xs text-white/70">Keluar {labelBulan}</dt>
-                        <dd className="font-bold tabular-nums text-red-300">- {formatRupiah(ringkasanPeriode.total_keluar)}</dd>
-                    </div>
-                    <div className="rounded-xl bg-white/10 px-3 py-2">
-                        <dt className="text-xs text-white/70">Bank</dt>
-                        <dd className="font-bold tabular-nums">
-                            <span className="text-emerald-300">+{formatRupiahSingkat(ringkasanKanal.bank.masuk)}</span>
-                            <span className="text-white/50"> / </span>
-                            <span className="text-red-300">-{formatRupiahSingkat(ringkasanKanal.bank.keluar)}</span>
-                        </dd>
-                    </div>
-                    <div className="rounded-xl bg-white/10 px-3 py-2">
-                        <dt className="text-xs text-white/70">Kas Kecil</dt>
-                        <dd className="font-bold tabular-nums">
-                            <span className="text-emerald-300">+{formatRupiahSingkat(ringkasanKanal.kas_kecil.masuk)}</span>
-                            <span className="text-white/50"> / </span>
-                            <span className="text-red-300">-{formatRupiahSingkat(ringkasanKanal.kas_kecil.keluar)}</span>
-                        </dd>
-                    </div>
-                </dl>
-            </div>
 
-            <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
-                    <StatWidget compact label="Saldo Bank" value={formatRupiah(saldoBank ?? 0)} icon={Landmark} tone="navy" />
-                </div>
-                <div className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
-                    <StatWidget compact label="Saldo Kas Kecil" value={formatRupiah(saldoKasKecil ?? 0)} icon={Wallet} tone="amber" />
-                </div>
-            </div>
-
-            {showForm && (
-                <Card className="mb-4 border-brand-green/30 shadow-md">
-                    <form onSubmit={submit}>
-                        <div className="flex items-center gap-2 mb-3">
-                            <span className="w-8 h-8 rounded-xl bg-brand-green-light text-brand-green-dark inline-flex items-center justify-center shrink-0">
-                                <ReceiptText size={16} />
-                            </span>
-                            <div>
-                                <p className="text-sm font-bold text-slate-800">Topup Bank</p>
-                                <p className="text-xs text-slate-400">Masuk jurnal kas sebagai topup bulanan ke Bank</p>
-                            </div>
+                {tabDrawer === 'pemasukan' && (
+                    <form onSubmit={submitPemasukan} className="space-y-4">
+                        <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-100 text-xs text-emerald-800 flex items-center gap-2">
+                            <ArrowDownCircle size={18} className="text-emerald-600 shrink-0" />
+                            <span>Pemasukan topup akan menambah saldo <strong>Bank</strong> dan tercatat langsung di mutasi kas.</span>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3">
-                            <FormField label="Jumlah (Rp)" error={errors.jumlah} required>
-                                <div className="relative">
-                                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400 pointer-events-none">Rp</span>
-                                    <TextField
-                                        size="sm"
-                                        type="number"
-                                        min="1"
-                                        value={data.jumlah}
-                                        onChange={(e) => setData('jumlah', e.target.value)}
-                                        placeholder="5000000"
-                                        autoFocus
-                                        required
-                                        className="pl-10 tabular-nums"
-                                    />
-                                </div>
-                                <ChipNominal grup="topup" nilai={data.jumlah} onPilih={(n) => setData('jumlah', n)} />
-                            </FormField>
-                            <FormField label="Keterangan" error={errors.keterangan} hint={`Contoh: Topup ${labelBulan} dari pendapatan bunga`}>
+
+                        <FormField label="Jumlah (Rp)" error={pemasukanForm.errors.jumlah} required>
+                            <div className="relative">
+                                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400 pointer-events-none">Rp</span>
                                 <TextField
                                     size="sm"
-                                    value={data.keterangan}
-                                    onChange={(e) => setData('keterangan', e.target.value)}
-                                    placeholder={`Topup ${labelBulan} dari pendapatan bunga`}
-                                />
-                            </FormField>
-                            <FormField label="Sumber Topup" error={errors.sumber_topup} required hint="Bunga Bank masuk pendapatan SHU; Modal tidak.">
-                                <Select
-                                    size="sm"
-                                    value={data.sumber_topup}
-                                    onChange={(e) => setData('sumber_topup', e.target.value)}
-                                    aria-label="Sumber topup"
+                                    type="number"
+                                    min="1"
+                                    value={pemasukanForm.data.jumlah}
+                                    onChange={(e) => pemasukanForm.setData('jumlah', e.target.value)}
+                                    placeholder="5000000"
+                                    autoFocus
                                     required
-                                >
-                                    {Object.entries(sumberTopupLabel).map(([key, label]) => (
-                                        <option key={key} value={key}>{label}</option>
-                                    ))}
-                                </Select>
-                            </FormField>
-                        </div>
-                        <label className="flex items-center gap-2.5 mt-1 mb-3 cursor-pointer select-none">
+                                    className="pl-10 tabular-nums"
+                                />
+                            </div>
+                            <ChipNominal grup="topup" nilai={pemasukanForm.data.jumlah} onPilih={(n) => pemasukanForm.setData('jumlah', n)} />
+                        </FormField>
+
+                        <FormField label="Tanggal" error={pemasukanForm.errors.tanggal} required>
+                            <div className="relative">
+                                <CalendarDays size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                <TextField
+                                    size="sm"
+                                    type="date"
+                                    value={pemasukanForm.data.tanggal}
+                                    onChange={(e) => pemasukanForm.setData('tanggal', e.target.value)}
+                                    max={hariIni}
+                                    required
+                                    className="pl-9"
+                                />
+                            </div>
+                        </FormField>
+
+                        <FormField label="Sumber Topup" error={pemasukanForm.errors.sumber_topup} required hint="Bunga Bank masuk pendapatan SHU; Modal tidak.">
+                            <Select
+                                size="sm"
+                                value={pemasukanForm.data.sumber_topup}
+                                onChange={(e) => pemasukanForm.setData('sumber_topup', e.target.value)}
+                                aria-label="Sumber topup"
+                                required
+                            >
+                                {Object.entries(sumberTopupLabel).map(([key, label]) => (
+                                    <option key={key} value={key}>{label}</option>
+                                ))}
+                            </Select>
+                        </FormField>
+
+                        <FormField label="Keterangan" error={pemasukanForm.errors.keterangan} hint={`Contoh: Topup ${labelBulan} dari pendapatan bunga`}>
+                            <TextField
+                                size="sm"
+                                value={pemasukanForm.data.keterangan}
+                                onChange={(e) => pemasukanForm.setData('keterangan', e.target.value)}
+                                placeholder={`Topup ${labelBulan} dari pendapatan bunga`}
+                            />
+                        </FormField>
+
+                        <label className="flex items-center gap-2.5 cursor-pointer select-none">
                             <input
                                 type="checkbox"
-                                checked={Boolean(data.lain_lain)}
-                                onChange={(e) => setData('lain_lain', e.target.checked)}
-                                className="w-5 h-5 rounded accent-brand-green"
+                                checked={Boolean(pemasukanForm.data.lain_lain)}
+                                onChange={(e) => pemasukanForm.setData('lain_lain', e.target.checked)}
+                                className="w-4 h-4 rounded accent-brand-green"
                             />
                             <span className="text-sm font-semibold text-slate-600">Lain-lain</span>
                         </label>
-                        {Boolean(data.lain_lain) && (
-                            <FormField label="Keterangan lain-lain" error={errors.keterangan_lain} required>
+
+                        {Boolean(pemasukanForm.data.lain_lain) && (
+                            <FormField label="Keterangan lain-lain" error={pemasukanForm.errors.keterangan_lain} required>
                                 <TextField
                                     size="sm"
-                                    value={data.keterangan_lain}
-                                    onChange={(e) => setData('keterangan_lain', e.target.value)}
+                                    value={pemasukanForm.data.keterangan_lain}
+                                    onChange={(e) => pemasukanForm.setData('keterangan_lain', e.target.value)}
                                     placeholder="Contoh: Hibah dari donatur"
                                     autoFocus
                                 />
                             </FormField>
                         )}
-                        <div className="flex items-center gap-2">
-                            <Button type="submit" size="sm" disabled={processing} className="rounded-full shadow-md shadow-brand-green/25">
-                                {processing ? 'Menyimpan...' : `Simpan • ${data.jumlah ? formatRupiah(Number(data.jumlah)) : 'Rp 0'}`}
+
+                        <div className="pt-2 flex items-center gap-2">
+                            <Button type="submit" size="sm" disabled={pemasukanForm.processing} className="rounded-full shadow-md shadow-brand-green/25">
+                                {pemasukanForm.processing ? 'Menyimpan...' : `Simpan Pemasukan • ${pemasukanForm.data.jumlah ? formatRupiah(Number(pemasukanForm.data.jumlah)) : 'Rp 0'}`}
                             </Button>
-                            <Button type="button" variant="ghost" size="sm" className="rounded-full" onClick={() => setShowForm(false)}>
+                            <Button type="button" variant="ghost" size="sm" className="rounded-full" onClick={() => setShowDrawer(false)}>
                                 Batal
                             </Button>
                         </div>
                     </form>
-                </Card>
-            )}
+                )}
 
-            {showSisih && (
-                <Card className="mb-4 border-brand-green/30 shadow-md">
-                    <form onSubmit={submitSisih}>
-                        <div className="flex items-center gap-2 mb-3">
-                            <span className="w-8 h-8 rounded-xl bg-brand-green-light text-brand-green-dark inline-flex items-center justify-center shrink-0">
-                                <Landmark size={16} />
-                            </span>
-                            <div>
-                                <p className="text-sm font-bold text-slate-800">Sisih Kas Kecil</p>
-                                <p className="text-xs text-slate-400">Pindahkan uang fisik dari Bank ke Kas Kecil dalam satu jurnal atomik</p>
-                            </div>
+                {tabDrawer === 'pengeluaran' && (
+                    <form onSubmit={submitPengeluaran} className="space-y-4">
+                        <div className="p-3 rounded-xl bg-red-50/70 border border-red-100 text-xs text-red-800 flex items-center gap-2">
+                            <ArrowUpCircle size={18} className="text-red-600 shrink-0" />
+                            <span>Pengeluaran akan memotong saldo kas fisik (Bank atau Kas Kecil) dan tercatat ke mutasi kas.</span>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3">
-                            <FormField label="Jumlah (Rp)" error={sisihForm.errors.jumlah} required>
-                                <div className="relative">
-                                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400 pointer-events-none">Rp</span>
-                                    <TextField
-                                        size="sm"
-                                        type="number"
-                                        min="1"
-                                        value={sisihForm.data.jumlah}
-                                        onChange={(e) => sisihForm.setData('jumlah', e.target.value)}
-                                        placeholder="1000000"
-                                        autoFocus
-                                        required
-                                        className="pl-10 tabular-nums"
-                                    />
-                                </div>
-                                <ChipNominal grup="sisih" nilai={sisihForm.data.jumlah} onPilih={(n) => sisihForm.setData('jumlah', n)} />
-                            </FormField>
-                            <FormField label="Keterangan" error={sisihForm.errors.keterangan} hint="Contoh: Kas operasional sekretariat minggu ini">
+
+                        <FormField label="Jumlah (Rp)" error={pengeluaranForm.errors.jumlah} required>
+                            <div className="relative">
+                                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400 pointer-events-none">Rp</span>
                                 <TextField
                                     size="sm"
-                                    value={sisihForm.data.keterangan}
-                                    onChange={(e) => sisihForm.setData('keterangan', e.target.value)}
-                                    placeholder="Sisih kas kecil untuk operasional"
+                                    type="number"
+                                    min="1"
+                                    value={pengeluaranForm.data.jumlah}
+                                    onChange={(e) => pengeluaranForm.setData('jumlah', e.target.value)}
+                                    placeholder="250000"
+                                    autoFocus
+                                    required
+                                    className="pl-10 tabular-nums"
                                 />
+                            </div>
+                            <ChipNominal grup="pengeluaran" nilai={pengeluaranForm.data.jumlah} onPilih={(n) => pengeluaranForm.setData('jumlah', n)} />
+                        </FormField>
+
+                        <FormField label="Tanggal" error={pengeluaranForm.errors.tanggal} required>
+                            <div className="relative">
+                                <CalendarDays size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                <TextField
+                                    size="sm"
+                                    type="date"
+                                    value={pengeluaranForm.data.tanggal}
+                                    onChange={(e) => pengeluaranForm.setData('tanggal', e.target.value)}
+                                    max={hariIni}
+                                    required
+                                    className="pl-9"
+                                />
+                            </div>
+                        </FormField>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <FormField label="Tipe Pengeluaran" error={pengeluaranForm.errors.tipe} required>
+                                <Select
+                                    size="sm"
+                                    value={pengeluaranForm.data.tipe}
+                                    onChange={(e) => pengeluaranForm.setData('tipe', e.target.value)}
+                                    aria-label="Tipe pengeluaran"
+                                    required
+                                >
+                                    {Object.entries(tipePengeluaranList).map(([key, label]) => (
+                                        <option key={key} value={key}>{label}</option>
+                                    ))}
+                                </Select>
+                            </FormField>
+
+                            <FormField label="Sumber Dana" error={pengeluaranForm.errors.akun} required hint="Bank atau Kas Kecil">
+                                <Select
+                                    size="sm"
+                                    value={pengeluaranForm.data.akun}
+                                    onChange={(e) => pengeluaranForm.setData('akun', e.target.value)}
+                                    aria-label="Sumber dana"
+                                    required
+                                >
+                                    {Object.entries(akunPengeluaranList).map(([key, label]) => (
+                                        <option key={key} value={key}>{label}</option>
+                                    ))}
+                                </Select>
                             </FormField>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <Button type="submit" size="sm" disabled={sisihForm.processing} className="rounded-full shadow-md shadow-brand-green/25">
-                                {sisihForm.processing ? 'Menyimpan...' : `Simpan • ${sisihForm.data.jumlah ? formatRupiah(Number(sisihForm.data.jumlah)) : 'Rp 0'}`}
+
+                        <FormField label="Keterangan" error={pengeluaranForm.errors.keterangan} required>
+                            <TextField
+                                size="sm"
+                                as="textarea"
+                                rows={2}
+                                value={pengeluaranForm.data.keterangan}
+                                onChange={(e) => pengeluaranForm.setData('keterangan', e.target.value)}
+                                placeholder="Contoh: Biaya ATK dan operasional kantor"
+                                required
+                            />
+                        </FormField>
+
+                        <div className="pt-2 flex items-center gap-2">
+                            <Button type="submit" size="sm" disabled={pengeluaranForm.processing} className="rounded-full shadow-md shadow-red-500/25 bg-red-600 hover:bg-red-700">
+                                {pengeluaranForm.processing ? 'Menyimpan...' : `Simpan Pengeluaran • ${pengeluaranForm.data.jumlah ? formatRupiah(Number(pengeluaranForm.data.jumlah)) : 'Rp 0'}`}
                             </Button>
-                            <Button type="button" variant="ghost" size="sm" className="rounded-full" onClick={() => setShowSisih(false)}>
+                            <Button type="button" variant="ghost" size="sm" className="rounded-full" onClick={() => setShowDrawer(false)}>
                                 Batal
                             </Button>
                         </div>
                     </form>
-                </Card>
-            )}
+                )}
+
+                {tabDrawer === 'sisih' && (
+                    <form onSubmit={submitSisih} className="space-y-4">
+                        <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-100 text-xs text-amber-800 flex items-center gap-2">
+                            <ArrowRightLeft size={18} className="text-amber-600 shrink-0" />
+                            <span>Memindahkan uang fisik dari <strong>Bank</strong> ke <strong>Kas Kecil</strong> dalam satu transaksi atomik.</span>
+                        </div>
+
+                        <FormField label="Jumlah (Rp)" error={sisihForm.errors.jumlah} required>
+                            <div className="relative">
+                                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400 pointer-events-none">Rp</span>
+                                <TextField
+                                    size="sm"
+                                    type="number"
+                                    min="1"
+                                    value={sisihForm.data.jumlah}
+                                    onChange={(e) => sisihForm.setData('jumlah', e.target.value)}
+                                    placeholder="1000000"
+                                    autoFocus
+                                    required
+                                    className="pl-10 tabular-nums"
+                                />
+                            </div>
+                            <ChipNominal grup="sisih" nilai={sisihForm.data.jumlah} onPilih={(n) => sisihForm.setData('jumlah', n)} />
+                            <p className="text-xs text-slate-400 mt-1">Saldo Bank saat ini: {formatRupiah(saldoBank ?? 0)}</p>
+                        </FormField>
+
+                        <FormField label="Keterangan" error={sisihForm.errors.keterangan} hint="Contoh: Kas operasional sekretariat minggu ini">
+                            <TextField
+                                size="sm"
+                                value={sisihForm.data.keterangan}
+                                onChange={(e) => sisihForm.setData('keterangan', e.target.value)}
+                                placeholder="Sisih kas kecil untuk operasional"
+                            />
+                        </FormField>
+
+                        <div className="pt-2 flex items-center gap-2">
+                            <Button type="submit" size="sm" disabled={sisihForm.processing} className="rounded-full shadow-md shadow-amber-500/25 bg-amber-600 hover:bg-amber-700">
+                                {sisihForm.processing ? 'Menyimpan...' : `Sisihkan Kas Kecil • ${sisihForm.data.jumlah ? formatRupiah(Number(sisihForm.data.jumlah)) : 'Rp 0'}`}
+                            </Button>
+                            <Button type="button" variant="ghost" size="sm" className="rounded-full" onClick={() => setShowDrawer(false)}>
+                                Batal
+                            </Button>
+                        </div>
+                    </form>
+                )}
+            </Drawer>
 
             <Card padding="sm" className="shadow-md border-slate-200/70 mb-4">
                 <div className="flex flex-col md:flex-row md:items-center gap-2 pb-3 mb-1 border-b border-slate-100">
                     <div className="grid grid-cols-2 md:grid-cols-12 gap-2 flex-1">
-                        <Select size="sm" value={filters.kanal ?? ''} onChange={(e) => terapkan({ kanal: e.target.value })} aria-label="Filter akun kas" className={fokusRing}>
-                            <option value="">Semua akun kas</option>
-                            {Object.entries(kanalMeta).map(([key, meta]) => (
-                                <option key={key} value={key}>{meta.label}</option>
-                            ))}
-                        </Select>
-                        <div className="md:col-span-2 flex items-center gap-1">
+                        <div className="col-span-1 md:col-span-2">
+                            <Select size="sm" value={filters.kanal ?? ''} onChange={(e) => terapkan({ kanal: e.target.value })} aria-label="Filter akun kas" className={fokusRing}>
+                                <option value="">Semua akun kas</option>
+                                {Object.entries(kanalMeta).map(([key, meta]) => (
+                                    <option key={key} value={key}>{meta.label}</option>
+                                ))}
+                            </Select>
+                        </div>
+                        <div className="col-span-1 md:col-span-2 flex items-center gap-1">
                             <button
                                 type="button"
                                 onClick={() => handlePilihTipe('')}
@@ -539,7 +702,23 @@ export default function Index({
                                 Keluar
                             </button>
                         </div>
-                        <div className="md:col-span-3 flex items-center rounded-xl border border-slate-300 bg-white overflow-hidden">
+                        {tipe === 'keluar' && Object.keys(tipePengeluaranList).length > 0 && (
+                            <div className="col-span-2 md:col-span-2">
+                                <Select
+                                    size="sm"
+                                    value={tipePengeluaran}
+                                    onChange={(e) => handlePilihTipePengeluaran(e.target.value)}
+                                    aria-label="Filter tipe pengeluaran"
+                                    className={fokusRing}
+                                >
+                                    <option value="">Semua Tipe</option>
+                                    {Object.entries(tipePengeluaranList).map(([key, label]) => (
+                                        <option key={key} value={key}>{label}</option>
+                                    ))}
+                                </Select>
+                            </div>
+                        )}
+                        <div className={`col-span-2 ${tipe === 'keluar' ? 'md:col-span-2' : 'md:col-span-3'} flex items-center rounded-xl border border-slate-300 bg-white overflow-hidden`}>
                             <button type="button" onClick={() => geserBulan(-1)} aria-label="Bulan sebelumnya" className={`px-2 py-2.5 text-slate-500 hover:text-slate-700 ${fokusRing}`}>
                                 <ChevronLeft size={16} />
                             </button>
@@ -554,7 +733,7 @@ export default function Index({
                                 <ChevronRight size={16} />
                             </button>
                         </div>
-                        <div className="relative md:col-span-2 flex items-center rounded-xl border border-slate-300 bg-white overflow-hidden">
+                        <div className="relative col-span-2 md:col-span-2 flex items-center rounded-xl border border-slate-300 bg-white overflow-hidden">
                             <CalendarDays size={16} className="text-slate-400 shrink-0 ml-2 pointer-events-none" />
                             <input
                                 type="date"
@@ -574,7 +753,7 @@ export default function Index({
                                 </button>
                             )}
                         </div>
-                        <div className="relative col-span-full md:col-span-2">
+                        <div className={`relative col-span-full ${tipe === 'keluar' ? 'md:col-span-2' : 'md:col-span-3'}`}>
                             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                             <TextField
                                 size="sm"
@@ -630,9 +809,9 @@ export default function Index({
                             )}
                             {bisaTopup && !filterAktif && bulanFilter === kunciBulanIni && (
                                 <div className="mt-3">
-                                    <Button type="button" size="sm" className="rounded-full" onClick={() => setShowForm(true)}>
+                                    <Button type="button" size="sm" className="rounded-full" onClick={() => { setTabDrawer('pemasukan'); setShowDrawer(true); }}>
                                         <Plus size={16} aria-hidden="true" />
-                                        Topup Bank
+                                        Pemasukan / Pengeluaran
                                     </Button>
                                 </div>
                             )}
