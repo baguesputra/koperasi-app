@@ -70,6 +70,57 @@ export default function DistribusiTable({ periode, detail, sums = {}, filters = 
 
     return (
         <Card padding="none">
+            {/* Rekapitulasi Distribusi SHU Anggota (Format Excel Baris 247-248) */}
+            {(detail.data.length > 0 || (ringkasan?.anggota ?? 0) > 0) && (
+                <div className="p-4 border-b border-slate-100 bg-slate-50/50">
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                            Rekapitulasi Distribusi SHU Anggota (Format Excel)
+                        </p>
+                        <p className="text-xs text-slate-400">
+                            Rujukan sheet Distribusi SHU baris 247–248
+                        </p>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 text-xs">
+                        <div className="p-3 rounded-xl bg-white border border-slate-200 shadow-xs">
+                            <p className="text-slate-400 font-medium">Jumlah Transaksi tahun {periode.tahun_buku}</p>
+                            <p className="text-base font-bold text-slate-800 tabular-nums mt-1">
+                                {formatRupiah(sums.transaksi ?? ringkasan?.total_transaksi ?? 0)}
+                            </p>
+                            <span className="text-[10px] text-slate-400 block mt-0.5">sel F248</span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-white border border-slate-200 shadow-xs">
+                            <p className="text-slate-400 font-medium">Jumlah Dana Modal Dibagi</p>
+                            <p className="text-base font-bold text-slate-800 tabular-nums mt-1">
+                                {formatRupiah(preview?.komponen?.jasa_simpanan ?? ringkasan?.komponen?.jasa_simpanan ?? 0)}
+                            </p>
+                            <span className="text-[10px] text-slate-400 block mt-0.5">sel G248</span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-white border border-slate-200 shadow-xs">
+                            <p className="text-slate-400 font-medium">Jumlah Dana Transaksi Dibagi</p>
+                            <p className="text-base font-bold text-slate-800 tabular-nums mt-1">
+                                {formatRupiah(preview?.komponen?.jasa_transaksi ?? ringkasan?.komponen?.jasa_transaksi ?? 0)}
+                            </p>
+                            <span className="text-[10px] text-slate-400 block mt-0.5">sel H248</span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-white border border-slate-200 shadow-xs">
+                            <p className="text-slate-400 font-medium">Jumlah Dana yang di bagi</p>
+                            <p className="text-base font-bold text-brand-green-dark tabular-nums mt-1">
+                                {formatRupiah((sums.bruto ?? ringkasan?.total_bruto) || (preview?.pool_anggota ?? ringkasan?.pool_anggota) || 0)}
+                            </p>
+                            <span className="text-[10px] text-slate-400 block mt-0.5">sel I248</span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 shadow-xs col-span-2 sm:col-span-1">
+                            <p className="text-emerald-800 font-semibold">Sisa dana yg tidak di bagi</p>
+                            <p className="text-base font-bold text-emerald-700 tabular-nums mt-1">
+                                {formatRupiah(ringkasan?.sisa_dana?.anggota ?? ((sums.bruto ?? 0) - (sums.bersih ?? 0)))}
+                            </p>
+                            <span className="text-[10px] text-emerald-600 block mt-0.5">sel J248 (FLOOR 1.000)</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-slate-100">
                 <div className="relative flex-1 min-w-[180px]">
                     <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true" />
@@ -203,57 +254,6 @@ export default function DistribusiTable({ periode, detail, sums = {}, filters = 
                     </div>
                 )}
             </div>
-
-            {/* Rekapitulasi Distribusi SHU Anggota (Format Excel Baris 247-248) */}
-            {detail.data.length > 0 && (
-                <div className="p-4 border-t border-slate-100 bg-slate-50/50">
-                    <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                        <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                            Rekapitulasi Distribusi SHU Anggota (Format Excel)
-                        </p>
-                        <p className="text-xs text-slate-400">
-                            Rujukan sheet Distribusi SHU baris 247–248
-                        </p>
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 text-xs">
-                        <div className="p-3 rounded-xl bg-white border border-slate-200 shadow-xs">
-                            <p className="text-slate-400 font-medium">Jumlah Transaksi tahun {periode.tahun_buku}</p>
-                            <p className="text-base font-bold text-slate-800 tabular-nums mt-1">
-                                {formatRupiah(sums.transaksi ?? ringkasan?.total_transaksi ?? 0)}
-                            </p>
-                            <span className="text-[10px] text-slate-400 block mt-0.5">sel F248</span>
-                        </div>
-                        <div className="p-3 rounded-xl bg-white border border-slate-200 shadow-xs">
-                            <p className="text-slate-400 font-medium">Jumlah Dana Modal Dibagi</p>
-                            <p className="text-base font-bold text-slate-800 tabular-nums mt-1">
-                                {formatRupiah(preview?.komponen?.jasa_simpanan ?? ringkasan?.komponen?.jasa_simpanan ?? 0)}
-                            </p>
-                            <span className="text-[10px] text-slate-400 block mt-0.5">sel G248</span>
-                        </div>
-                        <div className="p-3 rounded-xl bg-white border border-slate-200 shadow-xs">
-                            <p className="text-slate-400 font-medium">Jumlah Dana Transaksi Dibagi</p>
-                            <p className="text-base font-bold text-slate-800 tabular-nums mt-1">
-                                {formatRupiah(preview?.komponen?.jasa_transaksi ?? ringkasan?.komponen?.jasa_transaksi ?? 0)}
-                            </p>
-                            <span className="text-[10px] text-slate-400 block mt-0.5">sel H248</span>
-                        </div>
-                        <div className="p-3 rounded-xl bg-white border border-slate-200 shadow-xs">
-                            <p className="text-slate-400 font-medium">Jumlah Dana yang di bagi</p>
-                            <p className="text-base font-bold text-brand-green-dark tabular-nums mt-1">
-                                {formatRupiah((sums.bruto ?? ringkasan?.total_bruto) || (preview?.pool_anggota ?? ringkasan?.pool_anggota) || 0)}
-                            </p>
-                            <span className="text-[10px] text-slate-400 block mt-0.5">sel I248</span>
-                        </div>
-                        <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 shadow-xs col-span-2 sm:col-span-1">
-                            <p className="text-emerald-800 font-semibold">Sisa dana yg tidak di bagi</p>
-                            <p className="text-base font-bold text-emerald-700 tabular-nums mt-1">
-                                {formatRupiah(ringkasan?.sisa_dana?.anggota ?? ((sums.bruto ?? 0) - (sums.bersih ?? 0)))}
-                            </p>
-                            <span className="text-[10px] text-emerald-600 block mt-0.5">sel J248 (FLOOR 1.000)</span>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             <div className="px-4 py-3">
                 <Pagination links={detail.links} />
