@@ -362,27 +362,63 @@ export default function Index({
 
             <PageHeader title="Kas Koperasi" subtitle="Saldo dan mutasi kas koperasi">
                 {bisaTopup && (
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <Button
-                            size="sm"
-                            onClick={() => { setTabDrawer('pemasukan'); setShowDrawer(true); }}
-                            className="rounded-full shadow-md shadow-brand-green/25 hover:-translate-y-px active:translate-y-0"
-                        >
-                            <Plus size={16} aria-hidden="true" />
-                            Pemasukan / Pengeluaran
-                        </Button>
-                        <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => { setTabDrawer('sisih'); setShowDrawer(true); }}
-                            className="rounded-full shadow-md hover:-translate-y-px active:translate-y-0"
-                        >
-                            <ArrowRightLeft size={14} aria-hidden="true" />
-                            Sisih Kas Kecil
-                        </Button>
-                    </div>
+                    <Button
+                        size="sm"
+                        onClick={() => { setTabDrawer('pemasukan'); setShowDrawer(true); }}
+                        className="rounded-full shadow-md shadow-brand-green/25 hover:-translate-y-px active:translate-y-0"
+                    >
+                        <Plus size={16} aria-hidden="true" />
+                        Mutasi
+                    </Button>
                 )}
             </PageHeader>
+
+            <div className="rounded-2xl bg-gradient-to-r from-brand-navy to-brand-navy-light text-white px-5 py-4 mb-3 shadow-md shadow-brand-navy/20">
+                <div className="flex items-center gap-3">
+                    <span className="w-11 h-11 rounded-2xl bg-white/15 inline-flex items-center justify-center shrink-0">
+                        <Landmark size={22} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                        <p className="text-xs text-white/70">Kas (Bank + Kas Kecil)</p>
+                        <p className="text-2xl font-bold tabular-nums leading-tight">{formatRupiah((saldoBank ?? 0) + (saldoKasKecil ?? 0))}</p>
+                    </div>
+                </div>
+                <dl className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3 pt-3 border-t border-white/15 text-sm">
+                    <div className="rounded-xl bg-white/10 px-3 py-2">
+                        <dt className="text-xs text-white/70">Masuk {labelBulan}</dt>
+                        <dd className="font-bold tabular-nums text-emerald-300">+ {formatRupiah(ringkasanPeriode.total_masuk)}</dd>
+                    </div>
+                    <div className="rounded-xl bg-white/10 px-3 py-2">
+                        <dt className="text-xs text-white/70">Keluar {labelBulan}</dt>
+                        <dd className="font-bold tabular-nums text-red-300">- {formatRupiah(ringkasanPeriode.total_keluar)}</dd>
+                    </div>
+                    <div className="rounded-xl bg-white/10 px-3 py-2">
+                        <dt className="text-xs text-white/70">Bank</dt>
+                        <dd className="font-bold tabular-nums">
+                            <span className="text-emerald-300">+{formatRupiahSingkat(ringkasanKanal.bank.masuk)}</span>
+                            <span className="text-white/50"> / </span>
+                            <span className="text-red-300">-{formatRupiahSingkat(ringkasanKanal.bank.keluar)}</span>
+                        </dd>
+                    </div>
+                    <div className="rounded-xl bg-white/10 px-3 py-2">
+                        <dt className="text-xs text-white/70">Kas Kecil</dt>
+                        <dd className="font-bold tabular-nums">
+                            <span className="text-emerald-300">+{formatRupiahSingkat(ringkasanKanal.kas_kecil.masuk)}</span>
+                            <span className="text-white/50"> / </span>
+                            <span className="text-red-300">-{formatRupiahSingkat(ringkasanKanal.kas_kecil.keluar)}</span>
+                        </dd>
+                    </div>
+                </dl>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
+                    <StatWidget compact label="Saldo Bank" value={formatRupiah(saldoBank ?? 0)} icon={Landmark} tone="navy" />
+                </div>
+                <div className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
+                    <StatWidget compact label="Saldo Kas Kecil" value={formatRupiah(saldoKasKecil ?? 0)} icon={Wallet} tone="amber" />
+                </div>
+            </div>
 
             <Drawer
                 show={showDrawer}
@@ -811,7 +847,7 @@ export default function Index({
                                 <div className="mt-3">
                                     <Button type="button" size="sm" className="rounded-full" onClick={() => { setTabDrawer('pemasukan'); setShowDrawer(true); }}>
                                         <Plus size={16} aria-hidden="true" />
-                                        Pemasukan / Pengeluaran
+                                        Mutasi
                                     </Button>
                                 </div>
                             )}
