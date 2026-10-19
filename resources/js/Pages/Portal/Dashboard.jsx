@@ -395,15 +395,26 @@ export default function Dashboard({
                             </p>
                         </div>
                     </div>
-                    <button
-                        type="button"
-                        onClick={alihNominal}
-                        aria-label={nominalTampil ? 'Sembunyikan nominal' : 'Tampilkan nominal'}
-                        aria-pressed={nominalTampil}
-                        className="shrink-0 w-10 h-10 rounded-full border border-slate-200 text-slate-500 hover:text-brand-navy hover:border-brand-navy/30 hover:bg-slate-50 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2"
-                    >
-                        {nominalTampil ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
-                    </button>
+                    <div className="flex items-center gap-2 shrink-0">
+                        <button
+                            type="button"
+                            onClick={() => window.dispatchEvent(new CustomEvent('open-panduan'))}
+                            aria-label="Tata cara pinjaman"
+                            title="Tata cara"
+                            className="w-10 h-10 rounded-full border border-slate-200 text-slate-500 hover:text-brand-navy hover:border-brand-navy/30 hover:bg-slate-50 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2"
+                        >
+                            <Info size={18} aria-hidden="true" />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={alihNominal}
+                            aria-label={nominalTampil ? 'Sembunyikan nominal' : 'Tampilkan nominal'}
+                            aria-pressed={nominalTampil}
+                            className="w-10 h-10 rounded-full border border-slate-200 text-slate-500 hover:text-brand-navy hover:border-brand-navy/30 hover:bg-slate-50 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2"
+                        >
+                            {nominalTampil ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+                        </button>
+                    </div>
                 </div>
 
                 {/* =====================================================

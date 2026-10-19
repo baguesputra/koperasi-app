@@ -10,14 +10,14 @@
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
-        <!-- PWA -->
-        {{-- ponytail: tautan manifest dihapus, VitePWA tidak emit /manifest.webmanifest; tambah saat butuh install PWA --}}
-        <meta name="theme-color" content="#1f2937">
-        <link rel="apple-touch-icon" href="/images/logo.png">
+        <!-- PWA Fullscreen & Mobile App -->
+        <meta name="theme-color" content="#f8fafc">
+        <meta name="mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-capable" content="yes">
-        <meta name="apple-mobile-web-app-status-bar-style" content="default">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
         <meta name="apple-mobile-web-app-title" content="Koperasi">
-        
+        <link rel="manifest" href="/manifest.webmanifest">
+        <link rel="apple-touch-icon" href="/images/logo.png">
 
         <!-- Scripts -->
         @routes

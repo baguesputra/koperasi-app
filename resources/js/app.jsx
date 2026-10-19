@@ -24,9 +24,7 @@ createInertiaApp({
             </ErrorModalProvider>,
         );
     },
-    progress: {
-        color: '#4B5563',
-    },
+    progress: false,
 });
 
 if ('serviceWorker' in navigator) {

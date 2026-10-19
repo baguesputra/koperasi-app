@@ -353,4 +353,29 @@ Route::middleware(['auth', 'permission:migrasi.kelola'])->prefix('migrasi')->nam
     Route::get('/progres-simpanan', [MigrasiController::class, 'progresSimpanan'])->name('progres-simpanan');
 });
 
+// --------------------- PWA Static Routes -------------------------
+Route::get('/manifest.webmanifest', function () {
+    $path = public_path('build/manifest.webmanifest');
+    if (!file_exists($path)) {
+        return response()->json([], 404);
+    }
+    return response()->file($path, [
+        'Content-Type' => 'application/manifest+json',
+        'Cache-Control' => 'public, max-age=3600',
+    ]);
+});
+
+Route::get('/sw.js', function () {
+    $path = public_path('build/sw.js');
+    if (!file_exists($path)) {
+        return response('// SW not found', 404, ['Content-Type' => 'application/javascript']);
+    }
+    return response()->file($path, [
+        'Content-Type' => 'application/javascript',
+        'Service-Worker-Allowed' => '/',
+        'Cache-Control' => 'no-cache, no-store, must-revalidate',
+    ]);
+});
+
 require __DIR__.'/auth.php';
+

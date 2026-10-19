@@ -33,6 +33,14 @@ export default function AnggotaLayout({ children }) {
         return () => document.removeEventListener('keydown', handleEsc);
     }, [showPanduan]);
 
+    useEffect(() => {
+        function handleOpenPanduan() {
+            setShowPanduan(true);
+        }
+        window.addEventListener('open-panduan', handleOpenPanduan);
+        return () => window.removeEventListener('open-panduan', handleOpenPanduan);
+    }, []);
+
     const isCurrentRoute = (name) => route().current(name);
 
     function TabItem({ href, active, icon: Icon, label }) {
@@ -51,7 +59,8 @@ export default function AnggotaLayout({ children }) {
 
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col">
-            <header className="sticky top-0 z-50 bg-white border-b-2 border-brand-navy pt-[env(safe-area-inset-top)]">
+            {/* Header hanya tampil di desktop/tablet. Di HP/mobile disembunyikan agar tampilan full screen seperti APK native */}
+            <header className="hidden sm:block sticky top-0 z-50 bg-white border-b-2 border-brand-navy pt-[env(safe-area-inset-top)]">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
                     <div className="flex items-center gap-3 sm:gap-5">
                         <Link href={route('portal.dashboard')} className="flex items-center gap-2.5">
@@ -130,7 +139,7 @@ export default function AnggotaLayout({ children }) {
                 </div>
             </header>
 
-            <main className="flex-1 w-full max-w-7xl sm:mx-auto px-4 sm:px-6 pt-5 sm:py-8 pb-32 sm:pb-8">
+            <main className="flex-1 w-full max-w-7xl sm:mx-auto px-4 sm:px-6 pt-[calc(env(safe-area-inset-top)+1rem)] sm:pt-8 pb-32 sm:pb-8">
                 <div className="mx-auto w-full max-w-lg sm:max-w-none">
                     {children}
                 </div>

@@ -1,12 +1,17 @@
 import AnggotaLayout from '@/Layouts/AnggotaLayout';
-import { Head, useForm, router } from '@inertiajs/react';
+import { Head, useForm, router, Link, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import {
     User, Building2, Briefcase, Calendar, Mail,
     CreditCard, Plus, Star, Trash2, Landmark, Network,
+    LogOut, Info, ShieldCheck, ChevronRight,
 } from 'lucide-react';
 
 export default function Profil({ anggota, rekening }) {
+    const { auth } = usePage().props;
+    const roles = auth?.user?.roles ?? [];
+    const isPengurus = roles.some((r) => ['admin', 'bendahara', 'ketua_koperasi'].includes(r));
+
     const [showForm, setShowForm] = useState(false);
     const { data, setData, post, processing, errors, reset } = useForm({
         nama_bank: '', no_rekening: '', atas_nama: '',
@@ -177,6 +182,58 @@ export default function Profil({ anggota, rekening }) {
                             ))}
                         </div>
                     )}
+                </div>
+
+                {/* Akun & Bantuan (Mobile Friendly / Native App Feel) */}
+                <div className="bg-white rounded-2xl border border-slate-100 p-5 sm:p-6 space-y-3 lg:col-span-2">
+                    <p className="text-base font-bold text-slate-700 mb-1">Bantuan & Pengaturan Akun</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                        <button
+                            type="button"
+                            onClick={() => window.dispatchEvent(new CustomEvent('open-panduan'))}
+                            className="w-full flex items-center justify-between p-3.5 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors text-left"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                                    <Info size={18} />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-semibold text-slate-800">Tata Cara Pinjaman</p>
+                                    <p className="text-xs text-slate-400">Panduan aturan & syarat pengajuan</p>
+                                </div>
+                            </div>
+                            <ChevronRight size={16} className="text-slate-400" />
+                        </button>
+
+                        {isPengurus && (
+                            <Link
+                                href={route('dashboard')}
+                                className="w-full flex items-center justify-between p-3.5 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-9 h-9 rounded-lg bg-brand-navy/10 text-brand-navy flex items-center justify-center shrink-0">
+                                        <ShieldCheck size={18} />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-semibold text-slate-800">Dashboard Pengurus</p>
+                                        <p className="text-xs text-slate-400">Buka panel admin & keuangan</p>
+                                    </div>
+                                </div>
+                                <ChevronRight size={16} className="text-slate-400" />
+                            </Link>
+                        )}
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-100">
+                        <button
+                            type="button"
+                            onClick={() => router.post(route('logout'))}
+                            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-red-600 font-semibold text-sm bg-red-50 hover:bg-red-100 active:bg-red-200 transition-colors"
+                        >
+                            <LogOut size={16} />
+                            Keluar dari Akun
+                        </button>
+                    </div>
                 </div>
             </div>
         </AnggotaLayout>

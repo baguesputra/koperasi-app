@@ -59,3 +59,11 @@ body {
         animation: sidebar-fade 200ms ease-out;
     }
 }
+
+/* Hilangkan progress loading bar di bagian atas layar agar tampil seperti APK native */
+#nprogress,
+.nprogress-busy,
+#nprogress .bar,
+#nprogress .spinner {
+    display: none !important;
+}
