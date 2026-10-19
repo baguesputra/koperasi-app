@@ -200,6 +200,8 @@ export default function Show({ periode, ringkasan, detail, sums = {}, daftarAngg
                         bisaBayar={periode.is_final}
                         onBayar={bayarSatu}
                         onKeKomponen={() => setTab('komponen')}
+                        ringkasan={ringkasan}
+                        preview={preview}
                     />
                 )}
 

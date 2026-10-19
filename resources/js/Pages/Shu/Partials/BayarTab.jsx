@@ -200,12 +200,12 @@ export default function BayarTab({ periode, ringkasan, komponenBayar = [], akun,
 
                                                 {k.kode_komponen === 'pengurus' && (ringkasan.sisa_dana?.pengurus ?? 0) > 0 && (
                                                     <p className="text-[11px] text-emerald-700 mt-0.5">
-                                                        Alokasi {formatRupiah(ringkasan.sisa_dana?.alokasi_pengurus ?? 0)} • Sisa {formatRupiah(ringkasan.sisa_dana.pengurus)} tetap di kas
+                                                        saldo yg di alokasikan: {formatRupiah(ringkasan.sisa_dana?.alokasi_pengurus ?? 0)} • saldo yg di bagikan: {formatRupiah(ringkasan.sisa_dana?.dibagikan_pengurus ?? 0)} • sisa dana: {formatRupiah(ringkasan.sisa_dana.pengurus)} (tetap di kas)
                                                     </p>
                                                 )}
                                                 {k.kode_komponen === 'pengawas' && (ringkasan.sisa_dana?.pengawas ?? 0) > 0 && (
                                                     <p className="text-[11px] text-emerald-700 mt-0.5">
-                                                        Alokasi {formatRupiah(ringkasan.sisa_dana?.alokasi_pengawas ?? 0)} • Sisa {formatRupiah(ringkasan.sisa_dana.pengawas)} tetap di kas
+                                                        saldo yg di alokasikan: {formatRupiah(ringkasan.sisa_dana?.alokasi_pengawas ?? 0)} • saldo yg di bagikan: {formatRupiah(ringkasan.sisa_dana?.dibagikan_pengawas ?? 0)} • sisa dana: {formatRupiah(ringkasan.sisa_dana.pengawas)} (tetap di kas)
                                                     </p>
                                                 )}
 
@@ -274,7 +274,7 @@ export default function BayarTab({ periode, ringkasan, komponenBayar = [], akun,
                                         {formatRupiah(ringkasan.total_komponen_bayar ?? 0)}
                                     </td>
                                     <td colSpan={2} className="py-2.5 px-3 text-right text-xs text-slate-500 font-normal">
-                                        * Sisa dana pengurus/pengawas & pembulatan anggota ({formatRupiah(ringkasan.sisa_dana?.total ?? 0)}) serta Cadangan ({formatRupiah(ringkasan.komponen?.cadangan ?? 0)}) tetap di kas.
+                                        * Sesuai sel O15 Excel, Jumlah sisa dana yg tidak di serahkan ({formatRupiah(ringkasan.sisa_dana?.total ?? 0)}) serta Cadangan ({formatRupiah(ringkasan.komponen?.cadangan ?? 0)}) tidak ditarik kas keluar dan tetap berada di kas koperasi.
                                     </td>
                                 </tr>
                             </tfoot>

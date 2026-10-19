@@ -37,24 +37,27 @@ export default function RingkasanDana({ preview, ringkasan }) {
 
             {sisa && (
                 <div className="mt-4 pt-3 border-t border-slate-100">
-                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-                        Sisa Dana yang Tidak Diserahkan (Tetap di Kas)
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-0.5">
+                        Jumlah sisa dana yg tidak di serahkan
+                    </p>
+                    <p className="text-[11px] text-slate-400 mb-2">
+                        SHU Anggota, SHU Pengurus, SHU Pengawas (tetap di kas)
                     </p>
                     <dl className="divide-y divide-slate-50">
                         <div className="flex items-baseline justify-between gap-2 py-1 text-xs">
-                            <dt className="text-slate-500">Sisa Pembulatan Anggota (FLOOR 1.000)</dt>
+                            <dt className="text-slate-500">Sisa dana yg tidak di bagi (Anggota)</dt>
                             <dd className="tabular-nums font-semibold text-slate-700">{formatRupiah(sisa.anggota)}</dd>
                         </div>
                         <div className="flex items-baseline justify-between gap-2 py-1 text-xs">
-                            <dt className="text-slate-500">Sisa Alokasi Pengurus</dt>
+                            <dt className="text-slate-500">sisa dana Pengurus</dt>
                             <dd className="tabular-nums font-semibold text-slate-700">{formatRupiah(sisa.pengurus)}</dd>
                         </div>
                         <div className="flex items-baseline justify-between gap-2 py-1 text-xs">
-                            <dt className="text-slate-500">Sisa Alokasi Pengawas</dt>
+                            <dt className="text-slate-500">sisa dana Pengawas</dt>
                             <dd className="tabular-nums font-semibold text-slate-700">{formatRupiah(sisa.pengawas)}</dd>
                         </div>
                         <div className="flex items-baseline justify-between gap-2 py-1.5 text-sm font-bold bg-emerald-50/50 px-2 rounded-lg mt-1">
-                            <dt className="text-emerald-800">Total Sisa Dana Mengendap di Kas</dt>
+                            <dt className="text-emerald-800">Jumlah sisa dana yg tidak di serahkan</dt>
                             <dd className="tabular-nums text-emerald-700">{formatRupiah(sisa.total)}</dd>
                         </div>
                     </dl>

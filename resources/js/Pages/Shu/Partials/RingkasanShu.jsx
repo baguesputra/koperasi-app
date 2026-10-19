@@ -47,8 +47,8 @@ export default function RingkasanShu({ periode, persen, custom = [], preview, ri
                 <Card><Stat label="Dana yang Tidak Dibagi" value={formatRupiah(preview.dana_tak_dibagi)} hint="Total SHU − dana dibagikan (termasuk tambahan)" /></Card>
                 <Card><Stat label="SHU Diserahkan" value={formatRupiah(ringkasan.total_bersih)} hint={`Jumlah SHU ${formatRupiah(ringkasan.total_bruto)}, dibulatkan ke bawah ribuan`} /></Card>
                 <Card><Stat label="Sudah Diserahkan" value={formatRupiah(ringkasan.terbayar)} hint={`${ringkasan.sudah_bayar} dari ${ringkasan.anggota} anggota`} /></Card>
-                <Card><Stat label="Sisa Dana Tidak Diserahkan" value={formatRupiah(sisaDana.total)} hint="Tetap mengendap di kas bank koperasi" /></Card>
-                <Card><Stat label="Sisa Pembulatan Anggota" value={formatRupiah(sisaDana.anggota)} hint="Selisih FLOOR 1.000 anggota" /></Card>
+                <Card><Stat label="Jumlah Sisa Dana yg Tidak Diserahkan" value={formatRupiah(sisaDana.total)} hint="SHU Anggota, Pengurus & Pengawas (O15)" /></Card>
+                <Card><Stat label="Sisa Dana yg Tidak Dibagi" value={formatRupiah(sisaDana.anggota)} hint="SHU Anggota FLOOR 1.000 (sel J248)" /></Card>
             </div>
 
             <Card>
@@ -62,7 +62,7 @@ export default function RingkasanShu({ periode, persen, custom = [], preview, ri
                 </div>
                 <p className="text-sm text-slate-500 mb-3">
                     Dana yang tidak dibagi: {formatRupiah(preview.dana_tak_dibagi)} •
-                    Sisa dana yang tidak dibagi: {formatRupiah(ringkasan.belum_diserahkan)}
+                    Sisa dana yg tidak di bagi (Anggota): {formatRupiah(ringkasan.belum_diserahkan)}
                 </p>
 
                 <div className="h-16" role="img" aria-label="Diagram alokasi SHU per komponen">
