@@ -71,16 +71,50 @@ export default function RingkasanShu({ periode, persen, custom = [], preview, ri
                             <XAxis type="number" hide domain={[0, 100]} />
                             <YAxis type="category" dataKey="nama" hide />
                             <Tooltip
-                                formatter={(nilai, kunci) => {
-                                    const labelCustom = customList.find((c) => c.slug === kunci)?.label;
-                                    return [`${Number(nilai).toFixed(1)}% (${formatRupiah(komponen[kunci] ?? 0)})`, labelCustom ?? KOMPONEN_LABEL[kunci] ?? kunci];
+                                shared={false}
+                                cursor={false}
+                                content={({ active, payload }) => {
+                                    if (!active || !payload || !payload.length) return null;
+                                    const item = payload[0];
+                                    const kunci = item.dataKey;
+                                    const customItem = customList.find((c) => c.slug === kunci);
+                                    const label = customItem?.label ?? KOMPONEN_LABEL[kunci] ?? kunci;
+                                    const pct = Number(item.value ?? 0).toFixed(1);
+                                    const nominal = komponen[kunci] ?? customItem?.nominal ?? 0;
+                                    const warnaItem = item.color ?? warna(kunci);
+
+                                    return (
+                                        <div className="rounded-xl border border-slate-200 bg-white/95 backdrop-blur-xs px-3 py-2 shadow-lg text-xs pointer-events-none">
+                                            <div className="flex items-center gap-2">
+                                                <span className="inline-block w-3 h-3 rounded-xs shrink-0 shadow-2xs" style={{ backgroundColor: warnaItem }} />
+                                                <span className="font-bold text-slate-800">{label}</span>
+                                            </div>
+                                            <div className="mt-1 flex items-center gap-2 text-slate-600">
+                                                <span className="font-bold text-brand-green-dark tabular-nums">{pct}%</span>
+                                                <span className="text-slate-300">•</span>
+                                                <span className="font-semibold text-slate-700 tabular-nums">{formatRupiah(nominal)}</span>
+                                            </div>
+                                        </div>
+                                    );
                                 }}
                             />
                             {KOMPONEN_ORDER.map((k) => (
-                                <Bar key={k} dataKey={k} stackId="alokasi" fill={warna(k)} />
+                                <Bar
+                                    key={k}
+                                    dataKey={k}
+                                    stackId="alokasi"
+                                    fill={warna(k)}
+                                    activeBar={{ fillOpacity: 0.82 }}
+                                />
                             ))}
                             {customKeys.map((s) => (
-                                <Bar key={s} dataKey={s} stackId="alokasi" fill={warna(s)} />
+                                <Bar
+                                    key={s}
+                                    dataKey={s}
+                                    stackId="alokasi"
+                                    fill={warna(s)}
+                                    activeBar={{ fillOpacity: 0.82 }}
+                                />
                             ))}
                         </BarChart>
                     </ResponsiveContainer>
