@@ -555,4 +555,37 @@ class ShuTest extends TestCase
         $service->bayarKomponen($bayarPengurus, 'bank', "{$tahun}-12-31", $user->id);
         $this->assertEquals($saldoAwal - 1_400_000.0, (float) KasKoperasi::first()->saldo_bank);
     }
+
+    public function test_halaman_show_pada_status_final_mengirimkan_rincian_komponen_dan_pengelola(): void
+    {
+        $user = $this->admin();
+        $service = app(ShuService::class);
+        $tahun = 2029;
+
+        $anggota = $this->buatAnggota('Budi Pengurus', 'P-01');
+        $this->setor($anggota, 'pokok', 100_000, "{$tahun}-01-01", $user->id);
+
+        $periode = $service->buatPeriode($tahun, null, 10_000_000, $user->id);
+        $service->simpanRincianPengelola($periode, [
+            ['anggota_id' => $anggota->id, 'jabatan' => 'Ketua', 'nominal' => 1_000_000],
+        ], [
+            ['nama' => 'Pengawas 1', 'nominal' => 500_000],
+        ], $user->id);
+        $service->hitung($periode, $user->id);
+        $service->ajukan($periode, $user->id);
+        $service->finalisasi($periode, $user->id);
+
+        $response = $this->get(route('shu.show', $periode->id));
+
+        $response->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Shu/Show')
+                ->where('periode.status', 'final')
+                ->where('periode.is_final', true)
+                ->has('periode.persen')
+                ->has('periode.pengurus_rincian')
+                ->has('periode.pengawas_rincian')
+                ->has('ringkasan')
+            );
+    }
 }

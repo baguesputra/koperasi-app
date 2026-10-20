@@ -168,7 +168,7 @@ export default function Show({ periode, ringkasan, detail, sums = {}, daftarAngg
                     />
                 )}
 
-                {tab === 'komponen' && periode.status === 'draft' && (
+                {tab === 'komponen' && (
                     <KomponenEditor
                         periode={periode}
                         persenLive={persenLive}
@@ -179,14 +179,8 @@ export default function Show({ periode, ringkasan, detail, sums = {}, daftarAngg
                         ringkasan={ringkasan}
                         sudahDihitung={ringkasan.anggota > 0}
                         daftarAnggota={daftarAnggota}
+                        readOnly={periode.status !== 'draft'}
                     />
-                )}
-                {tab === 'komponen' && periode.status !== 'draft' && (
-                    <Card>
-                        <p className="text-sm text-slate-500">
-                            Komponen dikunci (status {periode.status}). Kembalikan ke draft untuk mengubah.
-                        </p>
-                    </Card>
                 )}
 
                 {tab === 'distribusi' && (
