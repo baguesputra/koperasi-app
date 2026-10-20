@@ -32,7 +32,8 @@ function progresAngsuran(angsuran = []) {
     return { lunas, total, persen: Math.round((lunas / total) * 100) };
 }
 
-export default function Index({ pinjaman, filters, statistik, cabangAktif, daftarCabang }) {
+export default function Index({ pinjaman, filters, statistik, cabangAktif, daftarCabang = [] }) {
+    const daftarCabangAman = Array.isArray(daftarCabang) ? daftarCabang : Object.values(daftarCabang ?? {});
     const [cari, setCari] = useState(filters.cari ?? '');
     const cariDebounced = useDebouncedValue(cari);
     const pertama = useRef(true);
@@ -202,7 +203,7 @@ export default function Index({ pinjaman, filters, statistik, cabangAktif, dafta
                                 className="flex-1 min-w-0 md:flex-none md:w-40 text-sm rounded-full border-slate-200 bg-slate-50/60"
                             >
                                 <option value="">Semua Cabang</option>
-                                {daftarCabang.map((c) => (
+                                {daftarCabangAman.map((c) => (
                                     <option key={c} value={c}>{c}</option>
                                 ))}
                             </Select>

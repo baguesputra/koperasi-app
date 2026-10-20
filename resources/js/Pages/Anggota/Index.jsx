@@ -46,7 +46,8 @@ function TombolAksi({ label, title, onClick, tone }) {
     );
 }
 
-export default function Index({ anggota, statistik, filters, daftarCabang }) {
+export default function Index({ anggota, statistik, filters, daftarCabang = [] }) {
+    const daftarCabangAman = Array.isArray(daftarCabang) ? daftarCabang : Object.values(daftarCabang ?? {});
     const { props } = usePage();
     const permissions = props.auth?.user?.permissions ?? [];
     const bisaKelola = permissions.includes('anggota.kelola');
@@ -182,7 +183,7 @@ export default function Index({ anggota, statistik, filters, daftarCabang }) {
                                 className="flex-1 min-w-0 md:flex-none md:w-40 text-sm rounded-full border-slate-200 bg-slate-50/60"
                             >
                                 <option value="">Semua Cabang</option>
-                                {daftarCabang.map((c) => (
+                                {daftarCabangAman.map((c) => (
                                     <option key={c} value={c}>{c}</option>
                                 ))}
                             </Select>

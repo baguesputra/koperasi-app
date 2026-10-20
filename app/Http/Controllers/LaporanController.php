@@ -176,7 +176,7 @@ class LaporanController extends Controller
 
         return [
             'cabang' => $perluCabang
-                ? Cache::remember('daftar_cabang', 600, fn () => Anggota::query()->whereNotNull('cabang')->distinct()->orderBy('cabang')->pluck('cabang')->all())
+                ? Cache::remember('daftar_cabang', 600, fn () => Anggota::query()->whereNotNull('cabang')->distinct()->orderBy('cabang')->pluck('cabang')->values()->all())
                 : null,
             'kantong' => $perluKantong
                 ? [

@@ -13,7 +13,16 @@ import { withIdempotencyKey } from '@/Utils/idempotency';
 
 const fokusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/40';
 
-export default function Index({ bulan, belumSimpanan, cabangAktif, daftarCabang, ringkasanCabang, nominalPerAnggota, totalDanaSosialTerkumpul }) {
+export default function Index({
+    bulan,
+    belumSimpanan = [],
+    cabangAktif = '',
+    daftarCabang = [],
+    ringkasanCabang = {},
+    nominalPerAnggota = 0,
+    totalDanaSosialTerkumpul = 0,
+}) {
+    const daftarCabangAman = Array.isArray(daftarCabang) ? daftarCabang : Object.values(daftarCabang ?? {});
     const [terpilih, setTerpilih] = useState([]);
     const [processing, setProcessing] = useState(false);
     const [cari, setCari] = useState('');
@@ -52,11 +61,12 @@ export default function Index({ bulan, belumSimpanan, cabangAktif, daftarCabang,
     }
 
     const kataCari = cari.trim().toLowerCase();
+    const dataBelumSimpanan = Array.isArray(belumSimpanan) ? belumSimpanan : Object.values(belumSimpanan ?? {});
     const tampil = useMemo(
-        () => belumSimpanan.filter((a) =>
+        () => dataBelumSimpanan.filter((a) =>
             !kataCari || a.nama.toLowerCase().includes(kataCari) || (a.no_karyawan ?? '').toLowerCase().includes(kataCari)
         ),
-        [belumSimpanan, kataCari]
+        [dataBelumSimpanan, kataCari]
     );
 
     const semuaTampilTerpilih = tampil.length > 0 && tampil.every((a) => terpilih.includes(a.id));
@@ -89,7 +99,7 @@ export default function Index({ bulan, belumSimpanan, cabangAktif, daftarCabang,
 
     const tab = [
         { key: '', label: 'Semua Cabang', nominal: totalBelumSemuaCabang },
-        ...daftarCabang.map((c) => ({
+        ...daftarCabangAman.map((c) => ({
             key: c,
             label: c,
             nominal: ringkasanCabang?.[c]?.nominal ?? 0,

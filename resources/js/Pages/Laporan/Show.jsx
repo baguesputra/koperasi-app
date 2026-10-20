@@ -162,7 +162,7 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
                                 className="md:w-40 rounded-full border-slate-200 bg-slate-50/60"
                             >
                                 <option value="">Semua Cabang</option>
-                                {opsi.cabang.map((c) => <option key={c} value={c}>{c}</option>)}
+                                {(Array.isArray(opsi.cabang) ? opsi.cabang : Object.values(opsi.cabang ?? {})).map((c) => <option key={c} value={c}>{c}</option>)}
                             </Select>
                         </FormField>
                     )}

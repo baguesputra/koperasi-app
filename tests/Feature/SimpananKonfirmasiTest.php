@@ -82,4 +82,23 @@ class SimpananKonfirmasiTest extends TestCase
         $this->assertSame(2, Simpanan::where('anggota_id', $a1->id)->count());
         $this->assertSame(2, Simpanan::where('anggota_id', $a2->id)->count());
     }
+
+    public function test_index_mengirimkan_daftar_cabang_sebagai_array_dan_komponen_benar(): void
+    {
+        $this->buatAnggota('TOP-910005');
+
+        $this->masuk('BEN-000001');
+        $response = $this->get(route('bendahara.simpanan.index'));
+
+        $response->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Bendahara/Simpanan/Index')
+                ->has('daftarCabang')
+            );
+
+        $daftarCabang = $response->viewData('page')['props']['daftarCabang'];
+        $this->assertIsArray($daftarCabang);
+        $this->assertTrue(array_is_list($daftarCabang));
+        $this->assertContains('Banjarmasin', $daftarCabang);
+    }
 }
