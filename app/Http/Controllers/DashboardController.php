@@ -12,6 +12,7 @@ use App\Models\PengajuanPercepatan;
 use App\Models\Pinjaman;
 use App\Models\Simpanan;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -89,7 +90,12 @@ class DashboardController extends Controller
         // Grafik - tren 6 bulan terakhir: 2 query (simpanan + pinjaman) GROUP BY year, month
         $awalPeriode = now()->subMonths(5)->startOfMonth();
 
-        $simpananPerBulan = Simpanan::selectRaw('YEAR(tanggal_input) as tahun, MONTH(tanggal_input) as bulan, SUM(jumlah) as total')
+        $isSqlite = DB::connection()->getDriverName() === 'sqlite';
+        $exprTahunBulan = fn (string $kolom) => $isSqlite
+            ? "strftime('%Y', {$kolom}) as tahun, CAST(strftime('%m', {$kolom}) AS INTEGER) as bulan"
+            : "YEAR({$kolom}) as tahun, MONTH({$kolom}) as bulan";
+
+        $simpananPerBulan = Simpanan::selectRaw("{$exprTahunBulan('tanggal_input')}, SUM(jumlah) as total")
             ->where('tanggal_input', '>=', $awalPeriode)
             ->groupBy('tahun', 'bulan')
             ->orderBy('tahun')
@@ -97,7 +103,7 @@ class DashboardController extends Controller
             ->get()
             ->keyBy(fn ($r) => sprintf('%04d-%02d', $r->tahun, $r->bulan));
 
-        $pinjamanPerBulan = Pinjaman::selectRaw('YEAR(tanggal_pencairan) as tahun, MONTH(tanggal_pencairan) as bulan, SUM(nominal) as total')
+        $pinjamanPerBulan = Pinjaman::selectRaw("{$exprTahunBulan('tanggal_pencairan')}, SUM(nominal) as total")
             ->where('tanggal_pencairan', '>=', $awalPeriode)
             ->groupBy('tahun', 'bulan')
             ->orderBy('tahun')
@@ -121,14 +127,14 @@ class DashboardController extends Controller
         }
 
         // Mutasi kas - per kategori (jurnal) & dana sosial (simpanan), 6 bulan terakhir: 1 query JurnalKas + 1 query Simpanan
-        $kasPerBulan = JurnalKas::selectRaw('YEAR(tanggal) as tahun, MONTH(tanggal) as bulan, kategori, tipe, SUM(jumlah) as total')
+        $kasPerBulan = JurnalKas::selectRaw("{$exprTahunBulan('tanggal')}, kategori, tipe, SUM(jumlah) as total")
             ->where('tanggal', '>=', $awalPeriode)
             ->whereIn('kategori', ['topup_bulanan', 'pembayaran_angsuran', 'pencairan_pinjaman'])
             ->groupBy('tahun', 'bulan', 'kategori', 'tipe')
             ->get()
             ->groupBy(fn ($r) => sprintf('%04d-%02d', $r->tahun, $r->bulan));
 
-        $danaSosialPerBulan = Simpanan::selectRaw('YEAR(tanggal_input) as tahun, MONTH(tanggal_input) as bulan, SUM(jumlah) as total')
+        $danaSosialPerBulan = Simpanan::selectRaw("{$exprTahunBulan('tanggal_input')}, SUM(jumlah) as total")
             ->where('jenis', 'dana_sosial')
             ->where('tanggal_input', '>=', $awalPeriode)
             ->groupBy('tahun', 'bulan')
@@ -207,6 +213,7 @@ class DashboardController extends Controller
 
         return Inertia::render('Dashboard', [
             'stats' => [
+                'saldo_bank' => (float) $kas->saldo_bank,
                 'saldo_kas_kecil' => (float) $kas->saldo_kas_kecil,
                 'total_simpanan_outstanding' => $totalSimpananOutstanding,
                 'total_simpanan_akumulasi' => $totalAkumulasiSimpanan,

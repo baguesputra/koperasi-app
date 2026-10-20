@@ -37,6 +37,7 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
     const labelBulan = new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(new Date());
     const widgets = [
         { label: 'Kas Operasional Gabungan', value: formatRupiah(stats.kas_operasional ?? stats.total_keseluruhan), icon: Wallet, tone: 'navy', caption: 'Bank + kas kecil' },
+        { label: 'Saldo Bank', value: formatRupiah(stats.saldo_bank ?? 0), icon: Landmark, tone: 'navy', caption: 'Rekening bank operasional' },
         { label: 'Kas Kecil', value: formatRupiah(stats.saldo_kas_kecil ?? 0), icon: Wallet, tone: 'amber', caption: 'Uang tunai operasional' },
         { label: 'Total Simpanan (Aktif)', value: formatRupiah(stats.total_simpanan_outstanding), icon: PiggyBank, tone: 'green', caption: 'Pokok + wajib' },
         { label: 'Pinjaman Outstanding', value: formatRupiah(stats.pinjaman_outstanding), icon: HandCoins, tone: 'amber', caption: 'Status aktif' },
