@@ -181,6 +181,11 @@ class LaporanTest extends TestCase
             'tanggal_jatuh_tempo' => $hariIni, 'status' => 'belum_bayar',
         ]);
 
+        config([
+            'koperasi.modal_tetap' => 3_000_000,
+            'koperasi.laba_ditahan_historis' => 2_638_000,
+        ]);
+
         $def = LaporanRegistry::ambil('neraca');
         $hasil = $def['data'](request()->merge(['tanggal' => $hariIni]));
 
@@ -189,18 +194,57 @@ class LaporanTest extends TestCase
         // Aktiva: kas 5jt + piutang (1,2jt − 400rb) = 5,8jt.
         $this->assertEquals(800_000, $nilai('Piutang'));
         $this->assertEquals(5_800_000, $nilai('TOTAL AKTIVA'));
-        // Pasiva: simpanan pokok 100rb + wajib 50rb + dana sosial 0 + SHU (12rb − 0) + saldo anggota lama 1,44jt + modal.
+        // Pasiva: simpanan pokok 100rb + wajib 50rb + dana sosial 0 + SHU (12rb − 0) -> Total Kewajiban 162rb.
+        // Saldo Anggota Lama sudah dihapus dari Kewajiban Lancar.
+        $this->assertNull(collect($hasil['rows'])->firstWhere(fn ($r) => $r[0] === 'Saldo Anggota Lama'));
         $this->assertEquals(100_000, $nilai('Simpanan Pokok'));
         $this->assertEquals(50_000, $nilai('Simpanan Wajib'));
         $this->assertEquals(12_000, $nilai('Selisih Hasil Usaha'));
-        $this->assertEquals(1_440_000, $nilai('Saldo Anggota Lama'));
-        $this->assertEquals(1_602_000, $nilai('Total Kewajiban'));
-        $this->assertEquals(4_198_000, $nilai('Total Modal'));
+        $this->assertEquals(162_000, $nilai('Total Kewajiban'));
+        // Modal: modal tetap 3jt + laba ditahan 2,638jt = 5,638jt.
+        $this->assertEquals(3_000_000, $nilai('Modal'));
+        $this->assertEquals(2_638_000, $nilai('Laba/Rugi Ditahan'));
+        $this->assertEquals(5_638_000, $nilai('Total Modal'));
         $this->assertEquals(5_800_000, $nilai('TOTAL KEWAJIBAN DAN MODAL'));
 
         $this->assertSame('Rp 0 — Seimbang', collect($hasil['ringkasan'])->firstWhere(fn ($r) => str_contains($r[0], 'Selisih'))[1]);
 
         $this->get(route('laporan.show', ['jenis' => 'neraca', 'tanggal' => $hariIni]))->assertOk();
+    }
+
+    public function test_laba_rugi_ditahan_mengakumulasi_sisa_shu_otomatis(): void
+    {
+        $this->loginSebagai('BEN-000001');
+
+        config([
+            'koperasi.modal_tetap' => 20_409_831,
+            'koperasi.laba_ditahan_historis' => 17_663_447.20,
+        ]);
+
+        // Buat ShuPeriode final tahun lalu (2025)
+        $periode2025 = \App\Models\ShuPeriode::create([
+            'tahun_buku' => 2025,
+            'total_shu' => 10_000_000,
+            'pct_cadangan' => 0.10, // 1.000.000 (tidak dibagi)
+            'pct_jasa_simpanan' => 0.20,
+            'pct_jasa_transaksi' => 0.40,
+            'pct_pengurus' => 0.10,
+            'pct_pengawas' => 0.05,
+            'pct_pendidikan' => 0.05, // 500.000 (tidak dibagi)
+            'pct_sosial' => 0.05, // 500.000 (tidak dibagi)
+            'pct_wilker' => 0.05, // 500.000 (tidak dibagi)
+            'status' => 'final',
+            'finalized_at' => now(),
+        ]);
+
+        $def = LaporanRegistry::ambil('neraca');
+        $hasil = $def['data'](request()->merge(['tanggal' => '2026-07-31']));
+        $nilai = fn (string $pos) => collect($hasil['rows'])->firstWhere(fn ($r) => $r[0] === $pos)[1];
+
+        // Dana tak dibagi dari periode 2025 = 10jt - (20% + 40% + 10% + 5%) = 2,5jt.
+        // Sisa SHU periode 2025 otomatis ditambahkan ke base 17.663.447,20!
+        $this->assertEquals(20_409_831, $nilai('Modal'));
+        $this->assertGreaterThan(17_663_447, $nilai('Laba/Rugi Ditahan'));
     }
 
     public function test_shu_menghitung_bunga_bank_bukan_modal(): void

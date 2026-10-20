@@ -9,7 +9,9 @@ use App\Models\PengajuanPercepatan;
 use App\Models\Pengeluaran;
 use App\Models\Pinjaman;
 use App\Models\SettingSimpanan;
+use App\Models\ShuPeriode;
 use App\Services\Keuangan\JurnalKasService;
+use App\Services\Keuangan\ShuService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -211,24 +213,20 @@ class LaporanRegistry
 
                     $asuransiSosial = self::danaSosialPerTanggal($cutoff);
                     $shu = self::shuTahunBerjalan($tahun, $cutoff);
-
-                    // Saldo Anggota Lama: akun penampung historis dana outstanding anggota masa lalu.
-                    // Fisik uangnya menyatu dan dipakai di kas/bank koperasi dengan nilai konstan.
-                    $saldoAnggotaLama = (float) config('koperasi.saldo_anggota_lama', 1_440_000);
-
                     $hutang = 0.0;
-                    $totalKewajiban = $simpananPokok + $simpananWajib + $asuransiSosial + $shu['shu'] + $saldoAnggotaLama + $hutang;
+
+                    $totalKewajiban = $simpananPokok + $simpananWajib + $asuransiSosial + $shu['shu'] + $hutang;
 
                     // III. Modal
-                    $modalDisetor = (float) DB::table('jurnal_kas')
-                        ->where('tipe', 'masuk')
-                        ->where('sumber_topup', 'modal')
-                        ->where('tanggal', '<=', $cutoff)
-                        ->sum('jumlah');
+                    // Modal tetap: modal di Excel (18.969.831) + saldo anggota lama (1.440.000) = 20.409.831
+                    $modalTetap = (float) config('koperasi.modal_tetap', 20_409_831);
 
-                    $totalModal = $totalAktiva - $totalKewajiban;
-                    $labaRugiDitahan = $totalModal - $modalDisetor;
+                    // Laba/Rugi Ditahan: base historis Excel (17.663.447) + otomatis akumulasi dana tak dibagi / sisa dana SHU periode lalu
+                    $baseLabaDitahan = (float) config('koperasi.laba_ditahan_historis', 17_663_447.20);
+                    $sisaDanaShu = self::akumulasiSisaDanaShu($tahun);
+                    $labaRugiDitahan = round($baseLabaDitahan + $sisaDanaShu, 2);
 
+                    $totalModal = $modalTetap + $labaRugiDitahan;
                     $totalKewajibanDanModal = $totalKewajiban + $totalModal;
                     $selisih = round($totalAktiva - $totalKewajibanDanModal, 2);
 
@@ -257,12 +255,10 @@ class LaporanRegistry
                     $baris('Simpanan Wajib', $simpananWajib);
                     $baris('Asuransi Sosial', $asuransiSosial);
                     $baris('Selisih Hasil Usaha', $shu['shu']);
-                    $baris('Saldo Anggota Lama', $saldoAnggotaLama);
                     $baris('Hutang', $hutang);
                     $baris('Total Kewajiban', $totalKewajiban, 'subtotal');
 
-                    $bagian('Modal');
-                    $baris('Modal', $modalDisetor);
+                    $baris('Modal', $modalTetap);
                     $baris('Laba/Rugi Ditahan', $labaRugiDitahan);
                     $baris('Total Modal', $totalModal, 'subtotal');
 
@@ -278,7 +274,7 @@ class LaporanRegistry
                             ['Total Kewajiban dan Modal', self::rupiah($totalKewajibanDanModal)],
                             ['Selisih (Aktiva − Kewajiban & Modal)', self::rupiah($selisih).($selisih == 0 ? ' — Seimbang' : ' — TIDAK SEIMBANG')],
                         ],
-                        'Struktur neraca diselaraskan dengan format standar neraca.xls: Aktiva Lancar (Bank, Kas, Piutang pokok pinjaman tanpa bunga) seimbang dengan Kewajiban Lancar (Simpanan Pokok, Simpanan Wajib, Asuransi Sosial, Selisih Hasil Usaha tahun berjalan cut-off, Saldo Anggota Lama, Hutang) serta Modal (Modal dan Laba/Rugi Ditahan).',
+                        'Struktur neraca diselaraskan dengan format standar neraca.xls: Aktiva Lancar (Bank, Kas, Piutang pokok pinjaman tanpa bunga) seimbang dengan Kewajiban Lancar (Simpanan Pokok, Simpanan Wajib, Asuransi Sosial, Selisih Hasil Usaha tahun berjalan, Hutang) serta Modal (Modal tetap Rp 20.409.831 termasuk saldo anggota lama, dan Laba/Rugi Ditahan dari sisa SHU historis Rp 17.663.447 ditambah otomatis dana tak dibagi / sisa hasil pembagian SHU periode lalu).',
                         $gayaBaris,
                     );
                 },
@@ -1073,6 +1069,38 @@ class LaporanRegistry
             ->sum('jumlah');
 
         return ['bunga' => $bunga + $bungaBank, 'beban' => $beban, 'shu' => $bunga + $bungaBank - $beban];
+    }
+
+    /**
+     * Akumulasi dana yang tidak dibagikan / sisa dana hasil pembagian SHU
+     * untuk tahun-tahun buku sebelum cutoff yang sudah final.
+     */
+    private static function akumulasiSisaDanaShu(int $tahunCutoff): float
+    {
+        if (! class_exists(ShuPeriode::class)) {
+            return 0.0;
+        }
+
+        $periodes = ShuPeriode::where('status', 'final')
+            ->where('tahun_buku', '<', $tahunCutoff)
+            ->get();
+
+        if ($periodes->isEmpty()) {
+            return 0.0;
+        }
+
+        $totalSisa = 0.0;
+        $svc = app(ShuService::class);
+        foreach ($periodes as $p) {
+            $ringkas = $svc->ringkasan($p);
+            $danaTakDibagi = (float) ($ringkas['dana_tak_dibagi'] ?? 0);
+            $sisaAnggota = (float) ($ringkas['belum_diserahkan'] ?? $ringkas['sisa_dana']['anggota'] ?? 0);
+            $sisaPengurus = (float) ($ringkas['sisa_dana']['pengurus'] ?? 0);
+            $sisaPengawas = (float) ($ringkas['sisa_dana']['pengawas'] ?? 0);
+            $totalSisa += ($danaTakDibagi + $sisaAnggota + $sisaPengurus + $sisaPengawas);
+        }
+
+        return round($totalSisa, 2);
     }
 
     private static function hasil(
