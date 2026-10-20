@@ -178,7 +178,7 @@ class LaporanRegistry
 
             'neraca' => [
                 'judul' => 'Laporan Neraca',
-                'deskripsi' => 'Posisi keuangan koperasi per tanggal cut-off: aktiva = kewajiban + ekuitas.',
+                'deskripsi' => 'Posisi keuangan koperasi per tanggal cut-off: aktiva = kewajiban + modal.',
                 'kategori' => 'Keuangan',
                 'ikon' => 'landmark',
                 'filter' => ['tipe' => 'tanggal'],
@@ -188,25 +188,51 @@ class LaporanRegistry
                     $tgl = $cutoff->toDateString();
                     $tahun = $cutoff->year;
 
+                    // I. Aktiva Lancar
                     $kas = self::kasPerTanggal($cutoff);
-                    $kasTotal = $kas['bank'] + $kas['kas_kecil'];
                     $piutang = self::piutangPerTanggal($tgl);
-                    $aktiva = $kasTotal + $piutang;
+                    $aktivaLancar = $kas['bank'] + $kas['kas_kecil'] + $piutang;
+                    $totalAktiva = $aktivaLancar;
 
-                    $simpanan = (float) DB::table('simpanan')
+                    // II. Kewajiban Lancar
+                    $simpananPokok = (float) DB::table('simpanan')
                         ->join('anggota', 'anggota.id', '=', 'simpanan.anggota_id')
-                        ->whereIn('simpanan.jenis', ['pokok', 'wajib'])
+                        ->where('simpanan.jenis', 'pokok')
                         ->where('anggota.status', 'aktif')
                         ->where('simpanan.tanggal_input', '<=', $cutoff)
                         ->sum('simpanan.jumlah');
 
-                    $danaSosial = self::danaSosialPerTanggal($cutoff);
-                    $shu = self::shuTahunBerjalan($tahun);
+                    $simpananWajib = (float) DB::table('simpanan')
+                        ->join('anggota', 'anggota.id', '=', 'simpanan.anggota_id')
+                        ->where('simpanan.jenis', 'wajib')
+                        ->where('anggota.status', 'aktif')
+                        ->where('simpanan.tanggal_input', '<=', $cutoff)
+                        ->sum('simpanan.jumlah');
 
-                    // Modal = penyeimbang agar aktiva = pasiva (selisih dibuktikan nol di ringkasan).
-                    $modal = $aktiva - $simpanan - $danaSosial - $shu['shu'];
-                    $pasiva = $simpanan + $danaSosial + $shu['shu'] + $modal;
-                    $selisih = round($aktiva - $pasiva, 2);
+                    $asuransiSosial = self::danaSosialPerTanggal($cutoff);
+                    $shu = self::shuTahunBerjalan($tahun, $cutoff);
+
+                    $saldoAnggotaLama = (float) DB::table('simpanan')
+                        ->join('anggota', 'anggota.id', '=', 'simpanan.anggota_id')
+                        ->where('anggota.status', '!=', 'aktif')
+                        ->where('simpanan.tanggal_input', '<=', $cutoff)
+                        ->sum('simpanan.jumlah');
+
+                    $hutang = 0.0;
+                    $totalKewajiban = $simpananPokok + $simpananWajib + $asuransiSosial + $shu['shu'] + $saldoAnggotaLama + $hutang;
+
+                    // III. Modal
+                    $modalDisetor = (float) DB::table('jurnal_kas')
+                        ->where('tipe', 'masuk')
+                        ->where('sumber_topup', 'modal')
+                        ->where('tanggal', '<=', $cutoff)
+                        ->sum('jumlah');
+
+                    $totalModal = $totalAktiva - $totalKewajiban;
+                    $labaRugiDitahan = $totalModal - $modalDisetor;
+
+                    $totalKewajibanDanModal = $totalKewajiban + $totalModal;
+                    $selisih = round($totalAktiva - $totalKewajibanDanModal, 2);
 
                     $rows = [];
                     $gayaBaris = [];
@@ -219,33 +245,42 @@ class LaporanRegistry
                         $gayaBaris[] = $gaya;
                     };
 
-                    $bagian('Aktiva');
-                    $baris('— Bank', $kas['bank']);
-                    $baris('— Kas Kecil', $kas['kas_kecil']);
-                    $baris('Kas & Bank', $kasTotal, 'subtotal');
-                    $baris('Piutang Pinjaman (sisa pokok)', $piutang);
-                    $baris('TOTAL AKTIVA', $aktiva, 'subtotal');
+                    $bagian('I. AKTIVA');
+                    $bagian('Aktiva Lancar');
+                    $baris('Bank', $kas['bank']);
+                    $baris('Kas', $kas['kas_kecil']);
+                    $baris('Piutang', $piutang);
+                    $baris('Total Aktiva Lancar', $aktivaLancar, 'subtotal');
+                    $baris('TOTAL AKTIVA', $totalAktiva, 'subtotal');
 
-                    $bagian('Pasiva');
-                    $baris('Simpanan Anggota (Pokok + Wajib)', $simpanan);
-                    $baris('Dana Sosial', $danaSosial);
-                    $baris("SHU Tahun {$tahun} berjalan (bunga − beban)", $shu['shu']);
-                    $baris('Modal (penyeimbang)', $modal);
-                    $baris('TOTAL PASIVA', $pasiva, 'subtotal');
+                    $bagian('II. KEWAJIBAN DAN MODAL');
+                    $bagian('Kewajiban Lancar');
+                    $baris('Simpanan Pokok', $simpananPokok);
+                    $baris('Simpanan Wajib', $simpananWajib);
+                    $baris('Asuransi Sosial', $asuransiSosial);
+                    $baris('Selisih Hasil Usaha', $shu['shu']);
+                    $baris('Saldo Anggota Lama', $saldoAnggotaLama);
+                    $baris('Hutang', $hutang);
+                    $baris('Total Kewajiban', $totalKewajiban, 'subtotal');
 
-                    // ponytail: status "aktif" dibaca hari ini, bukan per tanggal cutoff —
-                    // resign retroaktif bisa menggeser angka simpanan historis; catat bila jadi isu audit
+                    $bagian('Modal');
+                    $baris('Modal', $modalDisetor);
+                    $baris('Laba/Rugi Ditahan', $labaRugiDitahan);
+                    $baris('Total Modal', $totalModal, 'subtotal');
+
+                    $baris('TOTAL KEWAJIBAN DAN MODAL', $totalKewajibanDanModal, 'subtotal');
+
                     return self::hasil(
                         ['Pos', 'Nilai'],
                         [1],
                         $rows,
                         null,
                         [
-                            ['Total Aktiva', self::rupiah($aktiva)],
-                            ['Total Pasiva', self::rupiah($pasiva)],
-                            ['Selisih (Aktiva − Pasiva)', self::rupiah($selisih).($selisih == 0 ? ' — Seimbang' : ' — TIDAK SEIMBANG')],
+                            ['Total Aktiva', self::rupiah($totalAktiva)],
+                            ['Total Kewajiban dan Modal', self::rupiah($totalKewajibanDanModal)],
+                            ['Selisih (Aktiva − Kewajiban & Modal)', self::rupiah($selisih).($selisih == 0 ? ' — Seimbang' : ' — TIDAK SEIMBANG')],
                         ],
-                        'Kas & Bank dari saldo buku kas per cut-off; piutang = sisa pokok pinjaman dicairkan dikurangi pokok angsuran lunas (konfirmasi tanpa tanggal dianggap lunas); dana sosial = neto kantong dana sosial; SHU = bunga angsuran + bunga bank '.self::rupiah($shu['bunga']).' − beban operasional '.self::rupiah($shu['beban'])." tahun {$tahun}; modal = selisih penyeimbang. Status keanggotaan aktif dibaca per tanggal cetak.",
+                        'Struktur neraca diselaraskan dengan format standar neraca.xls: Aktiva Lancar (Bank, Kas, Piutang pokok pinjaman tanpa bunga) seimbang dengan Kewajiban Lancar (Simpanan Pokok, Simpanan Wajib, Asuransi Sosial, Selisih Hasil Usaha tahun berjalan cut-off, Saldo Anggota Lama, Hutang) serta Modal (Modal dan Laba/Rugi Ditahan).',
                         $gayaBaris,
                     );
                 },
@@ -1015,10 +1050,10 @@ class LaporanRegistry
      * Dana sosial bukan beban SHU (arus dana, bukan laba) sehingga
      * tidak dikurangkan. Topup modal bukan pendapatan SHU.
      */
-    private static function shuTahunBerjalan(int $tahun): array
+    private static function shuTahunBerjalan(int $tahun, ?Carbon $cutoff = null): array
     {
         $awal = sprintf('%04d-01-01 00:00:00', $tahun);
-        $akhir = sprintf('%04d-12-31 23:59:59', $tahun);
+        $akhir = $cutoff ? $cutoff->toDateTimeString() : sprintf('%04d-12-31 23:59:59', $tahun);
         $bunga = 0.0;
         foreach ([Angsuran::class, AngsuranPercepatan::class] as $model) {
             $bunga += (float) $model::where('status', 'lunas')

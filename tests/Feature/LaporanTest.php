@@ -187,15 +187,17 @@ class LaporanTest extends TestCase
         $nilai = fn (string $pos) => collect($hasil['rows'])->firstWhere(fn ($r) => $r[0] === $pos)[1];
 
         // Aktiva: kas 5jt + piutang (1,2jt − 400rb) = 5,8jt.
-        $this->assertEquals(800_000, $nilai('Piutang Pinjaman (sisa pokok)'));
+        $this->assertEquals(800_000, $nilai('Piutang'));
         $this->assertEquals(5_800_000, $nilai('TOTAL AKTIVA'));
-        // Pasiva: simpanan 150rb + dana sosial 0 + SHU (12rb − 0) + modal penyeimbang.
-        $this->assertEquals(150_000, $nilai('Simpanan Anggota (Pokok + Wajib)'));
-        $this->assertEquals(12_000, $nilai('SHU Tahun '.now()->year.' berjalan (bunga − beban)'));
-        $this->assertEquals(5_638_000, $nilai('Modal (penyeimbang)'));
-        $this->assertEquals(5_800_000, $nilai('TOTAL PASIVA'));
+        // Pasiva: simpanan pokok 100rb + wajib 50rb + dana sosial 0 + SHU (12rb − 0) + modal penyeimbang.
+        $this->assertEquals(100_000, $nilai('Simpanan Pokok'));
+        $this->assertEquals(50_000, $nilai('Simpanan Wajib'));
+        $this->assertEquals(12_000, $nilai('Selisih Hasil Usaha'));
+        $this->assertEquals(162_000, $nilai('Total Kewajiban'));
+        $this->assertEquals(5_638_000, $nilai('Total Modal'));
+        $this->assertEquals(5_800_000, $nilai('TOTAL KEWAJIBAN DAN MODAL'));
 
-        $this->assertSame('Rp 0 — Seimbang', collect($hasil['ringkasan'])->firstWhere(fn ($r) => $r[0] === 'Selisih (Aktiva − Pasiva)')[1]);
+        $this->assertSame('Rp 0 — Seimbang', collect($hasil['ringkasan'])->firstWhere(fn ($r) => str_contains($r[0], 'Selisih'))[1]);
 
         $this->get(route('laporan.show', ['jenis' => 'neraca', 'tanggal' => $hariIni]))->assertOk();
     }
@@ -222,7 +224,7 @@ class LaporanTest extends TestCase
         $nilai = fn (string $pos) => collect($hasil['rows'])->firstWhere(fn ($r) => $r[0] === $pos)[1];
 
         // SHU = bunga angsuran 0 + bunga bank 100rb − beban 0. Modal tak masuk SHU.
-        $this->assertEquals(100_000, $nilai('SHU Tahun '.now()->year.' berjalan (bunga − beban)'));
+        $this->assertEquals(100_000, $nilai('Selisih Hasil Usaha'));
     }
 
     public function test_neraca_piutang_mengikuti_cutoff(): void
@@ -252,12 +254,12 @@ class LaporanTest extends TestCase
         // Cut-off kemarin: pinjaman belum cair → piutang 0.
         $kemarin = $def['data'](request()->merge(['tanggal' => now()->subDay()->format('Y-m-d')]));
         $nilaiKemarin = fn (string $pos) => collect($kemarin['rows'])->firstWhere(fn ($r) => $r[0] === $pos)[1];
-        $this->assertEquals(0, $nilaiKemarin('Piutang Pinjaman (sisa pokok)'));
+        $this->assertEquals(0, $nilaiKemarin('Piutang'));
 
         // Cut-off hari ini: 900rb − 300rb = 600rb.
         $kini = $def['data'](request()->merge(['tanggal' => $hariIni]));
         $nilaiKini = fn (string $pos) => collect($kini['rows'])->firstWhere(fn ($r) => $r[0] === $pos)[1];
-        $this->assertEquals(600_000, $nilaiKini('Piutang Pinjaman (sisa pokok)'));
+        $this->assertEquals(600_000, $nilaiKini('Piutang'));
     }
 
     public function test_export_excel_dan_pdf_berjalan(): void
