@@ -12,8 +12,12 @@ use App\Models\SettingSimpanan;
 use App\Models\Simpanan;
 use App\Models\User;
 use App\Services\Keuangan\JurnalKasService;
+use Illuminate\Contracts\Cache\LockTimeoutException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use RuntimeException;
 
 class SinkronisasiAnggotaService
 {
@@ -36,8 +40,20 @@ class SinkronisasiAnggotaService
 
     public function sinkron(array $filter = [], bool $kering = false, ?int $aktorId = null, ?int $batas = null, int $grace = 2): array
     {
+        try {
+            return Cache::lock('gate-sync', 300)->block(
+                10,
+                fn () => $this->sinkronTerbatas($filter, $kering, $aktorId, $batas, $grace)
+            );
+        } catch (LockTimeoutException) {
+            throw new RuntimeException('Sinkronisasi Gate sedang berjalan di proses lain. Coba lagi sebentar lagi.');
+        }
+    }
+
+    private function sinkronTerbatas(array $filter, bool $kering, ?int $aktorId, ?int $batas, int $grace): array
+    {
         if (! empty($filter['company_id']) && (strlen((string) $filter['company_id']) > 50 || ! preg_match('/^[A-Za-z0-9-]+$/', (string) $filter['company_id']))) {
-            return ['baru' => [], 'diperbarui' => [], 'gagal' => ['company_id tidak valid.'], 'dilewati' => 0];
+            return ['baru' => [], 'diperbarui' => [], 'gagal' => ['company_id tidak valid.'], 'dilewati' => 0, 'nonaktif' => 0];
         }
 
         try {
@@ -79,7 +95,11 @@ class SinkronisasiAnggotaService
             }
         }
 
-        if (! $kering && empty($filter['email'])) {
+        // tandaiHilang hanya pada sinkron full-scope (tanpa filter/limit)
+        $filterAktif = array_filter($filter, fn ($v) => $v !== null && $v !== '' && $v !== false);
+        $skalaPenuh = $filterAktif === [] && ! $batas;
+
+        if (! $kering && $skalaPenuh) {
             $hasil['nonaktif'] = $this->tandaiHilang($daftar, $grace);
         }
 
@@ -109,27 +129,51 @@ class SinkronisasiAnggotaService
             $query->whereNotIn('no_karyawan', $adaNik);
         }
 
+        // Jaring pengaman: jika ada lebih dari 5 anggota Gate, batasi maksimal 20%
+        // nonaktif per run agar kegagalan Gate parsial tidak langsung mematikan massal.
+        $totalGate = Anggota::whereNotNull('gate_id')->count();
+        $maxNonaktif = $totalGate > 5 ? max(1, (int) ceil($totalGate * 0.2)) : PHP_INT_MAX;
+
         $count = 0;
-        $query->chunkById(200, function ($rows) use ($grace, &$count) {
+        $melebihiBatas = false;
+        $query->chunkById(200, function ($rows) use ($grace, $maxNonaktif, &$count, &$melebihiBatas) {
             foreach ($rows as $anggota) {
                 $miss = ((int) $anggota->getRawOriginal('gate_miss_count', 0)) + 1;
-                $anggota->update(['gate_miss_count' => $miss, 'gate_synced_at' => now()]);
-                if ($miss < $grace) {
+                $nonaktif = $miss >= $grace;
+
+                if ($nonaktif && $count >= $maxNonaktif) {
+                    $melebihiBatas = true;
+
                     continue;
                 }
-                $anggota->update(['status' => 'nonaktif']);
-                if ($anggota->user_id) {
-                    User::whereKey($anggota->user_id)->update(['status' => 'nonaktif']);
+
+                $anggota->update([
+                    'gate_miss_count' => $miss,
+                    'gate_synced_at' => now(),
+                    'status' => $nonaktif ? 'nonaktif' : $anggota->status,
+                ]);
+
+                if ($nonaktif) {
+                    if ($anggota->user_id) {
+                        User::whereKey($anggota->user_id)->update(['status' => 'nonaktif']);
+                    }
+                    AuditLog::catat(
+                        'sinkron_gate_nonaktif',
+                        "Anggota {$anggota->nama} ({$anggota->no_karyawan}) hilang dari GATE {$miss}x — dinonaktifkan otomatis.",
+                        ['status' => 'aktif'],
+                        ['status' => 'nonaktif', 'gate_miss_count' => $miss]
+                    );
+                    $count++;
                 }
-                AuditLog::catat(
-                    'sinkron_gate_nonaktif',
-                    "Anggota {$anggota->nama} ({$anggota->no_karyawan}) hilang dari GATE {$miss}x — dinonaktifkan otomatis.",
-                    ['status' => 'aktif'],
-                    ['status' => 'nonaktif', 'gate_miss_count' => $miss]
-                );
-                $count++;
             }
         });
+
+        if ($melebihiBatas) {
+            Log::warning('GATE tandaiHilang melebihi batas aman per run, deaktivasi ditahan', [
+                'dideaktifkan' => $count,
+                'batas' => $maxNonaktif,
+            ]);
+        }
 
         return $count;
     }
@@ -146,33 +190,47 @@ class SinkronisasiAnggotaService
     private function sinkronSatu(array $baris, ?int $aktorId): string
     {
         return DB::transaction(function () use ($baris, $aktorId) {
-            $nik = trim((string) $baris['nik']);
-            $nama = trim((string) $baris['name']);
+            $nik = trim((string) ($baris['nik'] ?? ''));
+            $nama = trim((string) ($baris['name'] ?? ''));
             $email = trim((string) ($baris['email'] ?? ''));
+            $gateId = $baris['id'] ?? null;
+
+            if (! $nik || ! $nama || ! $gateId) {
+                throw new RuntimeException('Data Gate tidak lengkap (nik/nama/id).');
+            }
+
             $noHp = $this->normalisasiHp($baris['whatsapp_number'] ?? null);
             $fotoUrl = $this->normalisasiFoto($baris['photo_url'] ?? $baris['photo'] ?? null);
             $posisi = $baris['position'] ?? null;
+
             if (is_array($posisi)) {
                 $department = $posisi['department']['name'] ?? $posisi['department']['code'] ?? null;
-                $deptGateId = $posisi['department']['id'] ?? null;
+                $deptGateId = $posisi['department']['id'] ?? $posisi['department_id'] ?? null;
                 $jabGateId = $posisi['id'] ?? null;
                 $namaJabatan = trim((string) ($posisi['name'] ?? ''));
-                $compGateId = $baris['company_id'] ?? null;
+                $compGateId = $baris['company_id'] ?? $posisi['company_id'] ?? null;
+                $divGateId = $posisi['division']['id'] ?? $posisi['division_id'] ?? null;
             } else {
-                $jabatanRow = ! empty($baris['position_id']) ? Jabatan::where('gate_id', $baris['position_id'])->first() : null;
-                $deptRow = ! empty($baris['department_id'])
-                    ? Departemen::where('gate_id', $baris['department_id'])->first()
-                    : ($jabatanRow?->departemen_id ? Departemen::find($jabatanRow->departemen_id) : null);
-                $department = $deptRow?->nama;
-                $deptGateId = $deptRow?->gate_id;
-                $jabGateId = $jabatanRow?->gate_id;
-                $namaJabatan = $jabatanRow?->nama ?? '';
-                $compGateId = $baris['company_id'] ?? $deptRow?->perusahaan?->gate_id ?? $jabatanRow?->perusahaan?->gate_id;
+                $jabGateId = ! empty($baris['position_id']) ? $baris['position_id'] : null;
+                $deptGateId = ! empty($baris['department_id']) ? $baris['department_id'] : null;
+                $divGateId = ! empty($baris['division_id']) ? $baris['division_id'] : null;
+                $compGateId = $baris['company_id'] ?? null;
+                $namaJabatan = '';
+                $department = null;
             }
-            $departemenRow = $deptGateId ? Departemen::where('gate_id', $deptGateId)->first() : null;
+
+            $jabatanRow = $jabGateId ? Jabatan::where('gate_id', $jabGateId)->first() : null;
+            $departemenRow = $deptGateId
+                ? Departemen::where('gate_id', $deptGateId)->first()
+                : ($jabatanRow?->departemen_id ? Departemen::find($jabatanRow->departemen_id) : null);
+            $divisiRow = $divGateId
+                ? Divisi::where('gate_id', $divGateId)->first()
+                : ($jabatanRow?->division_id ? Divisi::find($jabatanRow->division_id) : null);
+
             $departemenId = $departemenRow?->id;
-            $jabatanRow = $jabGateId ? Jabatan::where('gate_id', $jabGateId)->first() : ($jabatanRow ?? null);
+            $divisiId = $divisiRow?->id;
             $jabatanId = $jabatanRow?->id;
+
             if (! $namaJabatan && $jabatanRow) {
                 $namaJabatan = $jabatanRow->nama;
             }
@@ -180,21 +238,38 @@ class SinkronisasiAnggotaService
                 $department = $departemenRow->nama;
             }
 
-            $pemilikEmail = $email ? User::where('email', $email)->first() : null;
-            if ($pemilikEmail && $pemilikEmail->no_karyawan !== $nik) {
-                $pemilikEmail->loadMissing('anggota');
-                if ($pemilikEmail->anggota?->gate_id) {
-                    throw new \RuntimeException("Email {$email} sudah dipakai akun lain.");
-                }
-                $pemilikEmail->update(['email' => null]);
+            // Rantai company via position->dept/div (baris /api/users tanpa company_id) — master wajib sync dulu
+            if (! $compGateId) {
+                $compGateId = $jabatanRow?->perusahaan?->gate_id
+                    ?? $departemenRow?->perusahaan?->gate_id
+                    ?? $divisiRow?->perusahaan?->gate_id;
             }
 
-            $user = User::where('no_karyawan', $nik)->first();
+            $perusahaan = ! empty($compGateId)
+                ? Perusahaan::where('gate_id', $compGateId)->first()
+                : null;
+
+            $user = User::where('gate_id', $gateId)->first()
+                ?? User::where('no_karyawan', $nik)->first();
+
+            if ($email && $user?->email !== $email) {
+                $pemilikEmail = User::where('email', $email)
+                    ->when($user, fn ($q) => $q->whereKeyNot($user->getKey()))
+                    ->first();
+
+                if ($pemilikEmail && ! $pemilikEmail->gate_id && ! $pemilikEmail->anggota?->gate_id) {
+                    $pemilikEmail->update(['email' => null]);
+                } elseif ($pemilikEmail && $pemilikEmail->no_karyawan !== $nik) {
+                    throw new RuntimeException("Email {$email} sudah dipakai akun lain.");
+                }
+            }
+
             if (! $user) {
                 $user = User::create([
                     'name' => $nama,
                     'email' => $email ?: null,
                     'no_karyawan' => $nik,
+                    'gate_id' => $gateId,
                     'password' => Hash::make($nik),
                     'harus_ganti_password' => true,
                 ]);
@@ -203,29 +278,27 @@ class SinkronisasiAnggotaService
                 $user->update([
                     'name' => $nama,
                     'email' => $email ?: $user->email,
+                    'gate_id' => $user->gate_id ?: $gateId,
                 ]);
             }
 
-            $anggota = Anggota::where('gate_id', $baris['id'])->lockForUpdate()->first()
+            $anggota = Anggota::where('gate_id', $gateId)->lockForUpdate()->first()
                 ?? Anggota::where('no_karyawan', $nik)->lockForUpdate()->first();
 
-            if ($anggota && $anggota->gate_id && $anggota->gate_id !== $baris['id']) {
-                throw new \RuntimeException("NIK {$nik} terdaftar pada data GATE lain.");
+            if ($anggota && $anggota->gate_id && (string) $anggota->gate_id !== (string) $gateId) {
+                throw new RuntimeException("NIK {$nik} terdaftar pada data GATE lain.");
             }
 
-            $perusahaan = ! empty($compGateId)
-                ? Perusahaan::where('gate_id', $compGateId)->first()
-                : null;
-            $divisiId = $jabatanRow?->division_id
-                ? Divisi::whereKey($jabatanRow->division_id)->value('id')
-                : null;
+            $aktifGate = array_key_exists('is_active', $baris) ? (bool) $baris['is_active'] : null;
 
             $baru = ! $anggota;
             if ($baru) {
+                $statusAwal = $aktifGate === false ? 'nonaktif' : 'aktif';
                 $anggota = Anggota::create([
                     'user_id' => $user->id,
-                    'gate_id' => $baris['id'],
+                    'gate_id' => $gateId,
                     'gate_synced_at' => now(),
+                    'gate_miss_count' => 0,
                     'perusahaan_id' => $perusahaan?->id,
                     'departemen_id' => $departemenId,
                     'divisi_id' => $divisiId,
@@ -242,14 +315,19 @@ class SinkronisasiAnggotaService
                     'tanggal_jadi_anggota' => now(),
                     'no_hp' => $noHp,
                     'foto_url' => $fotoUrl,
-                    'status' => 'aktif',
+                    'status' => $statusAwal,
                 ]);
+                if ($statusAwal === 'nonaktif') {
+                    $user->update(['status' => 'nonaktif']);
+                }
                 $this->catatSimpananPokok($anggota, $aktorId);
             } else {
-                $pulih = $anggota->status === 'nonaktif';
+                $pulih = $anggota->status === 'nonaktif' && $aktifGate !== false;
+                $statusBaru = $aktifGate === false ? 'nonaktif' : ($pulih ? 'aktif' : $anggota->status);
+
                 $anggota->update([
                     'user_id' => $anggota->user_id ?? $user->id,
-                    'gate_id' => $anggota->gate_id ?? $baris['id'],
+                    'gate_id' => $anggota->gate_id ?? $gateId,
                     'gate_synced_at' => now(),
                     'gate_miss_count' => 0,
                     'perusahaan_id' => $perusahaan?->id ?? $anggota->perusahaan_id,
@@ -263,12 +341,13 @@ class SinkronisasiAnggotaService
                     'jabatan' => $namaJabatan ?: $anggota->jabatan,
                     'no_hp' => $noHp ?? $anggota->no_hp,
                     'foto_url' => $fotoUrl ?? $anggota->foto_url,
+                    'status' => $statusBaru,
                 ]);
-                if ($pulih) {
-                    $anggota->update(['status' => 'aktif']);
-                    if ($anggota->user_id) {
-                        User::whereKey($anggota->user_id)->update(['status' => 'aktif']);
-                    }
+
+                if ($statusBaru === 'nonaktif' && $user->status !== 'nonaktif') {
+                    $user->update(['status' => 'nonaktif']);
+                } elseif ($pulih && $user->status === 'nonaktif') {
+                    $user->update(['status' => 'aktif']);
                 }
             }
 
@@ -284,7 +363,7 @@ class SinkronisasiAnggotaService
     {
         $nik = trim((string) ($baris['nik'] ?? ''));
         if (! $nik) {
-            throw new \RuntimeException('Data Gate tidak lengkap (nik).');
+            throw new RuntimeException('Data Gate tidak lengkap (nik).');
         }
 
         $this->sinkronSatu($baris, $aktorId);
@@ -302,10 +381,13 @@ class SinkronisasiAnggotaService
         DB::transaction(function () use ($user, $baris) {
             $fotoUrl = $this->normalisasiFoto($baris['photo_url'] ?? $baris['photo'] ?? null);
             $noHp = $this->normalisasiHp($baris['whatsapp_number'] ?? null);
+            $aktifGate = array_key_exists('is_active', $baris) ? (bool) $baris['is_active'] : null;
 
             $user->update([
+                'gate_id' => $user->gate_id ?? ($baris['id'] ?? null),
                 'no_karyawan' => $user->no_karyawan ?: (trim((string) ($baris['nik'] ?? '')) ?: null),
                 'name' => trim((string) ($baris['name'] ?? '')) ?: $user->name,
+                'status' => $aktifGate === false ? 'nonaktif' : $user->status,
             ]);
 
             $anggota = $user->anggota;
@@ -315,16 +397,31 @@ class SinkronisasiAnggotaService
 
             $posisi = $baris['position'] ?? null;
             $deptGateId = is_array($posisi)
-                ? ($posisi['department']['id'] ?? null)
+                ? ($posisi['department']['id'] ?? $posisi['department_id'] ?? null)
                 : ($baris['department_id'] ?? null);
             $jabGateId = is_array($posisi)
                 ? ($posisi['id'] ?? null)
                 : ($baris['position_id'] ?? null);
+            $divGateId = is_array($posisi)
+                ? ($posisi['division']['id'] ?? $posisi['division_id'] ?? null)
+                : ($baris['division_id'] ?? null);
 
-            $departemen = $deptGateId ? Departemen::where('gate_id', $deptGateId)->first() : null;
             $jabatan = $jabGateId ? Jabatan::where('gate_id', $jabGateId)->first() : null;
-            $perusahaan = ! empty($baris['company_id'])
-                ? Perusahaan::where('gate_id', $baris['company_id'])->first()
+            $departemen = $deptGateId
+                ? Departemen::where('gate_id', $deptGateId)->first()
+                : ($jabatan?->departemen_id ? Departemen::find($jabatan->departemen_id) : null);
+            $divisi = $divGateId
+                ? Divisi::where('gate_id', $divGateId)->first()
+                : ($jabatan?->division_id ? Divisi::find($jabatan->division_id) : null);
+
+            $compGateId = $baris['company_id']
+                ?? (is_array($posisi) ? ($posisi['company_id'] ?? null) : null)
+                ?? $jabatan?->perusahaan?->gate_id
+                ?? $departemen?->perusahaan?->gate_id
+                ?? $divisi?->perusahaan?->gate_id;
+
+            $perusahaan = ! empty($compGateId)
+                ? Perusahaan::where('gate_id', $compGateId)->first()
                 : null;
 
             $anggota->update([
@@ -334,14 +431,14 @@ class SinkronisasiAnggotaService
                 'perusahaan_id' => $anggota->perusahaan_id ?? $perusahaan?->id,
                 'departemen_id' => $anggota->departemen_id ?? $departemen?->id,
                 'jabatan_id' => $anggota->jabatan_id ?? $jabatan?->id,
-                'divisi_id' => $anggota->divisi_id ?? $jabatan?->division_id,
+                'divisi_id' => $anggota->divisi_id ?? $divisi?->id,
                 'department' => $anggota->department ?? $departemen?->nama,
-                // 'staff' adalah fallback sinkron; ganti bila Gate punya nama asli.
                 'jabatan' => ($anggota->jabatan && $anggota->jabatan !== 'staff')
                     ? $anggota->jabatan
                     : ($jabatan?->nama ?? $anggota->jabatan),
                 'no_hp' => $anggota->no_hp ?? $noHp,
                 'foto_url' => $anggota->foto_url ?? $fotoUrl,
+                'status' => $aktifGate === false ? 'nonaktif' : $anggota->status,
             ]);
         });
     }

@@ -59,9 +59,23 @@ class SsoController extends Controller
             }
 
             $user = User::where('sso_id', $ssoId)->first();
+            $viaNik = false;
 
             if (! $user && $email) {
-                $user = User::where('email', $email)->first();
+                $kandidat = User::where('email', $email)->first();
+                if ($kandidat) {
+                    if (! $this->bolehTaut($kandidat, $ssoId)) {
+                        AuditLog::catat('sso_login_failed', 'cannot_link', [
+                            'sso_id' => $ssoId,
+                            'email' => $email,
+                            'user_id' => $kandidat->id,
+                        ], null, $kandidat->id);
+
+                        return redirect()->route('sso.gagal')
+                            ->with('error', 'Akun ini terkait SSO lain. Hubungi admin koperasi untuk penautan akun.');
+                    }
+                    $user = $kandidat;
+                }
             }
 
             if (! $user) {
@@ -89,38 +103,70 @@ class SsoController extends Controller
                         ->with('error', 'Akun Anda dinonaktifkan. Silakan hubungi pengurus koperasi untuk mengaktifkan kembali.');
                 }
 
-                try {
-                    $user = $sinkron->provisiDariGate($baris);
-                    GateSyncLog::create([
-                        'kind' => 'karyawan',
-                        'source' => 'login',
-                        'is_dry_run' => false,
-                        'count_baru' => 1,
-                        'user_id' => $user->id,
-                    ]);
-                    AuditLog::catat(
-                        'sinkron_gate_login',
-                        "Sync login {$email} OK (provisi baru).",
-                        null,
-                        null,
-                        $user->id
-                    );
-                } catch (\Throwable $e) {
-                    report($e);
-                    GateSyncLog::create([
-                        'kind' => 'karyawan',
-                        'source' => 'login',
-                        'is_dry_run' => false,
-                        'count_gagal' => 1,
-                    ]);
-                    AuditLog::catat('sso_login_failed', 'user_not_found', [
-                        'sso_id' => $ssoId,
-                        'email' => $email,
-                        'error' => $e->getMessage(),
-                    ]);
+                $nik = trim((string) ($baris['nik'] ?? ''));
+                if ($nik) {
+                    $kandidatNik = User::where('no_karyawan', $nik)->first();
+                    if (! $kandidatNik) {
+                        $anggotaNik = \App\Models\Anggota::where('no_karyawan', $nik)->first();
+                        $kandidatNik = $anggotaNik?->user;
+                    }
+                    if ($kandidatNik) {
+                        if (! $this->bolehTaut($kandidatNik, $ssoId)) {
+                            AuditLog::catat('sso_login_failed', 'cannot_link', [
+                                'sso_id' => $ssoId,
+                                'email' => $email,
+                                'user_id' => $kandidatNik->id,
+                            ], null, $kandidatNik->id);
 
-                    return redirect()->route('sso.gagal')
-                        ->with('error', 'Akun SSO tidak terdaftar di sistem koperasi. Hubungi admin koperasi untuk mendaftarkan Anda sebagai anggota.');
+                            return redirect()->route('sso.gagal')
+                                ->with('error', 'Akun dengan NIK ini terkait SSO lain. Hubungi admin koperasi untuk penautan akun.');
+                        }
+                        $user = $kandidatNik;
+                        $viaNik = true;
+                    }
+                }
+
+                if ($viaNik) {
+                    try {
+                        $sinkron->enrichDariGate($user->fresh(), $baris);
+                        $user = $user->fresh();
+                    } catch (\Throwable $e) {
+                        report($e);
+                    }
+                } else {
+                    try {
+                        $user = $sinkron->provisiDariGate($baris);
+                        GateSyncLog::create([
+                            'kind' => 'karyawan',
+                            'source' => 'login',
+                            'is_dry_run' => false,
+                            'count_baru' => 1,
+                            'user_id' => $user->id,
+                        ]);
+                        AuditLog::catat(
+                            'sinkron_gate_login',
+                            "Sync login {$email} OK (provisi baru).",
+                            null,
+                            null,
+                            $user->id
+                        );
+                    } catch (\Throwable $e) {
+                        report($e);
+                        GateSyncLog::create([
+                            'kind' => 'karyawan',
+                            'source' => 'login',
+                            'is_dry_run' => false,
+                            'count_gagal' => 1,
+                        ]);
+                        AuditLog::catat('sso_login_failed', 'user_not_found', [
+                            'sso_id' => $ssoId,
+                            'email' => $email,
+                            'error' => $e->getMessage(),
+                        ]);
+
+                        return redirect()->route('sso.gagal')
+                            ->with('error', 'Akun SSO tidak terdaftar di sistem koperasi. Hubungi admin koperasi untuk mendaftarkan Anda sebagai anggota.');
+                    }
                 }
             } else {
                 // Refresh data dari Gate secara non-destruktif; kegagalan tidak
@@ -188,7 +234,7 @@ class SsoController extends Controller
                     ->with('error', 'Anda belum terdaftar sebagai anggota koperasi. Hubungi admin koperasi untuk mendaftarkan keanggotaan Anda.');
             }
 
-            if ($user->email !== $email) {
+            if (! $viaNik && $user->email !== $email) {
                 AuditLog::catat('sso_login_failed', 'email_mismatch', [
                     'sso_id' => $ssoId,
                     'user_id' => $user->id,
@@ -202,6 +248,7 @@ class SsoController extends Controller
 
             $user->update([
                 'sso_id' => $ssoId,
+                'email' => $viaNik ? $email : ($user->email ?? $email),
                 'auth_provider' => 'sso',
                 'email_verified_at' => $user->email_verified_at ?? now(),
             ]);
@@ -243,11 +290,13 @@ class SsoController extends Controller
         $user = Auth::guard('web')->user();
         if ($user && $user->sso_id) {
             try {
-                // Initiate SAML logout request
-                return Socialite::driver('perusahaan')
-                    ->logoutRequest($user->sso_id);
+                // full-page ke domain IdP via Inertia::location (XHR tak bisa lintas domain)
+                $tujuan = Socialite::driver('perusahaan')
+                    ->logoutRequest($user->sso_id)
+                    ->getTargetUrl();
+
+                return Inertia::location($tujuan);
             } catch (\Exception $e) {
-                // If SAML logout fails, fall back to clearing session and redirecting to IdP SLO URL
                 report($e);
             }
         }
@@ -257,9 +306,9 @@ class SsoController extends Controller
         request()->session()->invalidate();
         request()->session()->regenerateToken();
 
-        $sloUrl = env('SAML_IDP_SLO_URL', route('login'));
+        $sloUrl = config('services.perusahaan.idp_slo') ?: route('login');
 
-        return redirect()->away($sloUrl);
+        return Inertia::location($sloUrl);
     }
 
     public function slo(Request $request)
@@ -285,5 +334,13 @@ class SsoController extends Controller
     {
         return Socialite::driver('perusahaan')
             ->getServiceProviderMetadata();
+    }
+
+    /**
+     * Akun lokal tidak boleh ditimpa sso_id berbeda jika sudah pernah ditautkan.
+     */
+    private function bolehTaut(User $kandidat, string $ssoId): bool
+    {
+        return ! $kandidat->sso_id || $kandidat->sso_id === $ssoId;
     }
 }
