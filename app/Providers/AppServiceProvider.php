@@ -3,12 +3,16 @@
 namespace App\Providers;
 
 use App\Services\SSO\PerusahaanProvider;
+use App\Services\Wa\Gateway\BaileysGateway;
+use App\Services\Wa\Gateway\WaGateway;
+use App\Services\Wa\Gateway\WahaGateway;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use InvalidArgumentException;
 use SocialiteProviders\Manager\SocialiteWasCalled;
 
 class AppServiceProvider extends ServiceProvider
@@ -18,7 +22,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(WaGateway::class, function () {
+            $gateway = config('services.wa.gateway', 'baileys');
+
+            return match ($gateway) {
+                'baileys' => new BaileysGateway,
+                'waha' => new WahaGateway,
+                default => throw new InvalidArgumentException("Gateway WhatsApp tidak dikenal: {$gateway}."),
+            };
+        });
     }
 
     /**

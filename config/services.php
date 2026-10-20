@@ -65,9 +65,18 @@ return [
     ],
 
     'wa' => [
+        'gateway' => env('WA_GATEWAY', 'baileys'),
         'url' => env('BAILEYS_URL', 'http://baileys:3000'),
         'token' => env('BAILEYS_TOKEN'),
         'timeout' => (float) env('BAILEYS_TIMEOUT', 10),
+    ],
+
+    'waha' => [
+        'url' => env('WAHA_URL'),
+        'api_key' => env('WAHA_API_KEY'),
+        'session' => env('WAHA_SESSION', 'waha'),
+        'timeout' => (float) env('WAHA_TIMEOUT', 15),
+        'verify_tls' => (bool) env('WAHA_VERIFY_TLS', true),
     ],
 
     'gate' => [

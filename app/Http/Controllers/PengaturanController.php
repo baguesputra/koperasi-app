@@ -20,13 +20,13 @@ use App\Models\WaLog;
 use App\Services\Gate\GateClient;
 use App\Services\Gate\SinkronisasiAnggotaService;
 use App\Services\Gate\SinkronisasiMasterService;
+use App\Services\Wa\Gateway\WaGateway;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Permission\Models\Permission;
@@ -46,6 +46,8 @@ class PengaturanController extends Controller
     ];
 
     private const PANEL_DIPERBOLEHKAN = ['kelola-pengguna', 'kelola-role'];
+
+    public function __construct(private WaGateway $wa) {}
 
     public function index(Request $request): Response|RedirectResponse
     {
@@ -560,16 +562,19 @@ class PengaturanController extends Controller
 
     public function waData(): JsonResponse
     {
-        $status = $this->baileysGet('/status');
+        $status = $this->wa->status();
+        $bisaKelola = $this->wa->canManageSession();
 
         $qr = null;
-        if (! ($status['connected'] ?? false) && ($status['hasQR'] ?? false)) {
-            $qr = $this->baileysGet('/qr')['qr'] ?? null;
+        if ($bisaKelola && $status && ! $status['connected'] && $status['has_qr']) {
+            $qr = $this->wa->qr();
         }
 
         return response()->json([
             'terhubung' => (bool) ($status['connected'] ?? false),
             'layanan' => $status !== null,
+            'bisa_kelola' => $bisaKelola,
+            'gateway' => config('services.wa.gateway', 'baileys'),
             'qr' => $qr,
             'logs' => WaLog::query()
                 ->latest('id')
@@ -589,30 +594,16 @@ class PengaturanController extends Controller
 
     public function waLogout(): JsonResponse
     {
+        if (! $this->wa->canManageSession()) {
+            return response()->json(['message' => 'Sesi WhatsApp dikelola oleh penyedia layanan.'], 403);
+        }
+
         try {
-            Http::baseUrl(config('services.wa.url'))
-                ->withToken(config('services.wa.token'))
-                ->timeout(config('services.wa.timeout'))
-                ->post('/logout')
-                ->throw();
+            $this->wa->logout();
         } catch (ConnectionException|RequestException) {
             return response()->json(['message' => 'Layanan WhatsApp tidak dapat dihubungi.'], 502);
         }
 
         return response()->json(['message' => 'Perangkat WhatsApp berhasil dikeluarkan.']);
-    }
-
-    private function baileysGet(string $path): ?array
-    {
-        try {
-            return Http::baseUrl(config('services.wa.url'))
-                ->withToken(config('services.wa.token'))
-                ->timeout(config('services.wa.timeout'))
-                ->get($path)
-                ->throw()
-                ->json() ?? null;
-        } catch (ConnectionException|RequestException) {
-            return null;
-        }
     }
 }

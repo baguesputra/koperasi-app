@@ -22,9 +22,22 @@ class KirimWaTest extends TestCase
     {
         parent::setUp();
         config([
+            'services.wa.gateway' => 'baileys',
             'services.wa.url' => 'http://baileys-test:3000',
             'services.wa.token' => 'token-rahasia',
             'services.wa.timeout' => 5,
+        ]);
+    }
+
+    private function gunakanWaha(): void
+    {
+        config([
+            'services.wa.gateway' => 'waha',
+            'services.waha.url' => 'https://waha-test.test',
+            'services.waha.api_key' => 'kunci-waha',
+            'services.waha.session' => 'waha',
+            'services.waha.timeout' => 5,
+            'services.waha.verify_tls' => true,
         ]);
     }
 
@@ -63,6 +76,47 @@ class KirimWaTest extends TestCase
         $log = WaLog::sole();
         $this->assertSame('gagal', $log->status);
         $this->assertNotNull($log->error);
+    }
+
+    public function test_kirim_teks_lewat_waha(): void
+    {
+        $this->gunakanWaha();
+        Http::fake(['*' => Http::response(['ok' => true])]);
+
+        (new KirimWaJob('08123456789', null, 'tes_event', 'Halo WAHA'))->handle();
+
+        Http::assertSent(fn ($request) => $request->url() === 'https://waha-test.test/api/sendText'
+            && $request->hasHeader('X-Api-Key', 'kunci-waha')
+            && $request['session'] === 'waha'
+            && $request['chatId'] === '628123456789@c.us'
+            && $request['text'] === 'Halo WAHA');
+
+        $this->assertSame('terkirim', WaLog::sole()->status);
+    }
+
+    public function test_dokumen_lewat_waha(): void
+    {
+        $this->gunakanWaha();
+        Http::fake(['*' => Http::response(['ok' => true])]);
+        Storage::fake('local');
+        Storage::disk('local')->put('wa/bukti.pdf', 'ISI-PDF');
+
+        (new KirimWaJob('08123456789', null, 'pinjaman_disetujui_ketua', 'Pesan caption', [
+            'path' => 'wa/bukti.pdf',
+            'filename' => 'Bukti-Peminjaman-1.pdf',
+        ]))->handle();
+
+        Http::assertSent(fn ($request) => $request->url() === 'https://waha-test.test/api/sendFile'
+            && $request->hasHeader('X-Api-Key', 'kunci-waha')
+            && $request['session'] === 'waha'
+            && $request['chatId'] === '628123456789@c.us'
+            && $request['caption'] === 'Pesan caption'
+            && $request['file']['mimetype'] === 'application/pdf'
+            && $request['file']['filename'] === 'Bukti-Peminjaman-1.pdf'
+            && base64_decode($request['file']['data']) === 'ISI-PDF');
+
+        $this->assertSame('terkirim', WaLog::sole()->status);
+        Storage::disk('local')->assertMissing('wa/bukti.pdf');
     }
 
     public function test_tanpa_nomor_dilewati(): void

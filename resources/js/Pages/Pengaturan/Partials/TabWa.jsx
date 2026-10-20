@@ -46,6 +46,8 @@ export default function TabWa() {
         return <p className="text-sm text-slate-400">Memuat status WhatsApp...</p>;
     }
 
+    const bisaKelola = data.bisa_kelola !== false;
+
     return (
         <div>
             <p className="text-sm text-slate-400 mb-4">
@@ -62,12 +64,18 @@ export default function TabWa() {
                                 <span className="w-2.5 h-2.5 rounded-full bg-green-500" />
                                 Terhubung
                             </span>
-                            <Button variant="danger" size="sm" onClick={logout} disabled={keluar}>
-                                {keluar ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
-                                Keluarkan Perangkat
-                            </Button>
+                            {bisaKelola ? (
+                                <Button variant="danger" size="sm" onClick={logout} disabled={keluar}>
+                                    {keluar ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
+                                    Keluarkan Perangkat
+                                </Button>
+                            ) : (
+                                <p className="text-xs text-slate-500 text-center">
+                                    Sesi WhatsApp dikelola oleh server WAHA.
+                                </p>
+                            )}
                         </>
-                    ) : data.qr ? (
+                    ) : bisaKelola && data.qr ? (
                         <>
                             <img src={data.qr} alt="QR WhatsApp" className="w-44 h-44" />
                             <p className="text-xs text-slate-500 text-center">
@@ -78,9 +86,11 @@ export default function TabWa() {
                         <>
                             <QrCode size={40} className="text-slate-300" />
                             <p className="text-sm text-slate-400 text-center">
-                                {data.layanan
-                                    ? 'Menunggu QR tersedia...'
-                                    : 'Layanan WhatsApp tidak dapat dihubungi. Pastikan container baileys berjalan.'}
+                                {!data.layanan
+                                    ? 'Layanan WhatsApp tidak dapat dihubungi.'
+                                    : bisaKelola
+                                        ? 'Menunggu QR tersedia...'
+                                        : 'Sesi WAHA tidak terhubung. Pengelolaan sesi dilakukan di server WAHA.'}
                             </p>
                         </>
                     )}
@@ -88,6 +98,7 @@ export default function TabWa() {
 
                 <div className="text-sm text-slate-500 space-y-1.5">
                     <p className="font-bold text-slate-700">Status: {data.terhubung ? 'Terhubung' : 'Tidak terhubung'}</p>
+                    <p>Gateway: {data.gateway === 'waha' ? 'WAHA' : 'Baileys'}</p>
                     <p>{jeda ? 'Auto-refresh dijeda.' : 'Halaman ini diperbarui otomatis setiap 4 detik.'}</p>
                     <div className="flex items-center gap-3">
                         <button

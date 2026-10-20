@@ -3,12 +3,13 @@
 namespace App\Jobs;
 
 use App\Models\WaLog;
+use App\Services\Wa\Gateway\WaGateway;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 
 class KirimWaJob implements ShouldQueue
 {
@@ -42,19 +43,18 @@ class KirimWaJob implements ShouldQueue
                 return;
             }
 
-            $http = Http::baseUrl(config('services.wa.url'))
-                ->withToken(config('services.wa.token'))
-                ->timeout(config('services.wa.timeout'));
+            $gateway = app(WaGateway::class);
 
             if ($this->dokumen) {
-                $http->post('/send-document', [
-                    'to' => $nomor,
-                    'filename' => $this->dokumen['filename'],
-                    'caption' => $this->pesan,
-                    'base64' => base64_encode(Storage::disk('local')->get($this->dokumen['path'])),
-                ])->throw();
+                $gateway->sendDocument(
+                    $nomor,
+                    $this->dokumen['filename'],
+                    base64_encode(Storage::disk('local')->get($this->dokumen['path'])),
+                    $this->pesan,
+                    $this->dokumen['mimetype'] ?? 'application/pdf',
+                );
             } else {
-                $http->post('/send', ['to' => $nomor, 'message' => $this->pesan])->throw();
+                $gateway->sendText($nomor, $this->pesan);
             }
 
             WaLog::create([
@@ -64,7 +64,7 @@ class KirimWaJob implements ShouldQueue
                 'pesan' => $this->pesan,
                 'status' => 'terkirim',
             ]);
-        } catch (ConnectionException|RequestException $e) {
+        } catch (ConnectionException|RequestException|RuntimeException $e) {
             if (isset($nomor)) {
                 $this->catatGagal($nomor, $e->getMessage());
             } else {
