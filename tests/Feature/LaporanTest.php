@@ -189,12 +189,13 @@ class LaporanTest extends TestCase
         // Aktiva: kas 5jt + piutang (1,2jt − 400rb) = 5,8jt.
         $this->assertEquals(800_000, $nilai('Piutang'));
         $this->assertEquals(5_800_000, $nilai('TOTAL AKTIVA'));
-        // Pasiva: simpanan pokok 100rb + wajib 50rb + dana sosial 0 + SHU (12rb − 0) + modal penyeimbang.
+        // Pasiva: simpanan pokok 100rb + wajib 50rb + dana sosial 0 + SHU (12rb − 0) + saldo anggota lama 1,44jt + modal.
         $this->assertEquals(100_000, $nilai('Simpanan Pokok'));
         $this->assertEquals(50_000, $nilai('Simpanan Wajib'));
         $this->assertEquals(12_000, $nilai('Selisih Hasil Usaha'));
-        $this->assertEquals(162_000, $nilai('Total Kewajiban'));
-        $this->assertEquals(5_638_000, $nilai('Total Modal'));
+        $this->assertEquals(1_440_000, $nilai('Saldo Anggota Lama'));
+        $this->assertEquals(1_602_000, $nilai('Total Kewajiban'));
+        $this->assertEquals(4_198_000, $nilai('Total Modal'));
         $this->assertEquals(5_800_000, $nilai('TOTAL KEWAJIBAN DAN MODAL'));
 
         $this->assertSame('Rp 0 — Seimbang', collect($hasil['ringkasan'])->firstWhere(fn ($r) => str_contains($r[0], 'Selisih'))[1]);

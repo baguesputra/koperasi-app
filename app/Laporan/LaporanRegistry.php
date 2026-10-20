@@ -212,11 +212,9 @@ class LaporanRegistry
                     $asuransiSosial = self::danaSosialPerTanggal($cutoff);
                     $shu = self::shuTahunBerjalan($tahun, $cutoff);
 
-                    $saldoAnggotaLama = (float) DB::table('simpanan')
-                        ->join('anggota', 'anggota.id', '=', 'simpanan.anggota_id')
-                        ->where('anggota.status', '!=', 'aktif')
-                        ->where('simpanan.tanggal_input', '<=', $cutoff)
-                        ->sum('simpanan.jumlah');
+                    // Saldo Anggota Lama: akun penampung historis dana outstanding anggota masa lalu.
+                    // Fisik uangnya menyatu dan dipakai di kas/bank koperasi dengan nilai konstan.
+                    $saldoAnggotaLama = (float) config('koperasi.saldo_anggota_lama', 1_440_000);
 
                     $hutang = 0.0;
                     $totalKewajiban = $simpananPokok + $simpananWajib + $asuransiSosial + $shu['shu'] + $saldoAnggotaLama + $hutang;

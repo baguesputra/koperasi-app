@@ -7,4 +7,5 @@ return [
     'telepon' => env('KOPERASI_TELEPON', ''),
     'email' => env('KOPERASI_EMAIL', ''),
     'kota_ttd' => env('KOPERASI_KOTA_TTD', 'Banjarmasin'),
+    'saldo_anggota_lama' => (float) env('KOPERASI_SALDO_ANGGOTA_LAMA', 1_440_000),
 ];
