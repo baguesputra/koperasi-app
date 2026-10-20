@@ -1,0 +1,17 @@
+services:
+  baileys:
+    build:
+      context: ./baileys-service
+    container_name: koperasi_baileys
+    restart: unless-stopped
+    env_file:
+      - ./baileys-service/.env
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./baileys-service/session:/app/session
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/status',{headers:{'x-token':process.env.TOKEN}}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
