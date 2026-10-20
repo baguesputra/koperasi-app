@@ -33,4 +33,19 @@ class ProfileTest extends TestCase
         $this->actingAs($user)->put('/password', ['password' => 'x'])->assertNotFound();
         $this->actingAs($user)->get('/ganti-password-wajib')->assertNotFound();
     }
+
+    public function test_halaman_profil_pengurus_menampilkan_ringkasan_dan_roles(): void
+    {
+        $this->seed();
+        $admin = User::where('no_karyawan', 'ADM-000001')->first();
+
+        $this->actingAs($admin)
+            ->get('/profile')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Profile/Edit')
+                ->has('pengguna.roles')
+                ->has('ringkasan')
+            );
+    }
 }
