@@ -33,6 +33,15 @@ class PengajuanLimitTest extends TestCase
         $this->ajukan($anggota, 3_000_000); // lebih kecil → gagal
     }
 
+    public function test_ajukan_tidak_boleh_melebihi_batas_kebijakan_koperasi(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Nominal yang diajukan melebihi batas kebijakan koperasi.');
+
+        $anggota = $this->buatAnggota(); // limit kategori 1-3 thn = 5jt
+        $this->ajukan($anggota, 15_000_000); // 15jt > 10jt plafon kebijakan → gagal
+    }
+
     public function test_tidak_boleh_dua_pengajuan_berjalan(): void
     {
         $this->expectException(\RuntimeException::class);

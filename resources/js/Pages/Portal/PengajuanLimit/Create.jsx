@@ -20,15 +20,19 @@ const statusStyle = {
 const statusIcon = { diajukan: Clock, approved_bendahara: Clock, disetujui: CheckCircle2, ditolak: XCircle };
 const statusLabel = { diajukan: 'Menunggu Bendahara', approved_bendahara: 'Menunggu Ketua', disetujui: 'Disetujui', ditolak: 'Ditolak' };
 
-export default function Create({ limitSaatIni, riwayat }) {
+export default function Create({ limitSaatIni, plafonKebijakan, riwayat }) {
     const { data, setData, post, processing, errors, reset } = useForm({
         limit_diminta: '', keterangan: '',
     });
 
     const adaPengajuanMenunggu = riwayat.some((r) => ['diajukan', 'approved_bendahara'].includes(r.status));
+    const melebihiKebijakan = Boolean(plafonKebijakan && Number(data.limit_diminta) > plafonKebijakan);
 
     function submit(e) {
         e.preventDefault();
+        if (melebihiKebijakan) {
+            return;
+        }
         post(route('portal.pengajuan-limit.store'), withIdempotencyKey({ onSuccess: () => reset() }));
     }
 
@@ -82,7 +86,11 @@ export default function Create({ limitSaatIni, riwayat }) {
                                         className={`w-full pl-12 pr-4 py-3 text-xl font-bold rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors ${focusRing}`}
                                     />
                                 </div>
-                                {errors.limit_diminta && <p className="text-sm text-red-600 mt-1.5">{errors.limit_diminta}</p>}
+                                {(errors.limit_diminta || melebihiKebijakan) && (
+                                    <p className="text-sm text-red-600 mt-1.5">
+                                        {errors.limit_diminta || 'Nominal yang diajukan melebihi batas kebijakan koperasi.'}
+                                    </p>
+                                )}
                             </div>
 
                             <div className="mb-6">
@@ -104,7 +112,7 @@ export default function Create({ limitSaatIni, riwayat }) {
                             <div className="sticky bottom-24 sm:static -mx-1 px-1 pb-1 sm:mx-0 sm:px-0 sm:pb-0 bg-slate-50/95 sm:bg-transparent backdrop-blur pt-2 sm:pt-0">
                                 <button
                                     type="submit"
-                                    disabled={processing}
+                                    disabled={processing || melebihiKebijakan}
                                     className={`w-full min-h-[52px] text-base font-bold rounded-2xl bg-brand-green text-white hover:bg-brand-green-dark active:scale-[0.99] transition-all disabled:opacity-50 ${focusRing}`}
                                 >
                                     {processing ? 'Mengirim...' : 'Kirim Pengajuan'}

@@ -39,6 +39,7 @@ class PengajuanLimitController extends Controller
 
         return Inertia::render('Portal/PengajuanLimit/Create', [
             'limitSaatIni' => $this->eligibilitas->limitMaksimal($anggota),
+            'plafonKebijakan' => $this->eligibilitas->plafonTertinggiKoperasi(),
             'riwayat' => $riwayat,
         ]);
     }

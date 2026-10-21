@@ -29,6 +29,11 @@ class PengajuanLimitService
             throw new RuntimeException('Limit yang diajukan harus lebih besar dari limit Anda saat ini: Rp '.number_format($limitSaatIni, 0, ',', '.'));
         }
 
+        $plafonMaksimalKoperasi = $this->eligibilitas->plafonTertinggiKoperasi();
+        if ($limitDiminta > $plafonMaksimalKoperasi) {
+            throw new RuntimeException('Nominal yang diajukan melebihi batas kebijakan koperasi.');
+        }
+
         $pengajuan = PengajuanLimit::create([
             'anggota_id' => $anggota->id,
             'limit_saat_ini' => $limitSaatIni,

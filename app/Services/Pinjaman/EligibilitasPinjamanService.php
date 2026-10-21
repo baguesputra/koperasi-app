@@ -158,6 +158,27 @@ class EligibilitasPinjamanService
     }
 
     /**
+     * Plafon tertinggi limit pinjaman dari seluruh kebijakan master SettingLimitPinjaman.
+     */
+    public function plafonTertinggiKoperasi(): float
+    {
+        $settings = $this->semuaLimit();
+        if (empty($settings)) {
+            return 10_000_000.0;
+        }
+
+        $maks = 0.0;
+        foreach ($settings as $setting) {
+            $val = (float) ($setting->limit_maksimal ?? 0);
+            if ($val > $maks) {
+                $maks = $val;
+            }
+        }
+
+        return $maks > 0 ? $maks : 10_000_000.0;
+    }
+
+    /**
      * Limit efektif yang boleh diajukan anggota saat ini.
      * - Tanpa pinjaman aktif: limit maksimal penuh.
      * - Sisa > 2: 0 (terkunci; angsuran yang dibayar belum membuka limit).
