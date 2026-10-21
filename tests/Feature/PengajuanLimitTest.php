@@ -42,6 +42,26 @@ class PengajuanLimitTest extends TestCase
         $this->ajukan($anggota, 15_000_000); // 15jt > 10jt plafon kebijakan → gagal
     }
 
+    public function test_post_portal_pengajuan_limit_melebihi_kebijakan_gagal_validasi(): void
+    {
+        $anggota = $this->buatAnggota();
+        $this->actingAs($anggota->user);
+
+        $response = $this->post(route('portal.pengajuan-limit.store'), [
+            'limit_diminta' => 15_000_000,
+            'keterangan' => 'Mencoba submit nominal lebih besar dari kebijakan.',
+        ]);
+
+        $response->assertSessionHasErrors([
+            'limit_diminta' => 'Nominal yang diajukan melebihi batas kebijakan koperasi.',
+        ]);
+
+        $this->assertDatabaseMissing('pengajuan_limit', [
+            'anggota_id' => $anggota->id,
+            'limit_diminta' => 15_000_000,
+        ]);
+    }
+
     public function test_tidak_boleh_dua_pengajuan_berjalan(): void
     {
         $this->expectException(\RuntimeException::class);
