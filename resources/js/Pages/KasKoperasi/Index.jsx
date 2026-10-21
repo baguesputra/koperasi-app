@@ -124,6 +124,7 @@ export default function Index({
             tipe,
             tanggal,
             tipe_pengeluaran: tipePengeluaran,
+            page: 1,
             ...overrides,
         };
 
@@ -197,7 +198,7 @@ export default function Index({
         setTanggal('');
         router.get(
             route('kas-koperasi.index'),
-            { bulan: bulanFilter },
+            { bulan: bulanFilter, page: 1 },
             {
                 preserveState: true,
                 preserveScroll: true,
@@ -243,8 +244,11 @@ export default function Index({
     const bulanIni = new Date();
     const kunciBulanIni = `${bulanIni.getFullYear()}-${String(bulanIni.getMonth() + 1).padStart(2, '0')}`;
     const filterAktif = Boolean(filters.kanal || filters.cari || filters.tanggal || filters.tipe_pengeluaran);
+    const labelPeriode = filters.tanggal ? `per ${filters.tanggal}` : labelBulan;
+    const labelAkunSaldo = filters.kanal === 'bank' ? ' Bank' : filters.kanal === 'kas_kecil' ? ' Kas Kecil' : '';
+    const saldoValid = ringkasanPeriode?.saldo_valid ?? true;
 
-    // Kelompokkan baris per tanggal (riwayat sudah urut tanggal desc).
+    // Kelompokkan baris per tanggal (riwayat sudah urut tanggal asc).
     const grupHari = useMemo(() => {
         const peta = new Map();
         for (const r of riwayat.data) {
@@ -1104,6 +1108,41 @@ export default function Index({
                     <span className="text-xs text-slate-500 font-semibold tabular-nums px-2.5 py-0.5 rounded-full bg-slate-100 border border-slate-200/60">
                         {riwayat.total ?? 0} data
                     </span>
+                </div>
+
+                {/* Ringkasan saldo periode */}
+                <div className="border-b border-slate-100 bg-slate-50/40 px-4 sm:px-5 py-3">
+                    <dl className="grid grid-cols-2 gap-x-4 gap-y-2 md:grid-cols-4 text-sm">
+                        <div>
+                            <dt className="text-[11px] text-slate-400">Saldo awal{labelAkunSaldo} {labelPeriode}</dt>
+                            <dd className="font-bold tabular-nums text-slate-800">
+                                {saldoValid ? formatRupiah(ringkasanPeriode?.saldo_awal ?? 0) : '—'}
+                            </dd>
+                        </div>
+                        <div>
+                            <dt className="text-[11px] text-slate-400">Masuk {labelPeriode}</dt>
+                            <dd className="font-bold tabular-nums text-brand-green-dark">
+                                + {formatRupiah(ringkasanPeriode?.total_masuk ?? 0)}
+                            </dd>
+                        </div>
+                        <div>
+                            <dt className="text-[11px] text-slate-400">Keluar {labelPeriode}</dt>
+                            <dd className="font-bold tabular-nums text-red-600">
+                                - {formatRupiah(ringkasanPeriode?.total_keluar ?? 0)}
+                            </dd>
+                        </div>
+                        <div>
+                            <dt className="text-[11px] text-slate-400">Saldo akhir{labelAkunSaldo} {labelPeriode}</dt>
+                            <dd className="font-bold tabular-nums text-slate-800">
+                                {saldoValid ? formatRupiah(ringkasanPeriode?.saldo_akhir ?? 0) : '—'}
+                            </dd>
+                        </div>
+                    </dl>
+                    {!saldoValid && (
+                        <p className="mt-2 text-[11px] text-slate-400">
+                            Saldo awal/akhir tidak dihitung saat filter transaksi aktif.
+                        </p>
+                    )}
                 </div>
 
                 <div className={`transition-opacity duration-150 ${memuatFilter ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>

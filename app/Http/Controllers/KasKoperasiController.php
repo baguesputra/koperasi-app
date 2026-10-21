@@ -32,19 +32,23 @@ class KasKoperasiController extends Controller
         $cari = trim((string) $request->input('cari', ''));
         $tipePengeluaranFilter = (string) $request->input('tipe_pengeluaran', '');
 
+        $periodeAwal = null;
+        $periodeAkhir = null;
+
         // Jika filter tanggal diisi, selaraskan bulanFilter dengan bulan dari tanggal tersebut
         if ($tanggalFilter && preg_match('/^\d{4}-\d{2}-\d{2}$/', $tanggalFilter)) {
-            $bulanFilter = substr($tanggalFilter, 0, 7);
+            $periodeAwal = Carbon::createFromFormat('Y-m-d', $tanggalFilter)->startOfDay();
+            $periodeAkhir = $periodeAwal->copy()->endOfDay();
+            $bulanFilter = $periodeAwal->format('Y-m');
+        } elseif ($bulanFilter && preg_match('/^\d{4}-\d{2}$/', $bulanFilter)) {
+            $periodeAwal = Carbon::createFromFormat('Y-m', $bulanFilter)->startOfMonth();
+            $periodeAkhir = $periodeAwal->copy()->endOfMonth();
         }
 
         $query = JurnalKas::query();
 
-        if ($tanggalFilter && preg_match('/^\d{4}-\d{2}-\d{2}$/', $tanggalFilter)) {
-            $query->whereBetween('tanggal', ["{$tanggalFilter} 00:00:00", "{$tanggalFilter} 23:59:59"]);
-        } elseif ($bulanFilter && preg_match('/^\d{4}-\d{2}$/', $bulanFilter)) {
-            $awal = Carbon::createFromFormat('Y-m', $bulanFilter)->startOfMonth()->startOfDay()->toDateTimeString();
-            $akhir = Carbon::createFromFormat('Y-m', $bulanFilter)->endOfMonth()->endOfDay()->toDateTimeString();
-            $query->whereBetween('tanggal', [$awal, $akhir]);
+        if ($periodeAwal && $periodeAkhir) {
+            $query->whereBetween('tanggal', [$periodeAwal->toDateTimeString(), $periodeAkhir->toDateTimeString()]);
         }
 
         if ($cari !== '') {
@@ -68,10 +72,14 @@ class KasKoperasiController extends Controller
                 ->whereIn('referensi_id', $pengeluaranIds);
         }
 
+        $adaFilterTransaksi = $cari !== ''
+            || in_array($tipeFilter, ['masuk', 'keluar'], true)
+            || ($tipePengeluaranFilter !== '' && in_array($tipePengeluaranFilter, Pengeluaran::TIPE, true));
+
         $riwayat = (clone $query)
             ->with(['pengeluaran:id,tipe,akun'])
-            ->latest('tanggal')
-            ->latest('id')
+            ->orderBy('tanggal')
+            ->orderBy('id')
             ->paginate(20)
             ->withQueryString()
             ->through(fn ($j) => [
@@ -138,6 +146,57 @@ class KasKoperasiController extends Controller
             }
         }
 
+        $saldoAwalKanal = [
+            'bank' => $periodeAwal ? $this->saldoKanal('bank', $periodeAwal, '<') : 0.0,
+            'kas_kecil' => $periodeAwal ? $this->saldoKanal('kas_kecil', $periodeAwal, '<') : 0.0,
+        ];
+        $saldoAkhirKanal = [
+            'bank' => $periodeAkhir ? $this->saldoKanal('bank', $periodeAkhir, '<=') : 0.0,
+            'kas_kecil' => $periodeAkhir ? $this->saldoKanal('kas_kecil', $periodeAkhir, '<=') : 0.0,
+        ];
+
+        $kanalSaldo = in_array($kanalFilter, ['bank', 'kas_kecil'], true) ? $kanalFilter : null;
+        $saldoAwal = $kanalSaldo ? $saldoAwalKanal[$kanalSaldo] : array_sum($saldoAwalKanal);
+        $saldoAkhir = $kanalSaldo ? $saldoAkhirKanal[$kanalSaldo] : array_sum($saldoAkhirKanal);
+
+        // Samakan saldo baris dengan mutasi sebenarnya, bukan saldo_setelah
+        // historis yang bisa tertinggal dari data jurnal.
+        if (! $adaFilterTransaksi && ! $riwayat->isEmpty()) {
+            $halamanPertama = $riwayat->items()[0];
+
+            $sebelumHalaman = (clone $query)
+                ->where(function ($q) use ($halamanPertama) {
+                    $q->whereDate('tanggal', '<', $halamanPertama['tanggalIso'])
+                        ->orWhere(function ($q) use ($halamanPertama) {
+                            $q->whereDate('tanggal', $halamanPertama['tanggalIso'])
+                                ->where('id', '<', $halamanPertama['id']);
+                        });
+                })
+                ->selectRaw("
+                    COALESCE(SUM(CASE
+                        WHEN kantong = 'kas_kecil' AND tipe = 'masuk' THEN jumlah
+                        WHEN kantong = 'kas_kecil' THEN -jumlah
+                        ELSE 0 END), 0) as kas_kecil,
+                    COALESCE(SUM(CASE
+                        WHEN kantong != 'kas_kecil' AND tipe = 'masuk' THEN jumlah
+                        WHEN kantong != 'kas_kecil' THEN -jumlah
+                        ELSE 0 END), 0) as bank
+                ")
+                ->first();
+
+            $saldoJalan = [
+                'bank' => $saldoAwalKanal['bank'] + (float) ($sebelumHalaman->bank ?? 0),
+                'kas_kecil' => $saldoAwalKanal['kas_kecil'] + (float) ($sebelumHalaman->kas_kecil ?? 0),
+            ];
+
+            $riwayat->through(function (array $row) use (&$saldoJalan) {
+                $saldoJalan[$row['kanal']] += $row['tipe'] === 'masuk' ? $row['jumlah'] : -$row['jumlah'];
+                $row['saldo_setelah'] = $saldoJalan[$row['kanal']];
+
+                return $row;
+            });
+        }
+
         $ambilKas = function () {
             static $kas = null;
             return $kas ??= KasKoperasi::firstOrFail();
@@ -159,6 +218,9 @@ class KasKoperasiController extends Controller
             'ringkasanPeriode' => [
                 'total_masuk' => $totalMasuk,
                 'total_keluar' => $totalKeluar,
+                'saldo_awal' => $saldoAwal,
+                'saldo_akhir' => $saldoAkhir,
+                'saldo_valid' => ! $adaFilterTransaksi,
             ],
             'ringkasanKanal' => $ringkasanKanal,
             'ringkasanPerTanggal' => $ringkasanPerTanggal,
@@ -180,6 +242,19 @@ class KasKoperasiController extends Controller
         }
 
         return $q;
+    }
+
+    /**
+     * Saldo satu kanal fisik sampai batas tanggal (inklusif/eksklusif).
+     * Dihitung dari mutasi, bukan saldo_setelah historis.
+     */
+    private function saldoKanal(string $kanal, Carbon $batas, string $operator): float
+    {
+        $query = JurnalKas::query()->where('tanggal', $operator, $batas->toDateTimeString());
+
+        return (float) $this->denganFilterKanal($query, $kanal)
+            ->selectRaw("COALESCE(SUM(CASE WHEN tipe = 'masuk' THEN jumlah ELSE -jumlah END), 0) as saldo")
+            ->value('saldo');
     }
 
     /**
