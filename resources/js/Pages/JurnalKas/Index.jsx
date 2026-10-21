@@ -153,19 +153,19 @@ export default function Index({ filters = {}, bulanFilter, kantongOptions = {}, 
                 <dl className="grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 divide-slate-100 text-sm">
                     <div className="px-4 py-3">
                         <dt className="text-xs text-slate-400">Saldo awal{akunLabel} {labelBulan}</dt>
-                        <dd className="font-bold tabular-nums text-slate-800">{saldoValid ? formatRupiah(saldoAwal) : '—'}</dd>
+                        <dd className="font-bold tabular-nums text-slate-800 privacy-blur">{saldoValid ? formatRupiah(saldoAwal) : '—'}</dd>
                     </div>
                     <div className="px-4 py-3">
                         <dt className="text-xs text-slate-400">Masuk {labelBulan}</dt>
-                        <dd className="font-bold tabular-nums text-brand-green-dark">+ {formatRupiah(ringkasanPeriode.total_masuk)}</dd>
+                        <dd className="font-bold tabular-nums text-brand-green-dark privacy-blur">+ {formatRupiah(ringkasanPeriode.total_masuk)}</dd>
                     </div>
                     <div className="px-4 py-3">
                         <dt className="text-xs text-slate-400">Keluar {labelBulan}</dt>
-                        <dd className="font-bold tabular-nums text-red-600">- {formatRupiah(ringkasanPeriode.total_keluar)}</dd>
+                        <dd className="font-bold tabular-nums text-red-600 privacy-blur">- {formatRupiah(ringkasanPeriode.total_keluar)}</dd>
                     </div>
                     <div className="px-4 py-3">
                         <dt className="text-xs text-slate-400">Saldo akhir{akunLabel} {labelBulan}</dt>
-                        <dd className="font-bold tabular-nums text-slate-800">{saldoValid ? formatRupiah(saldoAkhir) : '—'}</dd>
+                        <dd className="font-bold tabular-nums text-slate-800 privacy-blur">{saldoValid ? formatRupiah(saldoAkhir) : '—'}</dd>
                     </div>
                 </dl>
                 <div className="flex items-center gap-1 px-3 py-2 border-t border-slate-100" role="tablist" aria-label="Akun kas">
@@ -307,17 +307,17 @@ export default function Index({ filters = {}, bulanFilter, kantongOptions = {}, 
                                         <td className="py-2.5 pr-2 text-xs text-slate-500 whitespace-nowrap tabular-nums font-mono">{r.no_bukti ?? '—'}</td>
                                         <td className="py-2.5 pr-2">{barisKeterangan(r)}</td>
                                         <td className="py-2.5 pr-2">{badgeAkun(r)}</td>
-                                        <td className="py-2.5 pr-2 text-right whitespace-nowrap tabular-nums">
+                                        <td className="py-2.5 pr-2 text-right whitespace-nowrap tabular-nums privacy-blur">
                                             {r.tipe === 'masuk'
                                                 ? <span className="font-bold text-brand-green-dark">+ {formatRupiah(r.jumlah)}</span>
                                                 : <span className="text-slate-300">—</span>}
                                         </td>
-                                        <td className="py-2.5 pr-2 text-right whitespace-nowrap tabular-nums">
+                                        <td className="py-2.5 pr-2 text-right whitespace-nowrap tabular-nums privacy-blur">
                                             {r.tipe === 'keluar'
                                                 ? <span className="font-bold text-red-600">- {formatRupiah(r.jumlah)}</span>
                                                 : <span className="text-slate-300">—</span>}
                                         </td>
-                                        <td className="py-2.5 text-right whitespace-nowrap tabular-nums text-slate-600">
+                                        <td className="py-2.5 text-right whitespace-nowrap tabular-nums text-slate-600 privacy-blur">
                                             {kolomSaldo ? formatRupiah(r.saldo_setelah) : '—'}
                                         </td>
                                     </tr>
@@ -326,9 +326,9 @@ export default function Index({ filters = {}, bulanFilter, kantongOptions = {}, 
                                     <td colSpan={4} className="py-2.5 pr-2 text-xs font-bold text-slate-600">
                                         Total {labelBulan}
                                     </td>
-                                    <td className="py-2.5 pr-2 text-right font-bold tabular-nums text-brand-green-dark">+ {formatRupiah(ringkasanPeriode.total_masuk)}</td>
-                                    <td className="py-2.5 pr-2 text-right font-bold tabular-nums text-red-600">- {formatRupiah(ringkasanPeriode.total_keluar)}</td>
-                                    <td className="py-2.5 text-right font-bold tabular-nums text-slate-700">
+                                    <td className="py-2.5 pr-2 text-right font-bold tabular-nums text-brand-green-dark privacy-blur">+ {formatRupiah(ringkasanPeriode.total_masuk)}</td>
+                                    <td className="py-2.5 pr-2 text-right font-bold tabular-nums text-red-600 privacy-blur">- {formatRupiah(ringkasanPeriode.total_keluar)}</td>
+                                    <td className="py-2.5 text-right font-bold tabular-nums text-slate-700 privacy-blur">
                                         {saldoValid ? formatRupiah(saldoAkhir) : '—'}
                                     </td>
                                 </tr>
@@ -337,7 +337,7 @@ export default function Index({ filters = {}, bulanFilter, kantongOptions = {}, 
                                         <td colSpan={6} className="py-1 pr-2 text-xs text-slate-400 text-right">
                                             Saldo akhir{akunLabel} {labelBulan}
                                         </td>
-                                        <td className="py-1 text-right text-xs font-bold tabular-nums text-slate-700">
+                                        <td className="py-1 text-right text-xs font-bold tabular-nums text-slate-700 privacy-blur">
                                             {formatRupiah(saldoAkhir)}
                                         </td>
                                     </tr>
@@ -362,7 +362,7 @@ export default function Index({ filters = {}, bulanFilter, kantongOptions = {}, 
                                             <div className="mt-0.5">{barisKeterangan(r)}</div>
                                             <div className="mt-1">{badgeAkun(r)}</div>
                                         </div>
-                                        <div className="text-right shrink-0">
+                                        <div className="text-right shrink-0 privacy-blur">
                                             <p className={`text-sm font-bold whitespace-nowrap tabular-nums ${r.tipe === 'masuk' ? 'text-brand-green-dark' : 'text-red-600'}`}>
                                                 {r.tipe === 'masuk' ? '+' : '-'} {formatRupiah(r.jumlah)}
                                             </p>
@@ -373,7 +373,7 @@ export default function Index({ filters = {}, bulanFilter, kantongOptions = {}, 
                             ))}
                             <li className="flex items-center justify-between gap-3 py-2.5 bg-slate-50/70 rounded-lg px-2 -mx-2">
                                 <span className="text-xs font-bold text-slate-600">Total {labelBulan}</span>
-                                <span className="text-xs tabular-nums font-bold text-slate-700">
+                                <span className="text-xs tabular-nums font-bold text-slate-700 privacy-blur">
                                     <span className="text-brand-green-dark">+{formatRupiahSingkat(ringkasanPeriode.total_masuk)}</span>
                                     {' / '}
                                     <span className="text-red-600">-{formatRupiahSingkat(ringkasanPeriode.total_keluar)}</span>
@@ -381,7 +381,7 @@ export default function Index({ filters = {}, bulanFilter, kantongOptions = {}, 
                             </li>
                             <li className="flex items-center justify-between gap-3 py-2.5 bg-slate-50/70 rounded-lg px-2 -mx-2">
                                 <span className="text-xs font-bold text-slate-500">Saldo akhir{akunLabel} {labelBulan}</span>
-                                <span className="text-sm font-bold tabular-nums text-slate-700">{saldoValid ? formatRupiah(saldoAkhir) : '—'}</span>
+                                <span className="text-sm font-bold tabular-nums text-slate-700 privacy-blur">{saldoValid ? formatRupiah(saldoAkhir) : '—'}</span>
                             </li>
                         </ul>
                     </>

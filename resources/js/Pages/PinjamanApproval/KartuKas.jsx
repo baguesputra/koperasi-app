@@ -1,4 +1,5 @@
 import { Landmark, AlertTriangle } from 'lucide-react';
+import PrivacyWrapper from '@/Components/ui/PrivacyWrapper';
 import { formatRupiah } from '@/Utils/formatCurrency';
 
 export default function KartuKas({ kas, nominalTahap, label = 'Nominal tahap ini' }) {
@@ -25,13 +26,17 @@ export default function KartuKas({ kas, nominalTahap, label = 'Nominal tahap ini
             <div className="space-y-1.5 text-sm">
                 <div className="flex items-center justify-between gap-4">
                     <span className="text-slate-500">Saldo bank saat ini</span>
-                    <span className="font-semibold text-slate-800">{formatRupiah(saldoBankSekarang)}</span>
+                    <span className="font-semibold text-slate-800">
+                        <PrivacyWrapper>{formatRupiah(saldoBankSekarang)}</PrivacyWrapper>
+                    </span>
                 </div>
 
                 {snapshot !== null && (
                     <div className="flex items-center justify-between gap-4">
                         <span className="text-slate-500">Saldo bank saat snapshot tahap</span>
-                        <span className="font-semibold text-slate-800">{formatRupiah(snapshot)}</span>
+                        <span className="font-semibold text-slate-800">
+                            <PrivacyWrapper>{formatRupiah(snapshot)}</PrivacyWrapper>
+                        </span>
                     </div>
                 )}
 
@@ -39,12 +44,14 @@ export default function KartuKas({ kas, nominalTahap, label = 'Nominal tahap ini
                     <>
                         <div className="flex items-center justify-between gap-4">
                             <span className="text-slate-500">{label}</span>
-                            <span className="font-semibold text-slate-800">{formatRupiah(nominalTahap)}</span>
+                            <span className="font-semibold text-slate-800">
+                                <PrivacyWrapper>{formatRupiah(nominalTahap)}</PrivacyWrapper>
+                            </span>
                         </div>
                         <div className="flex items-center justify-between gap-4 pt-1.5 border-t border-slate-100">
                             <span className="text-slate-500">Proyeksi sisa saldo bank</span>
                             <span className={`font-bold ${defisit ? 'text-red-600' : 'text-brand-green-dark'}`}>
-                                {formatRupiah(sisaProyeksi)}
+                                <PrivacyWrapper>{formatRupiah(sisaProyeksi)}</PrivacyWrapper>
                             </span>
                         </div>
                     </>
@@ -53,7 +60,9 @@ export default function KartuKas({ kas, nominalTahap, label = 'Nominal tahap ini
                 {kas?.sisa_ketua !== null && kas?.sisa_ketua !== undefined && (
                     <div className="flex items-center justify-between gap-4 pt-1.5 border-t border-slate-100">
                         <span className="text-slate-500">Sisa saldo bank setelah cair (final)</span>
-                        <span className="font-bold text-slate-800">{formatRupiah(kas.sisa_ketua)}</span>
+                        <span className="font-bold text-slate-800">
+                            <PrivacyWrapper>{formatRupiah(kas.sisa_ketua)}</PrivacyWrapper>
+                        </span>
                     </div>
                 )}
             </div>

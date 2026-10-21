@@ -119,7 +119,7 @@ export default function Index({
                     </span>
                     <div className="min-w-0 flex-1">
                         <p className="text-xs text-white/70">Total Tagihan {labelBulan}</p>
-                        <p className="text-2xl font-bold tabular-nums leading-tight">{formatRupiah(totalBelumSemuaCabang)}</p>
+                        <p className="text-2xl font-bold tabular-nums leading-tight privacy-blur">{formatRupiah(totalBelumSemuaCabang)}</p>
                     </div>
                     <button
                         type="button"
@@ -135,16 +135,16 @@ export default function Index({
                     <dl className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-white/15 text-sm">
                         <div className="rounded-xl bg-white/10 px-3 py-2">
                             <dt className="text-xs text-white/70">Per anggota (wajib + dansos)</dt>
-                            <dd className="font-bold tabular-nums">{formatRupiah(nominalPerAnggota)}</dd>
+                            <dd className="font-bold tabular-nums privacy-blur">{formatRupiah(nominalPerAnggota)}</dd>
                         </div>
                         <div className="rounded-xl bg-white/10 px-3 py-2">
                             <dt className="text-xs text-white/70">Dana sosial terkumpul</dt>
-                            <dd className="font-bold tabular-nums">{formatRupiah(totalDanaSosialTerkumpul)}</dd>
+                            <dd className="font-bold tabular-nums privacy-blur">{formatRupiah(totalDanaSosialTerkumpul)}</dd>
                         </div>
                         {Object.entries(ringkasanCabang ?? {}).map(([c, r]) => (
                             <div key={c} className="rounded-xl bg-white/10 px-3 py-2">
                                 <dt className="text-xs text-white/70">{c} ({r.jumlah_anggota} org)</dt>
-                                <dd className="font-bold tabular-nums">{formatRupiah(r.nominal)}</dd>
+                                <dd className="font-bold tabular-nums privacy-blur">{formatRupiah(r.nominal)}</dd>
                             </div>
                         ))}
                         <div className="rounded-xl bg-white/10 px-3 py-2">
@@ -181,7 +181,7 @@ export default function Index({
                         >
                             <MapPin size={15} />
                             {t.label}
-                            <span className="text-xs tabular-nums text-slate-400">
+                            <span className="text-xs tabular-nums text-slate-400 privacy-blur">
                                 {formatRupiahSingkat(t.nominal)}
                             </span>
                         </button>
@@ -326,7 +326,7 @@ export default function Index({
                                             <p className="text-xs text-slate-400 mt-0.5 truncate">{a.no_karyawan} • {a.cabang}</p>
                                         </div>
                                         <div className="text-right shrink-0 pl-2">
-                                            <p className="text-sm font-bold text-slate-800 whitespace-nowrap tabular-nums">{formatRupiah(nominalPerAnggota)}</p>
+                                            <p className="text-sm font-bold text-slate-800 whitespace-nowrap tabular-nums privacy-blur">{formatRupiah(nominalPerAnggota)}</p>
                                             <p className="text-[11px] text-slate-400">wajib + dansos</p>
                                         </div>
                                     </label>
@@ -342,7 +342,7 @@ export default function Index({
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                         <p className="text-sm font-semibold text-slate-700 text-center sm:text-left tabular-nums">
                             {terpilih.length} dipilih •{' '}
-                            <span className="text-brand-green-dark font-bold">{formatRupiah(terpilih.length * nominalPerAnggota)}</span>
+                            <span className="text-brand-green-dark font-bold privacy-blur">{formatRupiah(terpilih.length * nominalPerAnggota)}</span>
                         </p>
                         <Button variant="primary" size="sm" onClick={konfirmasi} disabled={processing} className="w-full sm:w-auto rounded-full shadow-md shadow-brand-green/25">
                             <Check size={16} aria-hidden="true" />

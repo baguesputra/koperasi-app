@@ -96,7 +96,7 @@ export default function Index({
                     </span>
                     <div className="min-w-0 flex-1">
                         <p className="text-xs text-white/70">{cabangAktif ? `Total Simpanan ${cabangAktif}` : 'Total Simpanan (anggota aktif)'}</p>
-                        <p className="text-2xl font-bold tabular-nums leading-tight">{formatRupiah(totalSimpananTampil)}</p>
+                        <p className="text-2xl font-bold tabular-nums leading-tight privacy-blur">{formatRupiah(totalSimpananTampil)}</p>
                     </div>
                     <button
                         type="button"
@@ -112,11 +112,11 @@ export default function Index({
                     <dl className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3 pt-3 border-t border-white/15 text-sm">
                         <div className="rounded-xl bg-white/10 px-3 py-2">
                             <dt className="text-xs text-white/70">Outstanding (anggota aktif)</dt>
-                            <dd className="font-bold tabular-nums">{formatRupiah(totalSimpananOutstanding)}</dd>
+                            <dd className="font-bold tabular-nums privacy-blur">{formatRupiah(totalSimpananOutstanding)}</dd>
                         </div>
                         <div className="rounded-xl bg-white/10 px-3 py-2">
                             <dt className="text-xs text-white/70">Gross akumulasi (semua, audit)</dt>
-                            <dd className="font-bold tabular-nums">{formatRupiah(totalSimpananSeluruhAnggota)}</dd>
+                            <dd className="font-bold tabular-nums privacy-blur">{formatRupiah(totalSimpananSeluruhAnggota)}</dd>
                         </div>
                     </dl>
                 )}
@@ -220,7 +220,7 @@ export default function Index({
                                         <td className="hidden md:table-cell px-4 py-2.5">
                                             <StatusBadge status={a.status} />
                                         </td>
-                                        <td className="px-4 py-2.5 text-right font-bold text-slate-800 tabular-nums whitespace-nowrap">
+                                        <td className="px-4 py-2.5 text-right font-bold text-slate-800 tabular-nums whitespace-nowrap privacy-blur">
                                             {formatRupiah(a.total_simpanan)}
                                         </td>
                                     </tr>
@@ -247,7 +247,7 @@ export default function Index({
 
                         <div className="rounded-2xl border border-brand-green/30 bg-brand-green-light/40 p-4">
                             <p className="text-xs font-semibold uppercase tracking-wide text-brand-green-dark/70">Total Simpanan</p>
-                            <p className="text-3xl font-bold text-slate-800 tabular-nums mt-0.5">{formatRupiah(detailAnggota.total_simpanan)}</p>
+                            <p className="text-3xl font-bold text-slate-800 tabular-nums mt-0.5 privacy-blur">{formatRupiah(detailAnggota.total_simpanan)}</p>
                         </div>
 
                         {detailAnggota.alokasi_pelunasan_resign > 0 && (
@@ -261,15 +261,15 @@ export default function Index({
                                         <div className="grid grid-cols-3 gap-2 mt-2 text-sm">
                                             <div className="rounded-xl bg-slate-50 px-2.5 py-1.5">
                                                 <p className="text-[11px] text-slate-400">Dari Pokok</p>
-                                                <p className="font-bold text-slate-800 tabular-nums">-{formatRupiah(detailAnggota.alokasi_dari_pokok)}</p>
+                                                <p className="font-bold text-slate-800 tabular-nums privacy-blur">-{formatRupiah(detailAnggota.alokasi_dari_pokok)}</p>
                                             </div>
                                             <div className="rounded-xl bg-slate-50 px-2.5 py-1.5">
                                                 <p className="text-[11px] text-slate-400">Dari Wajib</p>
-                                                <p className="font-bold text-slate-800 tabular-nums">-{formatRupiah(detailAnggota.alokasi_dari_wajib)}</p>
+                                                <p className="font-bold text-slate-800 tabular-nums privacy-blur">-{formatRupiah(detailAnggota.alokasi_dari_wajib)}</p>
                                             </div>
                                             <div className="rounded-xl bg-rose-50 px-2.5 py-1.5">
                                                 <p className="text-[11px] text-rose-400">Total</p>
-                                                <p className="font-bold text-rose-600 tabular-nums">-{formatRupiah(detailAnggota.alokasi_pelunasan_resign)}</p>
+                                                <p className="font-bold text-rose-600 tabular-nums privacy-blur">-{formatRupiah(detailAnggota.alokasi_pelunasan_resign)}</p>
                                             </div>
                                         </div>
                                         {detailAnggota.tanggal_resign && (
@@ -293,7 +293,7 @@ export default function Index({
                                                 </span>
                                                 <p className="text-xs text-slate-400 truncate">{r.bulan_periode} • {r.tanggal_input}</p>
                                             </div>
-                                            <p className="text-sm font-bold text-slate-800 tabular-nums whitespace-nowrap">{formatRupiah(r.jumlah)}</p>
+                                            <p className="text-sm font-bold text-slate-800 tabular-nums whitespace-nowrap privacy-blur">{formatRupiah(r.jumlah)}</p>
                                         </li>
                                     ))}
                                 </ul>

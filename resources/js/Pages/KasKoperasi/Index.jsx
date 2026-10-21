@@ -423,12 +423,12 @@ export default function Index({
                             </div>
 
                             <div className="my-1.5">
-                                <p className={`text-xl sm:text-2xl font-bold tracking-tight tabular-nums ${isAktif ? 'text-white' : 'text-slate-900'}`}>
+                                <p className={`text-xl sm:text-2xl font-bold tracking-tight tabular-nums privacy-blur ${isAktif ? 'text-white' : 'text-slate-900'}`}>
                                     {formatRupiah(totalSaldo)}
                                 </p>
                             </div>
 
-                            <div className={`mt-2 pt-2 border-t flex items-center justify-between text-[11px] font-medium tabular-nums ${
+                            <div className={`mt-2 pt-2 border-t flex items-center justify-between text-[11px] font-medium tabular-nums privacy-blur ${
                                 isAktif ? 'border-white/10' : 'border-slate-100'
                             }`}>
                                 <span className={isAktif ? 'text-emerald-300' : 'text-emerald-600'}>
@@ -489,12 +489,12 @@ export default function Index({
                             </div>
 
                             <div className="my-1.5">
-                                <p className={`text-xl sm:text-2xl font-bold tracking-tight tabular-nums ${isAktif ? 'text-white' : 'text-slate-900'}`}>
+                                <p className={`text-xl sm:text-2xl font-bold tracking-tight tabular-nums privacy-blur ${isAktif ? 'text-white' : 'text-slate-900'}`}>
                                     {formatRupiah(saldoBank ?? 0)}
                                 </p>
                             </div>
 
-                            <div className={`mt-2 pt-2 border-t flex items-center justify-between text-[11px] font-medium tabular-nums ${
+                            <div className={`mt-2 pt-2 border-t flex items-center justify-between text-[11px] font-medium tabular-nums privacy-blur ${
                                 isAktif ? 'border-white/10' : 'border-slate-100'
                             }`}>
                                 <span className={isAktif ? 'text-emerald-300' : 'text-emerald-600'}>
@@ -555,12 +555,12 @@ export default function Index({
                             </div>
 
                             <div className="my-1.5">
-                                <p className={`text-xl sm:text-2xl font-bold tracking-tight tabular-nums ${isAktif ? 'text-white' : 'text-slate-900'}`}>
+                                <p className={`text-xl sm:text-2xl font-bold tracking-tight tabular-nums privacy-blur ${isAktif ? 'text-white' : 'text-slate-900'}`}>
                                     {formatRupiah(saldoKasKecil ?? 0)}
                                 </p>
                             </div>
 
-                            <div className={`mt-2 pt-2 border-t flex items-center justify-between text-[11px] font-medium tabular-nums ${
+                            <div className={`mt-2 pt-2 border-t flex items-center justify-between text-[11px] font-medium tabular-nums privacy-blur ${
                                 isAktif ? 'border-white/10' : 'border-slate-100'
                             }`}>
                                 <span className={isAktif ? 'text-emerald-300' : 'text-emerald-600'}>
@@ -640,7 +640,7 @@ export default function Index({
                                     placeholder="5000000"
                                     autoFocus
                                     required
-                                    className="pl-10 tabular-nums"
+                                    className="pl-10 tabular-nums privacy-blur"
                                 />
                             </div>
                             <ChipNominal grup="topup" nilai={pemasukanForm.data.jumlah} onPilih={(n) => pemasukanForm.setData('jumlah', n)} />
@@ -708,7 +708,7 @@ export default function Index({
 
                         <div className="pt-2 flex items-center gap-2">
                             <Button type="submit" size="sm" disabled={pemasukanForm.processing} className="rounded-full shadow-md shadow-brand-green/25">
-                                {pemasukanForm.processing ? 'Menyimpan...' : `Simpan Pemasukan • ${pemasukanForm.data.jumlah ? formatRupiah(Number(pemasukanForm.data.jumlah)) : 'Rp 0'}`}
+                                {pemasukanForm.processing ? 'Menyimpan...' : <>Simpan Pemasukan • <span className="privacy-blur">{pemasukanForm.data.jumlah ? formatRupiah(Number(pemasukanForm.data.jumlah)) : 'Rp 0'}</span></>}
                             </Button>
                             <Button type="button" variant="ghost" size="sm" className="rounded-full" onClick={() => setShowDrawer(false)}>
                                 Batal
@@ -736,7 +736,7 @@ export default function Index({
                                     placeholder="250000"
                                     autoFocus
                                     required
-                                    className="pl-10 tabular-nums"
+                                    className="pl-10 tabular-nums privacy-blur"
                                 />
                             </div>
                             <ChipNominal grup="pengeluaran" nilai={pengeluaranForm.data.jumlah} onPilih={(n) => pengeluaranForm.setData('jumlah', n)} />
@@ -801,7 +801,7 @@ export default function Index({
 
                         <div className="pt-2 flex items-center gap-2">
                             <Button type="submit" size="sm" disabled={pengeluaranForm.processing} className="rounded-full shadow-md shadow-red-500/25 bg-red-600 hover:bg-red-700">
-                                {pengeluaranForm.processing ? 'Menyimpan...' : `Simpan Pengeluaran • ${pengeluaranForm.data.jumlah ? formatRupiah(Number(pengeluaranForm.data.jumlah)) : 'Rp 0'}`}
+                                {pengeluaranForm.processing ? 'Menyimpan...' : <>Simpan Pengeluaran • <span className="privacy-blur">{pengeluaranForm.data.jumlah ? formatRupiah(Number(pengeluaranForm.data.jumlah)) : 'Rp 0'}</span></>}
                             </Button>
                             <Button type="button" variant="ghost" size="sm" className="rounded-full" onClick={() => setShowDrawer(false)}>
                                 Batal
@@ -829,11 +829,11 @@ export default function Index({
                                     placeholder="1000000"
                                     autoFocus
                                     required
-                                    className="pl-10 tabular-nums"
+                                    className="pl-10 tabular-nums privacy-blur"
                                 />
                             </div>
                             <ChipNominal grup="sisih" nilai={sisihForm.data.jumlah} onPilih={(n) => sisihForm.setData('jumlah', n)} />
-                            <p className="text-xs text-slate-400 mt-1">Saldo Bank saat ini: {formatRupiah(saldoBank ?? 0)}</p>
+                            <p className="text-xs text-slate-400 mt-1">Saldo Bank saat ini: <span className="privacy-blur">{formatRupiah(saldoBank ?? 0)}</span></p>
                         </FormField>
 
                         <FormField label="Keterangan" error={sisihForm.errors.keterangan} hint="Contoh: Kas operasional sekretariat minggu ini">
@@ -847,7 +847,7 @@ export default function Index({
 
                         <div className="pt-2 flex items-center gap-2">
                             <Button type="submit" size="sm" disabled={sisihForm.processing} className="rounded-full shadow-md shadow-amber-500/25 bg-amber-600 hover:bg-amber-700">
-                                {sisihForm.processing ? 'Menyimpan...' : `Sisihkan Kas Kecil • ${sisihForm.data.jumlah ? formatRupiah(Number(sisihForm.data.jumlah)) : 'Rp 0'}`}
+                                {sisihForm.processing ? 'Menyimpan...' : <>Sisihkan Kas Kecil • <span className="privacy-blur">{sisihForm.data.jumlah ? formatRupiah(Number(sisihForm.data.jumlah)) : 'Rp 0'}</span></>}
                             </Button>
                             <Button type="button" variant="ghost" size="sm" className="rounded-full" onClick={() => setShowDrawer(false)}>
                                 Batal
@@ -1115,25 +1115,25 @@ export default function Index({
                     <dl className="grid grid-cols-2 gap-x-4 gap-y-2 md:grid-cols-4 text-sm">
                         <div>
                             <dt className="text-[11px] text-slate-400">Saldo awal{labelAkunSaldo} {labelPeriode}</dt>
-                            <dd className="font-bold tabular-nums text-slate-800">
+                            <dd className="font-bold tabular-nums text-slate-800 privacy-blur">
                                 {saldoValid ? formatRupiah(ringkasanPeriode?.saldo_awal ?? 0) : '—'}
                             </dd>
                         </div>
                         <div>
                             <dt className="text-[11px] text-slate-400">Masuk {labelPeriode}</dt>
-                            <dd className="font-bold tabular-nums text-brand-green-dark">
+                            <dd className="font-bold tabular-nums text-brand-green-dark privacy-blur">
                                 + {formatRupiah(ringkasanPeriode?.total_masuk ?? 0)}
                             </dd>
                         </div>
                         <div>
                             <dt className="text-[11px] text-slate-400">Keluar {labelPeriode}</dt>
-                            <dd className="font-bold tabular-nums text-red-600">
+                            <dd className="font-bold tabular-nums text-red-600 privacy-blur">
                                 - {formatRupiah(ringkasanPeriode?.total_keluar ?? 0)}
                             </dd>
                         </div>
                         <div>
                             <dt className="text-[11px] text-slate-400">Saldo akhir{labelAkunSaldo} {labelPeriode}</dt>
-                            <dd className="font-bold tabular-nums text-slate-800">
+                            <dd className="font-bold tabular-nums text-slate-800 privacy-blur">
                                 {saldoValid ? formatRupiah(ringkasanPeriode?.saldo_akhir ?? 0) : '—'}
                             </dd>
                         </div>
@@ -1240,7 +1240,7 @@ export default function Index({
                                                             <td className="px-4 py-3 align-top whitespace-nowrap">
                                                                 {badgeKanal(r.kanal)}
                                                             </td>
-                                                            <td className="px-4 py-3 text-right align-top tabular-nums whitespace-nowrap">
+                                                            <td className="px-4 py-3 text-right align-top tabular-nums whitespace-nowrap privacy-blur">
                                                                 {r.tipe === 'masuk' ? (
                                                                     <span className="font-bold text-emerald-600 text-sm">
                                                                         +{formatRupiah(r.jumlah)}
@@ -1249,7 +1249,7 @@ export default function Index({
                                                                     <span className="text-slate-300 font-normal text-sm">—</span>
                                                                 )}
                                                             </td>
-                                                            <td className="px-4 py-3 text-right align-top tabular-nums whitespace-nowrap">
+                                                            <td className="px-4 py-3 text-right align-top tabular-nums whitespace-nowrap privacy-blur">
                                                                 {r.tipe === 'keluar' ? (
                                                                     <span className="font-bold text-rose-600 text-sm">
                                                                         -{formatRupiah(r.jumlah)}
@@ -1258,7 +1258,7 @@ export default function Index({
                                                                     <span className="text-slate-300 font-normal text-sm">—</span>
                                                                 )}
                                                             </td>
-                                                            <td className="px-5 py-3 text-right align-top tabular-nums whitespace-nowrap">
+                                                            <td className="px-5 py-3 text-right align-top tabular-nums whitespace-nowrap privacy-blur">
                                                                 <p className="font-semibold text-slate-800 text-sm">
                                                                     {formatRupiah(r.saldo_setelah)}
                                                                 </p>
@@ -1287,7 +1287,7 @@ export default function Index({
                                                     <span className="font-bold text-slate-800">{grup.tanggal}</span>
                                                     <span className="text-slate-400">• {grup.hari}</span>
                                                 </div>
-                                                <div className="flex items-center gap-2 font-semibold tabular-nums text-[11px]">
+                                                <div className="flex items-center gap-2 font-semibold tabular-nums text-[11px] privacy-blur">
                                                     {ringkasanHari.masuk > 0 && (
                                                         <span className="text-emerald-600">+{formatRupiahSingkat(ringkasanHari.masuk)}</span>
                                                     )}
@@ -1337,7 +1337,7 @@ export default function Index({
                                                             </div>
 
                                                             {/* Kanan: Nominal + Saldo */}
-                                                            <div className="text-right shrink-0">
+                                                            <div className="text-right shrink-0 privacy-blur">
                                                                 <p className={`text-sm font-bold tabular-nums whitespace-nowrap ${
                                                                     r.tipe === 'masuk' ? 'text-emerald-600' : 'text-rose-600'
                                                                 }`}>

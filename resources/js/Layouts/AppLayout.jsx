@@ -4,9 +4,7 @@ import NavbarLayout from './NavbarLayout';
 const LAYOUT_MODE = 'sidebar';
 
 export default function AppLayout({ children }) {
-    if (LAYOUT_MODE === 'navbar') {
-        return <NavbarLayout>{children}</NavbarLayout>;
-    }
-
-    return <SidebarLayout>{children}</SidebarLayout>;
+    return LAYOUT_MODE === 'navbar'
+        ? <NavbarLayout>{children}</NavbarLayout>
+        : <SidebarLayout>{children}</SidebarLayout>;
 }

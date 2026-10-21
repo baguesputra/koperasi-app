@@ -1,4 +1,5 @@
 import { Landmark } from 'lucide-react';
+import PrivacyWrapper from '@/Components/ui/PrivacyWrapper';
 import { formatRupiah } from '@/Utils/formatCurrency';
 
 export default function RingkasanKas({ ringkasan, judul = 'Beban Persetujuan Pinjaman' }) {
@@ -52,11 +53,11 @@ export default function RingkasanKas({ ringkasan, judul = 'Beban Persetujuan Pin
                     </div>
                     <p className="text-2xl font-black text-white">{beban_peran?.jumlah ?? 0} <span className="text-sm font-medium text-slate-300">pengajuan</span></p>
                     <p className="text-xs text-slate-300 mt-1 font-semibold">
-                        Beban: {formatRupiah(beban_peran?.total ?? 0)}
+                        Beban: <PrivacyWrapper>{formatRupiah(beban_peran?.total ?? 0)}</PrivacyWrapper>
                     </p>
                     {Boolean(beban_peran?.cair_mandiri_jumlah) && (
                         <p className="text-[11px] text-amber-300 mt-1">
-                            + {beban_peran.cair_mandiri_jumlah} mandiri ({formatRupiah(beban_peran.cair_mandiri_total)})
+                            + {beban_peran.cair_mandiri_jumlah} mandiri (<PrivacyWrapper>{formatRupiah(beban_peran.cair_mandiri_total)}</PrivacyWrapper>)
                         </p>
                     )}
                 </div>
@@ -64,21 +65,27 @@ export default function RingkasanKas({ ringkasan, judul = 'Beban Persetujuan Pin
                 {/* 2. Total Antrean Berjalan (Seluruh Koperasi) */}
                 <div className="bg-white/5 rounded-xl p-4 border border-white/10">
                     <p className="text-xs text-slate-300 mb-1">Total Antrean Koperasi</p>
-                    <p className="text-xl font-bold">{formatRupiah(total_antrean)}</p>
+                    <p className="text-xl font-bold">
+                        <PrivacyWrapper>{formatRupiah(total_antrean)}</PrivacyWrapper>
+                    </p>
                     <p className="text-[11px] text-slate-400 mt-1">{jumlah_antrean} pengajuan di seluruh tahap</p>
                 </div>
 
                 {/* 3. Saldo Bank Aktif */}
                 <div className="bg-white/5 rounded-xl p-4 border border-white/10">
                     <p className="text-xs text-slate-300 mb-1">Saldo Bank Koperasi</p>
-                    <p className="text-xl font-bold">{formatRupiah(saldo_bank)}</p>
+                    <p className="text-xl font-bold">
+                        <PrivacyWrapper>{formatRupiah(saldo_bank)}</PrivacyWrapper>
+                    </p>
                     <p className="text-[11px] text-slate-400 mt-1">Tersedia untuk transfer pencairan</p>
                 </div>
 
                 {/* 4. Proyeksi Sisa Saldo Bank */}
                 <div className={`rounded-xl p-4 border ${defisit ? 'bg-red-500/15 border-red-400/30' : 'bg-emerald-500/15 border-emerald-400/30'}`}>
                     <p className={`text-xs mb-1 ${defisit ? 'text-red-200' : 'text-emerald-200'}`}>Proyeksi Sisa Bank</p>
-                    <p className={`text-xl font-bold ${defisit ? 'text-red-300' : 'text-emerald-300'}`}>{formatRupiah(sisa_proyeksi)}</p>
+                    <p className={`text-xl font-bold ${defisit ? 'text-red-300' : 'text-emerald-300'}`}>
+                        <PrivacyWrapper>{formatRupiah(sisa_proyeksi)}</PrivacyWrapper>
+                    </p>
                     <p className={`text-[11px] mt-1 ${defisit ? 'text-red-300/80' : 'text-emerald-300/80'}`}>
                         {defisit ? 'Saldo kurang jika semua cair' : 'Sisa aman setelah pencairan'}
                     </p>
@@ -104,7 +111,9 @@ export default function RingkasanKas({ ringkasan, judul = 'Beban Persetujuan Pin
                                 </span>
                                 <span className="font-bold">{pipeline.admin?.jumlah ?? 0}</span>
                             </div>
-                            <p className="text-[11px] text-slate-400 mt-0.5">{formatRupiah(pipeline.admin?.total ?? 0)}</p>
+                            <p className="text-[11px] text-slate-400 mt-0.5">
+                                <PrivacyWrapper>{formatRupiah(pipeline.admin?.total ?? 0)}</PrivacyWrapper>
+                            </p>
                         </div>
 
                         {/* Tahap 2: Bendahara */}
@@ -119,7 +128,9 @@ export default function RingkasanKas({ ringkasan, judul = 'Beban Persetujuan Pin
                                 </span>
                                 <span className="font-bold">{pipeline.bendahara?.jumlah ?? 0}</span>
                             </div>
-                            <p className="text-[11px] text-slate-400 mt-0.5">{formatRupiah(pipeline.bendahara?.total ?? 0)}</p>
+                            <p className="text-[11px] text-slate-400 mt-0.5">
+                                <PrivacyWrapper>{formatRupiah(pipeline.bendahara?.total ?? 0)}</PrivacyWrapper>
+                            </p>
                         </div>
 
                         {/* Tahap 3: Ketua */}
@@ -134,7 +145,9 @@ export default function RingkasanKas({ ringkasan, judul = 'Beban Persetujuan Pin
                                 </span>
                                 <span className="font-bold">{pipeline.ketua?.jumlah ?? 0}</span>
                             </div>
-                            <p className="text-[11px] text-slate-400 mt-0.5">{formatRupiah(pipeline.ketua?.total ?? 0)}</p>
+                            <p className="text-[11px] text-slate-400 mt-0.5">
+                                <PrivacyWrapper>{formatRupiah(pipeline.ketua?.total ?? 0)}</PrivacyWrapper>
+                            </p>
                         </div>
                     </div>
                 </div>

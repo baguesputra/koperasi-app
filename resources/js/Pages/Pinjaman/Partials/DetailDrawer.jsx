@@ -61,7 +61,7 @@ export default function DetailDrawer({ pinjaman, angsuran, pelunasan_resign, jur
                 <dl className="grid grid-cols-3 gap-2 text-center">
                     <div className="rounded-xl bg-slate-50/80 border border-slate-100 px-2 py-2.5">
                         <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Nominal</dt>
-                        <dd className="text-sm font-bold text-slate-800 tabular-nums mt-0.5">{formatRupiah(pinjaman.nominal)}</dd>
+                        <dd className="text-sm font-bold text-slate-800 tabular-nums mt-0.5 privacy-blur">{formatRupiah(pinjaman.nominal)}</dd>
                     </div>
                     <div className="rounded-xl bg-slate-50/80 border border-slate-100 px-2 py-2.5">
                         <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Tenor</dt>
@@ -92,7 +92,7 @@ export default function DetailDrawer({ pinjaman, angsuran, pelunasan_resign, jur
                         <div className="flex-1 grid grid-cols-2 gap-2 text-sm">
                             <div className="rounded-xl bg-slate-50 px-3 py-2">
                                 <p className="text-[11px] text-slate-400">Total Dilunasi</p>
-                                <p className="font-bold text-slate-800 tabular-nums">{formatRupiah(pelunasan_resign.total)}</p>
+                                <p className="font-bold text-slate-800 tabular-nums privacy-blur">{formatRupiah(pelunasan_resign.total)}</p>
                             </div>
                             {pelunasan_resign.tanggal && (
                                 <div className="rounded-xl bg-slate-50 px-3 py-2">
@@ -123,7 +123,7 @@ export default function DetailDrawer({ pinjaman, angsuran, pelunasan_resign, jur
                                         </p>
                                     </div>
                                 </div>
-                                <p className="text-sm font-bold text-slate-800 tabular-nums whitespace-nowrap">{formatRupiah(a.total_bayar)}</p>
+                                <p className="text-sm font-bold text-slate-800 tabular-nums whitespace-nowrap privacy-blur">{formatRupiah(a.total_bayar)}</p>
                             </li>
                         ))}
                     </ul>
@@ -139,7 +139,7 @@ export default function DetailDrawer({ pinjaman, angsuran, pelunasan_resign, jur
                                     <p className="text-sm font-semibold text-slate-700 truncate">{j.keterangan}</p>
                                     <p className="text-[11px] text-slate-400 mt-0.5">{j.sub_judul ? `${j.sub_judul} • ` : ''}{j.tanggal}</p>
                                 </div>
-                                <p className="text-sm font-bold text-rose-600 tabular-nums whitespace-nowrap">-{formatRupiah(j.jumlah)}</p>
+                                <p className="text-sm font-bold text-rose-600 tabular-nums whitespace-nowrap privacy-blur">-{formatRupiah(j.jumlah)}</p>
                             </li>
                         ))}
                     </ul>

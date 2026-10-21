@@ -5,6 +5,7 @@ import { createInertiaApp } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
 import ErrorModalProvider from './Components/ErrorModalProvider';
+import { PrivacyProvider } from './Contexts/PrivacyContext';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Koperasi App';
 
@@ -20,7 +21,9 @@ createInertiaApp({
 
         root.render(
             <ErrorModalProvider>
-                <App {...props} />
+                <PrivacyProvider>
+                    <App {...props} />
+                </PrivacyProvider>
             </ErrorModalProvider>,
         );
     },

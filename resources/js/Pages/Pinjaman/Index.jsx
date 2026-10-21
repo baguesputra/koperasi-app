@@ -269,12 +269,12 @@ export default function Index({ pinjaman, filters, statistik, cabangAktif, dafta
                                                 {p.pelunasan_resign_total > 0 && (
                                                     <p className="mt-1 flex items-center gap-1 text-xs text-rose-600">
                                                         <Wallet size={12} />
-                                                        <span className="italic truncate">Lunas resign: -{formatRupiah(p.pelunasan_resign_total)}</span>
+                                                        <span className="italic truncate privacy-blur">Lunas resign: -{formatRupiah(p.pelunasan_resign_total)}</span>
                                                     </p>
                                                 )}
                                             </td>
                                             <td className="px-4 py-2.5 whitespace-nowrap">
-                                                <p className="font-bold text-slate-800 tabular-nums">{formatRupiah(p.nominal)}</p>
+                                                <p className="font-bold text-slate-800 tabular-nums privacy-blur">{formatRupiah(p.nominal)}</p>
                                                 {progres && (
                                                     <div className="mt-1.5 w-28" title={`${progres.lunas}/${progres.total} cicilan lunas`}>
                                                         <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">

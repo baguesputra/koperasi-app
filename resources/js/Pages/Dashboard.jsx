@@ -11,6 +11,8 @@ import Card from '@/Components/ui/Card';
 import StatWidget from '@/Components/ui/StatWidget';
 import PageHeader from '@/Components/ui/PageHeader';
 import DashboardClock from '@/Components/ui/DashboardClock';
+import PrivacyWrapper from '@/Components/ui/PrivacyWrapper';
+import { usePrivacy } from '@/Contexts/PrivacyContext';
 import { formatRupiah, formatRupiahSingkat } from '@/Utils/formatCurrency';
 import { statusStyle } from '@/Utils/status';
 
@@ -28,6 +30,7 @@ const kasSeries = [
 
 export default function Dashboard({ stats, actionable, grafikTren, grafikKas, aktivitasTerbaru, rincianAntrean }) {
     const { auth } = usePage().props;
+    const { isPrivacyActive } = usePrivacy();
     const userPermissions = auth.user?.permissions ?? [];
 
     function bisaAkses(permission) {
@@ -133,26 +136,36 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                         </div>
                     </div>
 
-                    <ResponsiveContainer width="100%" height={280}>
-                        <AreaChart data={grafikTren} margin={{ left: -10 }}>
-                            <defs>
-                                <linearGradient id="colorSimpanan" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#1FA24C" stopOpacity={0.25} />
-                                    <stop offset="95%" stopColor="#1FA24C" stopOpacity={0} />
-                                </linearGradient>
-                                <linearGradient id="colorPinjaman" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#0F1E36" stopOpacity={0.25} />
-                                    <stop offset="95%" stopColor="#0F1E36" stopOpacity={0} />
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                            <XAxis dataKey="bulan" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                            <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={formatRupiahSingkat} />
-                            <Tooltip formatter={(value) => formatRupiah(value)} contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 13 }} />
-                            <Area type="monotone" dataKey="simpanan" name="Simpanan" stroke="#1FA24C" fillOpacity={1} fill="url(#colorSimpanan)" strokeWidth={2} />
-                            <Area type="monotone" dataKey="pinjaman" name="Pinjaman Cair" stroke="#0F1E36" fillOpacity={1} fill="url(#colorPinjaman)" strokeWidth={2} />
-                        </AreaChart>
-                    </ResponsiveContainer>
+                    <div className={`transition-all duration-300 ${isPrivacyActive ? 'privacy-chart' : ''}`}>
+                        <ResponsiveContainer width="100%" height={280}>
+                            <AreaChart key={`tren-chart-${isPrivacyActive ? 'locked' : 'unlocked'}`} data={grafikTren} margin={{ left: -10 }}>
+                                <defs>
+                                    <linearGradient id="colorSimpanan" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#1FA24C" stopOpacity={0.25} />
+                                        <stop offset="95%" stopColor="#1FA24C" stopOpacity={0} />
+                                    </linearGradient>
+                                    <linearGradient id="colorPinjaman" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#0F1E36" stopOpacity={0.25} />
+                                        <stop offset="95%" stopColor="#0F1E36" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                                <XAxis dataKey="bulan" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                                <YAxis
+                                    tick={{ fontSize: 12, fill: '#94a3b8' }}
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tickFormatter={isPrivacyActive ? () => '••••' : formatRupiahSingkat}
+                                />
+                                <Tooltip
+                                    formatter={(value) => (isPrivacyActive ? '••••••••' : formatRupiah(value))}
+                                    contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 13 }}
+                                />
+                                <Area type="monotone" dataKey="simpanan" name="Simpanan" stroke="#1FA24C" fillOpacity={1} fill="url(#colorSimpanan)" strokeWidth={2} />
+                                <Area type="monotone" dataKey="pinjaman" name="Pinjaman Cair" stroke="#0F1E36" fillOpacity={1} fill="url(#colorPinjaman)" strokeWidth={2} />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
                 </Card>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
@@ -167,7 +180,9 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                                 <Landmark size={20} />
                             </div>
                             <p className="text-sm text-slate-300">Saldo Total</p>
-                            <p className="text-3xl font-bold mt-1 leading-tight">{formatRupiah(stats.total_keseluruhan)}</p>
+                            <p className="text-3xl font-bold mt-1 leading-tight">
+                                <PrivacyWrapper>{formatRupiah(stats.total_keseluruhan)}</PrivacyWrapper>
+                            </p>
                         </div>
                         <p className="text-xs text-slate-300 mt-4 leading-snug">Kas operasional + simpanan anggota aktif</p>
                     </div>
@@ -260,7 +275,9 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-semibold text-slate-700 truncate">{item.nama}</p>
-                                            <p className="text-xs text-slate-400 truncate">{item.keterangan}</p>
+                                            <p className="text-xs text-slate-400 truncate">
+                                                <PrivacyWrapper maskType="blur">{item.keterangan}</PrivacyWrapper>
+                                            </p>
                                             <p className="text-xs text-slate-400 mt-0.5">{relatif ? `${relatif} • ${item.tanggal_format}` : item.tanggal_format}</p>
                                         </div>
                                     </div>
@@ -287,15 +304,20 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                         </Link>
                     )}
                 </div>
-                <div className="min-h-[280px]">
+                <div className={`min-h-[280px] transition-all duration-300 ${isPrivacyActive ? 'privacy-chart' : ''}`}>
                     <ResponsiveContainer width="100%" height={280}>
-                    <BarChart data={grafikKas} margin={{ left: -10 }} barCategoryGap="25%">
+                    <BarChart key={`kas-chart-${isPrivacyActive ? 'locked' : 'unlocked'}`} data={grafikKas} margin={{ left: -10 }} barCategoryGap="25%">
                         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                         <XAxis dataKey="bulan" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                        <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={formatRupiahSingkat} />
+                        <YAxis
+                            tick={{ fontSize: 12, fill: '#94a3b8' }}
+                            axisLine={false}
+                            tickLine={false}
+                            tickFormatter={isPrivacyActive ? () => '••••' : formatRupiahSingkat}
+                        />
                         <Tooltip
                             cursor={{ fill: 'rgba(15, 30, 54, 0.04)' }}
-                            formatter={(value) => formatRupiah(value)}
+                            formatter={(value) => (isPrivacyActive ? '••••••••' : formatRupiah(value))}
                             contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 13 }}
                         />
                         {kasSeries.map((s) => (

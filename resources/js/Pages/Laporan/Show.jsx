@@ -42,7 +42,7 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
         return new URLSearchParams(params).toString();
     }
 
-    const sel = (i) => (hasil.rataKanan.includes(i) ? 'text-right whitespace-nowrap tabular-nums' : '');
+    const sel = (i) => (hasil.rataKanan.includes(i) ? 'text-right whitespace-nowrap tabular-nums privacy-blur' : '');
 
     const tampilCell = (i, cell) => (hasil.rataKanan.includes(i) && typeof cell === 'number' ? formatRupiah(cell) : cell);
 

@@ -1,10 +1,22 @@
-export default function StatWidget({ label, value, icon: Icon, tone = 'navy', compact = false, caption }) {
+import PrivacyWrapper from '@/Components/ui/PrivacyWrapper';
+
+export default function StatWidget({ label, value, icon: Icon, tone = 'navy', compact = false, caption, privacy }) {
     const tones = {
         navy: 'bg-brand-navy/5 text-brand-navy',
         green: 'bg-brand-green-light text-brand-green-dark',
         amber: 'bg-amber-50 text-amber-700',
         rose: 'bg-rose-50 text-rose-700',
     };
+
+    // Otomatis proteksi jika mengandung format rupiah, kecuali di-override eksplisit
+    const isRupiah = typeof value === 'string' && (value.includes('Rp') || value.includes('IDR'));
+    const shouldMask = privacy !== undefined ? Boolean(privacy) : isRupiah;
+
+    const renderedValue = shouldMask ? (
+        <PrivacyWrapper>{value}</PrivacyWrapper>
+    ) : (
+        value
+    );
 
     if (compact) {
         return (
@@ -14,7 +26,7 @@ export default function StatWidget({ label, value, icon: Icon, tone = 'navy', co
                 </div>
                 <div className="min-w-0">
                     <p className="text-sm text-slate-500 leading-snug">{label}</p>
-                    <p className="text-xl font-bold text-slate-800 mt-0.5 leading-tight break-words">{value}</p>
+                    <p className="text-xl font-bold text-slate-800 mt-0.5 leading-tight break-words">{renderedValue}</p>
                     {caption && <p className="text-xs text-slate-400 mt-0.5">{caption}</p>}
                 </div>
             </div>
@@ -27,7 +39,7 @@ export default function StatWidget({ label, value, icon: Icon, tone = 'navy', co
                 <Icon size={20} />
             </div>
             <p className="text-sm text-slate-500">{label}</p>
-            <p className="text-xl font-bold text-slate-800 mt-0.5">{value}</p>
+            <p className="text-xl font-bold text-slate-800 mt-0.5">{renderedValue}</p>
         </div>
     );
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, Layers } from 'lucide-react';
+import PrivacyWrapper from '@/Components/ui/PrivacyWrapper';
 import { formatRupiah } from '@/Utils/formatCurrency';
 
 function calculateDueDate(tanggalPengajuan, cicilanKe) {
@@ -62,15 +63,19 @@ export default function RincianBebanPinjaman({ pinjaman }) {
             <div className="p-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="bg-white rounded-lg p-3 border border-slate-200 shadow-2xs">
                     <p className="text-[11px] font-semibold text-slate-400 mb-0.5">Beban Bulan ke-1 (Puncak)</p>
-                    <p className="text-base font-bold text-slate-900">{formatRupiah(cicilanPertama)}</p>
+                    <p className="text-base font-bold text-slate-900">
+                        <PrivacyWrapper>{formatRupiah(cicilanPertama)}</PrivacyWrapper>
+                    </p>
                     <p className="text-[11px] text-slate-500 mt-1">
-                        Pokok {formatRupiah(jadwal[0]?.nominal_pokok ?? 0)} + Bunga {formatRupiah(jadwal[0]?.nominal_bunga ?? 0)}
+                        Pokok <PrivacyWrapper>{formatRupiah(jadwal[0]?.nominal_pokok ?? 0)}</PrivacyWrapper> + Bunga <PrivacyWrapper>{formatRupiah(jadwal[0]?.nominal_bunga ?? 0)}</PrivacyWrapper>
                     </p>
                 </div>
 
                 <div className="bg-white rounded-lg p-3 border border-slate-200 shadow-2xs">
                     <p className="text-[11px] font-semibold text-slate-400 mb-0.5">Beban Bulan Terakhir</p>
-                    <p className="text-base font-bold text-slate-900">{formatRupiah(cicilanTerakhir)}</p>
+                    <p className="text-base font-bold text-slate-900">
+                        <PrivacyWrapper>{formatRupiah(cicilanTerakhir)}</PrivacyWrapper>
+                    </p>
                     <p className="text-[11px] text-emerald-600 mt-1">
                         Beban teringan di akhir tenor
                     </p>
@@ -78,7 +83,9 @@ export default function RincianBebanPinjaman({ pinjaman }) {
 
                 <div className="bg-white rounded-lg p-3 border border-slate-200 shadow-2xs">
                     <p className="text-[11px] font-semibold text-slate-400 mb-0.5">Estimasi Rata-rata / Bulan</p>
-                    <p className="text-base font-bold text-brand-navy">{formatRupiah(cicilanRataRata)}</p>
+                    <p className="text-base font-bold text-brand-navy">
+                        <PrivacyWrapper>{formatRupiah(cicilanRataRata)}</PrivacyWrapper>
+                    </p>
                     <p className="text-[11px] text-slate-500 mt-1">
                         Tenor total {jadwal.length} bulan
                     </p>
@@ -90,15 +97,21 @@ export default function RincianBebanPinjaman({ pinjaman }) {
                 <div className="bg-white rounded-lg p-3 border border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
                     <div>
                         <span className="text-slate-400">Total Pokok: </span>
-                        <strong className="text-slate-800 font-semibold">{formatRupiah(totalPokok)}</strong>
+                        <strong className="text-slate-800 font-semibold">
+                            <PrivacyWrapper>{formatRupiah(totalPokok)}</PrivacyWrapper>
+                        </strong>
                     </div>
                     <div>
                         <span className="text-slate-400">Total Bunga ({pinjaman.persentase_bunga}%): </span>
-                        <strong className="text-amber-600 font-semibold">{formatRupiah(totalBunga)}</strong>
+                        <strong className="text-amber-600 font-semibold">
+                            <PrivacyWrapper>{formatRupiah(totalBunga)}</PrivacyWrapper>
+                        </strong>
                     </div>
                     <div className="pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-100 w-full sm:w-auto">
                         <span className="text-slate-500 font-medium">Total Pengembalian: </span>
-                        <strong className="text-brand-navy text-sm font-bold">{formatRupiah(totalBayar)}</strong>
+                        <strong className="text-brand-navy text-sm font-bold">
+                            <PrivacyWrapper>{formatRupiah(totalBayar)}</PrivacyWrapper>
+                        </strong>
                     </div>
                 </div>
             </div>
@@ -121,9 +134,15 @@ export default function RincianBebanPinjaman({ pinjaman }) {
                                 {jadwal.map((a) => (
                                     <tr key={a.cicilan_ke} className="border-b border-slate-100 hover:bg-slate-50">
                                         <td className="py-1.5 px-3 text-center font-medium text-slate-600">{a.cicilan_ke}</td>
-                                        <td className="py-1.5 px-3 text-right text-slate-700">{formatRupiah(a.nominal_pokok)}</td>
-                                        <td className="py-1.5 px-3 text-right text-amber-600 font-medium">{formatRupiah(a.nominal_bunga)}</td>
-                                        <td className="py-1.5 px-3 text-right font-bold text-slate-800">{formatRupiah(a.total_bayar)}</td>
+                                        <td className="py-1.5 px-3 text-right text-slate-700">
+                                            <PrivacyWrapper>{formatRupiah(a.nominal_pokok)}</PrivacyWrapper>
+                                        </td>
+                                        <td className="py-1.5 px-3 text-right text-amber-600 font-medium">
+                                            <PrivacyWrapper>{formatRupiah(a.nominal_bunga)}</PrivacyWrapper>
+                                        </td>
+                                        <td className="py-1.5 px-3 text-right font-bold text-slate-800">
+                                            <PrivacyWrapper>{formatRupiah(a.total_bayar)}</PrivacyWrapper>
+                                        </td>
                                         <td className="py-1.5 px-3 text-center text-slate-500 whitespace-nowrap">
                                             {pinjaman.tanggal_pengajuan && calculateDueDate(pinjaman.tanggal_pengajuan, a.cicilan_ke)}
                                         </td>
@@ -133,9 +152,15 @@ export default function RincianBebanPinjaman({ pinjaman }) {
                             <tfoot className="bg-slate-50 border-t-2 border-slate-200 font-bold text-slate-800 sticky bottom-0">
                                 <tr>
                                     <td className="py-2 px-3 text-center">Total</td>
-                                    <td className="py-2 px-3 text-right">{formatRupiah(totalPokok)}</td>
-                                    <td className="py-2 px-3 text-right text-amber-600">{formatRupiah(totalBunga)}</td>
-                                    <td className="py-2 px-3 text-right text-brand-navy">{formatRupiah(totalBayar)}</td>
+                                    <td className="py-2 px-3 text-right">
+                                        <PrivacyWrapper>{formatRupiah(totalPokok)}</PrivacyWrapper>
+                                    </td>
+                                    <td className="py-2 px-3 text-right text-amber-600">
+                                        <PrivacyWrapper>{formatRupiah(totalBunga)}</PrivacyWrapper>
+                                    </td>
+                                    <td className="py-2 px-3 text-right text-brand-navy">
+                                        <PrivacyWrapper>{formatRupiah(totalBayar)}</PrivacyWrapper>
+                                    </td>
                                     <td></td>
                                 </tr>
                             </tfoot>

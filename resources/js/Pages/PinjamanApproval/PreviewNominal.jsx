@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import PrivacyWrapper from '@/Components/ui/PrivacyWrapper';
 import { formatRupiah } from '@/Utils/formatCurrency';
 
 export default function PreviewNominal({ routeName, pinjamanId, nominal, tenorBulan, cicilanLabel = 'cicilan' }) {
@@ -47,14 +48,14 @@ export default function PreviewNominal({ routeName, pinjamanId, nominal, tenorBu
                 <div className="flex items-center justify-between gap-4">
                     <span className="text-slate-500">Beban cicilan bln ke-1 (puncak)</span>
                     <span className="font-semibold text-slate-800">
-                        {preview.cicilan_pertama ? formatRupiah(preview.cicilan_pertama.total_bayar) : '-'}
+                        {preview.cicilan_pertama ? <PrivacyWrapper>{formatRupiah(preview.cicilan_pertama.total_bayar)}</PrivacyWrapper> : '-'}
                     </span>
                 </div>
                 {preview.cicilan_terakhir && (
                     <div className="flex items-center justify-between gap-4">
                         <span className="text-slate-500">Beban cicilan bln terakhir</span>
                         <span className="font-semibold text-slate-800">
-                            {formatRupiah(preview.cicilan_terakhir.total_bayar)}
+                            <PrivacyWrapper>{formatRupiah(preview.cicilan_terakhir.total_bayar)}</PrivacyWrapper>
                         </span>
                     </div>
                 )}
@@ -62,7 +63,7 @@ export default function PreviewNominal({ routeName, pinjamanId, nominal, tenorBu
                     <div className="flex items-center justify-between gap-4">
                         <span className="text-slate-500">Rata-rata cicilan per bulan</span>
                         <span className="font-semibold text-brand-navy">
-                            {formatRupiah(preview.cicilan_rata_rata)}
+                            <PrivacyWrapper>{formatRupiah(preview.cicilan_rata_rata)}</PrivacyWrapper>
                         </span>
                     </div>
                 )}
@@ -70,13 +71,15 @@ export default function PreviewNominal({ routeName, pinjamanId, nominal, tenorBu
 
             <div className="flex items-center justify-between gap-4 pt-1.5 border-t border-slate-200">
                 <span className="text-slate-600 font-medium">Total {preview.total_cicilan} {cicilanLabel}</span>
-                <span className="font-bold text-brand-navy">{formatRupiah(preview.total_bayar)}</span>
+                <span className="font-bold text-brand-navy">
+                    <PrivacyWrapper>{formatRupiah(preview.total_bayar)}</PrivacyWrapper>
+                </span>
             </div>
 
             <div className="flex items-center justify-between gap-4 pt-1.5 border-t border-slate-200">
                 <span className="text-slate-600 font-medium">Proyeksi sisa saldo bank</span>
                 <span className={`font-bold ${preview.kas_sisa < 0 ? 'text-red-600' : 'text-emerald-700'}`}>
-                    {formatRupiah(preview.kas_sisa)}
+                    <PrivacyWrapper>{formatRupiah(preview.kas_sisa)}</PrivacyWrapper>
                 </span>
             </div>
         </div>

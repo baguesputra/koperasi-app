@@ -33,7 +33,7 @@ export default function JejakNominal({ pinjaman, finalLabel = 'Final' }) {
                     <div key={b.label} className="flex items-center justify-between gap-4">
                         <span className="text-slate-500">{b.label}</span>
                         <span className={`font-semibold ${b.tone}`}>
-                            {formatRupiah(b.nilai)}{b.tenor ? ` • ${b.tenor} bln` : ''}
+                            <span className="privacy-blur">{formatRupiah(b.nilai)}</span>{b.tenor ? ` • ${b.tenor} bln` : ''}
                         </span>
                     </div>
                 ))}

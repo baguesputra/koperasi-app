@@ -91,7 +91,7 @@ export default function Index({ menunggu, riwayat }) {
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-5 py-3 text-sm text-slate-700">
+                                            <td className="px-5 py-3 text-sm text-slate-700 privacy-blur">
                                                 {formatRupiah(p.limit_diminta)} → {p.limit_disetujui_bendahara ? formatRupiah(p.limit_disetujui_bendahara) : '-'}
                                             </td>
                                             <td className="hidden md:table-cell px-5 py-3 text-sm text-slate-600">{p.anggota.cabang}</td>
@@ -135,7 +135,7 @@ export default function Index({ menunggu, riwayat }) {
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-5 py-3 text-sm text-slate-700">
+                                            <td className="px-5 py-3 text-sm text-slate-700 privacy-blur">
                                                 {formatRupiah(p.limit_diminta)} → {p.limit_disetujui ? formatRupiah(p.limit_disetujui) : '-'}
                                             </td>
                                             <td className="hidden md:table-cell px-5 py-3 text-sm text-slate-600">{p.anggota.cabang}</td>

@@ -185,7 +185,7 @@ export default function DistribusiTable({ periode, detail, sums = {}, filters = 
                             const bruto = liveRow ? liveRow.bruto : d.shu_bruto;
                             const bersih = liveRow ? liveRow.bersih : d.shu_bersih;
                             const beda = liveRow && Math.abs(bersih - d.shu_bersih) >= 1;
-                            const angkaLive = `px-4 py-2.5 text-right tabular-nums${beda ? ' text-amber-700' : ''}`;
+                            const angkaLive = `px-4 py-2.5 text-right tabular-nums privacy-blur${beda ? ' text-amber-700' : ''}`;
                             return (
                                 <tr key={d.id} className="hover:bg-slate-50/60">
                                     <td className="px-4 py-2.5 tabular-nums text-slate-500">{d.no}</td>
@@ -193,10 +193,10 @@ export default function DistribusiTable({ periode, detail, sums = {}, filters = 
                                         <p className="font-semibold text-slate-800">{d.nama}</p>
                                         <p className="text-xs text-slate-400">{d.no_karyawan} • {d.cabang}</p>
                                     </td>
-                                    <td className="px-4 py-2.5 text-right tabular-nums text-slate-500">{formatRupiah(d.simp_wajib)}</td>
-                                    <td className="px-4 py-2.5 text-right tabular-nums text-slate-500">{formatRupiah(d.simp_pokok)}</td>
-                                    <td className="px-4 py-2.5 text-right tabular-nums">{formatRupiah(d.modal)}</td>
-                                    <td className="px-4 py-2.5 text-right tabular-nums">{formatRupiah(d.transaksi)}</td>
+                                    <td className="px-4 py-2.5 text-right tabular-nums text-slate-500 privacy-blur">{formatRupiah(d.simp_wajib)}</td>
+                                    <td className="px-4 py-2.5 text-right tabular-nums text-slate-500 privacy-blur">{formatRupiah(d.simp_pokok)}</td>
+                                    <td className="px-4 py-2.5 text-right tabular-nums privacy-blur">{formatRupiah(d.modal)}</td>
+                                    <td className="px-4 py-2.5 text-right tabular-nums privacy-blur">{formatRupiah(d.transaksi)}</td>
                                     <td className={angkaLive}>{formatRupiah(atasModal)}</td>
                                     <td className={angkaLive}>{formatRupiah(atasTransaksi)}</td>
                                     <td className={angkaLive}>{formatRupiah(bruto)}</td>
@@ -226,13 +226,13 @@ export default function DistribusiTable({ periode, detail, sums = {}, filters = 
                     <tfoot>
                         <tr className="border-t-2 border-slate-200 bg-slate-50/70 font-bold">
                             <td colSpan={2} className="px-4 py-2.5">Total{detail.total > detail.data.length ? ` (${detail.total} anggota)` : ''}</td>
-                            <td className="px-4 py-2.5 text-right tabular-nums">{formatRupiah(sums.wajib ?? 0)}</td>
-                            <td className="px-4 py-2.5 text-right tabular-nums">{formatRupiah(sums.pokok ?? 0)}</td>
-                            <td className="px-4 py-2.5 text-right tabular-nums">{formatRupiah(sums.modal ?? 0)}</td>
-                            <td className="px-4 py-2.5 text-right tabular-nums">{formatRupiah(sums.transaksi ?? 0)}</td>
+                            <td className="px-4 py-2.5 text-right tabular-nums privacy-blur">{formatRupiah(sums.wajib ?? 0)}</td>
+                            <td className="px-4 py-2.5 text-right tabular-nums privacy-blur">{formatRupiah(sums.pokok ?? 0)}</td>
+                            <td className="px-4 py-2.5 text-right tabular-nums privacy-blur">{formatRupiah(sums.modal ?? 0)}</td>
+                            <td className="px-4 py-2.5 text-right tabular-nums privacy-blur">{formatRupiah(sums.transaksi ?? 0)}</td>
                             <td colSpan={2} />
-                            <td className="px-4 py-2.5 text-right tabular-nums">{formatRupiah(sums.bruto ?? 0)}</td>
-                            <td className="px-4 py-2.5 text-right tabular-nums">{formatRupiah(sums.bersih ?? 0)}</td>
+                            <td className="px-4 py-2.5 text-right tabular-nums privacy-blur">{formatRupiah(sums.bruto ?? 0)}</td>
+                            <td className="px-4 py-2.5 text-right tabular-nums privacy-blur">{formatRupiah(sums.bersih ?? 0)}</td>
                             <td colSpan={bisaBayar ? 2 : 1} />
                         </tr>
                     </tfoot>

@@ -122,8 +122,8 @@ export default function ResignDrawer({ anggota, onClose }) {
                                 className="mt-1 w-4 h-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500"
                             />
                             <span className="text-sm text-slate-700">
-                                Saya memahami <strong>{formatRupiah(ringkasan.pinjaman.sisa_tagihan)}</strong> dilunasi
-                                otomatis dan <strong>{formatRupiah(ringkasan.estimasi_pengembalian.total_dikembalikan)}</strong> dikembalikan.
+                                Saya memahami <strong className="privacy-blur">{formatRupiah(ringkasan.pinjaman.sisa_tagihan)}</strong> dilunasi
+                                otomatis dan <strong className="privacy-blur">{formatRupiah(ringkasan.estimasi_pengembalian.total_dikembalikan)}</strong> dikembalikan.
                                 Akun login dinonaktifkan.
                             </span>
                         </label>
@@ -137,7 +137,7 @@ export default function ResignDrawer({ anggota, onClose }) {
                             />
                             <span className="text-sm text-amber-800">
                                 Simpanan tidak cukup. Seluruh simpanan dialokasikan ke angsuran terawal,
-                                sisa <strong>{formatRupiah(shortfall)}</strong> menjadi cicilan akhir jatuh tempo{' '}
+                                sisa <strong className="privacy-blur">{formatRupiah(shortfall)}</strong> menjadi cicilan akhir jatuh tempo{' '}
                                 <strong>{jatuhTempo}</strong>. Status menjadi menunggu sampai lunas via Konfirmasi Angsuran.
                             </span>
                         </label>
@@ -178,7 +178,7 @@ function Baris({ label, value }) {
     return (
         <div className="flex justify-between items-center gap-3 text-sm">
             <span className="text-slate-500">{label}</span>
-            <span className="text-slate-800 text-right">{value}</span>
+            <span className="text-slate-800 text-right privacy-blur">{value}</span>
         </div>
     );
 }
@@ -216,10 +216,10 @@ function RingkasanPinjaman({ pinjaman }) {
                     <div key={p.id} className="rounded-lg bg-white border border-slate-100 px-2.5 py-1.5 text-xs">
                         <div className="flex justify-between gap-2">
                             <span className="text-slate-500">Pinjaman #{p.id}</span>
-                            <span className="font-semibold text-slate-800">{formatRupiah(p.sisa_tagihan)}</span>
+                            <span className="font-semibold text-slate-800 privacy-blur">{formatRupiah(p.sisa_tagihan)}</span>
                         </div>
                         <div className="text-slate-400 mt-0.5">
-                            Sisa {p.sisa_cicilan} cicilan • Pokok {formatRupiah(p.nominal_awal)}
+                            Sisa {p.sisa_cicilan} cicilan • Pokok <span className="privacy-blur">{formatRupiah(p.nominal_awal)}</span>
                         </div>
                     </div>
                 ))}
@@ -237,10 +237,10 @@ function EstimasiPengembalian({ estimasi, sisaTagihan, totalPokokWajib, jatuhTem
             <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5 text-sm text-amber-800">
                 <strong>Simpanan tidak cukup — tetap bisa resign.</strong>
                 <div className="mt-1.5 space-y-1">
-                    <div className="flex justify-between gap-3"><span>Simpanan terpakai pelunasan</span><strong>{formatRupiah(totalPokokWajib)}</strong></div>
-                    <div className="flex justify-between gap-3"><span>Sisa cicilan akhir</span><strong>{formatRupiah(estimasi.shortfall ?? (sisaTagihan - totalPokokWajib))}</strong></div>
+                    <div className="flex justify-between gap-3"><span>Simpanan terpakai pelunasan</span><strong className="privacy-blur">{formatRupiah(totalPokokWajib)}</strong></div>
+                    <div className="flex justify-between gap-3"><span>Sisa cicilan akhir</span><strong className="privacy-blur">{formatRupiah(estimasi.shortfall ?? (sisaTagihan - totalPokokWajib))}</strong></div>
                     <div className="flex justify-between gap-3"><span>Jatuh tempo akhir</span><strong>{jatuhTempo}</strong></div>
-                    <div className="flex justify-between gap-3"><span>Dikembalikan sekarang</span><strong>{formatRupiah(0)}</strong></div>
+                    <div className="flex justify-between gap-3"><span>Dikembalikan sekarang</span><strong className="privacy-blur">{formatRupiah(0)}</strong></div>
                 </div>
                 <p className="mt-1.5 text-xs">Status menjadi menunggu sampai cicilan akhir lunas via Konfirmasi Angsuran.</p>
             </div>
@@ -258,9 +258,9 @@ function EstimasiPengembalian({ estimasi, sisaTagihan, totalPokokWajib, jatuhTem
                 <Baris label="Kembali wajib" value={formatRupiah(estimasi.kembali_wajib)} />
                 <div className="border-t border-slate-200/70 pt-1.5 flex items-center gap-1.5 text-sm">
                     <HandCoins size={15} className="text-brand-green-dark" />
-                    <span>Total kembali: <strong>{formatRupiah(estimasi.total_dikembalikan)}</strong></span>
+                    <span>Total kembali: <strong className="privacy-blur">{formatRupiah(estimasi.total_dikembalikan)}</strong></span>
                 </div>
-                <p className="text-xs text-slate-400">Dana sosial hangus: {formatRupiah(estimasi.dana_sosial_hangus)}</p>
+                <p className="text-xs text-slate-400">Dana sosial hangus: <span className="privacy-blur">{formatRupiah(estimasi.dana_sosial_hangus)}</span></p>
             </div>
         </Seksi>
     );

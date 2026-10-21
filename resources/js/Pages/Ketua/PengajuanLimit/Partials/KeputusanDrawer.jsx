@@ -57,15 +57,15 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-white/10">
                     <div className="bg-white/5 rounded-xl p-4">
                         <p className="text-xs text-slate-300 mb-1">Limit Saat Ini</p>
-                        <p className="text-2xl font-bold">{formatRupiah(pengajuan.limit_saat_ini)}</p>
+                        <p className="text-2xl font-bold privacy-blur">{formatRupiah(pengajuan.limit_saat_ini)}</p>
                     </div>
                     <div className="bg-white/5 rounded-xl p-4 flex items-center justify-center">
                         <ArrowUpRight className="text-amber-400" size={24} />
                     </div>
                     <div className="bg-brand-green/20 rounded-xl p-4 border border-brand-green/30">
                         <p className="text-xs text-brand-green/80 mb-1">Limit Diminta</p>
-                        <p className="text-2xl font-bold text-brand-green-light">{formatRupiah(pengajuan.limit_diminta)}</p>
-                        <p className="text-xs text-brand-green/70 mt-1">
+                        <p className="text-2xl font-bold text-brand-green-light privacy-blur">{formatRupiah(pengajuan.limit_diminta)}</p>
+                        <p className="text-xs text-brand-green/70 mt-1 privacy-blur">
                             +{formatRupiah(selisihLimit)} ({((selisihLimit / pengajuan.limit_saat_ini) * 100).toFixed(1)}%)
                         </p>
                     </div>
@@ -118,7 +118,7 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                                         </div>
                                         <div>
                                             <p className="font-semibold text-slate-800">Pinjaman #{idx + 1}</p>
-                                            <p className="text-xs text-slate-400">
+                                            <p className="text-xs text-slate-400 privacy-blur">
                                                 {formatRupiah(p.nominal)} &bull; {p.tenor_bulan} bln
                                             </p>
                                         </div>
@@ -128,7 +128,7 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                                             <Calendar size={12} />
                                             <span>Cicilan ke-{(p.total_cicilan - p.sisa_cicilan) + 1} / {p.total_cicilan}</span>
                                         </div>
-                                        <p className="text-sm font-bold text-slate-800 mt-0.5">
+                                        <p className="text-sm font-bold text-slate-800 mt-0.5 privacy-blur">
                                             {formatRupiah(p.sisa_total_bayar)}
                                         </p>
                                         <p className="text-xs text-slate-400">Sisa Total Bayar</p>
@@ -159,7 +159,7 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                             Detail Jadwal Angsuran ({pengajuan.pinjaman_aktif.length} pinjaman)
                         </span>
                         <span className="text-xs text-slate-400">
-                            Total Sisa: {formatRupiah(pengajuan.pinjaman_aktif.reduce((sum, p) => sum + p.sisa_total_bayar, 0))}
+                            Total Sisa: <span className="privacy-blur">{formatRupiah(pengajuan.pinjaman_aktif.reduce((sum, p) => sum + p.sisa_total_bayar, 0))}</span>
                         </span>
                     </button>
 
@@ -174,11 +174,11 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                                             </div>
                                             <div>
                                                 <p className="font-semibold text-slate-800">Pinjaman #{idx + 1}</p>
-                                                <p className="text-xs text-slate-400">{formatRupiah(p.nominal)} &bull; {p.tenor_bulan} bln</p>
+                                                <p className="text-xs text-slate-400 privacy-blur">{formatRupiah(p.nominal)} &bull; {p.tenor_bulan} bln</p>
                                             </div>
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-sm font-bold text-slate-800">{formatRupiah(p.sisa_total_bayar)}</p>
+                                            <p className="text-sm font-bold text-slate-800 privacy-blur">{formatRupiah(p.sisa_total_bayar)}</p>
                                             <p className="text-xs text-slate-400">Sisa Bayar</p>
                                         </div>
                                     </div>
@@ -206,9 +206,9 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                                                     {p.jadwal_angsuran.slice(0, 6).map((a) => (
                                                         <tr key={a.cicilan_ke} className="border-b border-slate-50 hover:bg-slate-50">
                                                             <td className="py-1.5 px-2 text-center font-medium text-slate-700">{a.cicilan_ke}</td>
-                                                            <td className="py-1.5 px-2 text-right text-slate-700">{formatRupiah(a.nominal_pokok)}</td>
-                                                            <td className="py-1.5 px-2 text-right text-amber-600">{formatRupiah(a.nominal_bunga)}</td>
-                                                            <td className="py-1.5 px-2 text-right font-semibold text-slate-800">{formatRupiah(a.total_bayar)}</td>
+                                                            <td className="py-1.5 px-2 text-right text-slate-700 privacy-blur">{formatRupiah(a.nominal_pokok)}</td>
+                                                            <td className="py-1.5 px-2 text-right text-amber-600 privacy-blur">{formatRupiah(a.nominal_bunga)}</td>
+                                                            <td className="py-1.5 px-2 text-right font-semibold text-slate-800 privacy-blur">{formatRupiah(a.total_bayar)}</td>
                                                             <td className="py-1.5 px-2 text-center text-slate-600 whitespace-nowrap">{a.tanggal_jatuh_tempo}</td>
                                                         </tr>
                                                     ))}
@@ -236,7 +236,7 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                         <div className="flex-1">
                             <p className="text-xs font-bold text-amber-700 mb-1">Pinjaman Sedang Diproses</p>
                             <p className="text-sm text-slate-700">
-                                Nominal: {formatRupiah(pengajuan.pinjaman_pending.nominal)} &bull;
+                                Nominal: <span className="privacy-blur">{formatRupiah(pengajuan.pinjaman_pending.nominal)}</span> &bull;
                                 Status: {pengajuan.pinjaman_pending.status === 'diajukan' ? 'Menunggu Bendahara' : 'Menunggu Ketua'}
                             </p>
                             <p className="text-xs text-amber-600 mt-1">Pengajuan ini akan mempengaruhi limit tersedia jika disetujui.</p>
@@ -252,18 +252,18 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                     <div className="space-y-1.5 text-sm">
                         <div className="flex items-center justify-between gap-4">
                             <span className="text-slate-500">Diminta anggota</span>
-                            <span className="font-semibold text-slate-800">{formatRupiah(pengajuan.limit_diminta)}</span>
+                            <span className="font-semibold text-slate-800 privacy-blur">{formatRupiah(pengajuan.limit_diminta)}</span>
                         </div>
                         {pengajuan.limit_disetujui_bendahara && (
                             <div className="flex items-center justify-between gap-4">
                                 <span className="text-slate-500">Disetujui Bendahara</span>
-                                <span className="font-semibold text-blue-700">{formatRupiah(pengajuan.limit_disetujui_bendahara)}</span>
+                                <span className="font-semibold text-blue-700 privacy-blur">{formatRupiah(pengajuan.limit_disetujui_bendahara)}</span>
                             </div>
                         )}
                         {pengajuan.limit_disetujui && (
                             <div className="flex items-center justify-between gap-4">
                                 <span className="text-slate-500">Final Ketua</span>
-                                <span className="font-semibold text-brand-green-dark">{formatRupiah(pengajuan.limit_disetujui)}</span>
+                                <span className="font-semibold text-brand-green-dark privacy-blur">{formatRupiah(pengajuan.limit_disetujui)}</span>
                             </div>
                         )}
                     </div>
@@ -314,7 +314,7 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                                             Total Limit Baru Final yang Disetujui
                                         </label>
                                         <p className="text-xs text-slate-500 mb-2">
-                                            Isi total limit baru secara keseluruhan (bukan nilai selisih). Wajib {'>'} {formatRupiah(pengajuan.limit_saat_ini)}.
+                                            Isi total limit baru secara keseluruhan (bukan nilai selisih). Wajib {'>'} <span className="privacy-blur">{formatRupiah(pengajuan.limit_saat_ini)}</span>.
                                         </p>
                                         <div className="relative">
                                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-base font-semibold text-slate-400">Rp</span>
@@ -323,19 +323,19 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                                                 min={pengajuan.limit_saat_ini + 1}
                                                 value={data.limit_disetujui}
                                                 onChange={(e) => setData('limit_disetujui', e.target.value)}
-                                                className="w-full pl-12 pr-4 py-2.5 text-lg font-bold rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
+                                                className="w-full pl-12 pr-4 py-2.5 text-lg font-bold rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors privacy-blur"
                                                 autoFocus
                                             />
                                         </div>
                                         <ChipNominal grup="limit_baru" nilai={data.limit_disetujui} onPilih={(n) => setData('limit_disetujui', n)} />
                                         {Number(data.limit_disetujui) > pengajuan.limit_saat_ini && (
-                                            <p className="text-xs font-semibold text-brand-green-dark mt-1.5">
+                                            <p className="text-xs font-semibold text-brand-green-dark mt-1.5 privacy-blur">
                                                 Penambahan limit: +{formatRupiah(Number(data.limit_disetujui) - pengajuan.limit_saat_ini)}
                                             </p>
                                         )}
                                         {errors.limit_disetujui && <p className="text-sm text-red-600 mt-1.5">{errors.limit_disetujui}</p>}
                                         {diBawahSaatIni && (
-                                            <p className="text-sm text-red-600 font-semibold mt-1.5">Nominal di bawah limit saat ini ({formatRupiah(pengajuan.limit_saat_ini)}). Masukkan total limit baru yang lebih besar.</p>
+                                            <p className="text-sm text-red-600 font-semibold mt-1.5">Nominal di bawah limit saat ini (<span className="privacy-blur">{formatRupiah(pengajuan.limit_saat_ini)}</span>). Masukkan total limit baru yang lebih besar.</p>
                                         )}
                                     </div>
                                 )}

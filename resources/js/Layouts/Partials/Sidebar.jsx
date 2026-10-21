@@ -1,10 +1,12 @@
 import { Link, usePage } from '@inertiajs/react';
 import { useEffect, useRef } from 'react';
+import { usePrivacy } from '@/Contexts/PrivacyContext';
 import {
     LayoutDashboard, Users, PiggyBank, HandCoins,
     ClipboardCheck, CalendarCheck, HeartHandshake,
     Wallet, FileBarChart, TrendingUp, BookOpenText, Percent,
-    ChevronLeft, ChevronRight, Repeat, Settings, LogOut
+    ChevronLeft, ChevronRight, Repeat, Settings, LogOut,
+    ShieldCheck, Shield
 } from 'lucide-react';
 
 const fokusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/40';
@@ -52,6 +54,7 @@ const menuGroups = [
 
 export default function Sidebar({ collapsed = false, expanding = false, onToggle }) {
     const { auth, notifications } = usePage().props;
+    const { isPrivacyActive, togglePrivacy } = usePrivacy();
     const url = usePage().url;
     const tautanAktif = useRef(null);
     const tertutup = collapsed && !expanding;
@@ -101,9 +104,50 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
 
     return (
         <aside className={`${tertutup ? 'w-16' : 'w-64'} h-full bg-white border border-slate-200 rounded-2xl flex flex-col transition-all duration-300 overflow-hidden ${expanding ? 'relative z-50 shadow-xl' : 'shadow-sm'}`}>
-            <div className={`h-16 flex items-center shrink-0 overflow-hidden ${tertutup ? 'justify-center px-2' : 'justify-start px-5 gap-2.5'}`}>
-                <img src="/images/logo.png" alt="Koperasi App" className="w-8 h-8 shrink-0" />
-                <span className={`text-base font-bold text-slate-800 truncate transition-all duration-300 ${tertutup ? 'opacity-0 max-w-0' : 'opacity-100 max-w-[160px]'}`}>Koperasi App</span>
+            <div className={`h-16 flex items-center shrink-0 overflow-hidden ${tertutup ? 'justify-center px-2' : 'justify-between px-4'}`}>
+                {tertutup ? (
+                    <button
+                        type="button"
+                        onClick={togglePrivacy}
+                        title={isPrivacyActive ? 'Mode Privasi: Aktif (Klik untuk nonaktifkan • Ctrl+Shift+P)' : 'Mode Privasi: Nonaktif (Klik untuk aktifkan • Ctrl+Shift+P)'}
+                        aria-label="Mode Privasi"
+                        className="relative group p-1.5 rounded-xl hover:bg-slate-50 transition-colors"
+                    >
+                        <img src="/images/logo.png" alt="Koperasi App" className="w-8 h-8 shrink-0" />
+                        <span
+                            className={`absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white transition-all ${
+                                isPrivacyActive ? 'bg-brand-green ring-2 ring-brand-green/30' : 'bg-slate-300'
+                            }`}
+                        />
+                    </button>
+                ) : (
+                    <>
+                        <div className="flex items-center gap-2.5 min-w-0">
+                            <img src="/images/logo.png" alt="Koperasi App" className="w-8 h-8 shrink-0" />
+                            <span className="text-base font-bold text-slate-800 truncate max-w-[135px]">
+                                Koperasi App
+                            </span>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={togglePrivacy}
+                            title={isPrivacyActive ? 'Mode Privasi: Aktif (Klik untuk nonaktifkan • Ctrl+Shift+P)' : 'Mode Privasi: Nonaktif (Klik untuk aktifkan • Ctrl+Shift+P)'}
+                            aria-label="Toggle Mode Privasi"
+                            aria-pressed={isPrivacyActive}
+                            className={`relative inline-flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200 shrink-0 ${fokusRing} ${
+                                isPrivacyActive
+                                    ? 'text-brand-green-dark bg-brand-green-light/70 hover:bg-brand-green-light border border-brand-green/30 shadow-xs'
+                                    : 'text-slate-400 bg-slate-100 hover:bg-slate-200/80 hover:text-slate-600'
+                            }`}
+                        >
+                            {isPrivacyActive ? (
+                                <ShieldCheck key="active" size={17} strokeWidth={2.2} className="animate-privacy-on" />
+                            ) : (
+                                <Shield key="inactive" size={17} strokeWidth={2} />
+                            )}
+                        </button>
+                    </>
+                )}
             </div>
 
             <nav className="flex-1 px-3 py-5 space-y-6 overflow-y-auto scrollbar-hide">
@@ -164,6 +208,7 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
                     </div>
                 ))}
             </nav>
+
 
             {/* Profil & aksi akun */}
             {tertutup ? (

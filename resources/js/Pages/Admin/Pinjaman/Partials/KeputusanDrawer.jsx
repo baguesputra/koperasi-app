@@ -32,8 +32,8 @@ export default function KeputusanDrawer({ pinjaman, onClose }) {
         <div className="space-y-4">
             <div className="bg-brand-navy rounded-2xl p-5 text-white">
                 <p className="text-xs text-slate-300 mb-1">Nominal Diminta Anggota</p>
-                <p className="text-3xl font-bold mb-2">{formatRupiah(pinjaman.nominal_diminta)}</p>
-                <p className="text-sm text-slate-300 italic mb-4">{pinjaman.terbilang}</p>
+                <p className="text-3xl font-bold mb-2 privacy-blur">{formatRupiah(pinjaman.nominal_diminta)}</p>
+                <p className="text-sm text-slate-300 italic mb-4 privacy-blur">{pinjaman.terbilang}</p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-white/10">
                     <div>

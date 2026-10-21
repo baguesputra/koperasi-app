@@ -119,18 +119,18 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         <div className="bg-white rounded-lg p-4 border border-slate-200">
                             <p className="text-xs text-slate-400 mb-1">Sisa Pokok</p>
-                            <p className="text-lg font-bold text-slate-800 break-all">{formatRupiah(preview.sisa_pokok)}</p>
+                            <p className="text-lg font-bold text-slate-800 break-all privacy-blur">{formatRupiah(preview.sisa_pokok)}</p>
                         </div>
                         {preview.bunga !== undefined && (
                             <div className="bg-amber-50 rounded-lg p-4 border border-amber-100">
                                 <p className="text-xs text-slate-400 mb-1">Bunga 1 Bulan</p>
-                                <p className="text-lg font-bold text-amber-700 break-all">{formatRupiah(preview.bunga)}</p>
+                                <p className="text-lg font-bold text-amber-700 break-all privacy-blur">{formatRupiah(preview.bunga)}</p>
                             </div>
                         )}
                         {preview.total_bayar && (
                             <div className="bg-brand-green/10 rounded-lg p-4 border border-brand-green/20">
                                 <p className="text-xs text-slate-400 mb-1">Total Bayar (Lunas Sekarang)</p>
-                                <p className="text-lg font-bold text-brand-green break-all">{formatRupiah(preview.total_bayar)}</p>
+                                <p className="text-lg font-bold text-brand-green break-all privacy-blur">{formatRupiah(preview.total_bayar)}</p>
                             </div>
                         )}
                         {preview.jadwal && preview.jadwal.length > 0 && (
@@ -150,16 +150,16 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                                             {preview.jadwal.map((a) => (
                                                 <tr key={a.cicilan_ke} className="border-b border-slate-50 hover:bg-slate-50">
                                                     <td className="py-2 px-3 text-center font-medium text-slate-700">{a.cicilan_ke}</td>
-                                                    <td className="py-2 px-3 text-right text-slate-700">{formatRupiah(a.nominal_pokok)}</td>
-                                                    <td className="py-2 px-3 text-right text-amber-600">{formatRupiah(a.nominal_bunga)}</td>
-                                                    <td className="py-2 px-3 text-right font-semibold text-slate-800">{formatRupiah(a.total_bayar)}</td>
+                                                    <td className="py-2 px-3 text-right text-slate-700 privacy-blur">{formatRupiah(a.nominal_pokok)}</td>
+                                                    <td className="py-2 px-3 text-right text-amber-600 privacy-blur">{formatRupiah(a.nominal_bunga)}</td>
+                                                    <td className="py-2 px-3 text-right font-semibold text-slate-800 privacy-blur">{formatRupiah(a.total_bayar)}</td>
                                                 </tr>
                                             ))}
                                             <tr className="font-bold bg-white border-t-2 border-slate-200">
                                                 <td className="py-2 px-3">Total</td>
-                                                <td className="py-2 px-3 text-right">{formatRupiah(preview.jadwal.reduce((s, a) => s + a.nominal_pokok, 0))}</td>
-                                                <td className="py-2 px-3 text-right text-amber-600">{formatRupiah(preview.jadwal.reduce((s, a) => s + a.nominal_bunga, 0))}</td>
-                                                <td className="py-2 px-3 text-right">{formatRupiah(preview.jadwal.reduce((s, a) => s + a.total_bayar, 0))}</td>
+                                                <td className="py-2 px-3 text-right privacy-blur">{formatRupiah(preview.jadwal.reduce((s, a) => s + a.nominal_pokok, 0))}</td>
+                                                <td className="py-2 px-3 text-right text-amber-600 privacy-blur">{formatRupiah(preview.jadwal.reduce((s, a) => s + a.nominal_bunga, 0))}</td>
+                                                <td className="py-2 px-3 text-right privacy-blur">{formatRupiah(preview.jadwal.reduce((s, a) => s + a.total_bayar, 0))}</td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -202,9 +202,9 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                                     {angsuranBaru.map((a) => (
                                         <tr key={a.id} className="border-b border-slate-50 hover:bg-slate-50">
                                             <td className="py-2 px-3 text-center font-medium text-slate-700">{a.cicilan_ke}</td>
-                                            <td className="py-2 px-3 text-right text-slate-700">{formatRupiah(a.nominal_pokok)}</td>
-                                            <td className="py-2 px-3 text-right text-amber-600">{formatRupiah(a.nominal_bunga)}</td>
-                                            <td className="py-2 px-3 text-right font-semibold text-slate-800">{formatRupiah(a.total_bayar)}</td>
+                                            <td className="py-2 px-3 text-right text-slate-700 privacy-blur">{formatRupiah(a.nominal_pokok)}</td>
+                                            <td className="py-2 px-3 text-right text-amber-600 privacy-blur">{formatRupiah(a.nominal_bunga)}</td>
+                                            <td className="py-2 px-3 text-right font-semibold text-slate-800 privacy-blur">{formatRupiah(a.total_bayar)}</td>
                                             <td className="py-2 px-3 text-center text-slate-600 whitespace-nowrap">
                                                 {a.tanggal_jatuh_tempo ? new Date(a.tanggal_jatuh_tempo).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}
                                             </td>
@@ -214,9 +214,9 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                                 <tfoot className="bg-slate-50 border-t-2 border-slate-200">
                                     <tr className="font-bold text-slate-800">
                                         <td className="py-2 px-3">Total</td>
-                                        <td className="py-2 px-3 text-right">{formatRupiah(angsuranBaru.reduce((sum, a) => sum + a.nominal_pokok, 0))}</td>
-                                        <td className="py-2 px-3 text-right text-amber-600">{formatRupiah(angsuranBaru.reduce((sum, a) => sum + a.nominal_bunga, 0))}</td>
-                                        <td className="py-2 px-3 text-right">{formatRupiah(angsuranBaru.reduce((sum, a) => sum + a.total_bayar, 0))}</td>
+                                        <td className="py-2 px-3 text-right privacy-blur">{formatRupiah(angsuranBaru.reduce((sum, a) => sum + a.nominal_pokok, 0))}</td>
+                                        <td className="py-2 px-3 text-right text-amber-600 privacy-blur">{formatRupiah(angsuranBaru.reduce((sum, a) => sum + a.nominal_bunga, 0))}</td>
+                                        <td className="py-2 px-3 text-right privacy-blur">{formatRupiah(angsuranBaru.reduce((sum, a) => sum + a.total_bayar, 0))}</td>
                                         <td></td>
                                     </tr>
                                 </tfoot>
@@ -229,7 +229,7 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
             {pengajuan.nominal_final && (
                 <div className="bg-brand-green/5 border border-brand-green/20 rounded-xl p-4">
                     <p className="text-xs text-brand-green-dark mb-1">Nominal Final Pelunasan</p>
-                    <p className="text-xl font-bold text-brand-green">{formatRupiah(pengajuan.nominal_final)}</p>
+                    <p className="text-xl font-bold text-brand-green privacy-blur">{formatRupiah(pengajuan.nominal_final)}</p>
                 </div>
             )}
 

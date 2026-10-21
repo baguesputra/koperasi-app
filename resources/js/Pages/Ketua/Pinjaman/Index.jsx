@@ -93,7 +93,7 @@ export default function Index({ menungguApproval, riwayat, ringkasanKas }) {
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-5 py-3 text-sm text-slate-700">{formatRupiah(p.nominal)}</td>
+                                            <td className="px-5 py-3 text-sm text-slate-700 privacy-blur">{formatRupiah(p.nominal)}</td>
                                             <td className="px-5 py-3 text-sm text-slate-600">{p.tenor_bulan} bulan</td>
                                             <td className="px-5 py-3 text-sm text-slate-600">{p.tanggal_pengajuan}</td>
                                             <td className="px-5 py-3"><StatusBadge status={p.status} /></td>
@@ -130,7 +130,7 @@ export default function Index({ menungguApproval, riwayat, ringkasanKas }) {
                                                 <p className="text-sm font-semibold text-slate-800 truncate">{p.anggota.nama}</p>
                                                 <p className="text-xs text-slate-400">{p.anggota.no_karyawan}</p>
                                             </td>
-                                            <td className="px-5 py-3 text-sm text-slate-700">{formatRupiah(p.nominal)}</td>
+                                            <td className="px-5 py-3 text-sm text-slate-700 privacy-blur">{formatRupiah(p.nominal)}</td>
                                             <td className="px-5 py-3 text-sm text-slate-600">{p.tenor_bulan} bulan</td>
                                             <td className="px-5 py-3 text-sm text-slate-600">{p.tanggal_pengajuan}</td>
                                             <td className="px-5 py-3"><StatusBadge status={p.status} /></td>

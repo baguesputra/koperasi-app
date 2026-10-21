@@ -62,8 +62,8 @@ export default function KeputusanDrawer({ pinjaman, onClose }) {
 
             <div className="bg-brand-navy rounded-2xl p-5 text-white">
                 <p className="text-xs text-slate-300 mb-1">Nominal Pengajuan</p>
-                <p className="text-3xl font-bold mb-2">{formatRupiah(pinjaman.nominal)}</p>
-                <p className="text-sm text-slate-300 italic mb-4">{pinjaman.terbilang}</p>
+                <p className="text-3xl font-bold mb-2 privacy-blur">{formatRupiah(pinjaman.nominal)}</p>
+                <p className="text-sm text-slate-300 italic mb-4 privacy-blur">{pinjaman.terbilang}</p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-white/10">
                     <div>
@@ -154,7 +154,7 @@ export default function KeputusanDrawer({ pinjaman, onClose }) {
                                     <div className="space-y-3 mb-4">
                                         <div>
                                             <label className="block text-sm font-semibold text-slate-600 mb-2">
-                                                Nominal Final Cair (maks {formatRupiah(pinjaman.limit_tersedia)})
+                                                Nominal Final Cair (maks <span className="privacy-blur">{formatRupiah(pinjaman.limit_tersedia)}</span>)
                                             </label>
                                             <div className="relative">
                                                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-base font-semibold text-slate-400">Rp</span>
@@ -163,7 +163,7 @@ export default function KeputusanDrawer({ pinjaman, onClose }) {
                                                     min={1}
                                                     value={data.nominal}
                                                     onChange={(e) => setData('nominal', e.target.value)}
-                                                    className="w-full pl-12 pr-4 py-2.5 text-lg font-bold rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
+                                                    className="w-full pl-12 pr-4 py-2.5 text-lg font-bold rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors privacy-blur"
                                                     autoFocus
                                                 />
                                             </div>

@@ -181,8 +181,8 @@ function Stat({ label, value, hint }) {
     return (
         <div>
             <p className="text-xs text-slate-500">{label}</p>
-            <p className="text-lg font-bold tabular-nums text-slate-800 leading-tight">{value}</p>
-            {hint && <p className="text-xs text-slate-400 mt-0.5">{hint}</p>}
+            <p className="text-lg font-bold tabular-nums text-slate-800 leading-tight privacy-blur">{value}</p>
+            {hint && <p className="text-xs text-slate-400 mt-0.5 privacy-blur">{hint}</p>}
         </div>
     );
 }

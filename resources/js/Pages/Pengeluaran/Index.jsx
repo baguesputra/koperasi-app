@@ -102,13 +102,13 @@ export default function Index({ pengeluaran, filters = {}, tipeList = {}, akunLi
                         <p className="text-xs text-white/70">
                             Total Pengeluaran{filterAktif ? ' (hasil filter)' : ''}
                         </p>
-                        <p className="text-2xl font-bold tabular-nums leading-tight">- {formatRupiah(totalTampil)}</p>
+                        <p className="text-2xl font-bold tabular-nums leading-tight privacy-blur">- {formatRupiah(totalTampil)}</p>
                     </div>
                 </div>
                 <dl className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-white/15 text-sm">
                     <div className="rounded-xl bg-white/10 px-3 py-2">
                         <dt className="text-xs text-white/70">Bulan {labelBulan}</dt>
-                        <dd className="font-bold tabular-nums">- {formatRupiah(totalBulan)}</dd>
+                        <dd className="font-bold tabular-nums privacy-blur">- {formatRupiah(totalBulan)}</dd>
                     </div>
                 </dl>
             </div>
@@ -197,7 +197,7 @@ export default function Index({ pengeluaran, filters = {}, tipeList = {}, akunLi
                         </FormField>
                         <div className="flex items-center gap-2">
                             <Button type="submit" size="sm" disabled={processing} className="rounded-full shadow-md shadow-brand-green/25">
-                                {processing ? 'Menyimpan...' : `Simpan • ${data.jumlah ? formatRupiah(Number(data.jumlah)) : 'Rp 0'}`}
+                                {processing ? 'Menyimpan...' : <>Simpan • <span className="privacy-blur">{data.jumlah ? formatRupiah(Number(data.jumlah)) : 'Rp 0'}</span></>}
                             </Button>
                             <Button type="button" variant="ghost" size="sm" className="rounded-full" onClick={() => setShowForm(false)}>
                                 Batal
@@ -315,7 +315,7 @@ export default function Index({ pengeluaran, filters = {}, tipeList = {}, akunLi
                                                 <span className="text-sm text-slate-500 truncate max-w-[140px]">{p.input_oleh}</span>
                                             </div>
                                         </td>
-                                        <td className="px-4 py-2.5 text-right font-bold text-rose-600 tabular-nums whitespace-nowrap">
+                                        <td className="px-4 py-2.5 text-right font-bold text-rose-600 tabular-nums whitespace-nowrap privacy-blur">
                                             - {formatRupiah(p.jumlah)}
                                         </td>
                                     </tr>
