@@ -14,9 +14,9 @@ use Spatie\Permission\Models\Role;
 
 class PenggunaController extends Controller
 {
-    private const ROLE_DIPERBOLEHKAN = ['admin', 'bendahara', 'ketua_koperasi', 'anggota'];
+    private const ROLE_DIPERBOLEHKAN = ['super_admin', 'admin', 'bendahara', 'ketua_koperasi', 'pengawas', 'anggota'];
 
-    private const NO_KARYAWAN_ROOT = 'ADM-000001';
+    private const NO_KARYAWAN_ROOT = ['SPADM-000001', 'ADM-000001'];
 
     public function index(Request $request): Response
     {
@@ -207,6 +207,6 @@ class PenggunaController extends Controller
 
     private function akunDilindungi(User $user): bool
     {
-        return $user->no_karyawan === self::NO_KARYAWAN_ROOT;
+        return in_array($user->no_karyawan, self::NO_KARYAWAN_ROOT);
     }
 }

@@ -80,7 +80,7 @@ class PengaturanController extends Controller
                     'id' => $role->id,
                     'name' => $role->name,
                     'jumlah_user' => $role->users_count,
-                    'dilindungi' => in_array($role->name, ['admin', 'bendahara', 'ketua_koperasi', 'anggota']),
+                    'dilindungi' => in_array($role->name, ['super_admin', 'admin', 'bendahara', 'ketua_koperasi', 'pengawas', 'anggota']),
                     'permissions' => $role->permissions->pluck('name')->values(),
                 ]);
 
@@ -124,7 +124,7 @@ class PengaturanController extends Controller
                         'no_karyawan' => $user->anggota->no_karyawan,
                         'nama' => $user->anggota->nama,
                     ] : null,
-                    'dilindungi' => $user->no_karyawan === 'ADM-000001',
+                    'dilindungi' => in_array($user->no_karyawan, ['SPADM-000001', 'ADM-000001']),
                 ]);
         }
 

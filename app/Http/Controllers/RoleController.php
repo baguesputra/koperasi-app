@@ -12,7 +12,7 @@ use Spatie\Permission\Models\Role;
 class RoleController extends Controller
 {
     // Role bawaan sistem yang tidak boleh dihapus (banyak logic implisit bergantung ke ini)
-    private const ROLE_DILINDUNGI = ['admin', 'bendahara', 'ketua_koperasi', 'anggota'];
+    private const ROLE_DILINDUNGI = ['super_admin', 'admin', 'bendahara', 'ketua_koperasi', 'pengawas', 'anggota'];
 
     public function index(): Response
     {

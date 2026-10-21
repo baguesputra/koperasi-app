@@ -1,5 +1,5 @@
 import AppLayout from '@/Layouts/AppLayout';
-import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import Card from '@/Components/ui/Card';
@@ -24,6 +24,8 @@ const LABEL_PERSEN = {
 };
 
 export default function Index({ periode = [], filters = {}, persenDefault = {}, tahunSaran }) {
+    const { auth } = usePage().props;
+    const bisaKelola = auth.user?.permissions?.includes('shu.kelola');
     const [showForm, setShowForm] = useState(false);
     const { data, setData, post, processing, errors, reset } = useForm({
         tahun_buku: tahunSaran ?? new Date().getFullYear(),
@@ -49,7 +51,7 @@ export default function Index({ periode = [], filters = {}, persenDefault = {}, 
 
             <BackLink href={route('dashboard')}>Dashboard</BackLink>
             <PageHeader title="Pembagian SHU" subtitle="SHU tahunan dibagi per anggota tiap akhir tahun">
-                {!showForm && (
+                {bisaKelola && !showForm && (
                     <Button size="sm" onClick={() => setShowForm(true)} className="rounded-full">
                         <Plus size={16} />
                         Buat Periode

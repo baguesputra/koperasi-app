@@ -17,7 +17,7 @@ import { withIdempotencyKey } from '@/Utils/idempotency';
  *    Dicatat total per komponen, rincian tetap tersimpan & ditampilkan.
  *    Dana Cadangan dikecualikan karena memupuk modal sendiri (uang mengendap di bank).
  */
-export default function BayarTab({ periode, ringkasan, komponenBayar = [], akun, setAkun, tanggal, setTanggal }) {
+export default function BayarTab({ periode, ringkasan, komponenBayar = [], akun, setAkun, tanggal, setTanggal, bisaKelola = true }) {
     const hariIni = new Date().toISOString().slice(0, 10);
     const [bukaRincian, setBukaRincian] = useState({});
 
@@ -126,14 +126,16 @@ export default function BayarTab({ periode, ringkasan, komponenBayar = [], akun,
                     <p className="text-xs text-slate-500">
                         Pembayaran per baris anggota juga dapat dilakukan langsung melalui tab <strong>Distribusi SHU</strong>.
                     </p>
-                    {ringkasan.sudah_bayar < ringkasan.anggota ? (
-                        <Button type="button" size="sm" onClick={bayarSemuaAnggota}>
-                            Bayar Semua Anggota Belum Dibayar ({ringkasan.anggota - ringkasan.sudah_bayar})
-                        </Button>
-                    ) : (
-                        <span className="inline-flex items-center gap-1 text-xs font-bold text-brand-green-dark bg-brand-green-light px-3 py-1.5 rounded-full">
-                            <Check size={14} /> Seluruh SHU Anggota Selesai Dibayarkan
-                        </span>
+                    {bisaKelola && (
+                        ringkasan.sudah_bayar < ringkasan.anggota ? (
+                            <Button type="button" size="sm" onClick={bayarSemuaAnggota}>
+                                Bayar Semua Anggota Belum Dibayar ({ringkasan.anggota - ringkasan.sudah_bayar})
+                            </Button>
+                        ) : (
+                            <span className="inline-flex items-center gap-1 text-xs font-bold text-brand-green-dark bg-brand-green-light px-3 py-1.5 rounded-full">
+                                <Check size={14} /> Seluruh SHU Anggota Selesai Dibayarkan
+                            </span>
+                        )
                     )}
                 </div>
             </Card>
@@ -250,13 +252,17 @@ export default function BayarTab({ periode, ringkasan, komponenBayar = [], akun,
                                             </td>
                                             <td className="py-3 pl-3 text-right whitespace-nowrap">
                                                 {!sudah && k.nominal > 0 ? (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => bayarSatuKomponen(k)}
-                                                        className="text-sm font-semibold text-brand-green-dark hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/40 rounded px-2 py-1 bg-brand-green-light/40 hover:bg-brand-green-light"
-                                                    >
-                                                        Bayar
-                                                    </button>
+                                                    bisaKelola ? (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => bayarSatuKomponen(k)}
+                                                            className="text-sm font-semibold text-brand-green-dark hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/40 rounded px-2 py-1 bg-brand-green-light/40 hover:bg-brand-green-light"
+                                                        >
+                                                            Bayar
+                                                        </button>
+                                                    ) : (
+                                                        <span className="text-xs text-slate-400">Belum dibayar</span>
+                                                    )
                                                 ) : sudah ? (
                                                     <span className="text-xs text-slate-400 italic">Tercatat di kas</span>
                                                 ) : (
@@ -282,7 +288,7 @@ export default function BayarTab({ periode, ringkasan, komponenBayar = [], akun,
                     </div>
                 )}
 
-                {sisaKomponenBelumBayar > 0 && (
+                {bisaKelola && sisaKomponenBelumBayar > 0 && (
                     <div className="flex justify-end pt-3 mt-3 border-t border-slate-100">
                         <Button type="button" size="sm" variant="secondary" onClick={bayarSemuaKomponen}>
                             Bayar Semua Komponen Belum Dibayar ({sisaKomponenBelumBayar})

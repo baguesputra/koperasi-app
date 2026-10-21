@@ -6,21 +6,21 @@ import { Transition } from '@headlessui/react';
 
 const menuGroups = [
     [
-        { label: 'Dashboard', routeName: 'dashboard', roles: ['admin', 'bendahara', 'ketua_koperasi'] },
+        { label: 'Dashboard', routeName: 'dashboard', roles: ['super_admin', 'admin', 'bendahara', 'ketua_koperasi', 'pengawas'] },
     ],
     [
-        { label: 'Anggota', routeName: 'anggota.index', roles: ['admin', 'bendahara', 'ketua_koperasi'] },
-        { label: 'Simpanan', routeName: null, roles: ['admin', 'bendahara'] },
-        { label: 'Pinjaman', routeName: 'pinjaman.index', roles: ['admin', 'bendahara', 'ketua_koperasi'] },
+        { label: 'Anggota', routeName: 'anggota.index', roles: ['super_admin', 'admin', 'bendahara', 'ketua_koperasi', 'pengawas'] },
+        { label: 'Simpanan', routeName: null, roles: ['super_admin', 'admin', 'bendahara', 'ketua_koperasi', 'pengawas'] },
+        { label: 'Pinjaman', routeName: 'pinjaman.index', roles: ['super_admin', 'admin', 'bendahara', 'ketua_koperasi', 'pengawas'] },
     ],
     [
-        { label: 'Approval Pinjaman', routeName: 'approval-pinjaman', roles: ['bendahara', 'ketua_koperasi'] },
-        { label: 'Angsuran', routeName: 'bendahara.angsuran.index', roles: ['bendahara'] },
-        { label: 'Konfirmasi Simpanan', routeName: 'bendahara.simpanan.index', roles: ['bendahara'] },
-        { label: 'Kas Koperasi', routeName: 'kas-koperasi.index', roles: ['admin', 'bendahara', 'ketua_koperasi'] },
-        { label: 'Jurnal Kas', routeName: 'jurnal-kas.index', roles: ['admin', 'bendahara', 'ketua_koperasi'] },
-        { label: 'Laporan', routeName: null, roles: ['admin', 'bendahara', 'ketua_koperasi'] },
-        { label: 'Pengaturan', routeName: 'pengaturan.index', roles: ['admin'] },
+        { label: 'Approval Pinjaman', routeName: 'approval-pinjaman', roles: ['super_admin', 'bendahara', 'ketua_koperasi'] },
+        { label: 'Angsuran', routeName: 'bendahara.angsuran.index', roles: ['super_admin', 'bendahara'] },
+        { label: 'Konfirmasi Simpanan', routeName: 'bendahara.simpanan.index', roles: ['super_admin', 'bendahara'] },
+        { label: 'Kas Koperasi', routeName: 'kas-koperasi.index', roles: ['super_admin', 'admin', 'bendahara', 'ketua_koperasi', 'pengawas'] },
+        { label: 'Jurnal Kas', routeName: 'jurnal-kas.index', roles: ['super_admin', 'admin', 'bendahara', 'ketua_koperasi', 'pengawas'] },
+        { label: 'Laporan', routeName: null, roles: ['super_admin', 'admin', 'bendahara', 'ketua_koperasi', 'pengawas'] },
+        { label: 'Pengaturan', routeName: 'pengaturan.index', roles: ['super_admin', 'admin'] },
     ],
 ];
 
@@ -106,8 +106,8 @@ export default function MobileNav() {
 
                                     if (hasSubmenu) {
                                         const subItems = [
-                                            { label: 'Menunggu Tinjauan', routeName: 'bendahara.pinjaman.index', roles: ['bendahara'] },
-                                            { label: 'Menunggu Approval', routeName: 'ketua.pinjaman.index', roles: ['ketua_koperasi'] },
+                                            { label: 'Menunggu Tinjauan', routeName: 'bendahara.pinjaman.index', roles: ['super_admin', 'bendahara'] },
+                                            { label: 'Menunggu Approval', routeName: 'ketua.pinjaman.index', roles: ['super_admin', 'ketua_koperasi'] },
                                         ].filter((si) => si.roles.some((r) => userRoles.includes(r)));
 
                                         const isGroupExpanded = expandedGroup === groupIndex;

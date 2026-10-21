@@ -10,7 +10,7 @@ import {
 export default function Profil({ anggota, rekening }) {
     const { auth } = usePage().props;
     const roles = auth?.user?.roles ?? [];
-    const isPengurus = roles.some((r) => ['admin', 'bendahara', 'ketua_koperasi'].includes(r));
+    const isPengurus = roles.some((r) => ['super_admin', 'admin', 'bendahara', 'ketua_koperasi', 'pengawas'].includes(r));
 
     const [showForm, setShowForm] = useState(false);
     const { data, setData, post, processing, errors, reset } = useForm({

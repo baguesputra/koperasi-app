@@ -1,5 +1,5 @@
 import AppLayout from '@/Layouts/AppLayout';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
 import { Download, RotateCcw, Stamp } from 'lucide-react';
 import Button from '@/Components/ui/Button';
@@ -27,6 +27,8 @@ const BADGE = {
 };
 
 export default function Show({ periode, ringkasan, detail, sums = {}, daftarAnggota = [], filters = {}, komponen_bayar = [] }) {
+    const { auth } = usePage().props;
+    const bisaKelola = auth.user?.permissions?.includes('shu.kelola');
     const tabAwal = typeof window !== 'undefined'
         ? new URLSearchParams(window.location.search).get('tab')
         : null;
@@ -108,7 +110,7 @@ export default function Show({ periode, ringkasan, detail, sums = {}, daftarAngg
                 </a>
             </PageHeader>
 
-            {periode.status === 'diajukan' && (
+            {periode.status === 'diajukan' && bisaKelola && (
                 <Card className="mb-4 border-sky-300">
                     <div className="flex flex-wrap items-center gap-2">
                         <p className="text-sm text-slate-600 flex-1 min-w-[200px]">
@@ -179,7 +181,7 @@ export default function Show({ periode, ringkasan, detail, sums = {}, daftarAngg
                         ringkasan={ringkasan}
                         sudahDihitung={ringkasan.anggota > 0}
                         daftarAnggota={daftarAnggota}
-                        readOnly={periode.status !== 'draft'}
+                        readOnly={periode.status !== 'draft' || !bisaKelola}
                     />
                 )}
 
@@ -191,7 +193,7 @@ export default function Show({ periode, ringkasan, detail, sums = {}, daftarAngg
                         filters={filters}
                         live={liveRows}
                         isPreview={Boolean(liveRows)}
-                        bisaBayar={periode.is_final}
+                        bisaBayar={periode.is_final && bisaKelola}
                         onBayar={bayarSatu}
                         onKeKomponen={() => setTab('komponen')}
                         ringkasan={ringkasan}
@@ -208,6 +210,7 @@ export default function Show({ periode, ringkasan, detail, sums = {}, daftarAngg
                         setAkun={setBayarAkun}
                         tanggal={bayarTanggal}
                         setTanggal={setBayarTanggal}
+                        bisaKelola={bisaKelola}
                     />
                 )}
             </div>

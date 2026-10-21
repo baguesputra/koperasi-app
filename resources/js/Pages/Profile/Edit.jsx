@@ -39,7 +39,7 @@ export default function Edit({ pengguna, ringkasan }) {
     const inisial = pengguna?.name?.charAt(0)?.toUpperCase() ?? '?';
     const a = pengguna?.anggota;
     const roles = pengguna?.roles ?? [];
-    const isPengurus = roles.some((r) => ['admin', 'bendahara', 'ketua_koperasi'].includes(r));
+    const isPengurus = roles.some((r) => ['super_admin', 'admin', 'bendahara', 'ketua_koperasi', 'pengawas'].includes(r));
 
     return (
         <AppLayout>

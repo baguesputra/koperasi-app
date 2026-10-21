@@ -10,6 +10,12 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
+        $superAdmin = User::firstOrCreate(
+            ['no_karyawan' => 'SPADM-000001'],
+            ['name' => 'Super Admin Koperasi', 'email' => 'superadmin@koperasi.test', 'password' => Hash::make('SPADM-000001')]
+        );
+        $superAdmin->assignRole('super_admin');
+
         $admin = User::firstOrCreate(
             ['no_karyawan' => 'ADM-000001'],
             ['name' => 'Admin Koperasi', 'email' => 'admin@koperasi.test', 'password' => Hash::make('ADM-000001')]
@@ -28,6 +34,12 @@ class UserSeeder extends Seeder
         );
         $ketua->assignRole('ketua_koperasi');
 
+        $pengawas = User::firstOrCreate(
+            ['no_karyawan' => 'WAS-000001'],
+            ['name' => 'Pengawas Koperasi', 'email' => 'pengawas@koperasi.test', 'password' => Hash::make('WAS-000001')]
+        );
+        $pengawas->assignRole('pengawas');
+
         $anggotaBulk = $this->anggotaBulk();
 
         $anggotaUsers = [
@@ -38,11 +50,23 @@ class UserSeeder extends Seeder
         ];
 
         foreach (array_merge($anggotaUsers, $anggotaBulk) as $i => $data) {
-            $user = User::firstOrCreate(
-                ['no_karyawan' => $data['no_karyawan'], 'email' => $data['email']],
-                ['name' => $data['name'], 'password' => Hash::make($data['no_karyawan'])]
-            );
-            $user->assignRole('anggota');
+            $user = User::where('no_karyawan', $data['no_karyawan'])
+                ->when(! empty($data['email']), fn ($q) => $q->orWhere('email', $data['email']))
+                ->first();
+
+            if (! $user) {
+                $user = User::create([
+                    'no_karyawan' => $data['no_karyawan'],
+                    'email' => $data['email'] ?? null,
+                    'name' => $data['name'],
+                    'password' => Hash::make($data['no_karyawan']),
+                    'status' => 'aktif',
+                ]);
+            }
+
+            if (! $user->hasRole('anggota')) {
+                $user->assignRole('anggota');
+            }
         }
     }
 
