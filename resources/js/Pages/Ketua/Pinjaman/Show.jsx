@@ -10,6 +10,7 @@ import { withIdempotencyKey } from '@/Utils/idempotency';
 import JejakNominal from '@/Pages/PinjamanApproval/JejakNominal';
 import KartuKas from '@/Pages/PinjamanApproval/KartuKas';
 import PreviewNominal from '@/Pages/PinjamanApproval/PreviewNominal';
+import RincianBebanPinjaman from '@/Pages/PinjamanApproval/RincianBebanPinjaman';
 
 const jabatanLabel = { staff: 'Staff', hod: 'HOD' };
 
@@ -45,6 +46,7 @@ export default function Show({ pinjaman }) {
                 <div className="lg:col-span-2 space-y-5">
                     <JejakNominal pinjaman={pinjaman} finalLabel="Final (cair)" />
                     <KartuKas kas={pinjaman.kas} nominalTahap={pinjaman.nominal_disetujui_bendahara ?? pinjaman.nominal_diminta} label="Nominal usulan Bendahara" />
+                    <RincianBebanPinjaman pinjaman={pinjaman} />
                     <Card>
                         <p className="text-sm font-semibold text-slate-400 mb-1">Nominal Pengajuan</p>
                         <p className="text-3xl font-bold text-slate-800 mb-4">{formatRupiah(pinjaman.nominal)}</p>
@@ -85,6 +87,13 @@ export default function Show({ pinjaman }) {
                             <p className="text-sm text-slate-400">a.n. {pinjaman.rekening.atas_nama}</p>
                         </div>
                     </Card>
+
+                    {pinjaman.catatan_admin && (
+                        <Card className="bg-sky-50 border-sky-200">
+                            <p className="text-sm font-semibold text-sky-800 mb-1.5">Catatan dari Verifikasi Admin</p>
+                            <p className="text-base text-slate-700">{pinjaman.catatan_admin}</p>
+                        </Card>
+                    )}
 
                     {pinjaman.catatan_bendahara && (
                         <Card className="bg-slate-50">

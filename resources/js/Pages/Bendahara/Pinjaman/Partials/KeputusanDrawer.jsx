@@ -8,34 +8,36 @@ import { withIdempotencyKey } from '@/Utils/idempotency';
 import JejakNominal from '@/Pages/PinjamanApproval/JejakNominal';
 import KartuKas from '@/Pages/PinjamanApproval/KartuKas';
 import PreviewNominal from '@/Pages/PinjamanApproval/PreviewNominal';
+import RincianBebanPinjaman from '@/Pages/PinjamanApproval/RincianBebanPinjaman';
 
 const jabatanLabel = { staff: 'Staff', hod: 'HOD' };
 
-function calculateDueDate(tanggalPengajuan, cicilanKe) {
-    const date = new Date(tanggalPengajuan);
-    date.setMonth(date.getMonth() + cicilanKe);
-    date.setDate(0);
-    return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
 export default function KeputusanDrawer({ pinjaman, onClose }) {
-    const [aksi, setAksi] = useState(null);
-    const [showTable, setShowTable] = useState(true);
+    const [aksi, setAksi] = useState(null); // 'approve' | 'reject' | 'cair' | null
     const { data, setData, post, processing, errors } = useForm({
         catatan: '',
-        nominal: String(pinjaman.nominal_diminta ?? pinjaman.nominal),
+        nominal: String(pinjaman.nominal_disetujui_bendahara ?? pinjaman.nominal_diminta ?? pinjaman.nominal),
         tenor_bulan: '',
     });
 
-    const bisaDiproses = pinjaman.status === 'diajukan';
+    const bisaApprove = pinjaman.status === 'approved_admin';
+    const bisaCair = pinjaman.status === 'approved_bendahara' && Boolean(pinjaman.cair_oleh_bendahara);
+    const bisaDiproses = bisaApprove || bisaCair;
+
     const nominalUsulan = Number(data.nominal) || 0;
     const diAtasLimit = nominalUsulan > (pinjaman.limit_tersedia ?? 0);
 
     function submit(e) {
         e.preventDefault();
-        const url = aksi === 'approve'
-            ? route('bendahara.pinjaman.approve', pinjaman.id)
-            : route('bendahara.pinjaman.reject', pinjaman.id);
+        let url;
+        if (aksi === 'cair') {
+            url = route('bendahara.pinjaman.cair', pinjaman.id);
+        } else if (aksi === 'approve') {
+            url = route('bendahara.pinjaman.approve', pinjaman.id);
+        } else {
+            url = route('bendahara.pinjaman.reject', pinjaman.id);
+        }
+
         post(url, withIdempotencyKey({
             preserveScroll: true,
             onSuccess: () => onClose(),
@@ -44,6 +46,14 @@ export default function KeputusanDrawer({ pinjaman, onClose }) {
 
     return (
         <div className="space-y-4">
+            {/* Catatan Admin jika ada */}
+            {pinjaman.catatan_admin && (
+                <div className="bg-sky-50 border border-sky-200 rounded-xl p-4">
+                    <p className="text-xs font-bold text-sky-800 mb-1">Catatan dari Verifikasi Admin</p>
+                    <p className="text-sm text-slate-700">{pinjaman.catatan_admin}</p>
+                </div>
+            )}
+
             <div className="bg-brand-navy rounded-2xl p-5 text-white">
                 <p className="text-xs text-slate-300 mb-1">Nominal Diminta Anggota</p>
                 <p className="text-3xl font-bold mb-2">{formatRupiah(pinjaman.nominal_diminta)}</p>
@@ -100,77 +110,7 @@ export default function KeputusanDrawer({ pinjaman, onClose }) {
                 </div>
             </div>
 
-            <div className="bg-slate-50 rounded-xl p-4">
-                <p className="text-xs text-slate-400 mb-3">Simulasi Total Angsuran (Bunga Menurun / Declining Balance)</p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div className="bg-white rounded-lg p-4 border border-slate-200">
-                        <p className="text-xs text-slate-400 mb-1">Total Pokok</p>
-                        <p className="text-lg font-bold text-slate-800 break-all">{formatRupiah(pinjaman.total_pokok_angsuran)}</p>
-                    </div>
-                    <div className="bg-amber-50 rounded-lg p-4 border border-amber-100">
-                        <p className="text-xs text-slate-400 mb-1">Total Bunga</p>
-                        <p className="text-lg font-bold text-amber-700 break-all">{formatRupiah(pinjaman.total_bunga_angsuran)}</p>
-                    </div>
-                    <div className="bg-brand-green/10 rounded-lg p-4 border border-brand-green/20">
-                        <p className="text-xs text-slate-400 mb-1">Total Bayar</p>
-                        <p className="text-lg font-bold text-brand-green break-all">{formatRupiah(pinjaman.total_angsuran)}</p>
-                    </div>
-                </div>
-            </div>
-
-            <div className="border border-slate-200 rounded-xl overflow-hidden">
-                <button
-                    type="button"
-                    onClick={() => setShowTable(!showTable)}
-                    className="w-full px-4 py-3 bg-slate-50 flex items-center justify-between text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
-                >
-                    <span className="flex items-center gap-2">
-                        <svg className={`w-5 h-5 transition-transform ${showTable ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                        Detail Jadwal Angsuran
-                    </span>
-                    <span className="text-xs text-slate-400">{pinjaman.jadwal_angsuran?.length ?? 0} cicilan</span>
-                </button>
-
-                {showTable && (
-                    <div className="overflow-x-auto p-3">
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="text-left text-slate-400 border-b border-slate-200">
-                                    <th className="py-2 px-3 w-12 text-center">Ke</th>
-                                    <th className="py-2 px-3 text-right">Pokok</th>
-                                    <th className="py-2 px-3 text-right">Bunga</th>
-                                    <th className="py-2 px-3 text-right">Total Bayar</th>
-                                    <th className="py-2 px-3 text-center">Jatuh Tempo</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {pinjaman.jadwal_angsuran?.map((a) => (
-                                    <tr key={a.cicilan_ke} className="border-b border-slate-50 hover:bg-slate-50">
-                                        <td className="py-2 px-3 text-center font-medium text-slate-700">{a.cicilan_ke}</td>
-                                        <td className="py-2 px-3 text-right text-slate-700">{formatRupiah(a.nominal_pokok)}</td>
-                                        <td className="py-2 px-3 text-right text-amber-600">{formatRupiah(a.nominal_bunga)}</td>
-                                        <td className="py-2 px-3 text-right font-semibold text-slate-800">{formatRupiah(a.total_bayar)}</td>
-                                        <td className="py-2 px-3 text-center text-slate-600 whitespace-nowrap">
-                                            {pinjaman.tanggal_pengajuan && calculateDueDate(pinjaman.tanggal_pengajuan, a.cicilan_ke)}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                            <tfoot className="bg-slate-50 border-t-2 border-slate-200">
-                                <tr className="font-bold text-slate-800">
-                                    <td className="py-2 px-3">Total</td>
-                                    <td className="py-2 px-3 text-right">{formatRupiah(pinjaman.total_pokok_angsuran)}</td>
-                                    <td className="py-2 px-3 text-right text-amber-600">{formatRupiah(pinjaman.total_bunga_angsuran)}</td>
-                                    <td className="py-2 px-3 text-right">{formatRupiah(pinjaman.total_angsuran)}</td>
-                                    <td></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                )}
-            </div>
+            <RincianBebanPinjaman pinjaman={pinjaman} />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-slate-50 rounded-xl p-4">
@@ -198,12 +138,21 @@ export default function KeputusanDrawer({ pinjaman, onClose }) {
                     <>
                         {!aksi ? (
                             <div className="flex items-center gap-3">
-                                <Button variant="primary" onClick={() => setAksi('approve')}>
-                                    Setujui
-                                </Button>
-                                <Button variant="danger" onClick={() => setAksi('reject')}>
-                                    Tolak
-                                </Button>
+                                {bisaApprove && (
+                                    <>
+                                        <Button variant="primary" onClick={() => setAksi('approve')}>
+                                            Setujui & Usulkan
+                                        </Button>
+                                        <Button variant="danger" onClick={() => setAksi('reject')}>
+                                            Tolak
+                                        </Button>
+                                    </>
+                                )}
+                                {bisaCair && (
+                                    <Button variant="primary" onClick={() => setAksi('cair')} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                                        Cairkan Pinjaman (Mandiri Ketua)
+                                    </Button>
+                                )}
                             </div>
                         ) : (
                             <form onSubmit={submit}>
@@ -256,17 +205,36 @@ export default function KeputusanDrawer({ pinjaman, onClose }) {
                                         />
                                     </div>
                                 )}
+
+                                {aksi === 'cair' && (
+                                    <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl mb-4 space-y-2">
+                                        <p className="text-sm font-bold text-emerald-800">Konfirmasi Pencairan Dana</p>
+                                        <p className="text-xs text-emerald-700">
+                                            Pinjaman ini diajukan mandiri oleh Ketua Koperasi. Sesuai ketentuan, pencairan dana dilakukan oleh Bendahara.
+                                        </p>
+                                        <p className="text-base font-bold text-slate-800">
+                                            Nominal: {formatRupiah(pinjaman.nominal_disetujui_bendahara ?? pinjaman.nominal)}
+                                        </p>
+                                    </div>
+                                )}
+
                                 {errors.keputusan && (
                                     <p className="text-sm text-red-600 mb-3">{errors.keputusan}</p>
                                 )}
                                 <label className="block text-sm font-semibold text-slate-600 mb-2">
-                                    Catatan {aksi === 'approve' ? 'Persetujuan' : 'Penolakan'}
+                                    Catatan {aksi === 'approve' ? 'Persetujuan' : aksi === 'cair' ? 'Pencairan' : 'Penolakan'}
                                 </label>
                                 <textarea
                                     value={data.catatan}
                                     onChange={(e) => setData('catatan', e.target.value)}
                                     rows={3}
-                                    placeholder={aksi === 'approve' ? 'Contoh: Data lengkap, memenuhi syarat.' : 'Contoh: Dokumen belum lengkap.'}
+                                    placeholder={
+                                        aksi === 'approve'
+                                            ? 'Contoh: Data lengkap, saldo mencukupi, usulan nominal disetujui.'
+                                            : aksi === 'cair'
+                                            ? 'Contoh: Dana telah ditransfer ke rekening pemohon.'
+                                            : 'Contoh: Dokumen atau kriteria belum memenuhi.'
+                                    }
                                     className="w-full px-4 py-2.5 text-base rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
                                 />
                                 {errors.catatan && <p className="text-sm text-red-600 mt-1.5">{errors.catatan}</p>}
@@ -274,10 +242,15 @@ export default function KeputusanDrawer({ pinjaman, onClose }) {
                                 <div className="flex items-center gap-3 mt-4">
                                     <Button
                                         type="submit"
-                                        variant={aksi === 'approve' ? 'primary' : 'danger'}
+                                        variant={aksi === 'approve' || aksi === 'cair' ? 'primary' : 'danger'}
                                         disabled={processing}
+                                        className={aksi === 'cair' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : ''}
                                     >
-                                        {processing ? 'Memproses...' : `Konfirmasi ${aksi === 'approve' ? 'Setujui' : 'Tolak'}`}
+                                        {processing
+                                            ? 'Memproses...'
+                                            : aksi === 'cair'
+                                            ? 'Konfirmasi Pencairan'
+                                            : `Konfirmasi ${aksi === 'approve' ? 'Setujui' : 'Tolak'}`}
                                     </Button>
                                     <Button type="button" variant="ghost" onClick={() => setAksi(null)}>
                                         Batal

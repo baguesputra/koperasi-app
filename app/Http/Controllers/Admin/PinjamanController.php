@@ -39,7 +39,7 @@ class PinjamanController extends Controller
         return Inertia::render('Admin/Pinjaman/Index', [
             'menungguTinjauan' => $menungguTinjauan,
             'riwayat' => $riwayat,
-            'ringkasanKas' => $this->ringkasan->ringkasan(),
+            'ringkasanKas' => $this->ringkasan->ringkasan('admin'),
         ]);
     }
 

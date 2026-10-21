@@ -96,7 +96,7 @@ export default function Index({ menungguApproval, riwayat, ringkasanKas }) {
                                             <td className="px-5 py-3 text-sm text-slate-700">{formatRupiah(p.nominal)}</td>
                                             <td className="px-5 py-3 text-sm text-slate-600">{p.tenor_bulan} bulan</td>
                                             <td className="px-5 py-3 text-sm text-slate-600">{p.tanggal_pengajuan}</td>
-                                            <td className="px-5 py-3"><StatusBadge status="approved_bendahara" /></td>
+                                            <td className="px-5 py-3"><StatusBadge status={p.status} /></td>
                                             <td className="px-3 py-3 text-right" aria-hidden="true">
                                                 <ChevronRight size={18} className="ml-auto text-slate-300" />
                                             </td>

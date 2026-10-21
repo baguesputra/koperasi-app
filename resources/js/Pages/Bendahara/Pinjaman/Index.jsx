@@ -15,7 +15,7 @@ const tabDasar = 'inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold
 const tabAktif = `${tabDasar} bg-white border-slate-200 border-b-0 text-brand-navy`;
 const tabNonAktif = `${tabDasar} bg-slate-50 border-slate-200 text-slate-500 hover:bg-white hover:text-slate-700`;
 
-export default function Index({ menungguTinjauan, riwayat, ringkasanKas }) {
+export default function Index({ menungguTinjauan = [], menungguPencairan = [], riwayat = [], ringkasanKas }) {
     const [tab, setTab] = useState('baru');
     const [detailPinjaman, setDetailPinjaman] = useState(null);
     const [drawerOpen, setDrawerOpen] = useState(false);
@@ -35,7 +35,7 @@ export default function Index({ menungguTinjauan, riwayat, ringkasanKas }) {
 
             <PageHeader
                 title="Approval Pinjaman"
-                subtitle={`${menungguTinjauan.length} pengajuan menunggu tinjauan Anda`}
+                subtitle={`${menungguTinjauan.length} pengajuan menunggu tinjauan Anda${menungguPencairan.length > 0 ? ` • ${menungguPencairan.length} menunggu pencairan` : ''}`}
             />
 
             <RingkasanKas ringkasan={ringkasanKas} />
@@ -51,6 +51,14 @@ export default function Index({ menungguTinjauan, riwayat, ringkasanKas }) {
                             </span>
                         )}
                     </button>
+                    {menungguPencairan.length > 0 && (
+                        <button onClick={() => setTab('cair')} className={tab === 'cair' ? tabAktif : tabNonAktif}>
+                            Pencairan Mandiri Ketua
+                            <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-emerald-600 text-white text-[11px] font-bold">
+                                {menungguPencairan.length}
+                            </span>
+                        </button>
+                    )}
                     <button onClick={() => setTab('riwayat')} className={tab === 'riwayat' ? tabAktif : tabNonAktif}>
                         Riwayat
                     </button>
@@ -99,7 +107,57 @@ export default function Index({ menungguTinjauan, riwayat, ringkasanKas }) {
                                             <td className="px-5 py-3 text-sm text-slate-700">{formatRupiah(p.nominal)}</td>
                                             <td className="px-5 py-3 text-sm text-slate-600">{p.tenor_bulan} bulan</td>
                                             <td className="px-5 py-3 text-sm text-slate-600">{p.tanggal_pengajuan}</td>
-                                            <td className="px-5 py-3"><StatusBadge status="pending" /></td>
+                                            <td className="px-5 py-3"><StatusBadge status={p.status} /></td>
+                                            <td className="px-3 py-3 text-right" aria-hidden="true">
+                                                <ChevronRight size={18} className="ml-auto text-slate-300" />
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    ) : tab === 'cair' ? (
+                        <table className="w-full table-sticky-first">
+                            <thead>
+                                <tr className="text-left">
+                                    <th className="px-5 py-3 text-sm font-semibold text-slate-500">Anggota</th>
+                                    <th className="px-5 py-3 text-sm font-semibold text-slate-500">Nominal Disetujui</th>
+                                    <th className="px-5 py-3 text-sm font-semibold text-slate-500">Tenor</th>
+                                    <th className="px-5 py-3 text-sm font-semibold text-slate-500">Tanggal</th>
+                                    <th className="px-5 py-3 text-sm font-semibold text-slate-500">Status</th>
+                                    <th className="w-10" aria-label="Buka detail" />
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {menungguPencairan.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={6} className="px-5 py-8 text-center text-base text-slate-400">
+                                            Tidak ada pinjaman mandiri yang menunggu pencairan.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    menungguPencairan.map((p) => (
+                                        <tr
+                                            key={p.id}
+                                            onClick={() => bukaDetail(p)}
+                                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); bukaDetail(p); } }}
+                                            tabIndex={0}
+                                            title="Klik untuk mencairkan"
+                                            className="border-t border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer focus-visible:outline-none focus-visible:bg-slate-100"
+                                        >
+                                            <td className="px-5 py-3">
+                                                <div className="flex items-center gap-3">
+                                                    <FotoAnggota nama={p.anggota.nama} fotoUrl={p.anggota.foto_url} ukuran="sm" />
+                                                    <div className="min-w-0">
+                                                        <p className="text-sm font-semibold text-slate-800 truncate">{p.anggota.nama}</p>
+                                                        <p className="text-xs text-slate-400">{p.anggota.no_karyawan} (Ketua Koperasi)</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-5 py-3 text-sm font-bold text-emerald-700">{formatRupiah(p.nominal_disetujui_bendahara ?? p.nominal)}</td>
+                                            <td className="px-5 py-3 text-sm text-slate-600">{p.tenor_disetujui_bendahara ?? p.tenor_bulan} bulan</td>
+                                            <td className="px-5 py-3 text-sm text-slate-600">{p.tanggal_pengajuan}</td>
+                                            <td className="px-5 py-3"><StatusBadge status={p.status} /></td>
                                             <td className="px-3 py-3 text-right" aria-hidden="true">
                                                 <ChevronRight size={18} className="ml-auto text-slate-300" />
                                             </td>

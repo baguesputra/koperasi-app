@@ -10,27 +10,35 @@ import { withIdempotencyKey } from '@/Utils/idempotency';
 import JejakNominal from '@/Pages/PinjamanApproval/JejakNominal';
 import KartuKas from '@/Pages/PinjamanApproval/KartuKas';
 import PreviewNominal from '@/Pages/PinjamanApproval/PreviewNominal';
+import RincianBebanPinjaman from '@/Pages/PinjamanApproval/RincianBebanPinjaman';
 
 const jabatanLabel = { staff: 'Staff', hod: 'HOD' };
 
 export default function Show({ pinjaman }) {
-    const [aksi, setAksi] = useState(null); // 'approve' | 'reject' | null
+    const [aksi, setAksi] = useState(null); // 'approve' | 'reject' | 'cair' | null
     const { data, setData, post, processing, errors } = useForm({
         catatan: '',
-        nominal: String(pinjaman.nominal_diminta ?? pinjaman.nominal),
+        nominal: String(pinjaman.nominal_disetujui_bendahara ?? pinjaman.nominal_diminta ?? pinjaman.nominal),
         tenor_bulan: '',
     });
     const nominalUsulan = Number(data.nominal) || 0;
 
+    const bisaApprove = pinjaman.status === 'approved_admin';
+    const bisaCair = pinjaman.status === 'approved_bendahara' && Boolean(pinjaman.cair_oleh_bendahara);
+    const bisaDiproses = bisaApprove || bisaCair;
+
     function submit(e) {
         e.preventDefault();
-        const url = aksi === 'approve'
-            ? route('bendahara.pinjaman.approve', pinjaman.id)
-            : route('bendahara.pinjaman.reject', pinjaman.id);
+        let url;
+        if (aksi === 'cair') {
+            url = route('bendahara.pinjaman.cair', pinjaman.id);
+        } else if (aksi === 'approve') {
+            url = route('bendahara.pinjaman.approve', pinjaman.id);
+        } else {
+            url = route('bendahara.pinjaman.reject', pinjaman.id);
+        }
         post(url, withIdempotencyKey());
     }
-
-    const bisaDiproses = pinjaman.status === 'diajukan';
 
     return (
         <AppLayout>
@@ -86,6 +94,14 @@ export default function Show({ pinjaman }) {
 
                     <JejakNominal pinjaman={pinjaman} />
                     <KartuKas kas={pinjaman.kas} nominalTahap={pinjaman.nominal_disetujui_bendahara ?? pinjaman.nominal_diminta} label="Nominal usulan tahap ini" />
+                    <RincianBebanPinjaman pinjaman={pinjaman} />
+
+                    {pinjaman.catatan_admin && (
+                        <Card className="bg-sky-50 border-sky-200">
+                            <p className="text-sm font-semibold text-sky-800 mb-1.5">Catatan dari Verifikasi Admin</p>
+                            <p className="text-base text-slate-700">{pinjaman.catatan_admin}</p>
+                        </Card>
+                    )}
 
                     {bisaDiproses && (
                         <Card>
@@ -93,15 +109,30 @@ export default function Show({ pinjaman }) {
 
                             {!aksi ? (
                                 <div className="flex items-center gap-3">
-                                    <Button variant="primary" onClick={() => setAksi('approve')}>
-                                        Setujui
-                                    </Button>
-                                    <Button variant="danger" onClick={() => setAksi('reject')}>
-                                        Tolak
-                                    </Button>
+                                    {bisaApprove && (
+                                        <>
+                                            <Button variant="primary" onClick={() => setAksi('approve')}>
+                                                Setujui & Usulkan
+                                            </Button>
+                                            <Button variant="danger" onClick={() => setAksi('reject')}>
+                                                Tolak
+                                            </Button>
+                                        </>
+                                    )}
+                                    {bisaCair && (
+                                        <Button variant="primary" onClick={() => setAksi('cair')} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                                            Cairkan Pinjaman (Mandiri Ketua)
+                                        </Button>
+                                    )}
                                 </div>
                             ) : (
                                 <form onSubmit={submit}>
+                                    {aksi === 'cair' && (
+                                        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl mb-4 space-y-1">
+                                            <p className="text-sm font-bold text-emerald-800">Pencairan Pengajuan Mandiri Ketua</p>
+                                            <p className="text-xs text-emerald-700">Nominal yang dicairkan: {formatRupiah(pinjaman.nominal_disetujui_bendahara ?? pinjaman.nominal)}</p>
+                                        </div>
+                                    )}
                                     {aksi === 'approve' && (
                                         <div className="space-y-3 mb-4">
                                             <div>
@@ -153,13 +184,19 @@ export default function Show({ pinjaman }) {
                                     )}
                                     {errors.keputusan && <p className="text-sm text-red-600 mb-3">{errors.keputusan}</p>}
                                     <label className="block text-sm font-semibold text-slate-600 mb-2">
-                                        Catatan {aksi === 'approve' ? 'Persetujuan' : 'Penolakan'}
+                                        Catatan {aksi === 'approve' ? 'Persetujuan' : aksi === 'cair' ? 'Pencairan' : 'Penolakan'}
                                     </label>
                                     <textarea
                                         value={data.catatan}
                                         onChange={(e) => setData('catatan', e.target.value)}
                                         rows={3}
-                                        placeholder={aksi === 'approve' ? 'Contoh: Data lengkap, memenuhi syarat.' : 'Contoh: Dokumen belum lengkap.'}
+                                        placeholder={
+                                            aksi === 'approve'
+                                                ? 'Contoh: Data lengkap, memenuhi syarat.'
+                                                : aksi === 'cair'
+                                                ? 'Contoh: Dana telah ditransfer ke rekening pemohon.'
+                                                : 'Contoh: Dokumen belum lengkap.'
+                                        }
                                         className="w-full px-4 py-3 text-base rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
                                     />
                                     {errors.catatan && <p className="text-sm text-red-600 mt-1.5">{errors.catatan}</p>}
@@ -167,10 +204,11 @@ export default function Show({ pinjaman }) {
                                     <div className="flex items-center gap-3 mt-4">
                                         <Button
                                             type="submit"
-                                            variant={aksi === 'approve' ? 'primary' : 'danger'}
+                                            variant={aksi === 'approve' || aksi === 'cair' ? 'primary' : 'danger'}
                                             disabled={processing}
+                                            className={aksi === 'cair' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : ''}
                                         >
-                                            {processing ? 'Memproses...' : `Konfirmasi ${aksi === 'approve' ? 'Setujui' : 'Tolak'}`}
+                                            {processing ? 'Memproses...' : aksi === 'cair' ? 'Konfirmasi Pencairan' : `Konfirmasi ${aksi === 'approve' ? 'Setujui' : 'Tolak'}`}
                                         </Button>
                                         <Button type="button" variant="ghost" onClick={() => setAksi(null)}>
                                             Batal

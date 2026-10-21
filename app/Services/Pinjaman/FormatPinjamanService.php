@@ -25,6 +25,11 @@ class FormatPinjamanService
         $totalPokok = array_sum(array_column($jadwal, 'nominal_pokok'));
         $totalBunga = array_sum(array_column($jadwal, 'nominal_bunga'));
         $totalAngsuran = array_sum(array_column($jadwal, 'total_bayar'));
+        $cicilanPertama = $jadwal[0]['total_bayar'] ?? 0;
+        $cicilanTerakhir = !empty($jadwal) ? end($jadwal)['total_bayar'] : 0;
+        $cicilanRataRata = count($jadwal) > 0 ? round($totalAngsuran / count($jadwal), 2) : 0;
+        $pokokPerBulan = $jadwal[0]['nominal_pokok'] ?? 0;
+        $bungaPertama = $jadwal[0]['nominal_bunga'] ?? 0;
 
         return [
             'id' => $p->id,
@@ -41,7 +46,8 @@ class FormatPinjamanService
                 'saldo_bendahara' => $p->kas_saldo_bendahara !== null ? (float) $p->kas_saldo_bendahara : null,
                 'saldo_ketua' => $p->kas_saldo_ketua !== null ? (float) $p->kas_saldo_ketua : null,
                 'sisa_ketua' => $p->kas_sisa_ketua !== null ? (float) $p->kas_sisa_ketua : null,
-                'saldo_sekarang' => app(\App\Services\Keuangan\JurnalKasService::class)->saldoOperasional(),
+                'saldo_bank' => (float) (\App\Models\KasKoperasi::first()?->saldo_bank ?? 0),
+                'saldo_sekarang' => (float) (\App\Models\KasKoperasi::first()?->saldo_bank ?? 0),
             ],
             'limit_tersedia' => (float) $this->eligibilitas->limitTersedia($p->anggota),
             'tenor_maksimal_diminta' => $this->eligibilitas->tenorMaksimal((float) ($p->nominal_diminta ?? $p->nominal)),
@@ -54,6 +60,7 @@ class FormatPinjamanService
             ],
             'status' => $p->status,
             'mandiri_bendahara' => $p->catatan_bendahara === 'Diajukan mandiri oleh Bendahara',
+            'cair_oleh_bendahara' => (bool) $p->cair_oleh_bendahara,
             'tanggal_pengajuan' => $p->tanggal_pengajuan->format('d M Y'),
             'sudah_pakai_privilege_reloan' => $p->sudah_pakai_privilege_reloan,
             'catatan_admin' => $p->catatan_admin,
@@ -62,6 +69,16 @@ class FormatPinjamanService
             'total_angsuran' => $totalAngsuran,
             'total_pokok_angsuran' => $totalPokok,
             'total_bunga_angsuran' => $totalBunga,
+            'beban_angsuran' => [
+                'cicilan_pertama' => $cicilanPertama,
+                'cicilan_terakhir' => $cicilanTerakhir,
+                'cicilan_rata_rata' => $cicilanRataRata,
+                'pokok_per_bulan' => $pokokPerBulan,
+                'bunga_pertama' => $bungaPertama,
+                'total_pokok' => $totalPokok,
+                'total_bunga' => $totalBunga,
+                'total_angsuran' => $totalAngsuran,
+            ],
             'anggota' => [
                 'nama' => $p->anggota->nama,
                 'no_anggota' => $p->anggota->no_anggota,

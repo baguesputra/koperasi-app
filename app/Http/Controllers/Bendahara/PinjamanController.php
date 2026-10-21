@@ -54,7 +54,7 @@ class PinjamanController extends Controller
             'menungguTinjauan' => $menungguTinjauan,
             'menungguPencairan' => $menungguPencairan,
             'riwayat' => $riwayat,
-            'ringkasanKas' => $this->ringkasan->ringkasan(),
+            'ringkasanKas' => $this->ringkasan->ringkasan('bendahara'),
         ]);
     }
 
@@ -110,7 +110,7 @@ class PinjamanController extends Controller
         }
 
         $jadwal = $this->bunga->buatJadwal($nominal, $tenorFinal, (float) $pinjaman->persentase_bunga);
-        $saldoOperasional = app(\App\Services\Keuangan\JurnalKasService::class)->saldoOperasional();
+        $saldoBank = (float) (KasKoperasi::first()?->saldo_bank ?? 0);
 
         return response()->json([
             'nominal' => $nominal,
@@ -122,8 +122,10 @@ class PinjamanController extends Controller
             'total_bunga' => array_sum(array_column($jadwal, 'nominal_bunga')),
             'total_bayar' => array_sum(array_column($jadwal, 'total_bayar')),
             'cicilan_pertama' => $jadwal[0] ?? null,
-            'kas_saldo' => $saldoOperasional,
-            'kas_sisa' => $saldoOperasional - $nominal,
+            'cicilan_terakhir' => !empty($jadwal) ? end($jadwal) : null,
+            'cicilan_rata_rata' => count($jadwal) > 0 ? round(array_sum(array_column($jadwal, 'total_bayar')) / count($jadwal), 2) : 0,
+            'kas_saldo' => $saldoBank,
+            'kas_sisa' => $saldoBank - $nominal,
         ]);
     }
 
