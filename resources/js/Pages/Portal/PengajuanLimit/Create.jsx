@@ -37,12 +37,12 @@ export default function Create({ limitSaatIni, plafonKebijakan, riwayat }) {
     }
 
     return (
-        <AnggotaLayout>
+        <AnggotaLayout mobileTitle="Pengajuan Limit" backHref={route('portal.dashboard')}>
             <Head title="Ajukan Tambah Limit" />
 
             <Link
                 href={route('portal.dashboard')}
-                className={`inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-brand-navy mb-5 rounded ${focusRing}`}
+                className={`hidden sm:inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-brand-navy mb-5 rounded ${focusRing}`}
             >
                 <ArrowLeft size={16} />
                 Kembali ke Beranda
@@ -80,6 +80,7 @@ export default function Create({ limitSaatIni, plafonKebijakan, riwayat }) {
                                     <input
                                         id="limit-diminta"
                                         type="number"
+                                        inputMode="numeric"
                                         value={data.limit_diminta}
                                         onChange={(e) => setData('limit_diminta', e.target.value)}
                                         placeholder="0"

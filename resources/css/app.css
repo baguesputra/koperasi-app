@@ -6,6 +6,27 @@
 
 body {
     font-size: 16px; /* base lebih besar dari default browser (biasanya 14-16px), sesuai prinsip elderly-friendly */
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+/* Optimasi PWA Standalone & Mobile Scroll */
+@media all and (display-mode: standalone) {
+    html, body {
+        overscroll-behavior-y: contain;
+        user-select: none;
+    }
+    input, textarea, [contenteditable="true"] {
+        user-select: text;
+    }
+}
+
+/* Safe area utilities untuk notch kamera & bottom gesture bar */
+.pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+}
+.pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .scrollbar-hide {

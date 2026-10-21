@@ -38,13 +38,13 @@ export default function Create({ anggota, poinSyarat, versiSyarat, pengajuanBerj
     const bisaKirim = data.data_benar && data.setuju_syarat && !pengajuanBerjalan && !processing;
 
     return (
-        <AnggotaLayout>
+        <AnggotaLayout mobileTitle="Aktivasi Anggota" backHref={route('portal.aktivasi.landing')}>
             <Head title="Pengajuan Aktivasi Keanggotaan" />
 
             <div className="max-w-3xl mx-auto">
                 <Link
                     href={route('portal.aktivasi.landing')}
-                    className={`inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-brand-navy mb-5 rounded ${focusRing}`}
+                    className={`hidden sm:inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-brand-navy mb-5 rounded ${focusRing}`}
                 >
                     <ArrowLeft size={16} />
                     Kembali ke Informasi Keanggotaan

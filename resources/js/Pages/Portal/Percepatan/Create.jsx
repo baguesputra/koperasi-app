@@ -164,10 +164,10 @@ export default function Create({ pinjaman }) {
         : { judul: 'Pilih Tenor Baru', bantuan: `Harus lebih dari tenor saat ini (${pinjaman.tenor_bulan} bulan)`, opsi: opsiTenorPerpanjang };
 
     return (
-        <AnggotaLayout>
+        <AnggotaLayout mobileTitle="Perubahan Tenor" backHref={route('portal.dashboard')}>
             <Head title="Ajukan Perubahan Tenor" />
 
-            <Link href={route('portal.dashboard')} className={`inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-brand-navy mb-5 ${focusRing}`}>
+            <Link href={route('portal.dashboard')} className={`hidden sm:inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-brand-navy mb-5 ${focusRing}`}>
                 <ArrowLeft size={16} aria-hidden="true" />
                 Batal, kembali ke Beranda
             </Link>

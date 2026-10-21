@@ -47,10 +47,10 @@ export default function Profil({ anggota, rekening }) {
     ];
 
     return (
-        <AnggotaLayout>
+        <AnggotaLayout mobileTitle="Profil Saya" backHref={route('portal.dashboard')}>
             <Head title="Profil" />
 
-            <div className="mb-6">
+            <div className="hidden sm:block mb-6">
                 <h1 className="text-2xl font-bold text-slate-800">Profil Saya</h1>
                 <p className="text-base text-slate-400 mt-1">{anggota.no_karyawan}</p>
             </div>

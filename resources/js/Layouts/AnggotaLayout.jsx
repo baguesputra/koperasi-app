@@ -2,8 +2,9 @@ import { Link, usePage } from '@inertiajs/react';
 import { useState, useRef, useEffect } from 'react';
 import { User, LogOut, ChevronDown, Home, History, Plus, Info } from 'lucide-react';
 import Panduan from '@/Pages/Portal/Panduan';
+import MobileHeader from '@/Components/ui/MobileHeader';
 
-export default function AnggotaLayout({ children }) {
+export default function AnggotaLayout({ children, mobileTitle = null, backHref = null, mobileAction = null }) {
     const { auth } = usePage().props;
     const initial = auth.user?.name?.charAt(0)?.toUpperCase() ?? '?';
     const roles = auth.user?.roles ?? [];
@@ -47,11 +48,11 @@ export default function AnggotaLayout({ children }) {
         return (
             <Link
                 href={href}
-                className={`flex flex-col items-center justify-center gap-1 min-h-[56px] py-2 text-[11px] font-semibold transition-colors ${
-                    active ? 'text-brand-green' : 'text-slate-500 hover:text-slate-700'
+                className={`flex flex-col items-center justify-center gap-1 min-h-[52px] py-1.5 text-[11px] font-semibold transition-all active:scale-95 ${
+                    active ? 'text-brand-green font-bold' : 'text-slate-500 hover:text-slate-700'
                 }`}
             >
-                <Icon size={21} />
+                <Icon size={22} strokeWidth={active ? 2.5 : 2} />
                 <span className="leading-none">{label}</span>
             </Link>
         );
@@ -139,15 +140,29 @@ export default function AnggotaLayout({ children }) {
                 </div>
             </header>
 
-            <main className="flex-1 w-full max-w-7xl sm:mx-auto px-4 sm:px-6 pt-[calc(env(safe-area-inset-top)+1rem)] sm:pt-8 pb-32 sm:pb-8">
+            {/* Mobile Header khusus HP jika di sub-halaman */}
+            {mobileTitle && (
+                <MobileHeader
+                    title={mobileTitle}
+                    backHref={backHref}
+                    action={mobileAction}
+                />
+            )}
+
+            <main className={`flex-1 w-full max-w-7xl sm:mx-auto px-4 sm:px-6 pb-32 sm:pb-8 ${
+                mobileTitle ? 'pt-4 sm:pt-8' : 'pt-[calc(env(safe-area-inset-top)+1rem)] sm:pt-8'
+            }`}>
                 <div className="mx-auto w-full max-w-lg sm:max-w-none">
                     {children}
                 </div>
             </main>
 
             {anggotaAktif && (
-            <nav aria-label="Navigasi utama" className="sm:hidden fixed bottom-0 inset-x-0 z-50 overflow-visible" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-                <div className="relative overflow-visible bg-white border-t border-slate-200 shadow-[0_-4px_24px_rgba(15,30,54,0.08)]">
+            <nav
+                aria-label="Navigasi utama"
+                className="sm:hidden fixed bottom-0 inset-x-0 z-50 overflow-visible bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-[0_-4px_20px_rgba(15,30,54,0.06)] pb-[calc(env(safe-area-inset-bottom)+0.25rem)]"
+            >
+                <div className="relative overflow-visible">
                     <div className="grid grid-cols-4 items-end px-2 pt-1 pb-1 overflow-visible">
                         <TabItem href={route('portal.dashboard')} active={isCurrentRoute('portal.dashboard')} icon={Home} label="Beranda" />
                         <TabItem href={route('portal.riwayat')} active={isCurrentRoute('portal.riwayat')} icon={History} label="Riwayat" />
@@ -155,10 +170,10 @@ export default function AnggotaLayout({ children }) {
                             <Link
                                 href={route('portal.pinjaman.create')}
                                 aria-label="Ajukan pinjaman"
-                                className="-mt-10 w-[68px] h-[68px] rounded-full text-white flex flex-col items-center justify-center gap-0.5 shadow-[0_10px_24px_rgba(31,162,76,0.5)] ring-4 ring-white hover:brightness-95 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2"
+                                className="-mt-10 w-[64px] h-[64px] rounded-full text-white flex flex-col items-center justify-center gap-0.5 shadow-[0_8px_20px_rgba(31,162,76,0.45)] ring-4 ring-white hover:brightness-95 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green"
                                 style={{ backgroundColor: '#1FA24C' }}
                             >
-                                <Plus size={28} strokeWidth={2.6} color="#ffffff" />
+                                <Plus size={26} strokeWidth={2.8} color="#ffffff" />
                                 <span className="text-[10px] font-bold leading-none text-white">Ajukan</span>
                             </Link>
                         </div>

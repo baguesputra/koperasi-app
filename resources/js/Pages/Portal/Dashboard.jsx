@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { formatRupiah } from '@/Utils/formatCurrency';
 import Nominal, { usePrivasiNominal } from '@/Components/ui/Nominal';
+import PwaInstallPrompt from '@/Components/ui/PwaInstallPrompt';
 
 const statusPengajuanLabel = {
     diajukan: {
@@ -348,6 +349,7 @@ export default function Dashboard({
             )}
 
             <div className="space-y-5">
+                <PwaInstallPrompt />
 
                 {resignMenunggu && (
                     <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl p-4">

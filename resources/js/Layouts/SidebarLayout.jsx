@@ -90,15 +90,15 @@ className={`hidden lg:block sticky top-0 h-screen shrink-0 p-3 transition-[width
             </Transition>
 
             <div className="flex-1 flex flex-col min-w-0">
-                <div className="lg:hidden sticky top-0 pt-[env(safe-area-inset-top)] z-40 bg-slate-50 h-12 px-4 flex items-center shrink-0">
-<button
-                         onClick={() => setMobileSidebarOpen(true)}
-                         className="min-h-[44px] min-w-[44px] p-2 -ml-2 rounded-lg text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/40"
-                         aria-label="Buka menu navigasi"
-                     >
+                <div className="lg:hidden sticky top-0 pt-[env(safe-area-inset-top)] z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 h-14 px-4 flex items-center justify-between shrink-0 shadow-xs">
+                    <button
+                        onClick={() => setMobileSidebarOpen(true)}
+                        className="min-h-[44px] min-w-[44px] p-2 -ml-2 rounded-lg text-slate-600 hover:text-slate-800 hover:bg-slate-100 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/40"
+                        aria-label="Buka menu navigasi"
+                    >
                         <Menu size={22} />
                     </button>
-                    <div className="flex items-center gap-2 mx-auto">
+                    <div className="flex items-center gap-2">
                         <img src="/images/logo.png" alt="Koperasi App" className="w-7 h-7" />
                         <span className="text-sm font-bold text-slate-800">Koperasi App</span>
                     </div>

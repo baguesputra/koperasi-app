@@ -37,7 +37,7 @@ export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal, lim
 
     if (!bisaAjukan) {
         return (
-            <AnggotaLayout>
+            <AnggotaLayout mobileTitle="Ajukan Pinjaman" backHref={route('portal.dashboard')}>
                 <Head title="Ajukan Pinjaman" />
                 <div className="max-w-2xl mx-auto flex items-start gap-3 bg-amber-50 border border-amber-100 rounded-2xl p-5">
                     <AlertCircle className="text-amber-600 shrink-0 mt-0.5" size={22} />
@@ -135,10 +135,10 @@ function kirimPengajuan() {
     const opsiTenor = tenorMaksimal ? Array.from({ length: tenorMaksimal }, (_, i) => i + 1) : [];
 
     return (
-        <AnggotaLayout>
+        <AnggotaLayout mobileTitle="Ajukan Pinjaman" backHref={route('portal.dashboard')}>
             <Head title="Ajukan Pinjaman" />
 
-            <Link href={route('portal.dashboard')} className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-brand-navy mb-5">
+            <Link href={route('portal.dashboard')} className="hidden sm:inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-brand-navy mb-5">
                 <ArrowLeft size={16} />
                 Batal, kembali ke Beranda
             </Link>

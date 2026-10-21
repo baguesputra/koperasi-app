@@ -37,11 +37,22 @@ export default function Riwayat({ pinjaman, simpanan, daftarBulanTersedia, bulan
     const [tab, setTab] = useState('pinjaman');
     const [nominalTampil, alihNominal] = usePrivasiNominal();
 
+    const eyeAction = (
+        <button
+            type="button"
+            onClick={alihNominal}
+            aria-label={nominalTampil ? 'Sembunyikan nominal' : 'Tampilkan nominal'}
+            className="w-9 h-9 rounded-full flex items-center justify-center text-slate-500 hover:text-brand-navy active:scale-95 transition-all"
+        >
+            {nominalTampil ? <EyeOff size={18} /> : <Eye size={18} />}
+        </button>
+    );
+
     return (
-        <AnggotaLayout>
+        <AnggotaLayout mobileTitle="Riwayat Transaksi" backHref={route('portal.dashboard')} mobileAction={eyeAction}>
             <Head title="Riwayat" />
 
-            <Link href={route('portal.dashboard')} className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-brand-navy mb-4">
+            <Link href={route('portal.dashboard')} className="hidden sm:inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-brand-navy mb-4">
                 <ArrowLeft size={16} />
                 Kembali ke Beranda
             </Link>
@@ -56,7 +67,7 @@ export default function Riwayat({ pinjaman, simpanan, daftarBulanTersedia, bulan
                     onClick={alihNominal}
                     aria-label={nominalTampil ? 'Sembunyikan nominal' : 'Tampilkan nominal'}
                     aria-pressed={nominalTampil}
-                    className="shrink-0 w-10 h-10 rounded-full border border-slate-200 text-slate-500 hover:text-brand-navy hover:border-brand-navy/30 hover:bg-slate-50 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2"
+                    className="hidden sm:flex shrink-0 w-10 h-10 rounded-full border border-slate-200 text-slate-500 hover:text-brand-navy hover:border-brand-navy/30 hover:bg-slate-50 items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2"
                 >
                     {nominalTampil ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
                 </button>
