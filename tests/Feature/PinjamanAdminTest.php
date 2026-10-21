@@ -124,4 +124,50 @@ class PinjamanAdminTest extends TestCase
         $this->actingAs($anggota->user);
         $this->get(route('admin.pinjaman.index'))->assertForbidden();
     }
+
+    public function test_post_pinjaman_melebihi_limit_tersedia_gagal_validasi(): void
+    {
+        $anggota = $this->buatAnggota(); // limit default kategori 1-3 thn = 5jt
+        $this->actingAs($anggota->user);
+
+        $response = $this->post(route('portal.pinjaman.store'), [
+            'nominal' => 8_000_000,
+            'tenor_bulan' => 3,
+            'keperluan' => 'Mencoba bypass nominal lebih dari limit tersedia',
+            'rekening_mode' => 'baru',
+            'nama_bank' => 'BCA',
+            'no_rekening' => '1234567890',
+            'atas_nama' => $anggota->nama,
+            'persetujuan' => true,
+        ]);
+
+        $response->assertSessionHasErrors(['nominal', 'pengajuan']);
+        $this->assertDatabaseMissing('pinjaman', [
+            'anggota_id' => $anggota->id,
+            'nominal' => 8_000_000,
+        ]);
+    }
+
+    public function test_post_pinjaman_melebihi_kebijakan_koperasi_gagal_validasi(): void
+    {
+        $anggota = $this->buatAnggota();
+        $this->actingAs($anggota->user);
+
+        $response = $this->post(route('portal.pinjaman.store'), [
+            'nominal' => 15_000_000,
+            'tenor_bulan' => 3,
+            'keperluan' => 'Mencoba bypass nominal lebih dari plafon tertinggi koperasi',
+            'rekening_mode' => 'baru',
+            'nama_bank' => 'BCA',
+            'no_rekening' => '1234567890',
+            'atas_nama' => $anggota->nama,
+            'persetujuan' => true,
+        ]);
+
+        $response->assertSessionHasErrors(['nominal', 'pengajuan']);
+        $this->assertDatabaseMissing('pinjaman', [
+            'anggota_id' => $anggota->id,
+            'nominal' => 15_000_000,
+        ]);
+    }
 }

@@ -45,6 +45,11 @@ class PengajuanPinjamanService
             );
         }
 
+        $plafonMaksimal = $this->eligibilitas->plafonTertinggiKoperasi();
+        if ($nominal > $plafonMaksimal) {
+            throw new RuntimeException('Nominal pinjaman melebihi batas kebijakan koperasi.');
+        }
+
         $tenorMaksimal = $this->eligibilitas->tenorMaksimal($nominal);
         if (! $tenorMaksimal) {
             throw new RuntimeException('Nominal pinjaman tidak sesuai dengan ketentuan yang berlaku.');

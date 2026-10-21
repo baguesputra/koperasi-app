@@ -96,10 +96,55 @@ class PinjamanController extends Controller
             'persetujuan.accepted' => 'Anda harus menyetujui seluruh syarat & ketentuan pinjaman terlebih dahulu.',
         ]);
 
+        $anggota = auth()->user()->anggota;
+        $nominal = (float) $request->nominal;
+
+        $cekEligibilitas = $this->eligibilitas->cek($anggota);
+        if (! $cekEligibilitas['boleh']) {
+            return back()->withErrors([
+                'nominal' => $cekEligibilitas['alasan'],
+                'pengajuan' => $cekEligibilitas['alasan'],
+            ]);
+        }
+
+        $limitTersedia = (float) $cekEligibilitas['limit_tersedia'];
+        if ($nominal > $limitTersedia) {
+            $pesan = 'Nominal pinjaman melebihi limit tersedia Anda: Rp '.number_format($limitTersedia, 0, ',', '.');
+
+            return back()->withErrors([
+                'nominal' => $pesan,
+                'pengajuan' => $pesan,
+            ]);
+        }
+
+        $plafonMaksimalKoperasi = $this->eligibilitas->plafonTertinggiKoperasi();
+        if ($nominal > $plafonMaksimalKoperasi) {
+            $pesan = 'Nominal pinjaman melebihi batas kebijakan koperasi.';
+
+            return back()->withErrors([
+                'nominal' => $pesan,
+                'pengajuan' => $pesan,
+            ]);
+        }
+
+        $tenorMaksimal = $this->eligibilitas->tenorMaksimal($nominal);
+        if (! $tenorMaksimal) {
+            return back()->withErrors([
+                'nominal' => 'Nominal pinjaman tidak sesuai dengan ketentuan yang berlaku.',
+                'pengajuan' => 'Nominal pinjaman tidak sesuai dengan ketentuan yang berlaku.',
+            ]);
+        }
+        if ((int) $request->tenor_bulan > $tenorMaksimal) {
+            return back()->withErrors([
+                'tenor_bulan' => "Tenor maksimal untuk nominal ini adalah {$tenorMaksimal} bulan.",
+                'pengajuan' => "Tenor maksimal untuk nominal ini adalah {$tenorMaksimal} bulan.",
+            ]);
+        }
+
         try {
             $this->pengajuan->ajukan(
                 auth()->user(),
-                (float) $request->nominal,
+                $nominal,
                 (int) $request->tenor_bulan,
                 $request->keperluan,
                 [
@@ -116,13 +161,16 @@ class PinjamanController extends Controller
                 ]
             );
         } catch (RuntimeException $e) {
-            return back()->withErrors(['pengajuan' => $e->getMessage()]);
+            return back()->withErrors([
+                'nominal' => $e->getMessage(),
+                'pengajuan' => $e->getMessage(),
+            ]);
         }
 
         return redirect()
             ->route('portal.dashboard')
             ->with('pinjaman_terkirim', [
-                'nominal' => (float) $request->nominal,
+                'nominal' => $nominal,
                 'tenor_bulan' => (int) $request->tenor_bulan,
             ]);
     }
