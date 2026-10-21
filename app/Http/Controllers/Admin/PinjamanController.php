@@ -7,6 +7,7 @@ use App\Http\Requests\KeputusanPinjamanRequest;
 use App\Models\Pinjaman;
 use App\Services\Pinjaman\FormatPinjamanService;
 use App\Services\Pinjaman\PersetujuanPinjamanService;
+use App\Services\Pinjaman\RingkasanPinjamanService;
 use Inertia\Inertia;
 use Inertia\Response;
 use RuntimeException;
@@ -16,6 +17,7 @@ class PinjamanController extends Controller
     public function __construct(
         private PersetujuanPinjamanService $persetujuan,
         private FormatPinjamanService $format,
+        private RingkasanPinjamanService $ringkasan,
     ) {}
 
     public function index(): Response
@@ -37,6 +39,7 @@ class PinjamanController extends Controller
         return Inertia::render('Admin/Pinjaman/Index', [
             'menungguTinjauan' => $menungguTinjauan,
             'riwayat' => $riwayat,
+            'ringkasanKas' => $this->ringkasan->ringkasan(),
         ]);
     }
 

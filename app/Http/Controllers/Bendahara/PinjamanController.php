@@ -10,6 +10,7 @@ use App\Services\Pinjaman\EligibilitasPinjamanService;
 use App\Services\Pinjaman\FormatPinjamanService;
 use App\Services\Pinjaman\PerhitunganBungaService;
 use App\Services\Pinjaman\PersetujuanPinjamanService;
+use App\Services\Pinjaman\RingkasanPinjamanService;
 use Inertia\Inertia;
 use Inertia\Response;
 use RuntimeException;
@@ -21,6 +22,7 @@ class PinjamanController extends Controller
         private PerhitunganBungaService $bunga,
         private EligibilitasPinjamanService $eligibilitas,
         private FormatPinjamanService $format,
+        private RingkasanPinjamanService $ringkasan,
     ) {}
 
     public function index(): Response
@@ -52,6 +54,7 @@ class PinjamanController extends Controller
             'menungguTinjauan' => $menungguTinjauan,
             'menungguPencairan' => $menungguPencairan,
             'riwayat' => $riwayat,
+            'ringkasanKas' => $this->ringkasan->ringkasan(),
         ]);
     }
 

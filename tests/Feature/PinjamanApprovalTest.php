@@ -290,4 +290,77 @@ class PinjamanApprovalTest extends TestCase
 
         $this->assertCount(0, $ukurAntrean('ketua.pinjaman.index', 'menungguApproval'));
     }
+
+    public function test_ringkasan_pinjaman_tampil_di_tiga_halaman_approval(): void
+    {
+        Queue::fake();
+        KasKoperasi::first()->update(['saldo_bank' => 50_000_000]);
+
+        $a1 = $this->buatAnggota('TOP-900030');
+        $a2 = $this->buatAnggota('TOP-900031');
+
+        $this->actingAs($a1->user);
+        $this->ajukanPortal($a1, ['nominal' => 2_000_000, 'tenor_bulan' => 4])->assertStatus(302);
+        $this->actingAs($a2->user);
+        $this->ajukanPortal($a2, ['nominal' => 3_000_000, 'tenor_bulan' => 6])->assertStatus(302);
+
+        $p1 = Pinjaman::where('anggota_id', $a1->id)->sole();
+
+        $ringkasan = function (string $akun, string $route): array {
+            $this->masuk($akun);
+            $res = $this->get(route($route))->assertOk();
+
+            return $res->original->getData()['page']['props']['ringkasanKas'];
+        };
+
+        $awal = $ringkasan('ADM-000001', 'admin.pinjaman.index');
+        $this->assertEquals(50_000_000, $awal['saldo_bank']);
+        $this->assertGreaterThanOrEqual(2, $awal['jumlah_antrean']);
+        $this->assertGreaterThanOrEqual(5_000_000, $awal['total_antrean']);
+        $this->assertEquals($awal['saldo_bank'] - $awal['total_antrean'], $awal['sisa_proyeksi']);
+
+        $this->post(route('admin.pinjaman.approve', $p1), ['catatan' => 'Diteruskan ke Bendahara.'])->assertRedirect();
+
+        $setelahAdmin = $ringkasan('ADM-000001', 'admin.pinjaman.index');
+        $this->assertSame($awal['jumlah_antrean'], $setelahAdmin['jumlah_antrean']);
+        $this->assertEquals($awal['total_antrean'], $setelahAdmin['total_antrean']);
+        $this->assertSame($awal['jumlah_disetujui'] + 1, $setelahAdmin['jumlah_disetujui']);
+        $this->assertEquals($setelahAdmin['saldo_bank'] - $setelahAdmin['total_antrean'], $setelahAdmin['sisa_proyeksi']);
+
+        foreach ([
+            $ringkasan('BEN-000001', 'bendahara.pinjaman.index'),
+            $ringkasan('KET-000001', 'ketua.pinjaman.index'),
+        ] as $halaman) {
+            $this->assertSame($setelahAdmin['jumlah_antrean'], $halaman['jumlah_antrean']);
+            $this->assertEquals($setelahAdmin['total_antrean'], $halaman['total_antrean']);
+            $this->assertSame($setelahAdmin['jumlah_disetujui'], $halaman['jumlah_disetujui']);
+            $this->assertEquals($setelahAdmin['sisa_proyeksi'], $halaman['sisa_proyeksi']);
+        }
+
+        $this->masuk('BEN-000001');
+        $this->post(route('bendahara.pinjaman.approve', $p1), [
+            'catatan' => 'Nominal disesuaikan.',
+            'nominal' => 1_500_000,
+        ])->assertRedirect();
+
+        $setelahBendahara = $ringkasan('BEN-000001', 'bendahara.pinjaman.index');
+        $this->assertSame($setelahAdmin['jumlah_antrean'], $setelahBendahara['jumlah_antrean']);
+        $this->assertEquals($setelahAdmin['total_antrean'] - 500_000, $setelahBendahara['total_antrean']);
+        $this->assertSame($setelahAdmin['jumlah_disetujui'], $setelahBendahara['jumlah_disetujui']);
+
+        $ketuaSebelum = $ringkasan('KET-000001', 'ketua.pinjaman.index');
+        $bankSebelum = (float) KasKoperasi::first()->saldo_bank;
+
+        $this->post(route('ketua.pinjaman.approve', $p1), [
+            'catatan' => 'Cairkan final.',
+            'nominal' => 1_500_000,
+        ])->assertRedirect();
+
+        $ketuaSesudah = $ringkasan('KET-000001', 'ketua.pinjaman.index');
+        $this->assertSame($ketuaSebelum['jumlah_antrean'] - 1, $ketuaSesudah['jumlah_antrean']);
+        $this->assertEquals($ketuaSebelum['total_antrean'] - 1_500_000, $ketuaSesudah['total_antrean']);
+        $this->assertSame($ketuaSebelum['jumlah_disetujui'], $ketuaSesudah['jumlah_disetujui']);
+        $this->assertEquals($bankSebelum - 1_500_000, $ketuaSesudah['saldo_bank']);
+        $this->assertEquals($ketuaSesudah['saldo_bank'] - $ketuaSesudah['total_antrean'], $ketuaSesudah['sisa_proyeksi']);
+    }
 }
