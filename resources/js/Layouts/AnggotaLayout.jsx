@@ -1,6 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import { useState, useRef, useEffect } from 'react';
-import { User, LogOut, ChevronDown, Home, History, Plus, Info, ShieldCheck, ArrowLeft } from 'lucide-react';
+import { User, LogOut, ChevronDown, Home, History, Plus, Info, ShieldCheck } from 'lucide-react';
 import Panduan from '@/Pages/Portal/Panduan';
 import MobileHeader from '@/Components/ui/MobileHeader';
 
@@ -76,50 +76,27 @@ export default function AnggotaLayout({
                 }`}
             >
                 <div className="bg-white/90 backdrop-blur-md rounded-full border border-slate-200/80 shadow-[0_4px_24px_rgba(15,30,54,0.06)] px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-4 transition-all">
-                    {/* Left: Brand Identity or Back Navigation */}
-                    {backHref ? (
-                        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                            <Link
-                                href={backHref}
-                                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200/80 text-slate-700 text-xs sm:text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green shrink-0"
-                            >
-                                <ArrowLeft size={15} />
-                                <span className="hidden sm:inline">Kembali</span>
-                            </Link>
-                            <div className="h-4 w-px bg-slate-200 hidden sm:block shrink-0" />
-                            <Link href={route('portal.dashboard')} className="flex items-center gap-2 group shrink-0">
-                                <img
-                                    src="/images/logo.png"
-                                    alt="Logo Koperasi"
-                                    className="w-7 h-7 sm:w-8 sm:h-8 object-contain transition-transform group-hover:scale-105"
-                                />
-                                <span className="font-bold text-xs sm:text-sm text-slate-800 tracking-tight hidden md:inline">
+                    {/* Left: Brand Identity */}
+                    <div className="flex items-center gap-3">
+                        <Link
+                            href={route('portal.dashboard')}
+                            className="flex items-center gap-2.5 group rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green"
+                        >
+                            <img
+                                src="/images/logo.png"
+                                alt="Koperasi App"
+                                className="w-7 h-7 sm:w-8 sm:h-8 object-contain transition-transform group-hover:scale-105"
+                            />
+                            <div className="flex items-center gap-2">
+                                <span className="font-bold text-sm sm:text-base text-slate-800 tracking-tight">
                                     Koperasi App
                                 </span>
-                            </Link>
-                            {mobileTitle && (
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-emerald-50 text-[10px] sm:text-[11px] font-bold text-brand-green-dark border border-emerald-100 truncate">
-                                    {mobileTitle}
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-[10px] font-semibold text-slate-600 tracking-wider uppercase">
+                                    Portal Anggota
                                 </span>
-                            )}
-                        </div>
-                    ) : (
-                        <div className="flex items-center gap-3">
-                            <Link href={route('portal.dashboard')} className="flex items-center gap-2.5 group rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green">
-                                <img
-                                    src="/images/logo.png"
-                                    alt="Koperasi App"
-                                    className="w-7 h-7 sm:w-8 sm:h-8 object-contain transition-transform group-hover:scale-105"
-                                />
-                                <div className="flex items-center gap-2">
-                                    <span className="font-bold text-sm sm:text-base text-slate-800 tracking-tight">Koperasi App</span>
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-[10px] font-semibold text-slate-600 tracking-wider uppercase">
-                                        Portal Anggota
-                                    </span>
-                                </div>
-                            </Link>
-                        </div>
-                    )}
+                            </div>
+                        </Link>
+                    </div>
 
                     {/* Right: User Capsule & Dropdown */}
                     <div className="flex items-center gap-2 shrink-0">
