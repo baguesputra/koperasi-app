@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\AuditLogExport;
 use App\Models\Anggota;
 use App\Models\AuditLog;
 use App\Models\Departemen;
@@ -129,23 +130,47 @@ class PengaturanController extends Controller
 
         // Audit log (hanya diambil saat tab audit aktif)
         $auditLogs = null;
+        $statAudit = null;
+        $daftarUserAudit = [];
+        $daftarKategoriAudit = [];
+        $daftarAksiAudit = [];
+
         if ($tabAktif === 'audit') {
-            $queryAudit = AuditLog::with('user')->latest();
+            $filters = $request->only(['search', 'user_id', 'kategori', 'aksi', 'date_from', 'date_to']);
+            $queryAudit = AuditLog::with('user')->filter($filters)->latest();
 
-            if ($request->filled('search')) {
-                $search = $request->string('search');
-                $queryAudit->where(function ($q) use ($search) {
-                    $q->where('aksi', 'like', "%{$search}%")
-                        ->orWhere('keterangan', 'like', "%{$search}%");
-                });
-            }
+            // Statistik ringkasan untuk monitoring audit
+            $totalSemua = AuditLog::count();
+            $totalFiltered = (clone $queryAudit)->count();
+            $totalAktor = AuditLog::whereNotNull('user_id')->distinct('user_id')->count('user_id');
+            $aksiKritis = (clone $queryAudit)->where(function ($q) {
+                $q->where('aksi', 'like', '%_tolak%')
+                    ->orWhere('aksi', 'like', '%_setujui%')
+                    ->orWhere('aksi', 'like', '%_cair%')
+                    ->orWhere('aksi', 'like', 'hapus_%')
+                    ->orWhere('aksi', 'like', '%_resign%');
+            })->count();
 
-            if ($request->filled('date_from')) {
-                $queryAudit->whereDate('created_at', '>=', $request->date('date_from'));
-            }
-            if ($request->filled('date_to')) {
-                $queryAudit->whereDate('created_at', '<=', $request->date('date_to'));
-            }
+            $statAudit = [
+                'total_semua' => $totalSemua,
+                'total_filtered' => $totalFiltered,
+                'total_aktor' => $totalAktor,
+                'aksi_kritis' => $aksiKritis,
+            ];
+
+            // Daftar user yang pernah tercatat di audit log
+            $userIds = AuditLog::whereNotNull('user_id')->distinct()->pluck('user_id');
+            $daftarUserAudit = User::whereIn('id', $userIds)
+                ->orderBy('name')
+                ->get(['id', 'name', 'no_karyawan'])
+                ->map(fn ($u) => [
+                    'id' => $u->id,
+                    'name' => $u->name,
+                    'no_karyawan' => $u->no_karyawan,
+                ]);
+
+            $daftarKategoriAudit = AuditLog::daftarKategori();
+            $daftarAksiAudit = AuditLog::distinct()->pluck('aksi')->sort()->values();
 
             $auditLogs = $queryAudit->paginate(20)
                 ->withQueryString()
@@ -155,11 +180,14 @@ class PengaturanController extends Controller
                     'keterangan' => $log->keterangan,
                     'data_lama' => $log->data_lama,
                     'data_baru' => $log->data_baru,
+                    'ip_address' => $log->ip_address,
+                    'user_agent' => $log->user_agent,
                     'user' => $log->user ? [
+                        'id' => $log->user->id,
                         'name' => $log->user->name,
                         'no_karyawan' => $log->user->no_karyawan,
                     ] : null,
-                    'created_at' => $log->created_at->format('d M Y H:i'),
+                    'created_at' => $log->created_at->format('d M Y H:i:s'),
                 ]);
         }
 
@@ -195,7 +223,11 @@ class PengaturanController extends Controller
                 ])
                 : [],
             'auditLogs' => $auditLogs,
-            'filterAudit' => $request->only(['search', 'date_from', 'date_to']),
+            'statAudit' => $statAudit,
+            'daftarUserAudit' => $daftarUserAudit,
+            'daftarKategoriAudit' => $daftarKategoriAudit,
+            'daftarAksiAudit' => $daftarAksiAudit,
+            'filterAudit' => $request->only(['search', 'user_id', 'kategori', 'aksi', 'date_from', 'date_to']),
         ]);
     }
 
@@ -605,5 +637,18 @@ class PengaturanController extends Controller
         }
 
         return response()->json(['message' => 'Perangkat WhatsApp berhasil dikeluarkan.']);
+    }
+
+    /**
+     * Export log audit ke Excel multi-sheet.
+     */
+    public function exportAudit(Request $request)
+    {
+        $filters = $request->only(['search', 'user_id', 'kategori', 'aksi', 'date_from', 'date_to']);
+        $query = AuditLog::with('user')->filter($filters)->latest();
+
+        $namaFile = 'Audit_Log_Koperasi_' . now()->format('Ymd_His') . '.xlsx';
+
+        return (new AuditLogExport($query))->download($namaFile);
     }
 }

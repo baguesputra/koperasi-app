@@ -53,6 +53,10 @@ export default function Index({
     gateHistory,
     auditLogs,
     filterAudit,
+    statAudit,
+    daftarUserAudit,
+    daftarKategoriAudit,
+    daftarAksiAudit,
 }) {
     function pindahTab(key) {
         if (key === tabAktif) {
@@ -176,7 +180,16 @@ export default function Index({
                     {tabAktif === 'organisasi' && (
                         <SectionOrganisasi ringkasanMaster={ringkasanMaster} gateStatus={gateStatus} gateSetting={gateSetting} gateHistory={gateHistory} />
                     )}
-                    {tabAktif === 'audit' && <TabAuditLog auditLogs={auditLogs} filterAudit={filterAudit} />}
+                    {tabAktif === 'audit' && (
+                        <TabAuditLog
+                            auditLogs={auditLogs}
+                            filterAudit={filterAudit}
+                            statAudit={statAudit}
+                            daftarUserAudit={daftarUserAudit}
+                            daftarKategoriAudit={daftarKategoriAudit}
+                            daftarAksiAudit={daftarAksiAudit}
+                        />
+                    )}
                 </div>
             </div>
             </Card>

@@ -9,9 +9,11 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('jurnal_kas', function (Blueprint $table) {
-            $table->string('sumber_topup', 20)->nullable()->after('kategori');
-        });
+        if (! Schema::hasColumn('jurnal_kas', 'sumber_topup')) {
+            Schema::table('jurnal_kas', function (Blueprint $table) {
+                $table->string('sumber_topup', 20)->nullable()->after('kategori');
+            });
+        }
 
         // Topup lama dianggap modal (bukan pendapatan SHU).
         DB::table('jurnal_kas')

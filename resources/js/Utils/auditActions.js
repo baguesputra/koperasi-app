@@ -12,6 +12,7 @@ const KATEGORI = {
     pengaturan: 'Pengaturan',
     role: 'Role',
     pengguna: 'Pengguna',
+    auth: 'Autentikasi & Gate',
 };
 
 const KATEGORI_STYLE = {
@@ -25,6 +26,7 @@ const KATEGORI_STYLE = {
     pengaturan: 'bg-slate-100 text-slate-600',
     role: 'bg-fuchsia-50 text-fuchsia-700',
     pengguna: 'bg-blue-50 text-blue-700',
+    auth: 'bg-emerald-50 text-emerald-700',
 };
 
 const OUTCOME_STYLE = {
@@ -103,6 +105,14 @@ const AKSI_MAP = {
     reset_password_pengguna: { label: 'Reset Password Pengguna', outcome: 'kuning', kategori: 'pengguna' },
     ubah_status_pengguna: { label: 'Ubah Status Pengguna', outcome: 'kuning', kategori: 'pengguna' },
     hapus_pengguna: { label: 'Hapus Pengguna', outcome: 'merah', kategori: 'pengguna' },
+
+    // SSO & Gate
+    sso_login: { label: 'Login SSO Gate Berhasil', outcome: 'hijau', kategori: 'auth' },
+    sso_login_failed: { label: 'Login SSO Gagal', outcome: 'merah', kategori: 'auth' },
+    sinkron_gate_berhasil: { label: 'Sinkronisasi Anggota GATE', outcome: 'hijau', kategori: 'auth' },
+    sinkron_master_gate: { label: 'Sinkronisasi Master Organisasi', outcome: 'hijau', kategori: 'auth' },
+    migrasi_pinjaman: { label: 'Migrasi Pinjaman Excel', outcome: 'kuning', kategori: 'auth' },
+    migrasi_simpanan: { label: 'Migrasi Simpanan Excel', outcome: 'kuning', kategori: 'auth' },
 };
 
 function fallbackLabel(aksi) {

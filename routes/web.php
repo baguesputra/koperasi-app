@@ -200,6 +200,8 @@ Route::middleware(['auth', 'permission:pengaturan.kelola', 'password.confirm'])-
     // --------- WhatsApp (Baileys) ------------
     Route::get('/pengaturan/wa', [PengaturanController::class, 'waData'])->name('pengaturan.wa.data');
     Route::post('/pengaturan/wa/logout', [PengaturanController::class, 'waLogout'])->name('pengaturan.wa.logout');
+    // --------- Audit Log Export ------------
+    Route::get('/pengaturan/audit/export', [PengaturanController::class, 'exportAudit'])->name('pengaturan.audit.export');
     // --------- Role ------------
     Route::get('/role', [RoleController::class, 'index'])->name('role.index');
     Route::post('/role', [RoleController::class, 'store'])->name('role.store');
