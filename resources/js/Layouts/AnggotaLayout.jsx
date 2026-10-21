@@ -1,12 +1,20 @@
 import { Link, usePage } from '@inertiajs/react';
 import { useState, useRef, useEffect } from 'react';
-import { User, LogOut, ChevronDown, Home, History, Plus, Info } from 'lucide-react';
+import { User, LogOut, ChevronDown, Home, History, Plus, Info, ShieldCheck, ArrowLeft } from 'lucide-react';
 import Panduan from '@/Pages/Portal/Panduan';
 import MobileHeader from '@/Components/ui/MobileHeader';
 
-export default function AnggotaLayout({ children, mobileTitle = null, backHref = null, mobileAction = null }) {
+export default function AnggotaLayout({
+    children,
+    mobileTitle = null,
+    backHref = null,
+    mobileAction = null,
+    headerContent = null,
+    hideNavbar = false,
+}) {
     const { auth } = usePage().props;
     const initial = auth.user?.name?.charAt(0)?.toUpperCase() ?? '?';
+    const firstName = auth.user?.name?.split(' ')[0] ?? 'Anggota';
     const roles = auth.user?.roles ?? [];
     const isPengurus = roles.some(r => ['super_admin', 'admin', 'bendahara', 'ketua_koperasi', 'pengawas'].includes(r));
     const anggotaAktif = (auth.user?.anggota_status ?? 'aktif') === 'aktif';
@@ -60,85 +68,160 @@ export default function AnggotaLayout({ children, mobileTitle = null, backHref =
 
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col">
-            {/* Header hanya tampil di desktop/tablet. Di HP/mobile disembunyikan agar tampilan full screen seperti APK native */}
-            <header className="hidden sm:block sticky top-0 z-50 bg-white border-b-2 border-brand-navy pt-[env(safe-area-inset-top)]">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-3 sm:gap-5">
-                        <Link href={route('portal.dashboard')} className="flex items-center gap-2.5">
-                            <img src="/images/logo.png" alt="Koperasi App" className="w-7 h-7 sm:w-8 sm:h-8" />
-                            <span className="font-bold text-sm sm:text-base text-slate-800">Koperasi App</span>
-                        </Link>
-                    </div>
+            {/* Floating Glass Pill Navbar (Option 2) */}
+            {!hideNavbar && (
+            <header
+                className={`sticky top-3 sm:top-5 z-40 px-4 sm:px-6 max-w-7xl mx-auto w-full transition-all ${
+                    mobileTitle ? 'hidden sm:block' : ''
+                }`}
+            >
+                <div className="bg-white/90 backdrop-blur-md rounded-full border border-slate-200/80 shadow-[0_4px_24px_rgba(15,30,54,0.06)] px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-4 transition-all">
+                    {/* Left: Brand Identity or Back Navigation */}
+                    {backHref ? (
+                        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                            <Link
+                                href={backHref}
+                                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200/80 text-slate-700 text-xs sm:text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green shrink-0"
+                            >
+                                <ArrowLeft size={15} />
+                                <span className="hidden sm:inline">Kembali</span>
+                            </Link>
+                            <div className="h-4 w-px bg-slate-200 hidden sm:block shrink-0" />
+                            <Link href={route('portal.dashboard')} className="flex items-center gap-2 group shrink-0">
+                                <img
+                                    src="/images/logo.png"
+                                    alt="Logo Koperasi"
+                                    className="w-7 h-7 sm:w-8 sm:h-8 object-contain transition-transform group-hover:scale-105"
+                                />
+                                <span className="font-bold text-xs sm:text-sm text-slate-800 tracking-tight hidden md:inline">
+                                    Koperasi App
+                                </span>
+                            </Link>
+                            {mobileTitle && (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-emerald-50 text-[10px] sm:text-[11px] font-bold text-brand-green-dark border border-emerald-100 truncate">
+                                    {mobileTitle}
+                                </span>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-3">
+                            <Link href={route('portal.dashboard')} className="flex items-center gap-2.5 group rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green">
+                                <img
+                                    src="/images/logo.png"
+                                    alt="Koperasi App"
+                                    className="w-7 h-7 sm:w-8 sm:h-8 object-contain transition-transform group-hover:scale-105"
+                                />
+                                <div className="flex items-center gap-2">
+                                    <span className="font-bold text-sm sm:text-base text-slate-800 tracking-tight">Koperasi App</span>
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-[10px] font-semibold text-slate-600 tracking-wider uppercase">
+                                        Portal Anggota
+                                    </span>
+                                </div>
+                            </Link>
+                        </div>
+                    )}
 
-                    <div className="flex items-center gap-1">
-                        {anggotaAktif && (
+                    {/* Right: User Capsule & Dropdown */}
+                    <div className="flex items-center gap-2 shrink-0">
+                        <div className="relative" ref={dropdownRef}>
                             <button
                                 type="button"
-                                onClick={() => setShowPanduan(true)}
-                                aria-label="Tata cara"
-                                title="Tata cara"
-                                className="w-10 h-10 rounded-full text-slate-500 hover:text-brand-navy hover:bg-slate-100 transition-colors flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2"
+                                onClick={() => setDropdownOpen(!dropdownOpen)}
+                                aria-expanded={dropdownOpen}
+                                className={`flex items-center gap-2 sm:gap-2.5 pl-1.5 pr-2.5 sm:pr-3 py-1 rounded-full border border-slate-200/90 hover:border-slate-300 hover:bg-slate-50 transition-all ${
+                                    dropdownOpen ? 'ring-2 ring-brand-green/20 border-brand-green bg-slate-50' : ''
+                                } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green`}
                             >
-                                <Info size={20} />
-                            </button>
-                        )}
-                        <div className="relative" ref={dropdownRef}>
-                        <button
-                            onClick={() => setDropdownOpen(!dropdownOpen)}
-                            className="flex items-center gap-2 min-h-[44px] min-w-[44px] pl-1 pr-2 py-1 rounded-full hover:bg-slate-100 transition-colors"
-                        >
-                            <div className="w-9 h-9 rounded-full bg-brand-green text-white flex items-center justify-center text-sm font-bold">
-                                {initial}
-                            </div>
-                            <ChevronDown size={16} className={`text-slate-400 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
-                        </button>
-
-                        {dropdownOpen && (
-                            <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl border border-slate-100 shadow-lg overflow-hidden">
-                                <div className="px-4 py-3 border-b border-slate-100">
-                                    <p className="text-sm font-semibold text-slate-800 truncate">{auth.user?.name}</p>
-                                    <p className="text-xs text-slate-400">{auth.user?.email}</p>
+                                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-brand-green text-white flex items-center justify-center text-xs sm:text-sm font-bold shadow-xs">
+                                    {initial}
                                 </div>
-                                {auth.user?.anggota_status && (
-                                    <Link
-                                        href={route('portal.profil')}
-                                        className="flex items-center gap-2.5 px-4 py-3 text-sm text-slate-600 hover:bg-slate-50 transition-colors"
-                                    >
-                                        <User size={16} />
-                                        Lihat Profil
-                                    </Link>
-                                )}
-                                {isPengurus && (
-                                    <Link
-                                        href={route('dashboard')}
-                                        className="flex items-center gap-2.5 px-4 py-3 text-sm text-slate-600 hover:bg-slate-50 transition-colors"
-                                    >
-                                        <User size={16} />
-                                        Dashboard Koperasi
-                                    </Link>
-                                )}
-                                <form method="POST" action={route('logout')}>
-                                    <input
-                                        type="hidden"
-                                        name="_token"
-                                        value={document
-                                            .querySelector('meta[name="csrf-token"]')
-                                            ?.getAttribute('content')}
-                                    />
+                                <div className="text-left hidden sm:block max-w-[130px] truncate">
+                                    <span className="block text-xs font-semibold text-slate-700 truncate leading-tight">
+                                        {firstName}
+                                    </span>
+                                </div>
+                                <ChevronDown
+                                    size={14}
+                                    className={`text-slate-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180 text-slate-600' : ''}`}
+                                />
+                            </button>
 
-                                    <button
-                                        type="submit"
-                                        className="block w-full px-4 py-3 text-start text-sm leading-5 text-red-600 transition duration-150 ease-in-out hover:text-red-700 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
-                                    >
-                                        Keluar
-                                    </button>
-                                </form>
-                            </div>
-                        )}
+                            {dropdownOpen && (
+                                <div className="absolute right-0 mt-2.5 w-64 bg-white rounded-2xl border border-slate-100 shadow-[0_10px_30px_rgba(15,30,54,0.08)] overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150">
+                                    <div className="px-4 py-3.5 bg-slate-50/70 border-b border-slate-100">
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="w-2 h-2 rounded-full bg-brand-green" />
+                                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                                Anggota Aktif
+                                            </p>
+                                        </div>
+                                        <p className="text-sm font-bold text-slate-800 truncate mt-1">
+                                            {auth.user?.name}
+                                        </p>
+                                        <p className="text-xs text-slate-500 truncate">
+                                            {auth.user?.email}
+                                        </p>
+                                    </div>
+
+                                    <div className="py-1">
+                                        {auth.user?.anggota_status && (
+                                            <Link
+                                                href={route('portal.profil')}
+                                                onClick={() => setDropdownOpen(false)}
+                                                className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                                            >
+                                                <User size={15} className="text-slate-400" />
+                                                Profil Saya
+                                            </Link>
+                                        )}
+                                        {isPengurus && (
+                                            <Link
+                                                href={route('dashboard')}
+                                                onClick={() => setDropdownOpen(false)}
+                                                className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                                            >
+                                                <ShieldCheck size={15} className="text-brand-green" />
+                                                Dashboard Koperasi
+                                            </Link>
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setDropdownOpen(false);
+                                                setShowPanduan(true);
+                                            }}
+                                            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors text-left"
+                                        >
+                                            <Info size={15} className="text-slate-400" />
+                                            Tata Cara & Panduan
+                                        </button>
+                                    </div>
+
+                                    <div className="border-t border-slate-100 p-1">
+                                        <form method="POST" action={route('logout')}>
+                                            <input
+                                                type="hidden"
+                                                name="_token"
+                                                value={document
+                                                    .querySelector('meta[name="csrf-token"]')
+                                                    ?.getAttribute('content')}
+                                            />
+                                            <button
+                                                type="submit"
+                                                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors text-left"
+                                            >
+                                                <LogOut size={15} />
+                                                Keluar
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
             </header>
+            )}
 
             {/* Mobile Header khusus HP jika di sub-halaman */}
             {mobileTitle && (
@@ -149,9 +232,7 @@ export default function AnggotaLayout({ children, mobileTitle = null, backHref =
                 />
             )}
 
-            <main className={`flex-1 w-full max-w-7xl sm:mx-auto px-4 sm:px-6 pb-32 sm:pb-8 ${
-                mobileTitle ? 'pt-4 sm:pt-8' : 'pt-[calc(env(safe-area-inset-top)+1rem)] sm:pt-8'
-            }`}>
+            <main className="flex-1 w-full max-w-7xl sm:mx-auto px-4 sm:px-6 pt-6 sm:pt-8 pb-32 sm:pb-12">
                 <div className="mx-auto w-full max-w-lg sm:max-w-none">
                     {children}
                 </div>
