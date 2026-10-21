@@ -35,6 +35,8 @@ const SUB_NAV = {
 
 export default function Index({
     tabAktif,
+    allowedTabs = [],
+    bisaKelolaKebijakan = false,
     panelAktif,
     sectionAktif,
     pengguna,
@@ -72,6 +74,13 @@ export default function Index({
         el.scrollIntoView({ behavior: gerakKecil ? 'auto' : 'smooth', block: 'start' });
     }
 
+    const sectionsTampil = SECTIONS.map((section) => ({
+        ...section,
+        items: section.items.filter((item) =>
+            allowedTabs.length > 0 ? allowedTabs.includes(item.key) : true
+        ),
+    })).filter((section) => section.items.length > 0);
+
     const subNav = SUB_NAV[tabAktif] ?? [];
 
     return (
@@ -83,7 +92,7 @@ export default function Index({
             {/* Mobile: navigasi horizontal */}
             <div className="lg:hidden mb-4 -mx-1 px-1 overflow-x-auto">
                 <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-max min-w-full">
-                    {SECTIONS.flatMap((s) => s.items).map((item) => {
+                    {sectionsTampil.flatMap((s) => s.items).map((item) => {
                         const Icon = item.icon;
                         const isActive = tabAktif === item.key;
                         return (
@@ -106,7 +115,7 @@ export default function Index({
             <div className="grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)] items-start">
                 {/* Desktop: navigasi grup */}
                 <nav aria-label="Navigasi pengaturan" className="hidden lg:block p-3 space-y-5 border-r border-slate-100 self-stretch">
-                    {SECTIONS.map((section) => (
+                    {sectionsTampil.map((section) => (
                         <div key={section.grup}>
                             <p className="px-2 mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                                 {section.grup}
@@ -145,7 +154,7 @@ export default function Index({
                     <div className="mb-5">
                         <h2 className="text-lg font-bold text-slate-800">{JUDUL[tabAktif] ?? 'Pengaturan'}</h2>
                         <p className="text-sm text-slate-400 mt-0.5">
-                            {SECTIONS.flatMap((s) => s.items).find((i) => i.key === tabAktif)?.desc ?? ''}
+                            {sectionsTampil.flatMap((s) => s.items).find((i) => i.key === tabAktif)?.desc ?? ''}
                         </p>
                         {subNav.length > 0 && (
                             <nav aria-label="Lompat ke bagian" className="sticky top-0 z-10 -mx-1 mt-3 flex flex-wrap gap-1.5 bg-white/95 py-2 backdrop-blur">
@@ -163,8 +172,23 @@ export default function Index({
                         )}
                     </div>
 
-                    {tabAktif === 'aturan-pinjaman' && <TabAturanPinjaman bungaSaatIni={bungaSaatIni} limitPinjaman={limitPinjaman} tabelTenor={tabelTenor} sectionAktif={sectionAktif} />}
-                    {tabAktif === 'dana-operasional' && <TabDanaOperasional settingSimpanan={settingSimpanan} chipNominal={chipNominal} sectionAktif={sectionAktif} />}
+                    {tabAktif === 'aturan-pinjaman' && (
+                        <TabAturanPinjaman
+                            bungaSaatIni={bungaSaatIni}
+                            limitPinjaman={limitPinjaman}
+                            tabelTenor={tabelTenor}
+                            sectionAktif={sectionAktif}
+                            readOnly={!bisaKelolaKebijakan}
+                        />
+                    )}
+                    {tabAktif === 'dana-operasional' && (
+                        <TabDanaOperasional
+                            settingSimpanan={settingSimpanan}
+                            chipNominal={chipNominal}
+                            sectionAktif={sectionAktif}
+                            readOnly={!bisaKelolaKebijakan}
+                        />
+                    )}
                     {tabAktif === 'wa' && <TabWa />}
                     {tabAktif === 'akses' && (
                         <SectionAkses

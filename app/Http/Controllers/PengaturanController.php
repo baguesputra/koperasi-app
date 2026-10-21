@@ -37,6 +37,15 @@ class PengaturanController extends Controller
 {
     private const TAB_DIPERBOLEHKAN = ['aturan-pinjaman', 'dana-operasional', 'wa', 'akses', 'organisasi', 'audit'];
 
+    private const TAB_PERMISSIONS = [
+        'aturan-pinjaman' => ['pengaturan.kebijakan.lihat', 'pengaturan.kebijakan.kelola', 'pengaturan.kelola'],
+        'dana-operasional' => ['pengaturan.kebijakan.lihat', 'pengaturan.kebijakan.kelola', 'pengaturan.kelola'],
+        'wa' => ['pengaturan.wa', 'pengaturan.kelola'],
+        'akses' => ['user.kelola', 'pengaturan.kelola'],
+        'organisasi' => ['pengaturan.organisasi', 'pengaturan.kelola'],
+        'audit' => ['pengaturan.audit.lihat', 'pengaturan.kelola'],
+    ];
+
     private const TAB_LEGASI = [
         'bunga' => 'aturan-pinjaman',
         'limit' => 'aturan-pinjaman',
@@ -52,17 +61,30 @@ class PengaturanController extends Controller
 
     public function index(Request $request): Response|RedirectResponse
     {
-        $tabDiminta = $request->input('tab', 'aturan-pinjaman');
-        if (isset(self::TAB_LEGASI[$tabDiminta])) {
+        $user = $request->user();
+        $allowedTabs = array_values(array_filter(self::TAB_DIPERBOLEHKAN, function ($tab) use ($user) {
+            $perms = self::TAB_PERMISSIONS[$tab] ?? ['pengaturan.kelola'];
+            return $user->hasAnyPermission($perms);
+        }));
+
+        if (empty($allowedTabs)) {
+            abort(403, 'Anda tidak memiliki hak akses ke Pengaturan.');
+        }
+
+        $tabDiminta = $request->input('tab');
+        if ($tabDiminta && isset(self::TAB_LEGASI[$tabDiminta])) {
             return redirect()->route('pengaturan.index', array_merge(
                 $request->except(['tab', 'section']),
                 ['tab' => self::TAB_LEGASI[$tabDiminta], 'section' => $tabDiminta]
             ));
         }
-        $tabAktif = $request->input('tab', 'aturan-pinjaman');
-        if (! in_array($tabAktif, self::TAB_DIPERBOLEHKAN, true)) {
-            $tabAktif = 'aturan-pinjaman';
+
+        $tabAktif = $tabDiminta;
+        if (! $tabAktif || ! in_array($tabAktif, $allowedTabs, true)) {
+            $tabAktif = $allowedTabs[0];
         }
+
+        $bisaKelolaKebijakan = $user->hasAnyPermission(['pengaturan.kebijakan.kelola', 'pengaturan.kelola']);
 
         $panelAktif = $request->input('panel');
         if (! in_array($panelAktif, self::PANEL_DIPERBOLEHKAN, true)) {
@@ -75,19 +97,25 @@ class PengaturanController extends Controller
         $pengguna = null;
 
         if ($tabAktif === 'akses') {
-            $roleList = Role::withCount('users')->with('permissions')->orderBy('name')->get()
-                ->map(fn ($role) => [
-                    'id' => $role->id,
-                    'name' => $role->name,
-                    'jumlah_user' => $role->users_count,
-                    'dilindungi' => in_array($role->name, ['super_admin', 'admin', 'bendahara', 'ketua_koperasi', 'pengawas', 'anggota']),
-                    'permissions' => $role->permissions->pluck('name')->values(),
-                ]);
+            $canKelolaRole = $user->hasPermissionTo('pengaturan.kelola');
 
-            $daftarRole = $roleList->pluck('name');
+            if ($canKelolaRole) {
+                $roleList = Role::withCount('users')->with('permissions')->orderBy('name')->get()
+                    ->map(fn ($role) => [
+                        'id' => $role->id,
+                        'name' => $role->name,
+                        'jumlah_user' => $role->users_count,
+                        'dilindungi' => in_array($role->name, ['super_admin', 'admin', 'bendahara', 'ketua_koperasi', 'pengawas', 'anggota']),
+                        'permissions' => $role->permissions->pluck('name')->values(),
+                    ]);
 
-            $semuaPermission = Permission::orderBy('name')->get()
-                ->groupBy(fn ($p) => explode('.', $p->name)[0]);
+                $daftarRole = $roleList->pluck('name');
+
+                $semuaPermission = Permission::orderBy('name')->get()
+                    ->groupBy(fn ($p) => explode('.', $p->name)[0]);
+            } else {
+                $daftarRole = Role::orderBy('name')->pluck('name');
+            }
 
             $queryPengguna = User::query()->with(['anggota', 'roles']);
 
@@ -193,6 +221,8 @@ class PengaturanController extends Controller
 
         return Inertia::render('Pengaturan/Index', [
             'tabAktif' => $tabAktif,
+            'allowedTabs' => $allowedTabs,
+            'bisaKelolaKebijakan' => $bisaKelolaKebijakan,
             'panelAktif' => $panelAktif,
             'sectionAktif' => $request->input('section'),
             'pengguna' => $pengguna,

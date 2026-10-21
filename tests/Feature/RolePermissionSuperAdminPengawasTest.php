@@ -60,6 +60,36 @@ class RolePermissionSuperAdminPengawasTest extends TestCase
 
         // Dilarang konfirmasi simpanan massal
         $this->post(route('bendahara.simpanan.konfirmasi'), ['anggota_ids' => []])->assertForbidden();
+
+        // Admin bisa kelola pengguna & organisasi, tapi dilarang ubah kebijakan, WA, dan role
+        $this->get(route('pengaturan.pengguna.index'))->assertOk();
+        $this->post(route('pengaturan.bunga.update'), ['persentase' => 2.0])->assertForbidden();
+        $this->get(route('pengaturan.wa.data'))->assertForbidden();
+        $this->get(route('role.index'))->assertForbidden();
+    }
+
+    public function test_ketua_koperasi_bisa_kelola_kebijakan_tapi_dilarang_akses_sistem_teknis(): void
+    {
+        $ketua = User::where('no_karyawan', 'KET-000001')->firstOrFail();
+        $this->assertTrue($ketua->hasRole('ketua_koperasi'));
+
+        $this->actingAs($ketua);
+        session(['auth.password_confirmed_at' => time()]);
+
+        // Ketua BISA lihat & update kebijakan
+        $this->get(route('pengaturan.index', ['tab' => 'aturan-pinjaman']))->assertOk();
+        $this->post(route('pengaturan.bunga.update'), ['persentase' => 2.0])->assertRedirect();
+        $this->assertDatabaseHas('setting_bunga', ['persentase' => 2.0]);
+
+        // Ketua BISA lihat audit log
+        $this->get(route('pengaturan.index', ['tab' => 'audit']))->assertOk();
+
+        // Ketua DILARANG akses WA, GATE, Kelola Pengguna, dan Kelola Role
+        $this->get(route('pengaturan.wa.data'))->assertForbidden();
+        $this->post(route('pengaturan.wa.logout'))->assertForbidden();
+        $this->post(route('pengaturan.sinkron-gate'))->assertForbidden();
+        $this->get(route('pengaturan.pengguna.index'))->assertForbidden();
+        $this->get(route('role.index'))->assertForbidden();
     }
 
     public function test_pengawas_hanya_bisa_view_dan_tarik_laporan_tanpa_bisa_mutasi(): void
@@ -118,8 +148,26 @@ class RolePermissionSuperAdminPengawasTest extends TestCase
         $this->get(route('bendahara.pinjaman.index'))->assertForbidden();
         $this->get(route('ketua.pinjaman.index'))->assertForbidden();
 
-        // Dilarang masuk menu pengaturan
-        $this->get(route('pengaturan.index'))->assertForbidden();
+        // 3. Akses Tab Pengaturan: Pengawas BISA lihat audit & kebijakan (read-only), dilarang mutasi
+        session(['auth.password_confirmed_at' => time()]);
+        $this->get(route('pengaturan.index', ['tab' => 'audit']))->assertOk();
+        $this->get(route('pengaturan.index', ['tab' => 'aturan-pinjaman']))->assertOk();
+        $this->get(route('pengaturan.audit.export'))->assertOk();
+
+        // Pengawas DILARANG melakukan mutasi kebijakan
+        $this->post(route('pengaturan.bunga.update'), ['persentase' => 2.0])->assertForbidden();
+        $this->post(route('pengaturan.limit.store'), [
+            'label' => 'Tes Limit',
+            'min_bulan' => 0,
+            'limit_maksimal' => 5000000,
+        ])->assertForbidden();
+
+        // Pengawas DILARANG akses sistem (WA, GATE, Pengguna, Role)
+        $this->get(route('pengaturan.wa.data'))->assertForbidden();
+        $this->post(route('pengaturan.wa.logout'))->assertForbidden();
+        $this->post(route('pengaturan.sinkron-gate'))->assertForbidden();
+        $this->get(route('pengaturan.pengguna.index'))->assertForbidden();
+        $this->get(route('role.index'))->assertForbidden();
     }
 
     public function test_role_super_admin_dan_pengawas_dilindungi_dari_penghapusan(): void

@@ -1,15 +1,20 @@
 import { useState } from 'react';
+import { usePage } from '@inertiajs/react';
 import { UserCog, Shield, ChevronRight } from 'lucide-react';
 import Drawer from '@/Components/ui/Drawer';
 import SheetKelolaPengguna from './SheetKelolaPengguna';
 import SheetKelolaRole from './SheetKelolaRole';
 
 export default function SectionAkses({ pengguna, filterPengguna, daftarRole, roleList, semuaPermission, panelAktif, tabAktif }) {
+    const { auth } = usePage().props;
+    const userPermissions = auth.user?.permissions ?? [];
+    const canKelolaRole = userPermissions.includes('pengaturan.kelola');
+    const canKelolaPengguna = userPermissions.includes('user.kelola');
     const [sheet, setSheet] = useState(panelAktif);
 
     const items = [
-        { key: 'kelola-pengguna', title: 'Kelola Pengguna', desc: 'Akun login, role, dan status pengguna', icon: UserCog },
-        { key: 'kelola-role', title: 'Kelola Role', desc: 'Hak akses dan wewenang tiap role', icon: Shield },
+        ...(canKelolaPengguna ? [{ key: 'kelola-pengguna', title: 'Kelola Pengguna', desc: 'Akun login, role, dan status pengguna', icon: UserCog }] : []),
+        ...(canKelolaRole ? [{ key: 'kelola-role', title: 'Kelola Role', desc: 'Hak akses dan wewenang tiap role', icon: Shield }] : []),
     ];
 
     return (
@@ -43,31 +48,35 @@ export default function SectionAkses({ pengguna, filterPengguna, daftarRole, rol
                 })}
             </div>
 
-            <Drawer
-                show={sheet === 'kelola-pengguna'}
-                onClose={() => setSheet(null)}
-                maxWidth="3xl"
-                title="Kelola Pengguna"
-            >
-                <SheetKelolaPengguna
-                    pengguna={pengguna}
-                    filterPengguna={filterPengguna}
-                    daftarRole={daftarRole}
-                    tabAktif={tabAktif}
-                />
-            </Drawer>
+            {canKelolaPengguna && (
+                <Drawer
+                    show={sheet === 'kelola-pengguna'}
+                    onClose={() => setSheet(null)}
+                    maxWidth="3xl"
+                    title="Kelola Pengguna"
+                >
+                    <SheetKelolaPengguna
+                        pengguna={pengguna}
+                        filterPengguna={filterPengguna}
+                        daftarRole={daftarRole}
+                        tabAktif={tabAktif}
+                    />
+                </Drawer>
+            )}
 
-            <Drawer
-                show={sheet === 'kelola-role'}
-                onClose={() => setSheet(null)}
-                maxWidth="3xl"
-                title="Kelola Role"
-            >
-                <SheetKelolaRole
-                    roleList={roleList}
-                    semuaPermission={semuaPermission}
-                />
-            </Drawer>
+            {canKelolaRole && (
+                <Drawer
+                    show={sheet === 'kelola-role'}
+                    onClose={() => setSheet(null)}
+                    maxWidth="3xl"
+                    title="Kelola Role"
+                >
+                    <SheetKelolaRole
+                        roleList={roleList}
+                        semuaPermission={semuaPermission}
+                    />
+                </Drawer>
+            )}
         </div>
     );
 }

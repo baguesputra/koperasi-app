@@ -21,13 +21,14 @@ function parseInput(teks) {
         .filter((n) => n >= 1);
 }
 
-export default function TabChip({ chipNominal = {} }) {
+export default function TabChip({ chipNominal = {}, readOnly = false }) {
     const grupList = Object.keys(LABEL_GRUP);
     const [editGrup, setEditGrup] = useState(null);
     const [draft, setDraft] = useState('');
     const { data, setData, post, processing, errors, clearErrors } = useForm({ grup: '', daftar: [] });
 
     function mulaiEdit(grup) {
+        if (readOnly) return;
         setEditGrup(grup);
         clearErrors();
         const isi = (chipNominal[grup] ?? []).join(', ');
@@ -59,7 +60,7 @@ export default function TabChip({ chipNominal = {} }) {
             <ul className="divide-y divide-slate-100">
                 {grupList.map((grup) => {
                     const daftar = chipNominal[grup] ?? [];
-                    const sedangEdit = editGrup === grup;
+                    const sedangEdit = !readOnly && editGrup === grup;
                     return (
                         <li key={grup} className="py-3.5 first:pt-0 last:pb-0">
                             <div className="flex items-center justify-between gap-3">
@@ -69,9 +70,11 @@ export default function TabChip({ chipNominal = {} }) {
                                         <span className="text-sm font-bold text-slate-800 tabular-nums">
                                             {daftar.map((n) => formatRupiahSingkat(n)).join(' • ') || '-'}
                                         </span>
-                                        <button onClick={() => mulaiEdit(grup)} aria-label={`Ubah ${LABEL_GRUP[grup]}`} title="Ubah" className="min-h-[40px] min-w-[40px] inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-brand-navy hover:bg-slate-100 transition-colors">
-                                            <Pencil size={15} />
-                                        </button>
+                                        {!readOnly && (
+                                            <button onClick={() => mulaiEdit(grup)} aria-label={`Ubah ${LABEL_GRUP[grup]}`} title="Ubah" className="min-h-[40px] min-w-[40px] inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-brand-navy hover:bg-slate-100 transition-colors">
+                                                <Pencil size={15} />
+                                            </button>
+                                        )}
                                     </div>
                                 )}
                             </div>

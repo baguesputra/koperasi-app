@@ -104,7 +104,7 @@ function FormRentang({ awal, onSimpan, onBatal }) {
     );
 }
 
-export default function TabLimit({ limitPinjaman }) {
+export default function TabLimit({ limitPinjaman, readOnly = false }) {
     const [editId, setEditId] = useState(null);
     const [tambah, setTambah] = useState(false);
     const hapusForm = useForm({});
@@ -133,28 +133,34 @@ export default function TabLimit({ limitPinjaman }) {
                             {editId === item.id ? null : (
                                 <div className="flex items-center gap-2 shrink-0">
                                     <span className="text-sm font-bold text-slate-800 tabular-nums">{formatRupiah(item.limit_maksimal)}</span>
-                                    <button onClick={() => { setEditId(item.id); setTambah(false); }} aria-label={`Ubah ${item.label}`} title="Ubah" className="min-h-[40px] min-w-[40px] inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-brand-navy hover:bg-slate-100 transition-colors">
-                                        <Pencil size={15} />
-                                    </button>
-                                    <button onClick={() => hapus(item.id)} aria-label={`Hapus ${item.label}`} title="Hapus" className="min-h-[40px] min-w-[40px] inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors">
-                                        <Trash2 size={15} />
-                                    </button>
+                                    {!readOnly && (
+                                        <>
+                                            <button onClick={() => { setEditId(item.id); setTambah(false); }} aria-label={`Ubah ${item.label}`} title="Ubah" className="min-h-[40px] min-w-[40px] inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-brand-navy hover:bg-slate-100 transition-colors">
+                                                <Pencil size={15} />
+                                            </button>
+                                            <button onClick={() => hapus(item.id)} aria-label={`Hapus ${item.label}`} title="Hapus" className="min-h-[40px] min-w-[40px] inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors">
+                                                <Trash2 size={15} />
+                                            </button>
+                                        </>
+                                    )}
                                 </div>
                             )}
                         </div>
-                        {editId === item.id && (
+                        {!readOnly && editId === item.id && (
                             <FormRentang awal={item} onSimpan={() => setEditId(null)} onBatal={() => setEditId(null)} />
                         )}
                     </li>
                 ))}
             </ul>
-            {tambah ? (
-                <FormRentang awal={null} onSimpan={() => setTambah(false)} onBatal={() => setTambah(false)} />
-            ) : (
-                <Button type="button" variant="outline" size="sm" className="mt-3 rounded-full" onClick={() => { setTambah(true); setEditId(null); }}>
-                    <Plus size={15} />
-                    Tambah Rentang
-                </Button>
+            {!readOnly && (
+                tambah ? (
+                    <FormRentang awal={null} onSimpan={() => setTambah(false)} onBatal={() => setTambah(false)} />
+                ) : (
+                    <Button type="button" variant="outline" size="sm" className="mt-3 rounded-full" onClick={() => { setTambah(true); setEditId(null); }}>
+                        <Plus size={15} />
+                        Tambah Rentang
+                    </Button>
+                )
             )}
         </div>
     );

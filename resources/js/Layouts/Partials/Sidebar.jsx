@@ -59,7 +59,16 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
     const tautanAktif = useRef(null);
     const tertutup = collapsed && !expanding;
     const userPermissions = auth.user?.permissions ?? [];
-    const bisaPengaturan = userPermissions.includes('pengaturan.kelola');
+    const PENGATURAN_PERMISSIONS = [
+        'pengaturan.kelola',
+        'pengaturan.kebijakan.lihat',
+        'pengaturan.kebijakan.kelola',
+        'pengaturan.wa',
+        'pengaturan.organisasi',
+        'pengaturan.audit.lihat',
+        'user.kelola',
+    ];
+    const bisaPengaturan = userPermissions.some((p) => PENGATURAN_PERMISSIONS.includes(p));
     const initial = auth.user?.name?.charAt(0)?.toUpperCase() ?? '?';
     const csrfToken = typeof document !== 'undefined'
         ? document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')

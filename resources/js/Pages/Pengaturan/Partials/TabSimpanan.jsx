@@ -4,7 +4,7 @@ import { Pencil, Check, X } from 'lucide-react';
 import { formatRupiah } from '@/Utils/formatCurrency';
 import TextField from '@/Components/ui/TextField';
 
-export default function TabSimpanan({ settingSimpanan }) {
+export default function TabSimpanan({ settingSimpanan, readOnly = false }) {
     const [editId, setEditId] = useState(null);
     const { data, setData, post, processing, errors } = useForm({ nominal: '' });
 
@@ -30,7 +30,7 @@ export default function TabSimpanan({ settingSimpanan }) {
                 {settingSimpanan.map((item) => (
                     <li key={item.id} className="flex items-center justify-between gap-3 py-3.5 first:pt-0 last:pb-0">
                         <p className="text-sm text-slate-700 min-w-0">{item.label}</p>
-                        {editId === item.id ? (
+                        {!readOnly && editId === item.id ? (
                             <div className="shrink-0">
                                 <div className="flex items-center gap-1.5">
                                     <TextField
@@ -55,9 +55,11 @@ export default function TabSimpanan({ settingSimpanan }) {
                         ) : (
                             <div className="flex items-center gap-2 shrink-0">
                                 <span className="text-sm font-bold text-slate-800 tabular-nums">{formatRupiah(item.nominal)}</span>
-                                <button onClick={() => mulaiEdit(item)} aria-label={`Ubah ${item.label}`} title="Ubah" className="min-h-[40px] min-w-[40px] inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-brand-navy hover:bg-slate-100 transition-colors">
-                                    <Pencil size={15} />
-                                </button>
+                                {!readOnly && (
+                                    <button onClick={() => mulaiEdit(item)} aria-label={`Ubah ${item.label}`} title="Ubah" className="min-h-[40px] min-w-[40px] inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-brand-navy hover:bg-slate-100 transition-colors">
+                                        <Pencil size={15} />
+                                    </button>
+                                )}
                             </div>
                         )}
                     </li>

@@ -6,7 +6,7 @@ import FormField from '@/Components/ui/FormField';
 import TextField from '@/Components/ui/TextField';
 import { formatRupiah } from '@/Utils/formatCurrency';
 
-export default function TabTenor({ tabelTenor }) {
+export default function TabTenor({ tabelTenor, readOnly = false }) {
     const [showForm, setShowForm] = useState(false);
     const { data, setData, post, processing, errors, reset } = useForm({
         nominal_min: '', nominal_max: '', tenor_maksimal_bulan: '',
@@ -30,13 +30,15 @@ export default function TabTenor({ tabelTenor }) {
         <div>
             <div className="flex items-center justify-between gap-2 mb-4">
                 <p className="text-sm text-slate-400">Batas tenor maksimal berdasarkan rentang nominal pinjaman</p>
-                <Button variant="outline" size="sm" className="rounded-full shrink-0" onClick={() => setShowForm(!showForm)}>
-                    <Plus size={16} />
-                    Tambah
-                </Button>
+                {!readOnly && (
+                    <Button variant="outline" size="sm" className="rounded-full shrink-0" onClick={() => setShowForm(!showForm)}>
+                        <Plus size={16} />
+                        Tambah
+                    </Button>
+                )}
             </div>
 
-            {showForm && (
+            {!readOnly && showForm && (
                 <form onSubmit={submit} className="mb-4 p-4 bg-slate-50/80 border border-slate-100 rounded-2xl flex flex-wrap items-end gap-3">
                     <div className="w-36">
                         <FormField label="Nominal Min" error={errors.nominal_min} required>
@@ -75,9 +77,11 @@ export default function TabTenor({ tabelTenor }) {
                             </p>
                             <div className="flex items-center gap-2 shrink-0">
                                 <span className="text-sm font-bold text-slate-800 tabular-nums">{item.tenor_maksimal_bulan} bln</span>
-                                <button onClick={() => hapus(item.id)} aria-label={`Hapus rentang ${item.tenor_maksimal_bulan} bulan`} title="Hapus" className="min-h-[40px] min-w-[40px] inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors">
-                                    <Trash2 size={15} />
-                                </button>
+                                {!readOnly && (
+                                    <button onClick={() => hapus(item.id)} aria-label={`Hapus rentang ${item.tenor_maksimal_bulan} bulan`} title="Hapus" className="min-h-[40px] min-w-[40px] inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors">
+                                        <Trash2 size={15} />
+                                    </button>
+                                )}
                             </div>
                         </li>
                     ))}

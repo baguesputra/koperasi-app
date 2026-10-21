@@ -180,10 +180,23 @@ Route::middleware(['auth', 'permission:anggota.resign'])->group(function () {
 });
 
 // ==========================================
-// PENGATURAN (khusus Admin)
+// PENGATURAN
 // ==========================================
-Route::middleware(['auth', 'permission:pengaturan.kelola', 'password.confirm'])->group(function () {
+// Base GET /pengaturan requires at least one settings permission
+Route::middleware([
+    'auth',
+    'permission:pengaturan.kelola|pengaturan.kebijakan.lihat|pengaturan.kebijakan.kelola|pengaturan.wa|pengaturan.organisasi|pengaturan.audit.lihat|user.kelola',
+    'password.confirm',
+])->group(function () {
     Route::get('/pengaturan', [PengaturanController::class, 'index'])->name('pengaturan.index');
+});
+
+// Kebijakan mutations (bunga, limit, tenor, simpanan, chip)
+Route::middleware([
+    'auth',
+    'permission:pengaturan.kebijakan.kelola|pengaturan.kelola',
+    'password.confirm',
+])->group(function () {
     Route::post('/pengaturan/limit', [PengaturanController::class, 'storeLimit'])->name('pengaturan.limit.store');
     Route::put('/pengaturan/limit/{limit}', [PengaturanController::class, 'updateLimit'])->name('pengaturan.limit.update');
     Route::delete('/pengaturan/limit/{limit}', [PengaturanController::class, 'destroyLimit'])->name('pengaturan.limit.destroy');
@@ -193,16 +206,45 @@ Route::middleware(['auth', 'permission:pengaturan.kelola', 'password.confirm'])-
     Route::post('/pengaturan/bunga', [PengaturanController::class, 'updateBunga'])->name('pengaturan.bunga.update');
     Route::post('/pengaturan/simpanan/{setting}', [PengaturanController::class, 'updateSimpanan'])->name('pengaturan.simpanan.update');
     Route::post('/pengaturan/chip', [PengaturanController::class, 'updateChip'])->name('pengaturan.chip.update');
+});
+
+// Organisasi GATE sync & settings
+Route::middleware([
+    'auth',
+    'permission:pengaturan.organisasi|pengaturan.kelola',
+    'password.confirm',
+])->group(function () {
     Route::post('/pengaturan/sinkron-gate', [PengaturanController::class, 'sinkronGate'])->name('pengaturan.sinkron-gate');
     Route::post('/pengaturan/sinkron-master-gate', [PengaturanController::class, 'sinkronMasterGate'])->name('pengaturan.sinkron-master-gate');
     Route::post('/pengaturan/sinkron-semua-gate', [PengaturanController::class, 'sinkronSemuaGate'])->name('pengaturan.sinkron-semua-gate');
     Route::post('/pengaturan/jadwal-gate', [PengaturanController::class, 'simpanJadwalGate'])->name('pengaturan.jadwal-gate');
-    // --------- WhatsApp (Baileys) ------------
+});
+
+// WhatsApp (Baileys)
+Route::middleware([
+    'auth',
+    'permission:pengaturan.wa|pengaturan.kelola',
+    'password.confirm',
+])->group(function () {
     Route::get('/pengaturan/wa', [PengaturanController::class, 'waData'])->name('pengaturan.wa.data');
     Route::post('/pengaturan/wa/logout', [PengaturanController::class, 'waLogout'])->name('pengaturan.wa.logout');
-    // --------- Audit Log Export ------------
+});
+
+// Audit Log Export
+Route::middleware([
+    'auth',
+    'permission:pengaturan.audit.lihat|pengaturan.kelola',
+    'password.confirm',
+])->group(function () {
     Route::get('/pengaturan/audit/export', [PengaturanController::class, 'exportAudit'])->name('pengaturan.audit.export');
-    // --------- Role ------------
+});
+
+// Kelola Role (khusus Super Admin)
+Route::middleware([
+    'auth',
+    'permission:pengaturan.kelola',
+    'password.confirm',
+])->group(function () {
     Route::get('/role', [RoleController::class, 'index'])->name('role.index');
     Route::post('/role', [RoleController::class, 'store'])->name('role.store');
     Route::get('/role/{role}/edit', [RoleController::class, 'edit'])->name('role.edit');
