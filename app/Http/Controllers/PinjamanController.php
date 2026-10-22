@@ -142,15 +142,19 @@ class PinjamanController extends Controller
 
         $daftarCabang = Config::get('cabang');
 
-        // Statistik: 1 query dengan conditional aggregation
+        // Statistik: 1 query dengan conditional aggregation komprehensif
         $statistik = Pinjaman::query()
             ->selectRaw('
                 COUNT(*) as total,
                 SUM(CASE WHEN status = "diajukan" THEN 1 ELSE 0 END) as diajukan,
+                SUM(CASE WHEN status = "approved_admin" THEN 1 ELSE 0 END) as approved_admin,
                 SUM(CASE WHEN status = "approved_bendahara" THEN 1 ELSE 0 END) as approved_bendahara,
+                SUM(CASE WHEN status = "approved_ketua" THEN 1 ELSE 0 END) as approved_ketua,
                 SUM(CASE WHEN status = "aktif" THEN 1 ELSE 0 END) as aktif,
                 SUM(CASE WHEN status = "lunas" THEN 1 ELSE 0 END) as lunas,
-                SUM(CASE WHEN status = "ditolak" THEN 1 ELSE 0 END) as ditolak
+                SUM(CASE WHEN status = "ditolak" THEN 1 ELSE 0 END) as ditolak,
+                COALESCE(SUM(CASE WHEN status = "aktif" THEN nominal ELSE 0 END), 0) as total_nominal_aktif,
+                COALESCE(SUM(CASE WHEN status IN ("diajukan", "approved_admin", "approved_bendahara", "approved_ketua") THEN nominal ELSE 0 END), 0) as total_nominal_antrean
             ')
             ->first();
 
@@ -162,10 +166,14 @@ class PinjamanController extends Controller
             'statistik' => [
                 'total' => (int) $statistik->total,
                 'diajukan' => (int) $statistik->diajukan,
+                'approved_admin' => (int) $statistik->approved_admin,
                 'approved_bendahara' => (int) $statistik->approved_bendahara,
+                'approved_ketua' => (int) $statistik->approved_ketua,
                 'aktif' => (int) $statistik->aktif,
                 'lunas' => (int) $statistik->lunas,
                 'ditolak' => (int) $statistik->ditolak,
+                'total_nominal_aktif' => (float) $statistik->total_nominal_aktif,
+                'total_nominal_antrean' => (float) $statistik->total_nominal_antrean,
             ],
         ]);
     }

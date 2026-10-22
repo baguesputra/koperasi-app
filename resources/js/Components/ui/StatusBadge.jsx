@@ -10,6 +10,7 @@ const statusConfig = {
     diajukan: { label: 'Diajukan', color: 'bg-amber-50 text-amber-700', icon: Clock },
     approved_admin: { label: 'Diteruskan Admin', color: 'bg-amber-50 text-amber-700', icon: Clock },
     approved_bendahara: { label: 'Disetujui Bendahara', color: 'bg-blue-50 text-blue-700', icon: Clock },
+    approved_ketua: { label: 'Disetujui Ketua', color: 'bg-emerald-50 text-emerald-700', icon: CheckCircle2 },
     nonaktif: { label: 'Nonaktif', color: 'bg-slate-100 text-slate-600', icon: XCircle },
     resign: { label: 'Resign', color: 'bg-rose-50 text-rose-700', icon: XCircle },
     resign_menunggu: { label: 'Resign Menunggu', color: 'bg-amber-50 text-amber-700', icon: Clock },

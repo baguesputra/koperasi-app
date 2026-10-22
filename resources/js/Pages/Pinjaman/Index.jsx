@@ -1,12 +1,11 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, router } from '@inertiajs/react';
-import { CheckCircle2, Clock, BadgeCheck, Search, XCircle, Wallet, ChevronRight, ChevronDown, X, RefreshCw, Printer } from 'lucide-react';
+import { CheckCircle2, Clock, BadgeCheck, Search, XCircle, Wallet, ChevronRight, ChevronDown, X, RefreshCw, Printer, HandCoins } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import useDebouncedValue from '@/Utils/useDebouncedValue';
 import Button from '@/Components/ui/Button';
 import Card from '@/Components/ui/Card';
 import FotoAnggota from '@/Components/ui/FotoAnggota';
-import StatWidget from '@/Components/ui/StatWidget';
 import StatusBadge from '@/Components/ui/StatusBadge';
 import PageHeader from '@/Components/ui/PageHeader';
 import TextField from '@/Components/ui/TextField';
@@ -18,8 +17,10 @@ import Pagination from '@/Components/ui/Pagination';
 
 const statusOptions = [
     { value: '', label: 'Semua Status' },
-    { value: 'diajukan', label: 'Diajukan' },
-    { value: 'approved_bendahara', label: 'Disetujui Bendahara' },
+    { value: 'diajukan', label: '1. Diajukan (Menunggu Admin)' },
+    { value: 'approved_admin', label: '2. Diteruskan Admin (Menunggu Bendahara)' },
+    { value: 'approved_bendahara', label: '3. Disetujui Bendahara (Menunggu Ketua)' },
+    { value: 'approved_ketua', label: '4. Disetujui Ketua (Menunggu Pencairan)' },
     { value: 'aktif', label: 'Aktif' },
     { value: 'lunas', label: 'Lunas' },
     { value: 'ditolak', label: 'Ditolak' },
@@ -39,8 +40,8 @@ export default function Index({ pinjaman, filters, statistik, cabangAktif, dafta
     const pertama = useRef(true);
     const [detailPinjaman, setDetailPinjaman] = useState(null);
     const [drawerOpen, setDrawerOpen] = useState(false);
-    const [rincianTerbuka, setRincianTerbuka] = useState(false);
 
+    const totalMenunggu = (statistik.diajukan ?? 0) + (statistik.approved_admin ?? 0) + (statistik.approved_bendahara ?? 0) + (statistik.approved_ketua ?? 0);
     const filterAktif = Boolean((filters.cari ?? '') || (filters.status ?? '') || cabangAktif);
 
     function terapkanFilter(overrides = {}) {
@@ -105,72 +106,151 @@ export default function Index({ pinjaman, filters, statistik, cabangAktif, dafta
 
             <PageHeader title="Pinjaman" subtitle={`${pinjaman.total} pengajuan tercatat`} />
 
-            <div className="rounded-2xl bg-gradient-to-r from-brand-navy to-brand-navy-light text-white px-5 py-4 mb-3 shadow-md shadow-brand-navy/20">
-                <div className="flex items-center gap-3">
-                    <span className="w-11 h-11 rounded-2xl bg-white/15 inline-flex items-center justify-center shrink-0">
-                        <Wallet size={22} />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                        <p className="text-xs text-white/70">Total Pengajuan Pinjaman</p>
-                        <p className="text-2xl font-bold tabular-nums leading-tight">{statistik.total}</p>
-                    </div>
-                    <button
-                        type="button"
-                        onClick={() => setRincianTerbuka((v) => !v)}
-                        aria-expanded={rincianTerbuka}
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-full px-3 py-1.5 transition-colors shrink-0"
-                    >
-                        Rincian
-                        <ChevronDown size={14} className={`transition-transform ${rincianTerbuka ? 'rotate-180' : ''}`} />
-                    </button>
-                </div>
-                {rincianTerbuka && (
-                    <dl className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3 pt-3 border-t border-white/15 text-sm">
-                        <div className="rounded-xl bg-white/10 px-3 py-2">
-                            <dt className="text-xs text-white/70">Diajukan</dt>
-                            <dd className="font-bold tabular-nums">{statistik.diajukan}</dd>
-                        </div>
-                        <div className="rounded-xl bg-white/10 px-3 py-2">
-                            <dt className="text-xs text-white/70">Acc Bendahara</dt>
-                            <dd className="font-bold tabular-nums">{statistik.approved_bendahara}</dd>
-                        </div>
-                        <div className="rounded-xl bg-white/10 px-3 py-2">
-                            <dt className="text-xs text-white/70">Aktif</dt>
-                            <dd className="font-bold tabular-nums">{statistik.aktif}</dd>
-                        </div>
-                        <div className="rounded-xl bg-white/10 px-3 py-2">
-                            <dt className="text-xs text-white/70">Lunas</dt>
-                            <dd className="font-bold tabular-nums">{statistik.lunas}</dd>
-                        </div>
-                        <div className="rounded-xl bg-white/10 px-3 py-2">
-                            <dt className="text-xs text-white/70">Ditolak</dt>
-                            <dd className="font-bold tabular-nums">{statistik.ditolak}</dd>
-                        </div>
-                        <div className="rounded-xl bg-white/10 px-3 py-2">
-                            <dt className="text-xs text-white/70">Halaman ini</dt>
-                            <dd className="font-bold tabular-nums">{pinjaman.data.length}/{pinjaman.total}</dd>
-                        </div>
-                    </dl>
-                )}
-            </div>
-
+            {/* KPI Stat Grid Terpadu — Menghilangkan Duplikasi Banner */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-                <div className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
-                    <StatWidget compact label="Menunggu" value={statistik.diajukan + statistik.approved_bendahara} icon={Clock} tone="amber" />
-                </div>
-                <div className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
-                    <StatWidget compact label="Aktif" value={statistik.aktif} icon={BadgeCheck} tone="green" />
-                </div>
-                <div className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
-                    <StatWidget compact label="Lunas" value={statistik.lunas} icon={CheckCircle2} tone="green" />
-                </div>
-                <div className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
-                    <StatWidget compact label="Ditolak" value={statistik.ditolak} icon={XCircle} tone="rose" />
-                </div>
+                {/* 1. Total Pengajuan */}
+                <button
+                    type="button"
+                    onClick={() => terapkanFilter({ status: '' })}
+                    className={`text-left rounded-2xl p-4 border transition-all duration-200 cursor-pointer group flex flex-col justify-between ${
+                        !filters.status
+                            ? 'bg-white border-brand-navy/40 ring-2 ring-brand-navy/10 shadow-md'
+                            : 'bg-white border-slate-200/80 hover:border-slate-300 shadow-xs hover:shadow-md'
+                    }`}
+                >
+                    <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-semibold text-slate-500 group-hover:text-brand-navy transition-colors">
+                            Total Pengajuan
+                        </span>
+                        <span className="w-8 h-8 rounded-xl bg-brand-navy/5 text-brand-navy flex items-center justify-center shrink-0">
+                            <Wallet size={16} />
+                        </span>
+                    </div>
+                    <div className="mt-2">
+                        <p className="text-2xl font-bold text-slate-800 tabular-nums leading-tight">
+                            {statistik.total}
+                        </p>
+                        <p className="text-xs text-slate-400 mt-1 truncate">
+                            {statistik.aktif} aktif • {statistik.lunas} lunas
+                        </p>
+                    </div>
+                </button>
+
+                {/* 2. Antrean Approval (3 Jenjang Pipeline) */}
+                <button
+                    type="button"
+                    onClick={() => {
+                        if (['diajukan', 'approved_admin', 'approved_bendahara', 'approved_ketua'].includes(filters.status)) {
+                            terapkanFilter({ status: '' });
+                        } else if (statistik.diajukan > 0) {
+                            terapkanFilter({ status: 'diajukan' });
+                        } else if (statistik.approved_admin > 0) {
+                            terapkanFilter({ status: 'approved_admin' });
+                        } else if (statistik.approved_bendahara > 0) {
+                            terapkanFilter({ status: 'approved_bendahara' });
+                        } else {
+                            terapkanFilter({ status: 'diajukan' });
+                        }
+                    }}
+                    className={`text-left rounded-2xl p-4 border transition-all duration-200 cursor-pointer group flex flex-col justify-between ${
+                        ['diajukan', 'approved_admin', 'approved_bendahara', 'approved_ketua'].includes(filters.status)
+                            ? 'bg-amber-50/40 border-amber-400 ring-2 ring-amber-400/20 shadow-md'
+                            : 'bg-white border-slate-200/80 hover:border-amber-300 shadow-xs hover:shadow-md'
+                    }`}
+                >
+                    <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-semibold text-slate-500 group-hover:text-amber-800 transition-colors">
+                            Antrean Approval
+                        </span>
+                        <span className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
+                            <Clock size={16} />
+                        </span>
+                    </div>
+                    <div className="mt-2">
+                        <div className="flex items-baseline gap-2">
+                            <p className="text-2xl font-bold text-slate-800 tabular-nums leading-tight">
+                                {totalMenunggu}
+                            </p>
+                            {totalMenunggu > 0 && (
+                                <span className="text-[11px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-full">
+                                    Proses
+                                </span>
+                            )}
+                        </div>
+                        {/* 3 Pipeline Badges */}
+                        <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                            <span className="text-[10px] sm:text-[11px] font-semibold text-amber-800 bg-amber-100/80 px-1.5 py-0.5 rounded" title="Menunggu Verifikasi Admin">
+                                Admin {statistik.diajukan}
+                            </span>
+                            <span className="text-[10px] sm:text-[11px] font-semibold text-blue-800 bg-blue-100/80 px-1.5 py-0.5 rounded" title="Menunggu Tinjauan Bendahara">
+                                Bendahara {statistik.approved_admin}
+                            </span>
+                            <span className="text-[10px] sm:text-[11px] font-semibold text-indigo-800 bg-indigo-100/80 px-1.5 py-0.5 rounded" title="Menunggu Persetujuan Ketua">
+                                Ketua {statistik.approved_bendahara}
+                            </span>
+                        </div>
+                    </div>
+                </button>
+
+                {/* 3. Pinjaman Aktif */}
+                <button
+                    type="button"
+                    onClick={() => terapkanFilter({ status: filters.status === 'aktif' ? '' : 'aktif' })}
+                    className={`text-left rounded-2xl p-4 border transition-all duration-200 cursor-pointer group flex flex-col justify-between ${
+                        filters.status === 'aktif'
+                            ? 'bg-emerald-50/40 border-brand-green ring-2 ring-brand-green/20 shadow-md'
+                            : 'bg-white border-slate-200/80 hover:border-brand-green/50 shadow-xs hover:shadow-md'
+                    }`}
+                >
+                    <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-semibold text-slate-500 group-hover:text-brand-green-dark transition-colors">
+                            Pinjaman Aktif
+                        </span>
+                        <span className="w-8 h-8 rounded-xl bg-brand-green-light text-brand-green-dark flex items-center justify-center shrink-0">
+                            <HandCoins size={16} />
+                        </span>
+                    </div>
+                    <div className="mt-2">
+                        <p className="text-2xl font-bold text-slate-800 tabular-nums leading-tight">
+                            {statistik.aktif}
+                        </p>
+                        <p className="text-xs text-brand-green-dark font-medium mt-1 truncate privacy-blur">
+                            {formatRupiah(statistik.total_nominal_aktif)}
+                        </p>
+                    </div>
+                </button>
+
+                {/* 4. Pinjaman Lunas & Selesai */}
+                <button
+                    type="button"
+                    onClick={() => terapkanFilter({ status: filters.status === 'lunas' ? '' : 'lunas' })}
+                    className={`text-left rounded-2xl p-4 border transition-all duration-200 cursor-pointer group flex flex-col justify-between ${
+                        filters.status === 'lunas'
+                            ? 'bg-slate-50 border-slate-400 ring-2 ring-slate-400/20 shadow-md'
+                            : 'bg-white border-slate-200/80 hover:border-slate-300 shadow-xs hover:shadow-md'
+                    }`}
+                >
+                    <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-semibold text-slate-500 group-hover:text-slate-800 transition-colors">
+                            Pinjaman Lunas
+                        </span>
+                        <span className="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
+                            <CheckCircle2 size={16} />
+                        </span>
+                    </div>
+                    <div className="mt-2">
+                        <p className="text-2xl font-bold text-slate-800 tabular-nums leading-tight">
+                            {statistik.lunas}
+                        </p>
+                        <p className="text-xs text-slate-400 mt-1 truncate">
+                            {statistik.ditolak} pengajuan ditolak
+                        </p>
+                    </div>
+                </button>
             </div>
 
             <Card padding="sm" className="shadow-md border-slate-200/70 mb-4">
-                <div className="pb-3 mb-1 border-b border-slate-100">
+                <div className="pb-3 border-b border-slate-100">
                     <div className="flex flex-col md:flex-row md:items-center gap-2">
                         <div className="flex-1 relative group">
                             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-green transition-colors pointer-events-none" size={16} />
@@ -212,7 +292,7 @@ export default function Index({ pinjaman, filters, statistik, cabangAktif, dafta
                                 value={filters.status ?? ''}
                                 onChange={(e) => terapkanFilter({ status: e.target.value })}
                                 aria-label="Filter status"
-                                className="flex-1 min-w-0 md:flex-none md:w-44 text-sm rounded-full border-slate-200 bg-slate-50/60"
+                                className="flex-1 min-w-0 md:flex-none md:w-64 text-sm rounded-full border-slate-200 bg-slate-50/60"
                             >
                                 {statusOptions.map((s) => (
                                     <option key={s.value} value={s.value}>{s.label}</option>
