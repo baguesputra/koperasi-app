@@ -15,19 +15,31 @@ class ProfilController extends Controller
         $anggota = auth()->user()->anggota;
         $anggota->loadMissing(['perusahaan', 'departemen', 'divisiMaster', 'jabatanMaster']);
 
+        $sekarang = now();
+        $tahun = (int) ($anggota->tanggal_jadi_anggota ? $anggota->tanggal_jadi_anggota->diffInYears($sekarang) : 0);
+        $tanggalSetelahTahun = $anggota->tanggal_jadi_anggota ? $anggota->tanggal_jadi_anggota->copy()->addYears($tahun) : null;
+        $bulan = (int) ($tanggalSetelahTahun ? $tanggalSetelahTahun->diffInMonths($sekarang) : 0);
+        $lamaLabel = ($tahun === 0 && $bulan === 0)
+            ? 'Baru bergabung'
+            : (($tahun === 0)
+                ? "{$bulan} bulan"
+                : (($bulan === 0) ? "{$tahun} tahun" : "{$tahun} tahun {$bulan} bulan"));
+
         return Inertia::render('Portal/Profil', [
             'anggota' => [
                 'nama' => $anggota->nama,
                 'no_anggota' => $anggota->no_anggota,
                 'no_karyawan' => $anggota->no_karyawan,
+                'foto_url' => $anggota->foto_url,
+                'lama_keanggotaan_label' => $lamaLabel,
                 'cabang' => $anggota->cabang,
                 'unit_bisnis' => $anggota->unit_bisnis,
                 'jabatan' => $anggota->getRelationValue('jabatanMaster')?->nama ?? $anggota->jabatan,
                 'perusahaan' => $anggota->getRelationValue('perusahaan')?->nama,
                 'departemen' => $anggota->getRelationValue('departemen')?->nama ?? $anggota->department,
                 'divisi' => $anggota->getRelationValue('divisiMaster')?->nama,
-                'tanggal_mulai_kerja' => $anggota->tanggal_mulai_kerja->format('d M Y'),
-                'tanggal_jadi_anggota' => $anggota->tanggal_jadi_anggota->format('d M Y'),
+                'tanggal_mulai_kerja' => $anggota->tanggal_mulai_kerja?->format('d M Y'),
+                'tanggal_jadi_anggota' => $anggota->tanggal_jadi_anggota?->format('d M Y'),
                 'email' => auth()->user()->email,
             ],
             'rekening' => $anggota->rekening()->orderByDesc('is_default')->get(),

@@ -20,6 +20,7 @@ export default function AnggotaLayout({
     const anggotaAktif = (auth.user?.anggota_status ?? 'aktif') === 'aktif';
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [showPanduan, setShowPanduan] = useState(false);
+    const [avatarGagal, setAvatarGagal] = useState(false);
     const dropdownRef = useRef(null);
 
     useEffect(() => {
@@ -75,12 +76,12 @@ export default function AnggotaLayout({
                     mobileTitle ? 'hidden sm:block' : ''
                 }`}
             >
-                <div className="bg-white/90 backdrop-blur-md rounded-full border border-slate-200/80 shadow-[0_4px_24px_rgba(15,30,54,0.06)] px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-4 transition-all">
+                <div className="bg-white/65 backdrop-blur-xl backdrop-saturate-150 rounded-2xl border border-slate-200/60 shadow-[0_8px_30px_rgba(15,30,54,0.06)] px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-4 transition-all">
                     {/* Left: Brand Identity */}
                     <div className="flex items-center gap-3">
                         <Link
                             href={route('portal.dashboard')}
-                            className="flex items-center gap-2.5 group rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green"
+                            className="flex items-center gap-2.5 group rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green"
                         >
                             <img
                                 src="/images/logo.png"
@@ -91,7 +92,7 @@ export default function AnggotaLayout({
                                 <span className="font-bold text-sm sm:text-base text-slate-800 tracking-tight">
                                     Koperasi App
                                 </span>
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-[10px] font-semibold text-slate-600 tracking-wider uppercase">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100/70 text-[10px] font-semibold text-slate-600 tracking-wider uppercase border border-slate-200/40">
                                     Portal Anggota
                                 </span>
                             </div>
@@ -105,13 +106,24 @@ export default function AnggotaLayout({
                                 type="button"
                                 onClick={() => setDropdownOpen(!dropdownOpen)}
                                 aria-expanded={dropdownOpen}
-                                className={`flex items-center gap-2 sm:gap-2.5 pl-1.5 pr-2.5 sm:pr-3 py-1 rounded-full border border-slate-200/90 hover:border-slate-300 hover:bg-slate-50 transition-all ${
-                                    dropdownOpen ? 'ring-2 ring-brand-green/20 border-brand-green bg-slate-50' : ''
+                                className={`flex items-center gap-2 sm:gap-2.5 pl-1.5 pr-2.5 sm:pr-3 py-1 rounded-xl bg-white/50 hover:bg-white/90 border border-slate-200/70 hover:border-slate-300 transition-all ${
+                                    dropdownOpen ? 'ring-2 ring-brand-green/20 border-brand-green bg-white/90' : ''
                                 } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green`}
                             >
-                                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-brand-green text-white flex items-center justify-center text-xs sm:text-sm font-bold shadow-xs">
-                                    {initial}
-                                </div>
+                                {auth.user?.foto_url && !avatarGagal ? (
+                                    <img
+                                        src={auth.user.foto_url}
+                                        alt={auth.user.name}
+                                        loading="lazy"
+                                        referrerPolicy="no-referrer"
+                                        onError={() => setAvatarGagal(true)}
+                                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover shadow-xs border border-slate-200"
+                                    />
+                                ) : (
+                                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-brand-green text-white flex items-center justify-center text-xs sm:text-sm font-bold shadow-xs">
+                                        {initial}
+                                    </div>
+                                )}
                                 <div className="text-left hidden sm:block max-w-[130px] truncate">
                                     <span className="block text-xs font-semibold text-slate-700 truncate leading-tight">
                                         {firstName}

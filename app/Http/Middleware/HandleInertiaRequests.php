@@ -44,6 +44,7 @@ class HandleInertiaRequests extends Middleware
                     'roles' => $request->user()->getRoleNames(),
                     'permissions' => $request->user()->getAllPermissions()->pluck('name'),
                     'anggota_status' => $request->user()->anggota?->status,
+                    'foto_url' => $request->user()->anggota?->foto_url,
                 ] : null,
             ],
             'flash' => [

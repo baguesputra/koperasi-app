@@ -1,6 +1,6 @@
 import AnggotaLayout from '@/Layouts/AnggotaLayout';
 import { Head, Link, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
     PiggyBank,
     Wallet,
@@ -275,6 +275,15 @@ export default function Dashboard({
     const [percepatanDitutup, setPercepatanDitutup] = useState(false);
     const [limitDitutup, setLimitDitutup] = useState(false);
     const [nominalTampil, alihNominal] = usePrivasiNominal();
+    const [fotoGagal, setFotoGagal] = useState(false);
+
+    const salamWaktu = useMemo(() => {
+        const jam = new Date().getHours();
+        if (jam >= 4 && jam < 11) return 'Selamat Pagi';
+        if (jam >= 11 && jam < 15) return 'Selamat Siang';
+        if (jam >= 15 && jam < 18) return 'Selamat Sore';
+        return 'Selamat Malam';
+    }, []);
 
     return (
         <AnggotaLayout>
@@ -341,88 +350,57 @@ export default function Dashboard({
 
 
                 {/* =====================================================
-                    MEMBER WELCOME HEADER (Modern Corporate - Option 2)
+                    MEMBER WELCOME HEADER (Clean Horizontal Typographic)
                 ====================================================== */}
-                <div className="flex items-center justify-between gap-4 pt-1 sm:pt-2">
-                    <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs sm:text-sm text-slate-500 font-medium">Selamat datang,</span>
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-[10px] sm:text-[11px] font-bold text-brand-green-dark border border-emerald-100">
-                                <span className="w-1.5 h-1.5 rounded-full bg-brand-green" />
-                                Anggota Aktif
-                            </span>
-                        </div>
-                        <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-800 tracking-tight leading-tight truncate mt-1">
-                            {anggota.nama}
-                        </h1>
-                        <p className="text-xs sm:text-sm text-slate-500 truncate mt-1">
-                            NIP: {anggota.no_karyawan} &bull; Bergabung {anggota.lama_keanggotaan_label}
-                        </p>
-                    </div>
-
-                    {/* Member Avatar Pill */}
-                    {anggota.foto_url ? (
-                        <img
-                            src={anggota.foto_url}
-                            alt={anggota.nama}
-                            className="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover border-2 border-white shadow-md shrink-0"
-                            onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                            }}
-                        />
-                    ) : (
-                        <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-tr from-brand-green to-emerald-400 text-white flex items-center justify-center text-lg sm:text-2xl font-bold shadow-md shrink-0">
-                            {initial}
-                        </div>
-                    )}
+                <div className="pt-1 sm:pt-2">
+                    <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-800 tracking-tight leading-tight">
+                        {salamWaktu}, {anggota.nama}
+                    </h1>
+                    <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                        Pantau saldo simpanan dan kelola fasilitas pinjaman Anda secara real-time.
+                    </p>
                 </div>
 
                 {/* =====================================================
-                    DIGITAL MEMBER CARD (Executive Neobank)
+                    DIGITAL MEMBER CARD (Executive Minimalist)
                 ====================================================== */}
                 <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-[#0B1527] via-[#0F1E36] to-[#0A2E1A] text-white p-5 sm:p-7 shadow-[0_16px_36px_rgba(15,30,54,0.22)] border border-white/10 group">
                     {/* Background Radial Glow */}
                     <div className="absolute -top-24 -right-24 w-72 h-72 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
                     <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
 
-                    {/* Subtle Grid Accent */}
-                    <svg className="absolute inset-0 w-full h-full opacity-5 pointer-events-none" xmlns="http://www.w3.org/2000/svg">
-                        <defs>
-                            <pattern id="card-mesh" width="28" height="28" patternUnits="userSpaceOnUse">
-                                <path d="M0 28 L28 0 M0 0 L28 28" fill="none" stroke="currentColor" strokeWidth="0.5" />
-                            </pattern>
-                        </defs>
-                        <rect width="100%" height="100%" fill="url(#card-mesh)" />
-                    </svg>
-
-                    <div className="relative z-10 flex flex-col justify-between min-h-[200px] sm:min-h-[220px]">
-                        {/* Card Top: Chip & Status */}
-                        <div className="flex items-start justify-between gap-4">
-                            <div className="flex items-center gap-3">
-                                {/* Microchip EMV */}
-                                <div className="w-10 h-7 rounded bg-gradient-to-tr from-amber-300 via-amber-200 to-amber-400 p-[2px] border border-amber-400/60 shadow-inner flex flex-col justify-between shrink-0">
-                                    <div className="w-full h-full border border-amber-700/30 rounded-[2px] flex items-center justify-center">
-                                        <div className="w-3/4 h-1/2 border-t border-b border-amber-700/40" />
+                    <div className="relative z-10">
+                        {/* Card Top: Member Photo, Name & Privacy / Status */}
+                        <div className="flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
+                                {/* Member Photo / Initial Avatar */}
+                                {anggota.foto_url && !fotoGagal ? (
+                                    <img
+                                        src={anggota.foto_url}
+                                        alt={anggota.nama}
+                                        loading="lazy"
+                                        referrerPolicy="no-referrer"
+                                        onError={() => setFotoGagal(true)}
+                                        className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl object-cover border border-white/20 shadow-md shrink-0 bg-slate-800"
+                                    />
+                                ) : (
+                                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-tr from-brand-green to-emerald-400 text-white flex items-center justify-center text-base sm:text-lg font-extrabold border border-white/20 shadow-md shrink-0">
+                                        {initial}
                                     </div>
-                                </div>
+                                )}
 
-                                {/* Contactless Wave */}
-                                <svg className="w-5 h-5 text-white/40 rotate-90 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.5 16.5a5 5 0 010-9M12 19a8.5 8.5 0 000-14M15.5 21.5a12 12 0 000-19" />
-                                </svg>
-
-                                <div className="hidden min-[380px]:block">
-                                    <p className="text-[10px] font-bold tracking-widest text-emerald-400 uppercase">
-                                        Koperasi App &bull; Digital Card
+                                <div className="min-w-0">
+                                    <p className="text-sm sm:text-base font-bold text-white tracking-wide truncate">
+                                        {anggota.nama}
                                     </p>
-                                    <p className="text-[11px] text-white/60">
-                                        Anggota Aktif
+                                    <p className="text-[11px] font-mono text-slate-300 tracking-wider truncate">
+                                        NIP: {anggota.no_karyawan}
                                     </p>
                                 </div>
                             </div>
 
                             {/* Card Status & Privacy Toggle */}
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 shrink-0">
                                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-[11px] font-semibold text-emerald-300">
                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                                     Aktif
@@ -440,8 +418,8 @@ export default function Dashboard({
                             </div>
                         </div>
 
-                        {/* Card Center: Core Balances */}
-                        <div className="my-5 sm:my-6 grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-8 border-y border-white/10 py-4 sm:py-5">
+                        {/* Card Body: Core Balances */}
+                        <div className="mt-5 sm:mt-6 pt-5 sm:pt-6 border-t border-white/10 grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-8">
                             <div>
                                 <div className="flex items-center gap-1.5 text-xs text-slate-300 font-medium">
                                     <PiggyBank size={14} className="text-emerald-400" />
@@ -465,27 +443,6 @@ export default function Dashboard({
                                 </div>
                                 <p className="mt-1 text-[11px] text-slate-300 truncate">
                                     <CaptionLimitBerjalan pengajuan={pengajuanLimitBerjalan} tampil={nominalTampil} limitMaksimal={limitMaksimal} />
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Card Footer: Member ID & Details */}
-                        <div className="flex items-end justify-between gap-3 text-xs">
-                            <div className="min-w-0">
-                                <p className="text-[10px] font-semibold text-slate-400 tracking-wider uppercase">
-                                    Nama Anggota
-                                </p>
-                                <p className="text-sm font-bold text-white tracking-wider truncate uppercase">
-                                    {anggota.nama}
-                                </p>
-                            </div>
-
-                            <div className="text-right shrink-0">
-                                <p className="text-[10px] font-semibold text-slate-400 tracking-wider uppercase">
-                                    No. Anggota
-                                </p>
-                                <p className="text-xs sm:text-sm font-mono font-bold text-slate-200 tracking-widest">
-                                    {anggota.no_anggota || anggota.no_karyawan}
                                 </p>
                             </div>
                         </div>
