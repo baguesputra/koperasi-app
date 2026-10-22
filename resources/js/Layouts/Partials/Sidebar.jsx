@@ -1,12 +1,12 @@
 import { Link, usePage } from '@inertiajs/react';
 import { useEffect, useRef } from 'react';
 import { usePrivacy } from '@/Contexts/PrivacyContext';
+import PrivacyIcon from '@/Components/ui/PrivacyIcon';
 import {
     LayoutDashboard, Users, PiggyBank, HandCoins,
     ClipboardCheck, CalendarCheck, HeartHandshake,
     Wallet, FileBarChart, TrendingUp, BookOpenText, Percent,
-    ChevronLeft, ChevronRight, Repeat, Settings, LogOut,
-    ShieldCheck, Shield
+    ChevronLeft, ChevronRight, Repeat, Settings, LogOut
 } from 'lucide-react';
 
 const fokusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/40';
@@ -143,17 +143,14 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
                             title={isPrivacyActive ? 'Mode Privasi: Aktif (Klik untuk nonaktifkan • Ctrl+Shift+P)' : 'Mode Privasi: Nonaktif (Klik untuk aktifkan • Ctrl+Shift+P)'}
                             aria-label="Toggle Mode Privasi"
                             aria-pressed={isPrivacyActive}
-                            className={`relative inline-flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200 shrink-0 ${fokusRing} ${
-                                isPrivacyActive
-                                    ? 'text-brand-green-dark bg-brand-green-light/70 hover:bg-brand-green-light border border-brand-green/30 shadow-xs'
-                                    : 'text-slate-400 bg-slate-100 hover:bg-slate-200/80 hover:text-slate-600'
-                            }`}
+                            className={`relative inline-flex items-center justify-center w-8 h-8 rounded-lg hover:bg-slate-100 active:scale-95 transition-all duration-150 shrink-0 ${fokusRing}`}
                         >
-                            {isPrivacyActive ? (
-                                <ShieldCheck key="active" size={17} strokeWidth={2.2} className="animate-privacy-on" />
-                            ) : (
-                                <Shield key="inactive" size={17} strokeWidth={2} />
-                            )}
+                            <PrivacyIcon
+                                key={isPrivacyActive ? 'active' : 'inactive'}
+                                active={isPrivacyActive}
+                                size={20}
+                                className={isPrivacyActive ? 'animate-privacy-on' : 'opacity-65 hover:opacity-100'}
+                            />
                         </button>
                     </>
                 )}
