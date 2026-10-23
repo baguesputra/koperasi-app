@@ -11,6 +11,8 @@ $menunggu = ($anggota->status ?? '') === 'resign_menunggu' || $mode === 'menungg
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Rincian Penyelesaian Resign - {{ $anggota->nama ?? '-' }}</title>
+    <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+    <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
     <style>
         :root {
             --bg-base: #FAFAFA; --card-bg: #FFFFFF; --border: #E5E7EB;

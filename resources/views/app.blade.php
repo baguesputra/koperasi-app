@@ -6,6 +6,8 @@
 
         <title inertia>Koperasi</title>
         <meta name="description" content="Aplikasi Koperasi Simpan Pinjam Karyawan modern, aman, dan terpercaya.">
+        <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+        <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
 
         <!-- Fonts (Preconnected & Swap) -->
         <link rel="preconnect" href="https://fonts.googleapis.com">

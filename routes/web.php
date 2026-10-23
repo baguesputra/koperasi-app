@@ -53,8 +53,9 @@ Route::post('/api/v1/sso/token', [ApiAnggotaController::class, 'ssoToken'])
     ->name('api.sso.token');
 
 // Dokumentasi API (halaman tulis-tangan, tanpa generator).
-// URL dipertahankan di /api/documentation agar link lama tidak putus.
+// Dilindungi middleware auth agar skema internal tidak terekspos ke publik internet.
 Route::get('/api/documentation', fn () => response()->view('api.dokumentasi'))
+    ->middleware('auth')
     ->name('api.documentation');
 
 Route::get('/', function () {
@@ -403,9 +404,10 @@ Route::middleware(['auth', 'permission:migrasi.kelola'])->prefix('migrasi')->nam
 // --------------------- PWA Static Routes -------------------------
 Route::get('/manifest.webmanifest', function () {
     $path = public_path('build/manifest.webmanifest');
-    if (!file_exists($path)) {
+    if (! file_exists($path)) {
         return response()->json([], 404);
     }
+
     return response()->file($path, [
         'Content-Type' => 'application/manifest+json',
         'Cache-Control' => 'public, max-age=3600',
@@ -414,9 +416,10 @@ Route::get('/manifest.webmanifest', function () {
 
 Route::get('/sw.js', function () {
     $path = public_path('build/sw.js');
-    if (!file_exists($path)) {
+    if (! file_exists($path)) {
         return response('// SW not found', 404, ['Content-Type' => 'application/javascript']);
     }
+
     return response()->file($path, [
         'Content-Type' => 'application/javascript',
         'Service-Worker-Allowed' => '/',
@@ -425,4 +428,3 @@ Route::get('/sw.js', function () {
 });
 
 require __DIR__.'/auth.php';
-

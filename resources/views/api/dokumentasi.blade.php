@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Dokumentasi RESTful API Koperasi App v1 untuk integrasi mobile PWA, Gate SSO, dan layanan internal.">
+    <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+    <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
     <title>Dokumentasi API v1 — Koperasi App</title>
     <link rel="icon" type="image/png" href="/images/logo.png">
     <style>
