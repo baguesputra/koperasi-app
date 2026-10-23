@@ -66,7 +66,7 @@ export default function CetakBukti({ pinjaman, angsuran, totals, kota_ttd }) {
                     <div style={{ display: 'table', width: '100%' }}>
                         <div style={{ display: 'table-row' }}>
                             <div style={{ display: 'table-cell', verticalAlign: 'middle', width: '80px', paddingRight: '16px' }}>
-                                <img src="/images/logo.png" alt="Logo" style={{ width: '72px', height: '72px' }} />
+                                <img src="/images/logo-ui.png" alt="Logo" width="72" height="72" style={{ width: '72px', height: '72px' }} />
                             </div>
                             <div style={{ display: 'table-cell', verticalAlign: 'middle', textAlign: 'center' }}>
                                 <h1 className="tnr" style={{ fontSize: '17pt', fontWeight: 700, color: '#000', margin: 0, letterSpacing: '1px', textTransform: 'uppercase' }}>KOPERASI KARYAWAN</h1>

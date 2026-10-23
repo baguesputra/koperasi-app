@@ -3,6 +3,7 @@
 namespace App\Services\Pinjaman;
 
 use App\Helpers\TerbilangHelper;
+use App\Models\KasKoperasi;
 
 /**
  * Format pinjaman lengkap untuk halaman approval (Admin/Bendahara/Ketua).
@@ -10,12 +11,24 @@ use App\Helpers\TerbilangHelper;
  */
 class FormatPinjamanService
 {
+    private static ?float $saldoBankCache = null;
+
+    public static function resetCache(): void
+    {
+        self::$saldoBankCache = null;
+    }
+
     public function __construct(
         private PerhitunganBungaService $bunga,
         private EligibilitasPinjamanService $eligibilitas,
     ) {}
 
-    public function format($p): array
+    private function ambilSaldoBank(): float
+    {
+        return self::$saldoBankCache ??= (float) (KasKoperasi::query()->value('saldo_bank') ?? 0);
+    }
+
+    public function format($p, bool $withLimit = true): array
     {
         $jadwal = $this->bunga->buatJadwal(
             (float) $p->nominal,
@@ -26,10 +39,14 @@ class FormatPinjamanService
         $totalBunga = array_sum(array_column($jadwal, 'nominal_bunga'));
         $totalAngsuran = array_sum(array_column($jadwal, 'total_bayar'));
         $cicilanPertama = $jadwal[0]['total_bayar'] ?? 0;
-        $cicilanTerakhir = !empty($jadwal) ? end($jadwal)['total_bayar'] : 0;
+        $cicilanTerakhir = ! empty($jadwal) ? end($jadwal)['total_bayar'] : 0;
         $cicilanRataRata = count($jadwal) > 0 ? round($totalAngsuran / count($jadwal), 2) : 0;
         $pokokPerBulan = $jadwal[0]['nominal_pokok'] ?? 0;
         $bungaPertama = $jadwal[0]['nominal_bunga'] ?? 0;
+
+        $saldoBank = $this->ambilSaldoBank();
+        $limitTersedia = $withLimit ? (float) $this->eligibilitas->limitTersedia($p->anggota) : 0.0;
+        $tenorMaks = $this->eligibilitas->tenorMaksimal((float) ($p->nominal_diminta ?? $p->nominal));
 
         return [
             'id' => $p->id,
@@ -46,11 +63,11 @@ class FormatPinjamanService
                 'saldo_bendahara' => $p->kas_saldo_bendahara !== null ? (float) $p->kas_saldo_bendahara : null,
                 'saldo_ketua' => $p->kas_saldo_ketua !== null ? (float) $p->kas_saldo_ketua : null,
                 'sisa_ketua' => $p->kas_sisa_ketua !== null ? (float) $p->kas_sisa_ketua : null,
-                'saldo_bank' => (float) (\App\Models\KasKoperasi::first()?->saldo_bank ?? 0),
-                'saldo_sekarang' => (float) (\App\Models\KasKoperasi::first()?->saldo_bank ?? 0),
+                'saldo_bank' => $saldoBank,
+                'saldo_sekarang' => $saldoBank,
             ],
-            'limit_tersedia' => (float) $this->eligibilitas->limitTersedia($p->anggota),
-            'tenor_maksimal_diminta' => $this->eligibilitas->tenorMaksimal((float) ($p->nominal_diminta ?? $p->nominal)),
+            'limit_tersedia' => $limitTersedia,
+            'tenor_maksimal_diminta' => $tenorMaks,
             'persentase_bunga' => (float) $p->persentase_bunga,
             'keperluan' => $p->keperluan,
             'rekening' => [

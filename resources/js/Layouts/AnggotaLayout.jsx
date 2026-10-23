@@ -84,8 +84,10 @@ export default function AnggotaLayout({
                             className="flex items-center gap-2.5 group rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green"
                         >
                             <img
-                                src="/images/logo.png"
+                                src="/images/logo-ui.webp"
                                 alt="Koperasi App"
+                                width="32"
+                                height="32"
                                 className="w-7 h-7 sm:w-8 sm:h-8 object-contain transition-transform group-hover:scale-105"
                             />
                             <div className="flex items-center gap-2">

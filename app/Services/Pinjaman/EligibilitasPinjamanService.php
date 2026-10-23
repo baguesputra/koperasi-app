@@ -11,9 +11,23 @@ class EligibilitasPinjamanService
     /** Memo seluruh setting limit terurut selama request (ganti query berulang). */
     private static ?array $semuaLimitCache = null;
 
+    /** Memo tabel tenor selama request (ganti query berulang per pinjaman). */
+    private static ?array $tabelTenorCache = null;
+
     public static function resetCache(): void
     {
         self::$semuaLimitCache = null;
+        self::$tabelTenorCache = null;
+    }
+
+    /** Semua baris tabel tenor terurut nominal_min menaik. */
+    private function semuaTenor(): array
+    {
+        if (self::$tabelTenorCache === null) {
+            self::$tabelTenorCache = TabelTenor::orderBy('nominal_min')->get()->all();
+        }
+
+        return self::$tabelTenorCache;
     }
 
     /** Semua baris setting limit terurut min_bulan menaik (null dianggap 0). */
@@ -205,15 +219,17 @@ class EligibilitasPinjamanService
     }
 
     /**
-     * Cari tenor maksimal untuk nominal pinjaman tertentu (dari master data tabel_tenor).
+     * Cari tenor maksimal untuk nominal pinjaman tertentu (dari master data tabel_tenor ter-memo).
      */
     public function tenorMaksimal(float $nominal): ?int
     {
-        $tenor = TabelTenor::where('nominal_min', '<=', $nominal)
-            ->where('nominal_max', '>=', $nominal)
-            ->first();
+        foreach ($this->semuaTenor() as $tenor) {
+            if ($nominal >= (float) $tenor->nominal_min && $nominal <= (float) $tenor->nominal_max) {
+                return $tenor->tenor_maksimal_bulan;
+            }
+        }
 
-        return $tenor?->tenor_maksimal_bulan;
+        return null;
     }
 
     private function isAnggotaBaru(Anggota $anggota): bool

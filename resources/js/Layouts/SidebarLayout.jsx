@@ -99,7 +99,7 @@ className={`hidden lg:block sticky top-0 h-screen shrink-0 p-3 transition-[width
                         <Menu size={22} />
                     </button>
                     <div className="flex items-center gap-2">
-                        <img src="/images/logo.png" alt="Koperasi App" className="w-7 h-7" />
+                        <img src="/images/logo-ui.webp" alt="Koperasi App" width="28" height="28" className="w-7 h-7" />
                         <span className="text-sm font-bold text-slate-800">Koperasi App</span>
                     </div>
                     <span className="w-[38px]" aria-hidden="true" />

@@ -92,11 +92,11 @@ class SimpananController extends Controller
                 ->whereHas('anggota', fn ($q) => $q->where('status', 'aktif')->where('cabang', $cabangAktif->value()))
                 ->sum('jumlah');
 
-        $anggotaCounts = Anggota::selectRaw('
+        $anggotaCounts = Anggota::selectRaw("
             COUNT(*) as total,
-            SUM(CASE WHEN status = "aktif" THEN 1 ELSE 0 END) as aktif,
-            SUM(CASE WHEN status = "resign" THEN 1 ELSE 0 END) as resign
-        ')->first();
+            SUM(CASE WHEN status = 'aktif' THEN 1 ELSE 0 END) as aktif,
+            SUM(CASE WHEN status = 'resign' THEN 1 ELSE 0 END) as resign
+        ")->first();
 
         return Inertia::render('Simpanan/Index', [
             'anggota' => $anggota,

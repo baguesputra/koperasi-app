@@ -1,4 +1,4 @@
-﻿import { Head, usePage } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import { ArrowLeft, RefreshCw, AlertCircle } from 'lucide-react';
 
@@ -18,7 +18,7 @@ export default function SsoGagal({ error }) {
 
             <div className="w-full max-w-md text-center">
                 <div className="mb-6">
-                    <img src="/images/logo.png" alt="Koperasi App" className="w-12 h-12 mx-auto mb-3" />
+                    <img src="/images/logo-ui.webp" alt="Koperasi App" width="48" height="48" className="w-12 h-12 mx-auto mb-3" />
                     <h1 className="text-xl font-bold text-brand-navy">Koperasi App</h1>
                 </div>
 

@@ -7,6 +7,7 @@ use App\Services\Wa\Gateway\BaileysGateway;
 use App\Services\Wa\Gateway\WaGateway;
 use App\Services\Wa\Gateway\WahaGateway;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
@@ -38,6 +39,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Model::shouldBeStrict(! $this->app->isProduction());
+
         Event::listen(SocialiteWasCalled::class, function (SocialiteWasCalled $event) {
             $event->extendSocialite('perusahaan', PerusahaanProvider::class);
         });

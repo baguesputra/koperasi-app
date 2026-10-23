@@ -182,7 +182,7 @@ class DashboardController extends Controller
             ->get()
             ->map(fn ($p) => [
                 'tipe' => 'pinjaman',
-                'nama' => $p->anggota->nama,
+                'nama' => $p->anggota?->nama ?? '-',
                 'keterangan' => 'Mengajukan pinjaman '.number_format($p->nominal, 0, ',', '.'),
                 'status' => $p->status,
                 'tanggal' => $p->tanggal_pengajuan,
@@ -195,7 +195,7 @@ class DashboardController extends Controller
             ->get()
             ->map(fn ($a) => [
                 'tipe' => 'angsuran',
-                'nama' => $a->pinjaman->anggota->nama,
+                'nama' => $a->pinjaman?->anggota?->nama ?? '-',
                 'keterangan' => "Membayar cicilan ke-{$a->cicilan_ke}",
                 'status' => 'lunas',
                 'tanggal' => $a->tanggal_konfirmasi_bayar,

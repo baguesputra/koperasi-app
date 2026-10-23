@@ -83,7 +83,7 @@ export default function MobileNav() {
                     <div className="lg:hidden fixed inset-y-0 right-0 z-50 w-full max-w-sm bg-white shadow-xl overflow-y-auto pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
                     <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
                         <div className="flex items-center gap-2.5">
-                            <img src="/images/logo.png" alt="Koperasi App" className="w-8 h-8" />
+                            <img src="/images/logo-ui.webp" alt="Koperasi App" width="32" height="32" className="w-8 h-8" />
                             <span className="font-bold text-base tracking-tight text-slate-800">Koperasi App</span>
                         </div>
 <button

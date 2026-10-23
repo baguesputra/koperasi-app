@@ -171,7 +171,11 @@ class ShuController extends Controller
             'ringkasan' => $this->service->ringkasan($shu),
             'komponen_bayar' => $this->service->daftarPembayaranKomponen($shu),
             'detail' => $detail,
-            'daftarAnggota' => Anggota::where('status', 'aktif')->orderBy('nama')->get(['id', 'nama', 'no_karyawan', 'cabang']),
+            'daftarAnggota' => \Illuminate\Support\Facades\Cache::remember(
+                'daftar_anggota_aktif_shu',
+                300,
+                fn () => Anggota::where('status', 'aktif')->orderBy('nama')->get(['id', 'nama', 'no_karyawan', 'cabang'])
+            ),
             'sums' => [
                 'wajib' => (float) ($sums->wajib ?? 0),
                 'pokok' => (float) ($sums->pokok ?? 0),

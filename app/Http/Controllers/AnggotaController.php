@@ -81,12 +81,12 @@ class AnggotaController extends Controller
             ]);
 
         $statistik = Anggota::query()
-            ->selectRaw('
+            ->selectRaw("
                 COUNT(*) as total,
-                SUM(CASE WHEN status = "aktif" THEN 1 ELSE 0 END) as aktif,
-                SUM(CASE WHEN status = "nonaktif" THEN 1 ELSE 0 END) as nonaktif,
-                SUM(CASE WHEN status IN ("resign", "resign_menunggu") THEN 1 ELSE 0 END) as resign
-            ')
+                SUM(CASE WHEN status = 'aktif' THEN 1 ELSE 0 END) as aktif,
+                SUM(CASE WHEN status = 'nonaktif' THEN 1 ELSE 0 END) as nonaktif,
+                SUM(CASE WHEN status IN ('resign', 'resign_menunggu') THEN 1 ELSE 0 END) as resign
+            ")
             ->first();
 
         return Inertia::render('Anggota/Index', [

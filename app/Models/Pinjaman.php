@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\URL;
 
 class Pinjaman extends Model
@@ -64,6 +65,11 @@ class Pinjaman extends Model
         'verification_revoked_at' => 'datetime',
     ];
 
+    public function getTanggalCairAttribute()
+    {
+        return $this->tanggal_pencairan;
+    }
+
     public function anggota(): BelongsTo
     {
         return $this->belongsTo(Anggota::class);
@@ -116,7 +122,7 @@ class Pinjaman extends Model
      * membaca jadwal yang sama — tanpa memo, tiap helper = 2-3 query (N+1 fan-out).
      * Pakai refresh() + jadwalAktifCache = null bila butuh data fresh setelah update.
      *
-     * @var \Illuminate\Support\Collection|null
+     * @var Collection|null
      */
     protected $jadwalAktifCache = null;
 

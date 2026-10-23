@@ -40,32 +40,10 @@ class PinjamanController extends Controller
             $query->whereHas('anggota', fn ($q) => $q->where('cabang', $cabangAktif));
         }
 
-        // Subquery untuk pelunasan_resign total & tanggal
-        $query->select('pinjaman.*')
-            ->selectSub(function ($q) {
-                $q->from('angsuran')
-                    ->whereColumn('angsuran.pinjaman_id', 'pinjaman.id')
-                    ->join('jurnal_kas', 'jurnal_kas.referensi_id', '=', 'angsuran.id')
-                    ->where('jurnal_kas.kategori', 'pelunasan_resign_pinjaman')
-                    ->selectRaw('COALESCE(SUM(jurnal_kas.jumlah), 0)');
-            }, 'pelunasan_resign_total')
-            ->selectSub(function ($q) {
-                $q->from('angsuran')
-                    ->whereColumn('angsuran.pinjaman_id', 'pinjaman.id')
-                    ->join('jurnal_kas', 'jurnal_kas.referensi_id', '=', 'angsuran.id')
-                    ->where('jurnal_kas.kategori', 'pelunasan_resign_pinjaman')
-                    ->selectRaw('MAX(jurnal_kas.tanggal)');
-            }, 'pelunasan_resign_tanggal');
-
         $pinjaman = $query->latest('tanggal_pengajuan')
             ->paginate(15)
             ->withQueryString()
             ->through(function ($p) {
-                $pelunasanResignTotal = (float) ($p->pelunasan_resign_total ?? 0);
-                $pelunasanResignTanggal = $p->pelunasan_resign_tanggal
-                    ? Carbon::parse($p->pelunasan_resign_tanggal)->format('d M Y')
-                    : null;
-
                 return [
                     'id' => $p->id,
                     'nama' => $p->anggota->nama,
@@ -78,10 +56,10 @@ class PinjamanController extends Controller
                     'tenor_bulan' => $p->tenor_bulan,
                     'status' => $p->status,
                     'tanggal_pengajuan' => $p->tanggal_pengajuan->format('d M Y'),
-                    'tanggal_cair' => $p->tanggal_cair?->format('d M Y'),
+                    'tanggal_cair' => $p->tanggal_pencairan?->format('d M Y'),
                     'keperluan' => $p->keperluan,
-                    'pelunasan_resign_total' => $pelunasanResignTotal,
-                    'tanggal_pelunasan_resign' => $pelunasanResignTanggal,
+                    'pelunasan_resign_total' => 0.0,
+                    'tanggal_pelunasan_resign' => null,
                     'is_resign' => $p->anggota->status === 'resign',
                     'angsuran' => $p->angsuran
                         ->map(fn ($a) => [
@@ -94,10 +72,10 @@ class PinjamanController extends Controller
                         ])
                         ->values(),
                     'pelunasan_resign' => [
-                        'total' => $pelunasanResignTotal,
-                        'tanggal' => $pelunasanResignTanggal,
+                        'total' => 0.0,
+                        'tanggal' => null,
                     ],
-                    'jurnal_pelunasan' => [], // diisi via lazy load di bawah jika perlu
+                    'jurnal_pelunasan' => [], // diisi via batch di bawah
                 ];
             });
 
@@ -133,9 +111,19 @@ class PinjamanController extends Controller
             }
         }
 
-        // Assign jurnal_pelunasan ke setiap pinjaman
+        // Assign jurnal_pelunasan dan hitung pelunasan_resign secara batch
         $pinjaman->getCollection()->transform(function ($p) use ($jurnalMap) {
-            $p['jurnal_pelunasan'] = $jurnalMap[$p['id']] ?? [];
+            $jurnals = $jurnalMap[$p['id']] ?? [];
+            $total = ! empty($jurnals) ? array_sum(array_column($jurnals, 'jumlah')) : 0.0;
+            $tanggal = ! empty($jurnals) ? end($jurnals)['tanggal'] : null;
+
+            $p['pelunasan_resign_total'] = $total;
+            $p['tanggal_pelunasan_resign'] = $tanggal;
+            $p['pelunasan_resign'] = [
+                'total' => $total,
+                'tanggal' => $tanggal,
+            ];
+            $p['jurnal_pelunasan'] = $jurnals;
 
             return $p;
         });
@@ -144,18 +132,18 @@ class PinjamanController extends Controller
 
         // Statistik: 1 query dengan conditional aggregation komprehensif
         $statistik = Pinjaman::query()
-            ->selectRaw('
+            ->selectRaw("
                 COUNT(*) as total,
-                SUM(CASE WHEN status = "diajukan" THEN 1 ELSE 0 END) as diajukan,
-                SUM(CASE WHEN status = "approved_admin" THEN 1 ELSE 0 END) as approved_admin,
-                SUM(CASE WHEN status = "approved_bendahara" THEN 1 ELSE 0 END) as approved_bendahara,
-                SUM(CASE WHEN status = "approved_ketua" THEN 1 ELSE 0 END) as approved_ketua,
-                SUM(CASE WHEN status = "aktif" THEN 1 ELSE 0 END) as aktif,
-                SUM(CASE WHEN status = "lunas" THEN 1 ELSE 0 END) as lunas,
-                SUM(CASE WHEN status = "ditolak" THEN 1 ELSE 0 END) as ditolak,
-                COALESCE(SUM(CASE WHEN status = "aktif" THEN nominal ELSE 0 END), 0) as total_nominal_aktif,
-                COALESCE(SUM(CASE WHEN status IN ("diajukan", "approved_admin", "approved_bendahara", "approved_ketua") THEN nominal ELSE 0 END), 0) as total_nominal_antrean
-            ')
+                SUM(CASE WHEN status = 'diajukan' THEN 1 ELSE 0 END) as diajukan,
+                SUM(CASE WHEN status = 'approved_admin' THEN 1 ELSE 0 END) as approved_admin,
+                SUM(CASE WHEN status = 'approved_bendahara' THEN 1 ELSE 0 END) as approved_bendahara,
+                SUM(CASE WHEN status = 'approved_ketua' THEN 1 ELSE 0 END) as approved_ketua,
+                SUM(CASE WHEN status = 'aktif' THEN 1 ELSE 0 END) as aktif,
+                SUM(CASE WHEN status = 'lunas' THEN 1 ELSE 0 END) as lunas,
+                SUM(CASE WHEN status = 'ditolak' THEN 1 ELSE 0 END) as ditolak,
+                COALESCE(SUM(CASE WHEN status = 'aktif' THEN nominal ELSE 0 END), 0) as total_nominal_aktif,
+                COALESCE(SUM(CASE WHEN status IN ('diajukan', 'approved_admin', 'approved_bendahara', 'approved_ketua') THEN nominal ELSE 0 END), 0) as total_nominal_antrean
+            ")
             ->first();
 
         return Inertia::render('Pinjaman/Index', [
@@ -199,7 +187,7 @@ class PinjamanController extends Controller
         $jurnalPelunasan = $this->ambilJurnalPelunasanResign($angsuranIds);
 
         return Inertia::render('Pinjaman/Show', [
-                'pinjaman' => [
+            'pinjaman' => [
                 'id' => $pinjaman->id,
                 'anggota_id' => $pinjaman->anggota_id,
                 'nama' => $pinjaman->anggota->nama,
@@ -211,7 +199,7 @@ class PinjamanController extends Controller
                 'tenor_bulan' => $pinjaman->tenor_bulan,
                 'status' => $pinjaman->status,
                 'tanggal_pengajuan' => $pinjaman->tanggal_pengajuan->format('d M Y'),
-                'tanggal_cair' => $pinjaman->tanggal_cair?->format('d M Y'),
+                'tanggal_cair' => $pinjaman->tanggal_pencairan?->format('d M Y'),
                 'keperluan' => $pinjaman->keperluan,
             ],
             'angsuran' => $angsuranList,

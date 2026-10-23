@@ -122,7 +122,7 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
                         aria-label="Mode Privasi"
                         className="relative group p-1.5 rounded-xl hover:bg-slate-50 transition-colors"
                     >
-                        <img src="/images/logo.png" alt="Koperasi App" className="w-8 h-8 shrink-0" />
+                        <img src="/images/logo-ui.webp" alt="Koperasi App" width="32" height="32" className="w-8 h-8 shrink-0" />
                         <span
                             className={`absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white transition-all ${
                                 isPrivacyActive ? 'bg-brand-green ring-2 ring-brand-green/30' : 'bg-slate-300'
@@ -132,7 +132,7 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
                 ) : (
                     <>
                         <div className="flex items-center gap-2.5 min-w-0">
-                            <img src="/images/logo.png" alt="Koperasi App" className="w-8 h-8 shrink-0" />
+                            <img src="/images/logo-ui.webp" alt="Koperasi App" width="32" height="32" className="w-8 h-8 shrink-0" />
                             <span className="text-base font-bold text-slate-800 truncate max-w-[135px]">
                                 Koperasi App
                             </span>

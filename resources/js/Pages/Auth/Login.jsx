@@ -25,7 +25,7 @@ export default function Login({ status }) {
 
             {/* Panel kiri - branding, sekarang background PUTIH */}
             <div className="hidden lg:flex lg:w-1/2 bg-white text-slate-800 flex-col justify-between p-12 border-r border-slate-100">
-                <img src="/images/logo.png" alt="Koperasi App" className="w-12 h-12" />
+                <img src="/images/logo-ui.webp" alt="Koperasi App" width="48" height="48" className="w-12 h-12" />
 
                 <div>
                     <h1 className="text-3xl font-bold leading-snug mb-3 text-brand-navy">
@@ -46,7 +46,7 @@ export default function Login({ status }) {
             <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 bg-brand-navy">
                 <div className="w-full max-w-sm">
                     <div className="flex lg:hidden items-center gap-2 mb-8">
-                        <img src="/images/logo.png" alt="Koperasi App" className="w-10 h-10" />
+                        <img src="/images/logo-ui.webp" alt="Koperasi App" width="40" height="40" className="w-10 h-10" />
                         <span className="text-lg font-bold text-white">Koperasi App</span>
                     </div>
 

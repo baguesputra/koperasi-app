@@ -451,6 +451,7 @@ class PengaturanController extends Controller
         }
 
         Cache::forget('chip_nominal_semua');
+        Cache::forget('setting_chip_nominal_grouped');
 
         AuditLog::catat(
             'update_chip_nominal',

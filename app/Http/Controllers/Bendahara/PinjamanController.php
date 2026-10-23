@@ -31,7 +31,7 @@ class PinjamanController extends Controller
             ->where('status', 'approved_admin')
             ->latest('tanggal_pengajuan')
             ->get()
-            ->map(fn ($p) => $this->format->format($p));
+            ->map(fn ($p) => $this->format->format($p, withLimit: false));
 
         // Pinjaman yang diajukan sendiri oleh Ketua: setelah disetujui bendahara,
         // pencairannya dilakukan oleh bendahara (bukan Ketua) agar tak self-approve.
@@ -40,7 +40,7 @@ class PinjamanController extends Controller
             ->where('cair_oleh_bendahara', true)
             ->latest('tanggal_pengajuan')
             ->get()
-            ->map(fn ($p) => $this->format->format($p));
+            ->map(fn ($p) => $this->format->format($p, withLimit: false));
 
         $riwayat = Pinjaman::with('anggota')
             ->whereIn('status', ['approved_bendahara', 'aktif', 'lunas', 'ditolak'])
@@ -48,7 +48,7 @@ class PinjamanController extends Controller
             ->latest('updated_at')
             ->take(20)
             ->get()
-            ->map(fn ($p) => $this->format->format($p));
+            ->map(fn ($p) => $this->format->format($p, withLimit: false));
 
         return Inertia::render('Bendahara/Pinjaman/Index', [
             'menungguTinjauan' => $menungguTinjauan,

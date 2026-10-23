@@ -32,7 +32,7 @@ class PinjamanController extends Controller
             ->where('cair_oleh_bendahara', false)
             ->latest('tanggal_pengajuan')
             ->get()
-            ->map(fn ($p) => $this->format->format($p));
+            ->map(fn ($p) => $this->format->format($p, withLimit: false));
 
         $riwayat = Pinjaman::with('anggota')
             ->whereIn('status', ['aktif', 'lunas', 'ditolak'])
@@ -40,7 +40,7 @@ class PinjamanController extends Controller
             ->latest('updated_at')
             ->take(20)
             ->get()
-            ->map(fn ($p) => $this->format->format($p));
+            ->map(fn ($p) => $this->format->format($p, withLimit: false));
 
         return Inertia::render('Ketua/Pinjaman/Index', [
             'menungguApproval' => $menungguApproval,

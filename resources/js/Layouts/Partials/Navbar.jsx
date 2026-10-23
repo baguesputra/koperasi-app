@@ -47,7 +47,7 @@ export default function Navbar() {
         <nav className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between">
             <div className="flex items-center">
                 <div className="flex items-center gap-2.5 mr-8">
-                    <img src="/images/logo.png" alt="Koperasi App" className="w-8 h-8" />
+                    <img src="/images/logo-ui.webp" alt="Koperasi App" width="32" height="32" className="w-8 h-8" />
                     <span className="font-bold text-base tracking-tight text-slate-800 hidden sm:inline">
                         Koperasi App
                     </span>

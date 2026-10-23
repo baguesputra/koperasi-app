@@ -40,7 +40,7 @@ export default defineConfig({
                 ],
             },
             workbox: {
-                globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+                globPatterns: ['**/*.{css,html,ico,png,svg,woff2}', '**/app-*.js', '**/vendor-*.js'],
                 navigateFallback: null,
                 navigateFallbackDenylist: [/^\/auth\/sso/, /^\/api\//],
                 additionalManifestEntries: [
@@ -66,4 +66,24 @@ export default defineConfig({
             },
         }),
     ],
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks(id) {
+                    if (id.includes('node_modules')) {
+                        if (id.includes('recharts')) {
+                            return 'vendor-charts';
+                        }
+                        if (id.includes('lucide-react')) {
+                            return 'vendor-icons';
+                        }
+                        if (id.includes('react') || id.includes('react-dom') || id.includes('@inertiajs')) {
+                            return 'vendor-core';
+                        }
+                    }
+                },
+            },
+        },
+        chunkSizeWarningLimit: 600,
+    },
 });

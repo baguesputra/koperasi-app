@@ -11,46 +11,56 @@ class RingkasanPinjamanService
     {
         $saldoBank = (float) (KasKoperasi::query()->value('saldo_bank') ?? 0);
 
-        // Agregat seluruh antrean berjalan (menggunakan formula standar)
-        $agregat = Pinjaman::query()
+        // 1 single query agregat menggantikan 5 query terpisah untuk antrean berjalan
+        $rows = Pinjaman::query()
             ->whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara'])
-            ->selectRaw('COUNT(*) as jumlah')
-            ->selectRaw("COALESCE(SUM(CASE WHEN status = 'approved_bendahara' THEN COALESCE(nominal_disetujui_bendahara, nominal_diminta, nominal) ELSE COALESCE(nominal_diminta, nominal) END), 0) as total")
-            ->first();
+            ->selectRaw('
+                status,
+                cair_oleh_bendahara,
+                COUNT(*) as jumlah,
+                COALESCE(SUM(COALESCE(nominal_diminta, nominal)), 0) as total_usulan,
+                COALESCE(SUM(COALESCE(nominal_disetujui_bendahara, nominal_diminta, nominal)), 0) as total_disetujui_bendahara
+            ')
+            ->groupBy('status', 'cair_oleh_bendahara')
+            ->get();
 
-        $jumlahAntrean = (int) ($agregat->jumlah ?? 0);
-        $totalAntrean = (float) ($agregat->total ?? 0);
+        $adminJumlah = 0;
+        $adminTotal = 0.0;
+        $bendaharaJumlah = 0;
+        $bendaharaTotal = 0.0;
+        $cairMandiriJumlah = 0;
+        $cairMandiriTotal = 0.0;
+        $ketuaJumlah = 0;
+        $ketuaTotal = 0.0;
+        $jumlahAntrean = 0;
+        $totalAntrean = 0.0;
 
-        // Rincian per tahap antrean
-        $admin = Pinjaman::query()
-            ->where('status', 'diajukan')
-            ->selectRaw('COUNT(*) as jumlah, COALESCE(SUM(COALESCE(nominal_diminta, nominal)), 0) as total')
-            ->first();
-        $adminJumlah = (int) ($admin->jumlah ?? 0);
-        $adminTotal = (float) ($admin->total ?? 0);
+        foreach ($rows as $row) {
+            $jml = (int) $row->jumlah;
+            $jumlahAntrean += $jml;
 
-        $bendahara = Pinjaman::query()
-            ->where('status', 'approved_admin')
-            ->selectRaw('COUNT(*) as jumlah, COALESCE(SUM(COALESCE(nominal_disetujui_bendahara, nominal_diminta, nominal)), 0) as total')
-            ->first();
-        $bendaharaJumlah = (int) ($bendahara->jumlah ?? 0);
-        $bendaharaTotal = (float) ($bendahara->total ?? 0);
-
-        $cairMandiri = Pinjaman::query()
-            ->where('status', 'approved_bendahara')
-            ->where('cair_oleh_bendahara', true)
-            ->selectRaw('COUNT(*) as jumlah, COALESCE(SUM(COALESCE(nominal_disetujui_bendahara, nominal_diminta, nominal)), 0) as total')
-            ->first();
-        $cairMandiriJumlah = (int) ($cairMandiri->jumlah ?? 0);
-        $cairMandiriTotal = (float) ($cairMandiri->total ?? 0);
-
-        $ketua = Pinjaman::query()
-            ->where('status', 'approved_bendahara')
-            ->where('cair_oleh_bendahara', false)
-            ->selectRaw('COUNT(*) as jumlah, COALESCE(SUM(COALESCE(nominal_disetujui_bendahara, nominal_diminta, nominal)), 0) as total')
-            ->first();
-        $ketuaJumlah = (int) ($ketua->jumlah ?? 0);
-        $ketuaTotal = (float) ($ketua->total ?? 0);
+            if ($row->status === 'diajukan') {
+                $adminJumlah += $jml;
+                $tot = (float) $row->total_usulan;
+                $adminTotal += $tot;
+                $totalAntrean += $tot;
+            } elseif ($row->status === 'approved_admin') {
+                $bendaharaJumlah += $jml;
+                $tot = (float) $row->total_disetujui_bendahara;
+                $bendaharaTotal += $tot;
+                $totalAntrean += $tot;
+            } elseif ($row->status === 'approved_bendahara') {
+                $tot = (float) $row->total_disetujui_bendahara;
+                $totalAntrean += $tot;
+                if ((bool) $row->cair_oleh_bendahara) {
+                    $cairMandiriJumlah += $jml;
+                    $cairMandiriTotal += $tot;
+                } else {
+                    $ketuaJumlah += $jml;
+                    $ketuaTotal += $tot;
+                }
+            }
+        }
 
         $sisaProyeksi = $saldoBank - $totalAntrean;
         $persenTerpakai = $saldoBank > 0
