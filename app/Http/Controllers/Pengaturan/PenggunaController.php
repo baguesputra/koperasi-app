@@ -50,6 +50,7 @@ class PenggunaController extends Controller
                 'status' => $user->status,
                 'roles' => $user->getRoleNames()->values(),
                 'harus_ganti_password' => (bool) $user->harus_ganti_password,
+                'has_pin' => (bool) $user->pin,
                 'anggota' => $user->anggota ? [
                     'no_anggota' => $user->anggota->no_anggota,
                     'no_karyawan' => $user->anggota->no_karyawan,
@@ -156,6 +157,23 @@ class PenggunaController extends Controller
         AuditLog::catat('reset_password_pengguna', "Kata sandi akun {$user->name} ({$user->no_karyawan}) di-reset oleh pengurus.", null, ['user_id' => $user->id]);
 
         return back()->with('status', 'Kata sandi berhasil di-reset. Pengguna akan diminta menggantinya saat login berikutnya.');
+    }
+
+    public function resetPin(Request $request, User $user)
+    {
+        $user->update([
+            'pin' => null,
+            'pin_failed_attempts' => 0,
+        ]);
+
+        AuditLog::catat(
+            'reset_pin_pengguna',
+            "PIN akun {$user->name} ({$user->no_karyawan}) di-reset oleh pengurus (".auth()->user()->name.").",
+            null,
+            ['user_id' => $user->id]
+        );
+
+        return back()->with('status', "PIN akun {$user->name} berhasil di-reset. Pengguna akan diminta membuat PIN baru saat login.");
     }
 
     public function toggleStatus(Request $request, User $user)

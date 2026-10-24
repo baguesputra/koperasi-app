@@ -147,6 +147,7 @@ class PengaturanController extends Controller
                     'status' => $user->status,
                     'roles' => $user->getRoleNames()->values(),
                     'harus_ganti_password' => (bool) $user->harus_ganti_password,
+                    'has_pin' => (bool) $user->pin,
                     'anggota' => $user->anggota ? [
                         'no_anggota' => $user->anggota->no_anggota,
                         'no_karyawan' => $user->anggota->no_karyawan,

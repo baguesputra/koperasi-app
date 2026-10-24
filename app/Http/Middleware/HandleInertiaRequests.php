@@ -54,6 +54,7 @@ class HandleInertiaRequests extends Middleware
                     'permissions' => $permissions,
                     'anggota_status' => $user->anggota?->status,
                     'foto_url' => $user->anggota?->foto_url,
+                    'has_pin' => $user->hasPin(),
                 ] : null,
             ],
             'flash' => [

@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { User, LogOut, ChevronDown, Home, History, Plus, Info, ShieldCheck } from 'lucide-react';
 import Panduan from '@/Pages/Portal/Panduan';
 import MobileHeader from '@/Components/ui/MobileHeader';
+import SecurityGuard from '@/Components/security/SecurityGuard';
 
 export default function AnggotaLayout({
     children,
@@ -256,6 +257,7 @@ export default function AnggotaLayout({
             )}
 
             {anggotaAktif && showPanduan && <Panduan onClose={() => setShowPanduan(false)} />}
+            <SecurityGuard />
         </div>
     );
 }

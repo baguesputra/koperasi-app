@@ -3,7 +3,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { useState, useEffect, useRef } from 'react';
 import {
     ArrowLeft, AlertCircle, Check, ShieldCheck,
-    Phone, Clock, Wallet, X, FileText,
+    Phone, Clock, Wallet, X, FileText, Lock,
 } from 'lucide-react';
 import { formatRupiah } from '@/Utils/formatCurrency';
 import { withIdempotencyKey } from '@/Utils/idempotency';
@@ -31,6 +31,8 @@ export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal, lim
 
     const [showModalPersetujuan, setShowModalPersetujuan] = useState(false);
     const [setujuSyarat, setSetujuSyarat] = useState(false);
+    const [pinTransaksi, setPinTransaksi] = useState('');
+    const [pinError, setPinError] = useState('');
 
     const tenorRef = useRef(null);
     const ringkasanRef = useRef(null);
@@ -98,13 +100,22 @@ export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal, lim
 
     function submitPengajuan() {
         setError('');
+        setPinTransaksi('');
+        setPinError('');
         setShowModalPersetujuan(true);
         setSetujuSyarat(false);
     }
 
-function kirimPengajuan() {
+    function kirimPengajuan() {
         if (!setujuSyarat) return;
+        if (pinTransaksi.length !== 6) {
+            setPinError('Masukkan 6 digit PIN keamanan Anda.');
+            return;
+        }
+
         setLoadingSubmit(true);
+        setPinError('');
+
         router.post(
             route('portal.pinjaman.store'),
             {
@@ -117,13 +128,19 @@ function kirimPengajuan() {
                 no_rekening: noRekening,
                 atas_nama: atasNama,
                 persetujuan: true,
+                pin: pinTransaksi,
             },
             withIdempotencyKey({
                 onError: (errors) => {
-                    setError(Object.values(errors)[0] ?? 'Terjadi kesalahan, coba lagi.');
+                    if (errors.pin) {
+                        setPinError(errors.pin);
+                        setPinTransaksi('');
+                    } else {
+                        setError(Object.values(errors)[0] ?? 'Terjadi kesalahan, coba lagi.');
+                        setShowModalPersetujuan(false);
+                        setSetujuSyarat(false);
+                    }
                     setLoadingSubmit(false);
-                    setShowModalPersetujuan(false);
-                    setSetujuSyarat(false);
                 },
                 onFinish: () => {
                     setLoadingSubmit(false);
@@ -364,7 +381,13 @@ function kirimPengajuan() {
                                         id="persetujuan-sk"
                                         type="checkbox"
                                         checked={setujuSyarat}
-                                        onChange={(e) => setSetujuSyarat(e.target.checked)}
+                                        onChange={(e) => {
+                                            setSetujuSyarat(e.target.checked);
+                                            if (!e.target.checked) {
+                                                setPinTransaksi('');
+                                                setPinError('');
+                                            }
+                                        }}
                                         className="mt-0.5 w-5 h-5 rounded border-slate-300 text-brand-green focus:ring-2 focus:ring-brand-green/40 cursor-pointer shrink-0"
                                     />
                                     <span className="text-sm text-slate-700 leading-relaxed">
@@ -373,6 +396,42 @@ function kirimPengajuan() {
                                         saya sampaikan serta kewajiban pelunasan sesuai jadwal yang ditetapkan.
                                     </span>
                                 </label>
+
+                                {setujuSyarat && (
+                                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <label htmlFor="pin-transaksi-input" className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                                <Lock size={14} className="text-brand-green" />
+                                                PIN Keamanan Transaksi (6 Digit)
+                                            </label>
+                                            <span className="text-[11px] text-slate-400">Wajib diisi</span>
+                                        </div>
+                                        <p className="text-[11px] text-slate-500 leading-relaxed">
+                                            Ketik 6 digit PIN akun Anda sebagai tanda tangan dan otorisasi pengesahan pengajuan pinjaman.
+                                        </p>
+                                        <input
+                                            id="pin-transaksi-input"
+                                            type="password"
+                                            inputMode="numeric"
+                                            pattern="[0-9]*"
+                                            maxLength={6}
+                                            value={pinTransaksi}
+                                            onChange={(e) => {
+                                                const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                                                setPinTransaksi(val);
+                                                setPinError('');
+                                            }}
+                                            placeholder="••••••"
+                                            autoFocus
+                                            className="w-full h-12 text-center text-xl font-mono tracking-[0.6em] rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/30 bg-white"
+                                        />
+                                        {pinError && (
+                                            <p className="text-xs text-red-600 font-semibold animate-pulse pt-1">
+                                                {pinError}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
 
                                 <div className="flex flex-col sm:flex-row gap-3">
                                     <button
@@ -386,10 +445,10 @@ function kirimPengajuan() {
                                     <button
                                         type="button"
                                         onClick={kirimPengajuan}
-                                        disabled={!setujuSyarat || loadingSubmit}
+                                        disabled={!setujuSyarat || pinTransaksi.length !== 6 || loadingSubmit}
                                         className={`sm:flex-[2] min-h-[48px] text-base font-bold rounded-xl bg-brand-green text-white hover:bg-brand-green-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${focusRing}`}
                                     >
-                                        {loadingSubmit ? 'Mengirim...' : 'Konfirmasi & Kirim Pengajuan'}
+                                        {loadingSubmit ? 'Mengirim...' : 'Otorisasi & Kirim Pengajuan'}
                                     </button>
                                 </div>
                             </div>

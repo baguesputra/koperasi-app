@@ -81,7 +81,9 @@ class PinjamanController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $user = auth()->user();
+
+        $rules = [
             'nominal' => ['required', 'numeric', 'min:1'],
             'tenor_bulan' => ['required', 'integer', 'min:1'],
             'keperluan' => ['required', 'string', 'min:5', 'max:500'],
@@ -91,10 +93,36 @@ class PinjamanController extends Controller
             'no_rekening' => ['required_if:rekening_mode,baru', 'nullable', 'string', 'max:50'],
             'atas_nama' => ['required_if:rekening_mode,baru', 'nullable', 'string', 'max:100'],
             'persetujuan' => ['required', 'accepted'],
-        ], [
+        ];
+
+        if ($user->hasPin()) {
+            $rules['pin'] = ['required', 'string', 'size:6', 'regex:/^[0-9]{6}$/'];
+        } else {
+            $rules['pin'] = ['nullable', 'string', 'size:6', 'regex:/^[0-9]{6}$/'];
+        }
+
+        $request->validate($rules, [
             'persetujuan.required' => 'Anda harus menyetujui seluruh syarat & ketentuan pinjaman terlebih dahulu.',
             'persetujuan.accepted' => 'Anda harus menyetujui seluruh syarat & ketentuan pinjaman terlebih dahulu.',
+            'pin.required' => 'PIN keamanan wajib dimasukkan untuk mengonfirmasi pengajuan pinjaman.',
+            'pin.size' => 'PIN keamanan harus 6 digit angka.',
+            'pin.regex' => 'PIN keamanan hanya boleh berisi angka.',
         ]);
+
+        if ($user->hasPin()) {
+            $pinCheck = app(\App\Services\Security\PinSecurityService::class)->verify($user, (string) $request->pin, $request);
+            if (! $pinCheck['valid']) {
+                if ($pinCheck['locked_out']) {
+                    return redirect()->route('login')->withErrors([
+                        'pin' => $pinCheck['message'],
+                    ]);
+                }
+
+                return back()->withErrors([
+                    'pin' => $pinCheck['message'],
+                ]);
+            }
+        }
 
         $anggota = auth()->user()->anggota;
         $nominal = (float) $request->nominal;

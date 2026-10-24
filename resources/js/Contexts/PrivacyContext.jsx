@@ -1,12 +1,16 @@
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
 
 const PrivacyContext = createContext({
     isPrivacyActive: true,
     togglePrivacy: () => {},
     setPrivacy: () => {},
+    isScreenLocked: false,
+    lockScreen: () => {},
+    unlockScreen: () => {},
 });
 
-const INACTIVITY_TIMEOUT_MS = 15000; // 15 detik auto-lock jika privasi dimatikan sementara
+const INACTIVITY_PRIVACY_MS = 15000; // 15 detik: Privasi blur otomatis aktif
+const INACTIVITY_LOCK_MS = 30000;    // 30 detik total: Layar terkunci (Screen Lock)
 
 export function PrivacyProvider({ children }) {
     // Default aktif (true) saat sesi baru dibuka
@@ -16,7 +20,20 @@ export function PrivacyProvider({ children }) {
         return stored !== null ? stored === '1' : true;
     });
 
-    const timerInactivityRef = useRef(null);
+    // Screen Lock state
+    const [isScreenLocked, setIsScreenLocked] = useState(() => {
+        if (typeof window === 'undefined') return false;
+        return sessionStorage.getItem('screen_locked') === '1';
+    });
+
+    const isScreenLockedRef = useRef(isScreenLocked);
+    useEffect(() => {
+        isScreenLockedRef.current = isScreenLocked;
+    }, [isScreenLocked]);
+
+    const timerPrivacyRef = useRef(null);
+    const timerLockRef = useRef(null);
+    const broadcastRef = useRef(null);
 
     // Sinkronkan ke sessionStorage & pasang atribut data-privacy di elemen root (html)
     useEffect(() => {
@@ -26,13 +43,68 @@ export function PrivacyProvider({ children }) {
         }
     }, [isPrivacyActive]);
 
-    const setPrivacy = (val) => {
-        setIsPrivacyActive(Boolean(val));
-    };
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            sessionStorage.setItem('screen_locked', isScreenLocked ? '1' : '0');
+        }
+    }, [isScreenLocked]);
 
-    const togglePrivacy = () => {
+    const setPrivacy = useCallback((val) => {
+        setIsPrivacyActive(Boolean(val));
+    }, []);
+
+    const togglePrivacy = useCallback(() => {
         setIsPrivacyActive((prev) => !prev);
-    };
+    }, []);
+
+    const lockScreen = useCallback(() => {
+        setIsScreenLocked(true);
+        setIsPrivacyActive(true);
+        isScreenLockedRef.current = true;
+        if (typeof window !== 'undefined') {
+            sessionStorage.setItem('screen_locked', '1');
+        }
+        if (broadcastRef.current) {
+            broadcastRef.current.postMessage({ type: 'LOCK' });
+        }
+    }, []);
+
+    const unlockScreen = useCallback(() => {
+        setIsScreenLocked(false);
+        isScreenLockedRef.current = false;
+        if (typeof window !== 'undefined') {
+            sessionStorage.setItem('screen_locked', '0');
+        }
+        if (broadcastRef.current) {
+            broadcastRef.current.postMessage({ type: 'UNLOCK' });
+        }
+    }, []);
+
+    // Multi-tab synchronization via BroadcastChannel
+    useEffect(() => {
+        if (typeof window === 'undefined' || !('BroadcastChannel' in window)) return undefined;
+
+        const channel = new BroadcastChannel('koperasi_screen_lock');
+        broadcastRef.current = channel;
+
+        channel.onmessage = (e) => {
+            if (e.data?.type === 'LOCK') {
+                setIsScreenLocked(true);
+                setIsPrivacyActive(true);
+                isScreenLockedRef.current = true;
+                sessionStorage.setItem('screen_locked', '1');
+            } else if (e.data?.type === 'UNLOCK') {
+                setIsScreenLocked(false);
+                isScreenLockedRef.current = false;
+                sessionStorage.setItem('screen_locked', '0');
+            }
+        };
+
+        return () => {
+            channel.close();
+            broadcastRef.current = null;
+        };
+    }, []);
 
     // Auto-lock saat berpindah tab atau meminimalkan browser (visibilitychange)
     useEffect(() => {
@@ -51,58 +123,84 @@ export function PrivacyProvider({ children }) {
         };
     }, []);
 
-    // Panic Key / Keyboard Shortcut: Ctrl + Shift + P
+    // Keyboard Shortcuts:
+    // Ctrl + Shift + P: Toggle Mode Privasi
+    // Ctrl + Shift + L: Langsung Kunci Layar (Screen Lock)
     useEffect(() => {
         if (typeof window === 'undefined') return undefined;
 
         const handleKeyDown = (e) => {
-            // Tangkap Ctrl+Shift+P atau Cmd+Shift+P
-            if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'p' || e.key === 'P')) {
-                e.preventDefault();
-                togglePrivacy();
+            if ((e.ctrlKey || e.metaKey) && e.shiftKey) {
+                if (e.key === 'p' || e.key === 'P') {
+                    e.preventDefault();
+                    togglePrivacy();
+                } else if (e.key === 'l' || e.key === 'L') {
+                    e.preventDefault();
+                    lockScreen();
+                }
             }
         };
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, []);
+    }, [togglePrivacy, lockScreen]);
 
-    // Inactivity Timer: jika privasi sengaja dimatikan, sistem otomatis menguncinya kembali setelah 15s
+    // Inactivity Timers:
+    // Stage 1 (15 detik): Mode Privasi Aktif (jika sengaja dimatikan)
+    // Stage 2 (30 detik total): Screen Lock Aktif
     useEffect(() => {
         if (typeof window === 'undefined') return undefined;
 
-        if (isPrivacyActive) {
-            if (timerInactivityRef.current) {
-                clearTimeout(timerInactivityRef.current);
-                timerInactivityRef.current = null;
+        const clearTimers = () => {
+            if (timerPrivacyRef.current) {
+                clearTimeout(timerPrivacyRef.current);
+                timerPrivacyRef.current = null;
             }
-            return undefined;
-        }
-
-        const resetTimer = () => {
-            if (timerInactivityRef.current) {
-                clearTimeout(timerInactivityRef.current);
+            if (timerLockRef.current) {
+                clearTimeout(timerLockRef.current);
+                timerLockRef.current = null;
             }
-            timerInactivityRef.current = setTimeout(() => {
-                setIsPrivacyActive(true);
-            }, INACTIVITY_TIMEOUT_MS);
         };
 
-        resetTimer();
+        const resetTimers = () => {
+            // Jangan reset jika layar sudah terkunci
+            if (isScreenLockedRef.current) return;
+
+            clearTimers();
+
+            // Timer Tier 1: Privacy Mode Blur pada 15 detik
+            timerPrivacyRef.current = setTimeout(() => {
+                setIsPrivacyActive(true);
+            }, INACTIVITY_PRIVACY_MS);
+
+            // Timer Tier 2: Hard Screen Lock pada 30 detik
+            timerLockRef.current = setTimeout(() => {
+                lockScreen();
+            }, INACTIVITY_LOCK_MS);
+        };
+
+        resetTimers();
 
         const activityEvents = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
-        activityEvents.forEach((ev) => window.addEventListener(ev, resetTimer, { passive: true }));
+        activityEvents.forEach((ev) => window.addEventListener(ev, resetTimers, { passive: true }));
 
         return () => {
-            if (timerInactivityRef.current) {
-                clearTimeout(timerInactivityRef.current);
-            }
-            activityEvents.forEach((ev) => window.removeEventListener(ev, resetTimer));
+            clearTimers();
+            activityEvents.forEach((ev) => window.removeEventListener(ev, resetTimers));
         };
-    }, [isPrivacyActive]);
+    }, [lockScreen]);
 
     return (
-        <PrivacyContext.Provider value={{ isPrivacyActive, togglePrivacy, setPrivacy }}>
+        <PrivacyContext.Provider
+            value={{
+                isPrivacyActive,
+                togglePrivacy,
+                setPrivacy,
+                isScreenLocked,
+                lockScreen,
+                unlockScreen,
+            }}
+        >
             {children}
         </PrivacyContext.Provider>
     );
@@ -111,4 +209,3 @@ export function PrivacyProvider({ children }) {
 export function usePrivacy() {
     return useContext(PrivacyContext);
 }
-

@@ -2,7 +2,7 @@ import { router, useForm } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import useDebouncedValue from '@/Utils/useDebouncedValue';
 import {
-    Pencil, Trash2, KeyRound, Ban, CheckCircle2, Search, Lock, ArrowLeft, Plus, X, RefreshCw,
+    Pencil, Trash2, KeyRound, Ban, CheckCircle2, Search, Lock, ArrowLeft, Plus, X, RefreshCw, ShieldAlert,
 } from 'lucide-react';
 import Button from '@/Components/ui/Button';
 import FormField from '@/Components/ui/FormField';
@@ -18,6 +18,7 @@ function TombolAksi({ label, title, onClick, tone, disabled }) {
         navy: 'hover:text-brand-navy hover:bg-slate-100',
         green: 'hover:text-brand-green-dark hover:bg-brand-green-light',
         red: 'hover:text-red-600 hover:bg-red-50',
+        amber: 'hover:text-amber-600 hover:bg-amber-50',
     };
     return (
         <button
@@ -28,6 +29,7 @@ function TombolAksi({ label, title, onClick, tone, disabled }) {
             className={`inline-flex items-center justify-center w-9 h-9 rounded-xl border border-transparent text-slate-400 transition-all duration-200 ${tones[tone]} ${disabled ? 'opacity-30 cursor-not-allowed' : 'hover:border-slate-200 hover:shadow-sm'}`}
         >
             {title === 'Reset password' ? <KeyRound size={15} /> : null}
+            {title === 'Reset PIN' ? <ShieldAlert size={15} className="text-amber-600" /> : null}
             {title === 'Edit pengguna' ? <Pencil size={15} /> : null}
             {title === 'Nonaktifkan' || title === 'Aktifkan' ? (title === 'Nonaktifkan' ? <Ban size={15} /> : <CheckCircle2 size={15} />) : null}
             {title === 'Hapus' ? <Trash2 size={15} /> : null}
@@ -126,6 +128,17 @@ export default function KelolaPengguna({
         reset.post(route('pengaturan.pengguna.reset-password', target.id), {
             preserveScroll: true,
             onSuccess: () => setView('list'),
+        });
+    }
+
+    function handleResetPin(userTarget) {
+        if (!confirm(`Reset PIN keamanan untuk "${userTarget.name}" (${userTarget.no_karyawan})? Pengguna akan diminta membuat PIN baru saat login.`)) {
+            return;
+        }
+
+        router.post(route('pengaturan.pengguna.reset-pin', userTarget.id), {}, {
+            preserveScroll: true,
+            preserveState: true,
         });
     }
 
@@ -378,12 +391,18 @@ export default function KelolaPengguna({
                                         {labelRole[role] ?? role}
                                     </span>
                                 ))}
+                                <span className={`inline-flex items-center px-2 py-0.5 text-[11px] font-bold rounded-full ${user.has_pin ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                                    {user.has_pin ? 'PIN Aktif' : 'Belum PIN'}
+                                </span>
                                 <span className={`inline-flex items-center px-2 py-0.5 text-[11px] font-bold rounded-full ${user.status === 'aktif' ? 'bg-brand-green-light text-brand-green-dark' : 'bg-red-50 text-red-600'}`}>
                                     {user.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
                                 </span>
                             </div>
                             <div className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                                 <TombolAksi label={`Reset password ${user.name}`} title="Reset password" tone="navy" onClick={() => bukaReset(user)} />
+                                {user.has_pin && (
+                                    <TombolAksi label={`Reset PIN ${user.name}`} title="Reset PIN" tone="amber" onClick={() => handleResetPin(user)} />
+                                )}
                                 <TombolAksi label={`Edit ${user.name}`} title="Edit pengguna" tone="navy" onClick={() => bukaEdit(user)} />
                                 <TombolAksi label={user.status === 'aktif' ? `Nonaktifkan ${user.name}` : `Aktifkan ${user.name}`} title={user.status === 'aktif' ? 'Nonaktifkan' : 'Aktifkan'} tone={user.status === 'aktif' ? 'red' : 'green'} disabled={user.dilindungi} onClick={() => toggleStatus(user)} />
                                 <TombolAksi label={`Hapus ${user.name}`} title="Hapus" tone="red" disabled={user.dilindungi} onClick={() => hapus(user)} />

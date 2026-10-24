@@ -1,6 +1,7 @@
 import Sidebar from './Partials/Sidebar';
 import { Menu } from 'lucide-react';
 import FlashToast from '@/Components/ui/FlashToast';
+import SecurityGuard from '@/Components/security/SecurityGuard';
 import { useEffect, useRef, useState } from 'react';
 import { Transition } from '@headlessui/react';
 
@@ -110,6 +111,7 @@ className={`hidden lg:block sticky top-0 h-screen shrink-0 p-3 transition-[width
                     {children}
                 </main>
             </div>
+            <SecurityGuard />
         </div>
     );
 }

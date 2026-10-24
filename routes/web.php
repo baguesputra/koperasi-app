@@ -31,6 +31,7 @@ use App\Http\Controllers\Portal\ProfilController;
 use App\Http\Controllers\Portal\RiwayatController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\Security\PinSecurityController;
 use App\Http\Controllers\ShuController;
 use App\Http\Controllers\SimpananController;
 use App\Http\Controllers\VerifikasiController;
@@ -261,8 +262,17 @@ Route::middleware(['auth', 'permission:user.kelola', 'password.confirm'])->prefi
     Route::post('/pengguna', [PenggunaController::class, 'store'])->name('pengguna.store');
     Route::put('/pengguna/{user}', [PenggunaController::class, 'update'])->name('pengguna.update');
     Route::post('/pengguna/{user}/reset-password', [PenggunaController::class, 'resetPassword'])->name('pengguna.reset-password');
+    Route::post('/pengguna/{user}/reset-pin', [PenggunaController::class, 'resetPin'])->name('pengguna.reset-pin');
     Route::post('/pengguna/{user}/toggle-status', [PenggunaController::class, 'toggleStatus'])->name('pengguna.toggle-status');
     Route::delete('/pengguna/{user}', [PenggunaController::class, 'destroy'])->name('pengguna.destroy');
+});
+
+// ==========================================
+// KEAMANAN PIN & SCREEN LOCK
+// ==========================================
+Route::middleware('auth')->prefix('security/pin')->name('security.pin.')->group(function () {
+    Route::post('/setup', [PinSecurityController::class, 'setup'])->name('setup');
+    Route::post('/verify-unlock', [PinSecurityController::class, 'verifyUnlock'])->name('verify-unlock');
 });
 
 // ==========================================
