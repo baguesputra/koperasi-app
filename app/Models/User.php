@@ -58,7 +58,8 @@ class User extends Authenticatable
 
     public function resetPinFailedAttempts(): void
     {
-        if ($this->pin_failed_attempts !== 0) {
+        $raw = $this->getAttributes();
+        if (($raw['pin_failed_attempts'] ?? 0) !== 0) {
             $this->update(['pin_failed_attempts' => 0]);
         }
     }
@@ -66,7 +67,7 @@ class User extends Authenticatable
     public function incrementPinFailedAttempts(): int
     {
         $this->increment('pin_failed_attempts');
-        return (int) $this->fresh()->pin_failed_attempts;
+        return (int) ($this->fresh()->getAttributes()['pin_failed_attempts'] ?? 1);
     }
 
     public function anggota()
