@@ -4,6 +4,7 @@ namespace App\Services\Pinjaman;
 
 use App\Helpers\TerbilangHelper;
 use App\Models\Anggota;
+use App\Models\AuditLog;
 use App\Models\Pinjaman;
 use App\Models\RekeningAnggota;
 use App\Models\User;
@@ -75,7 +76,7 @@ class PengajuanPinjamanService
 
             $dataRekening = $this->siapkanRekening($anggota, $rekening);
 
-            return Pinjaman::create([
+            $baru = Pinjaman::create([
                 'anggota_id' => $anggota->id,
                 'pengaju_user_id' => $pengaju->id,
                 'nominal' => $nominal,
@@ -97,6 +98,26 @@ class PengajuanPinjamanService
                 'ip_address_setuju' => $audit['ip'] ?? null,
                 'user_agent_setuju' => isset($audit['user_agent']) ? substr($audit['user_agent'], 0, 255) : null,
             ]);
+
+            AuditLog::catat(
+                aksi: 'pinjaman_diajukan',
+                keterangan: "Pengajuan pinjaman baru #{$baru->id} untuk {$anggota->nama} ({$anggota->no_karyawan}) diajukan. Nominal: ".WaPesan::rupiah($nominal).", Tenor: {$tenorBulan} bulan, Keperluan: {$keperluan}",
+                dataLama: null,
+                dataBaru: [
+                    'pinjaman_id' => $baru->id,
+                    'anggota_id' => $anggota->id,
+                    'nominal' => $nominal,
+                    'tenor_bulan' => $tenorBulan,
+                    'keperluan' => $keperluan,
+                    'status' => $baru->status,
+                    'bank' => $baru->snapshot_bank,
+                    'no_rekening' => $baru->snapshot_no_rekening,
+                    'atas_nama' => $baru->snapshot_atas_nama,
+                ],
+                userId: $pengaju->id
+            );
+
+            return $baru;
         });
 
         $rincian = "- Nomor Referensi: #{$pinjaman->id}\n"

@@ -162,5 +162,9 @@ class SecurityPinTest extends TestCase
             'anggota_id' => $anggota->id,
             'nominal' => 1_000_000,
         ]);
+        $this->assertDatabaseHas('audit_log', [
+            'aksi' => 'pinjaman_diajukan',
+            'user_id' => $anggota->user->id,
+        ]);
     }
 }
