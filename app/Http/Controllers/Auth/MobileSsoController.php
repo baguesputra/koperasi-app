@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\SessionUserResource;
 use App\Models\MobileSsoCode;
+use App\Models\MobileSsoTransaction;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -52,22 +54,41 @@ class MobileSsoController extends Controller
         return response()->json($result)->header('Cache-Control', 'no-store');
     }
 
-    public static function issue(Request $request): string
+    public static function issue(Request $request, User $user): ?string
     {
-        $context = $request->session()->pull('mobile_sso');
-        abort_unless(is_array($context) && isset($context['state'], $context['code_challenge']), 400);
+        $relayState = $request->input('RelayState', $request->input('relay_state'));
+        if (! is_string($relayState) || ! preg_match('/^[A-Za-z0-9_-]{43,64}$/', $relayState)) {
+            return null;
+        }
 
         MobileSsoCode::where('expires_at', '<', now())->delete();
-        $code = Str::random(64);
-        MobileSsoCode::create([
-            'user_id' => $request->user()->id,
-            'code_hash' => hash('sha256', $code),
-            'code_challenge' => $context['code_challenge'],
-            'state' => $context['state'],
-            'expires_at' => now()->addMinutes(2),
-        ]);
+        $code = DB::transaction(function () use ($relayState, $user) {
+            $transaction = MobileSsoTransaction::query()
+                ->where('relay_state', $relayState)
+                ->lockForUpdate()
+                ->first();
+            if (! $transaction || $transaction->used_at || $transaction->expires_at->isPast()) {
+                return null;
+            }
 
-        return 'koperasi://auth/sso/callback?'.http_build_query(['code' => $code, 'state' => $context['state']]);
+            $code = Str::random(64);
+            MobileSsoCode::create([
+                'user_id' => $user->id,
+                'code_hash' => hash('sha256', $code),
+                'code_challenge' => $transaction->code_challenge,
+                'state' => $transaction->state,
+                'expires_at' => now()->addMinutes(2),
+            ]);
+            $transaction->update(['used_at' => now()]);
+
+            return ['code' => $code, 'state' => $transaction->state];
+        });
+
+        if (! $code) {
+            return null;
+        }
+
+        return 'koperasi://auth/sso/callback?'.http_build_query($code);
     }
 
     public function redirect(Request $request)
@@ -76,9 +97,17 @@ class MobileSsoController extends Controller
             'state' => ['required', 'string', 'min:43', 'max:128', 'regex:/^[A-Za-z0-9_-]+$/'],
             'code_challenge' => ['required', 'string', 'size:43', 'regex:/^[A-Za-z0-9_-]+$/'],
         ]);
-        $request->session()->put('mobile_sso', $data);
+        MobileSsoTransaction::where('expires_at', '<', now())->delete();
+        $relayState = Str::random(64);
+        MobileSsoTransaction::create([
+            'relay_state' => $relayState,
+            'state' => $data['state'],
+            'code_challenge' => $data['code_challenge'],
+            'expires_at' => now()->addMinutes(10),
+        ]);
+        $request->session()->put('mobile_sso_relay_state', $relayState);
 
-        $target = Socialite::driver('perusahaan')->stateless()->redirect()->getTargetUrl();
+        $target = Socialite::driver('perusahaan')->redirect()->getTargetUrl();
 
         return redirect()->away($target);
     }

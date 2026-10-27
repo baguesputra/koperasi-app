@@ -2,9 +2,12 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Http\Controllers\Auth\MobileSsoController;
 use App\Models\MobileSsoCode;
+use App\Models\MobileSsoTransaction;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Tests\TestCase;
 
 class MobileSsoExchangeTest extends TestCase
@@ -64,5 +67,30 @@ class MobileSsoExchangeTest extends TestCase
         $this->postJson('/api/v1/sso/mobile/exchange', [
             'code' => $expired[0], 'state' => $expired[1], 'code_verifier' => $expired[2],
         ])->assertUnprocessable();
+    }
+
+    public function test_assertion_callback_membuat_deep_link_dari_relay_state_tanpa_session(): void
+    {
+        $state = str_repeat('s', 64);
+        $verifier = $this->verifier();
+        $relayState = str_repeat('r', 64);
+        $user = User::factory()->create(['status' => 'aktif']);
+        MobileSsoTransaction::create([
+            'relay_state' => $relayState,
+            'state' => $state,
+            'code_challenge' => $this->challenge($verifier),
+            'expires_at' => now()->addMinutes(5),
+        ]);
+        $url = MobileSsoController::issue(Request::create('/auth/sso/callback', 'POST', [
+            'RelayState' => $relayState,
+        ]), $user);
+
+        $this->assertStringStartsWith('koperasi://auth/sso/callback?', $url);
+        $this->assertDatabaseHas('mobile_sso_transactions', ['relay_state' => $relayState, 'used_at' => now()]);
+        $this->assertDatabaseHas('mobile_sso_codes', [
+            'user_id' => $user->id,
+            'code_challenge' => $this->challenge($verifier),
+            'state' => $state,
+        ]);
     }
 }

@@ -273,14 +273,14 @@ class SsoController extends Controller
                 'sso_id' => $ssoId,
             ], null, $user->id);
 
-            if (request()->session()->has('mobile_sso')) {
-                return redirect()->away(MobileSsoController::issue(request()));
+            if ($mobileCallback = MobileSsoController::issue(request(), $user)) {
+                return redirect()->away($mobileCallback);
             }
 
             return redirect()->route('dashboard');
 
         } catch (\Throwable $e) {
-            request()->session()->forget('mobile_sso');
+            request()->session()->forget('mobile_sso_relay_state');
             report($e);
 
             AuditLog::catat('sso_login_failed', 'exception', [
