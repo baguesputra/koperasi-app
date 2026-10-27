@@ -279,6 +279,8 @@ class AnggotaApiTest extends TestCase
 
     public function test_dokumentasi_api_custom(): void
     {
+        $this->masuk($this->buatAnggota('TOP-950003')->user->no_karyawan);
+
         $res = $this->get('/api/documentation')->assertOk();
 
         // Semua endpoint harus terdokumentasi di halaman.
