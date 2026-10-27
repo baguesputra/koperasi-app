@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\SinkronAnggotaJit;
+use App\Models\Anggota;
 use App\Models\AuditLog;
 use App\Models\GateSyncLog;
 use App\Models\GateSyncSetting;
@@ -107,7 +108,7 @@ class SsoController extends Controller
                 if ($nik) {
                     $kandidatNik = User::where('no_karyawan', $nik)->first();
                     if (! $kandidatNik) {
-                        $anggotaNik = \App\Models\Anggota::where('no_karyawan', $nik)->first();
+                        $anggotaNik = Anggota::where('no_karyawan', $nik)->first();
                         $kandidatNik = $anggotaNik?->user;
                     }
                     if ($kandidatNik) {
@@ -254,6 +255,7 @@ class SsoController extends Controller
             ]);
 
             if ($user->status === 'nonaktif') {
+                request()->session()->forget('mobile_sso');
                 AuditLog::catat('sso_login_failed', 'inactive', [
                     'sso_id' => $ssoId,
                     'user_id' => $user->id,
@@ -271,9 +273,14 @@ class SsoController extends Controller
                 'sso_id' => $ssoId,
             ], null, $user->id);
 
+            if (request()->session()->has('mobile_sso')) {
+                return redirect()->away(MobileSsoController::issue(request()));
+            }
+
             return redirect()->route('dashboard');
 
         } catch (\Throwable $e) {
+            request()->session()->forget('mobile_sso');
             report($e);
 
             AuditLog::catat('sso_login_failed', 'exception', [

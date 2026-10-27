@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\PinjamanController as AdminPinjamanController;
 use App\Http\Controllers\AnggotaController;
 use App\Http\Controllers\API\AnggotaController as ApiAnggotaController;
+use App\Http\Controllers\Auth\MobileSsoController;
 use App\Http\Controllers\Auth\SsoController;
 use App\Http\Controllers\Bendahara\AngsuranController;
 use App\Http\Controllers\Bendahara\PengajuanLimitController as BendaharaPengajuanLimitController;
@@ -40,6 +41,7 @@ use Inertia\Inertia;
 
 // --------------------- Portal SSO -------------------------
 Route::get('/auth/sso/redirect', [SsoController::class, 'redirect'])->name('sso.redirect');
+Route::get('/auth/sso/mobile', [MobileSsoController::class, 'redirect'])->name('sso.mobile.redirect');
 Route::match(['get', 'post'], '/auth/sso/callback', [SsoController::class, 'callback'])
     ->name('sso.callback')
     ->middleware('throttle:sso-callback');
