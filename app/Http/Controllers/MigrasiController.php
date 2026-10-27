@@ -37,7 +37,13 @@ class MigrasiController extends Controller
     public function importPinjaman(Request $request, MigrasiPinjamanService $migrasi)
     {
         $request->validate([
-            'file' => ['required', 'file', 'mimes:xlsx,xls', 'max:2048'],
+            'file' => [
+                'required',
+                'file',
+                'mimes:xlsx,xls',
+                'mimetypes:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel',
+                'max:2048',
+            ],
         ]);
 
         $import = new PinjamanMigrasiImport($migrasi);
@@ -52,7 +58,13 @@ class MigrasiController extends Controller
     public function importSimpanan(Request $request, MigrasiSimpananService $migrasi)
     {
         $request->validate([
-            'file' => ['required', 'file', 'mimes:xlsx,xls', 'max:2048'],
+            'file' => [
+                'required',
+                'file',
+                'mimes:xlsx,xls',
+                'mimetypes:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel',
+                'max:2048',
+            ],
         ]);
 
         $import = new SimpananMigrasiImport($migrasi);

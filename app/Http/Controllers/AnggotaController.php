@@ -225,7 +225,13 @@ class AnggotaController extends Controller
     public function import(Request $request)
     {
         $request->validate([
-            'file' => ['required', 'file', 'mimes:xlsx,xls', 'max:2048'],
+            'file' => [
+                'required',
+                'file',
+                'mimes:xlsx,xls',
+                'mimetypes:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel',
+                'max:2048',
+            ],
         ]);
 
         $import = new AnggotaImport;

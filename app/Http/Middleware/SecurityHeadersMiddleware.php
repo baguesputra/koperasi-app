@@ -27,6 +27,21 @@ class SecurityHeadersMiddleware
         // Disable deprecated / vulnerable legacy browser XSS auditor (favor modern CSP & sanitization)
         $response->headers->set('X-XSS-Protection', '0');
 
+        // Content Security Policy (CSP): Mitigasi XSS, data injection, dan untrusted execution
+        $csp = [
+            "default-src 'self'",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+            "font-src 'self' https://fonts.gstatic.com data:",
+            "img-src 'self' data: blob:",
+            "connect-src 'self' ws: wss: https:",
+            "object-src 'none'",
+            "base-uri 'self'",
+            "form-action 'self'",
+            "frame-ancestors 'self'",
+        ];
+        $response->headers->set('Content-Security-Policy', implode('; ', $csp));
+
         // Referrer Privacy: Prevent leaking internal paths and query parameters to external hosts
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
 
