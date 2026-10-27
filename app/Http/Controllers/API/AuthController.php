@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\SessionUserResource;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -25,23 +26,25 @@ class AuthController extends Controller
         }
 
         $request->validate([
-            'email' => 'required|string|email',
+            'no_karyawan' => 'required|string',
             'password' => 'required|string',
+            'device_name' => 'nullable|string',
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $user = User::whereRaw('UPPER(no_karyawan) = ?', [strtoupper($request->no_karyawan)])->first();
 
         if (! $user || ! Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.'],
+                'no_karyawan' => ['Nomor karyawan atau kata sandi tidak sesuai.'],
             ]);
         }
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        $token = $user->createToken($request->device_name ?? 'mobile')->plainTextToken;
 
         return response()->json([
-            'user' => $user,
+            'user' => new SessionUserResource($user),
             'token' => $token,
+            'harus_ganti_password' => (bool) $user->harus_ganti_password,
         ]);
     }
 
@@ -53,7 +56,7 @@ class AuthController extends Controller
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([
-            'message' => 'Logged out successfully',
+            'message' => 'Berhasil keluar.',
         ]);
     }
 
@@ -63,5 +66,15 @@ class AuthController extends Controller
     public function user(Request $request)
     {
         return response()->json($request->user());
+    }
+
+    /**
+     * Get the authenticated user shaped for the mobile app.
+     */
+    public function me(Request $request)
+    {
+        return response()->json([
+            'user' => new SessionUserResource($request->user()),
+        ]);
     }
 }

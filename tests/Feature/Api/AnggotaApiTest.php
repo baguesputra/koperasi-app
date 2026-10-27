@@ -97,7 +97,7 @@ class AnggotaApiTest extends TestCase
         $anggota = $this->buatAnggota('TOP-950001');
 
         $login = $this->postJson('/api/v1/login', [
-            'email' => $anggota->user->email,
+            'no_karyawan' => $anggota->user->no_karyawan,
             'password' => 'TOP-950001',
         ])->assertOk();
 
@@ -121,7 +121,7 @@ class AnggotaApiTest extends TestCase
         $anggota = $this->buatAnggota('TOP-950002');
 
         $this->postJson('/api/v1/login', [
-            'email' => $anggota->user->email,
+            'no_karyawan' => $anggota->user->no_karyawan,
             'password' => 'TOP-950002',
         ])->assertForbidden();
     }
