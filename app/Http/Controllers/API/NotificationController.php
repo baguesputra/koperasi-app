@@ -32,8 +32,8 @@ class NotificationController extends Controller
         $rows = $this->daftar($request);
         $dibaca = $this->dibacaIds($request);
 
-        $data = collect($rows)->map(fn ($row, $i) => [
-            'id' => $i + 1,
+        $data = collect($rows)->map(fn ($row) => [
+            'id' => $this->sid($row),
             'tipe' => $row['tipe'],
             'judul' => $row['judul'],
             'pesan' => $row['pesan'],
@@ -49,16 +49,16 @@ class NotificationController extends Controller
     }
 
     /**
-     * Tandai satu notifikasi sudah dibaca. Id di luar jangkauan → sukses kosong.
+     * Tandai satu notifikasi sudah dibaca. Id tak dikenal → sukses kosong.
      *
      * @response 200 {"message": "Ditandai sudah dibaca."}
      */
-    public function read(Request $request, int $id): JsonResponse
+    public function read(Request $request, string $id): JsonResponse
     {
-        $baris = collect($this->daftar($request))->values()->get($id - 1);
+        $cocok = collect($this->daftar($request))->first(fn ($baris) => $this->sid($baris) === $id);
 
-        if ($baris) {
-            $this->tandai($request, [$this->sid($baris)]);
+        if ($cocok) {
+            $this->tandai($request, [$id]);
         }
 
         return response()->json(['message' => 'Ditandai sudah dibaca.']);
@@ -117,7 +117,14 @@ class NotificationController extends Controller
 
     private function sid(array $row): string
     {
-        return md5(($row['tipe'] ?? '').'|'.($row['judul'] ?? '').'|'.($row['tanggal'] ?? ''));
+        return md5(implode('|', [
+            $row['tipe'] ?? '',
+            $row['judul'] ?? '',
+            $row['pesan'] ?? '',
+            $row['tanggal'] ?? '',
+            $row['referensi']['jenis'] ?? '',
+            $row['referensi']['id'] ?? '',
+        ]));
     }
 
     /**

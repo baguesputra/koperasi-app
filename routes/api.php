@@ -91,7 +91,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
             // Staff confirmations + notification reads (batch 6: mobile contract)
             Route::post('/pengurus/angsuran/konfirmasi', [PengurusAngsuranController::class, 'konfirmasi'])->name('api.pengurus.angsuran.konfirmasi');
             Route::post('/pengurus/simpanan/konfirmasi', [PengurusSimpananController::class, 'konfirmasi'])->name('api.pengurus.simpanan.konfirmasi');
-            Route::post('/notifications/{id}/read', [NotificationController::class, 'read'])->where('id', '[0-9]+')->name('api.notifications.read');
+            Route::post('/notifications/{id}/read', [NotificationController::class, 'read'])->where('id', '[0-9a-f]{32}')->name('api.notifications.read');
             Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])->name('api.notifications.read-all');
         });
     });

@@ -101,21 +101,33 @@ class MobilePengurusLanjutanTest extends TestCase
         $res = $this->headerToken($token)->getJson('/api/v1/pengurus/angsuran')->assertOk();
         $milikUji = collect($res->json('data'))->where('pinjaman_id', $pinjaman->id)->values();
         $this->assertCount(4, $milikUji);
-        $ids = $milikUji->pluck('angsuran_id')->all();
-        $res->assertJsonStructure(['data' => [['angsuran_id', 'pinjaman_id', 'anggota_nama', 'cicilan_ke', 'total_bayar', 'tanggal_jatuh_tempo', 'terlambat', 'diajukan_perubahan_tenor']], 'total', 'periode']);
+        $this->assertTrue($milikUji->every(fn ($row) => $row['jenis'] === 'normal'));
+        $ids = $milikUji->pluck('kunci')->all();
+        $res->assertJsonStructure(['data' => [['jenis', 'kunci', 'angsuran_id', 'pinjaman_id', 'anggota_nama', 'cicilan_ke', 'total_bayar', 'tanggal_jatuh_tempo', 'terlambat', 'diajukan_perubahan_tenor']], 'total', 'periode']);
 
-        $target = array_slice($ids, 0, 2);
+        // Kompatibilitas: id numerik lama tetap diterima sebagai angsuran normal.
+        $this->headerToken($token)->withHeader('Idempotency-Key', Str::uuid()->toString())
+            ->postJson('/api/v1/pengurus/angsuran/konfirmasi', ['angsuran_ids' => [$milikUji->first()['angsuran_id']]])
+            ->assertOk();
+        $this->assertSame(1, Angsuran::where('pinjaman_id', $pinjaman->id)->where('status', 'lunas')->count());
+
+        $target = array_slice($milikUji->where('angsuran_id', '!=', $milikUji->first()['angsuran_id'])->pluck('kunci')->all(), 0, 2);
         $resKonfirmasi = $this->headerToken($token)->withHeader('Idempotency-Key', Str::uuid()->toString())
             ->postJson('/api/v1/pengurus/angsuran/konfirmasi', ['angsuran_ids' => $target])
             ->assertOk();
         $resKonfirmasi->assertJsonPath('message', '2 angsuran dikonfirmasi.');
         $this->assertEquals(1_040_000.0, (float) $resKonfirmasi->json('total'));
 
-        $this->assertSame(2, Angsuran::whereIn('id', $target)->where('status', 'lunas')->count());
+        $this->assertSame(3, Angsuran::where('pinjaman_id', $pinjaman->id)->where('status', 'lunas')->count());
 
         $this->headerToken($token)->withHeader('Idempotency-Key', Str::uuid()->toString())
             ->postJson('/api/v1/pengurus/angsuran/konfirmasi', ['angsuran_ids' => []])
             ->assertUnprocessable();
+
+        // Kunci tak dikenal ditolak validasi implisit: tidak ada item valid.
+        $this->headerToken($token)->withHeader('Idempotency-Key', Str::uuid()->toString())
+            ->postJson('/api/v1/pengurus/angsuran/konfirmasi', ['angsuran_ids' => ['x-99']])
+            ->assertStatus(422);
     }
 
     public function test_antrean_simpanan_dan_konfirmasi_massal(): void
@@ -230,14 +242,24 @@ class MobilePengurusLanjutanTest extends TestCase
         $res->assertJsonStructure(['data' => [['id', 'tipe', 'judul', 'pesan', 'dibaca', 'tanggal']], 'belum_dibaca']);
         $belum = (int) $res->json('belum_dibaca');
         $this->assertGreaterThanOrEqual(1, $belum);
+        $idPertama = (string) $data->first()['id'];
+        $this->assertMatchesRegularExpression('/^[0-9a-f]{32}$/', $idPertama);
 
         $this->headerToken($token)->withHeader('Idempotency-Key', Str::uuid()->toString())
-            ->postJson('/api/v1/notifications/1/read')
+            ->postJson("/api/v1/notifications/{$idPertama}/read")
             ->assertOk()
             ->assertJsonPath('message', 'Ditandai sudah dibaca.');
 
+        // Id stabil walau daftar berubah: baca ulang, id pertama (sudah dibaca) tetap ada.
         $resSetelah = $this->headerToken($token)->getJson('/api/v1/notifications')->assertOk();
         $this->assertSame($belum - 1, (int) $resSetelah->json('belum_dibaca'));
+        $this->assertContains($idPertama, collect($resSetelah->json('data'))->pluck('id')->all());
+
+        // Id tak dikenal tetap sukses kosong dan tidak mengubah hitungan.
+        $this->headerToken($token)->withHeader('Idempotency-Key', Str::uuid()->toString())
+            ->postJson('/api/v1/notifications/'.md5('tak-dikenal').'/read')
+            ->assertOk();
+        $this->assertSame($belum - 1, (int) $this->headerToken($token)->getJson('/api/v1/notifications')->json('belum_dibaca'));
 
         $this->headerToken($token)->withHeader('Idempotency-Key', Str::uuid()->toString())
             ->postJson('/api/v1/notifications/read-all')

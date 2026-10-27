@@ -38,6 +38,7 @@ class AngsuranController extends Controller
             ->whereHas('pinjaman', fn ($q) => $q->where('status', 'aktif'))
             ->get()
             ->map(fn ($a) => $this->baris(
+                'normal',
                 angsuranId: $a->id,
                 pinjamanId: $a->pinjaman_id,
                 nama: $a->pinjaman->anggota->nama ?? '-',
@@ -53,6 +54,7 @@ class AngsuranController extends Controller
             ->whereHas('pengajuan.pinjaman', fn ($q) => $q->where('status', 'aktif'))
             ->get()
             ->map(fn ($a) => $this->baris(
+                'percepatan',
                 angsuranId: $a->id,
                 pinjamanId: $a->pengajuan->pinjaman_id,
                 nama: $a->pengajuan->pinjaman->anggota->nama ?? '-',
@@ -75,8 +77,9 @@ class AngsuranController extends Controller
     }
 
     /**
-     * Konfirmasi angsuran massal. Menerima id numerik campuran (normal + percepatan);
-     * awalan dipetakan ulang: berhutang ke normal, lunas percepatan ke prefix p-.
+     * Konfirmasi angsuran massal. Menerima kunci "n-{id}" (normal) atau
+     * "p-{id}" (hasil percepatan) agar tidak ambigu antar dua tabel.
+     * Tetap menerima id numerik lama (dianggap angsuran normal).
      * Idempoten via middleware + header Idempotency-Key dari mobile.
      *
      * @response 200 {"message": "2 angsuran dikonfirmasi.", "total": 100000}
@@ -91,7 +94,7 @@ class AngsuranController extends Controller
 
         $request->validate([
             'angsuran_ids' => ['required', 'array', 'min:1'],
-            'angsuran_ids.*' => ['integer', 'min:1'],
+            'angsuran_ids.*' => ['required'],
         ]);
 
         $items = $this->petakanPrefix($request->input('angsuran_ids', []));
@@ -111,20 +114,27 @@ class AngsuranController extends Controller
     }
 
     /**
-     * Petakan id numerik campuran ke format service (n-{id}/p-{id}).
-     * Strategi: id yang cocok di angsuran_percepatan → prefix p-, sisanya n-.
-     * Urutan input dipertahankan supaya idempoten stabil.
+     * Normalkan input ke format service (n-{id}/p-{id}).
+     * - Kunci eksplisit "n-"/"p-" dipakai apa adanya.
+     * - Id numerik lama tetap diterima (dianggap angsuran normal).
+     * Urutan input dipertahankan supaya idempoten stabil; duplikat dibuang.
      */
     private function petakanPrefix(array $ids): array
     {
-        $bersih = collect($ids)->map(fn ($id) => (int) $id)->filter(fn ($id) => $id > 0)->values();
-        if ($bersih->isEmpty()) {
-            return [];
+        $items = [];
+        foreach ($ids as $id) {
+            $teks = trim((string) $id);
+            if ($teks === '') {
+                continue;
+            }
+            if (preg_match('/^[np]-(\d+)$/i', $teks, $cocok)) {
+                $items[] = strtolower($teks[0]).'-'.(int) $cocok[1];
+            } elseif (ctype_digit($teks) && (int) $teks > 0) {
+                $items[] = 'n-'.(int) $teks;
+            }
         }
 
-        $pIds = AngsuranPercepatan::whereIn('id', $bersih)->pluck('id')->flip();
-
-        return $bersih->map(fn ($id) => ($pIds->has($id) ? 'p-' : 'n-').$id)->all();
+        return array_values(array_unique($items));
     }
 
     private function totalTerkonfirmasi(array $items): float
@@ -148,6 +158,7 @@ class AngsuranController extends Controller
     }
 
     private function baris(
+        string $jenis,
         int $angsuranId,
         int $pinjamanId,
         string $nama,
@@ -160,7 +171,9 @@ class AngsuranController extends Controller
         $tanggal = $jatuhTempo ? Carbon::parse($jatuhTempo) : null;
 
         return [
+            'jenis' => $jenis,
             'angsuran_id' => $angsuranId,
+            'kunci' => ($jenis === 'percepatan' ? 'p-' : 'n-').$angsuranId,
             'pinjaman_id' => $pinjamanId,
             'anggota_nama' => $nama,
             'no_anggota' => $noAnggota,
