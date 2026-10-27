@@ -7,6 +7,7 @@ use App\Http\Controllers\API\LaporanController;
 use App\Http\Controllers\API\NotificationController;
 use App\Http\Controllers\API\PengajuanLimitController;
 use App\Http\Controllers\API\Pengurus\AngsuranController as PengurusAngsuranController;
+use App\Http\Controllers\API\Pengurus\KasController as PengurusKasController;
 use App\Http\Controllers\API\Pengurus\LimitController as PengurusLimitController;
 use App\Http\Controllers\API\Pengurus\ListController as PengurusListController;
 use App\Http\Controllers\API\Pengurus\PercepatanController as PengurusPercepatanController;
@@ -31,6 +32,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
 
         Route::get('/dashboard', [DashboardController::class, 'dashboard'])->name('api.dashboard');
         Route::get('/pengurus/ringkasan', [DashboardController::class, 'ringkasan'])->name('api.pengurus.ringkasan');
+        Route::get('/pengurus/kas', [PengurusKasController::class, 'index'])->name('api.pengurus.kas.index');
 
         // Self-scoped member data (from login token, no ID parameter)
         Route::get('/anggota/pinjaman-aktif', [AnggotaController::class, 'pinjamanAktif'])->name('api.anggota.pinjaman-aktif');
@@ -90,6 +92,9 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
 
             // Staff confirmations + notification reads (batch 6: mobile contract)
             Route::post('/pengurus/angsuran/konfirmasi', [PengurusAngsuranController::class, 'konfirmasi'])->name('api.pengurus.angsuran.konfirmasi');
+            Route::post('/pengurus/kas/topup', [PengurusKasController::class, 'topup'])->name('api.pengurus.kas.topup');
+            Route::post('/pengurus/kas/pengeluaran', [PengurusKasController::class, 'pengeluaran'])->name('api.pengurus.kas.pengeluaran');
+            Route::post('/pengurus/kas/sisihkan', [PengurusKasController::class, 'sisihkan'])->name('api.pengurus.kas.sisihkan');
             Route::post('/pengurus/simpanan/konfirmasi', [PengurusSimpananController::class, 'konfirmasi'])->name('api.pengurus.simpanan.konfirmasi');
             Route::post('/notifications/{id}/read', [NotificationController::class, 'read'])->where('id', '[0-9a-f]{32}')->name('api.notifications.read');
             Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])->name('api.notifications.read-all');
