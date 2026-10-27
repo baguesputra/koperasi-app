@@ -14,6 +14,7 @@ class Angsuran extends Model
 
     protected $fillable = [
         'pinjaman_id',
+        'pengajuan_percepatan_id',
         'cicilan_ke',
         'nominal_pokok',
         'nominal_bunga',
