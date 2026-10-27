@@ -1,3 +1,4 @@
+import { Suspense, lazy } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, Link, usePage } from '@inertiajs/react';
 import {
@@ -6,7 +7,6 @@ import {
     ChevronRight,
     HandCoins as PinjamanIcon, CheckCircle2,
 } from 'lucide-react';
-import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import Card from '@/Components/ui/Card';
 import StatWidget from '@/Components/ui/StatWidget';
 import PageHeader from '@/Components/ui/PageHeader';
@@ -16,17 +16,32 @@ import { usePrivacy } from '@/Contexts/PrivacyContext';
 import { formatRupiah, formatRupiahSingkat } from '@/Utils/formatCurrency';
 import { statusStyle } from '@/Utils/status';
 
+const DashboardTrenChart = lazy(() => import('@/Pages/Dashboard/Partials/DashboardTrenChart'));
+const DashboardKasChart = lazy(() => import('@/Pages/Dashboard/Partials/DashboardKasChart'));
+
 const focusRing =
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2';
 
-// Satu sumber seri Mutasi Kas: warna Bar & legenda dibaca dari sini.
-// Semantik: masuk = keluarga hijau/navy/langit, keluar = netral (bukan merah/error).
-const kasSeries = [
-    { key: 'topup', name: 'Topup Saldo', color: '#0F1E36', stack: 'masuk' },
-    { key: 'angsuran', name: 'Pembayaran Angsuran', color: '#1FA24C', stack: 'masuk' },
-    { key: 'dana_sosial', name: 'Dana Sosial', color: '#0EA5E9', stack: 'masuk', radius: [4, 4, 0, 0] },
-    { key: 'pencairan', name: 'Pencairan Pinjaman', color: '#64748B', stack: 'keluar', radius: [4, 4, 0, 0] },
-];
+function ChartSkeleton({ className = '' }) {
+    return (
+        <Card className={className}>
+            <div className="flex items-center justify-between mb-4">
+                <div>
+                    <div className="h-4 w-44 bg-slate-200 rounded animate-pulse mb-1.5" />
+                    <div className="h-3 w-28 bg-slate-100 rounded animate-pulse" />
+                </div>
+            </div>
+            <div className="h-[280px] w-full bg-slate-50/50 rounded-xl flex items-end justify-between gap-2 p-6">
+                <div className="w-full bg-slate-200/50 h-1/4 rounded-t animate-pulse" />
+                <div className="w-full bg-slate-200/50 h-1/2 rounded-t animate-pulse" />
+                <div className="w-full bg-slate-200/50 h-3/4 rounded-t animate-pulse" />
+                <div className="w-full bg-slate-200/50 h-2/3 rounded-t animate-pulse" />
+                <div className="w-full bg-slate-200/50 h-1/3 rounded-t animate-pulse" />
+                <div className="w-full bg-slate-200/50 h-5/6 rounded-t animate-pulse" />
+            </div>
+        </Card>
+    );
+}
 
 export default function Dashboard({ stats, actionable, grafikTren, grafikKas, aktivitasTerbaru, rincianAntrean }) {
     const { auth } = usePage().props;
@@ -108,65 +123,14 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
 
             {/* Tren + Stat Widget */}
             <div className="mb-6">
-                <Card>
-                    <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
-                        <div>
-                            <p className="text-base font-bold text-slate-700">Tren Simpanan &amp; Pinjaman</p>
-                            <p className="text-xs text-slate-400 mt-0.5">Enam bulan terakhir • periode {labelBulan}</p>
-                        </div>
-
-                        <div className="flex items-center gap-4 flex-wrap">
-                            <div className="flex items-center gap-1.5">
-                                <span className="w-2.5 h-2.5 rounded-full bg-brand-green" />
-                                <span className="text-xs text-slate-500">Simpanan</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                                <span className="w-2.5 h-2.5 rounded-full bg-brand-navy" />
-                                <span className="text-xs text-slate-500">Pinjaman Cair</span>
-                            </div>
-                            {bisaAkses('laporan.lihat') && (
-                                <Link
-                                    href={route('laporan.show', 'arus-kas')}
-                                    className={`inline-flex items-center gap-0.5 text-xs font-bold text-brand-green-dark hover:underline ${focusRing} rounded`}
-                                >
-                                    Buka Laporan
-                                    <ChevronRight size={12} aria-hidden="true" />
-                                </Link>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className={`transition-all duration-300 ${isPrivacyActive ? 'privacy-chart' : ''}`}>
-                        <ResponsiveContainer width="100%" height={280}>
-                            <AreaChart key={`tren-chart-${isPrivacyActive ? 'locked' : 'unlocked'}`} data={grafikTren} margin={{ left: -10 }}>
-                                <defs>
-                                    <linearGradient id="colorSimpanan" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#1FA24C" stopOpacity={0.25} />
-                                        <stop offset="95%" stopColor="#1FA24C" stopOpacity={0} />
-                                    </linearGradient>
-                                    <linearGradient id="colorPinjaman" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#0F1E36" stopOpacity={0.25} />
-                                        <stop offset="95%" stopColor="#0F1E36" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                                <XAxis dataKey="bulan" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                                <YAxis
-                                    tick={{ fontSize: 12, fill: '#94a3b8' }}
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tickFormatter={isPrivacyActive ? () => '••••' : formatRupiahSingkat}
-                                />
-                                <Tooltip
-                                    formatter={(value) => (isPrivacyActive ? '••••••••' : formatRupiah(value))}
-                                    contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 13 }}
-                                />
-                                <Area type="monotone" dataKey="simpanan" name="Simpanan" stroke="#1FA24C" fillOpacity={1} fill="url(#colorSimpanan)" strokeWidth={2} />
-                                <Area type="monotone" dataKey="pinjaman" name="Pinjaman Cair" stroke="#0F1E36" fillOpacity={1} fill="url(#colorPinjaman)" strokeWidth={2} />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
-                </Card>
+                <Suspense fallback={<ChartSkeleton />}>
+                    <DashboardTrenChart
+                        grafikTren={grafikTren}
+                        bisaAkses={bisaAkses}
+                        isPrivacyActive={isPrivacyActive}
+                        labelBulan={labelBulan}
+                    />
+                </Suspense>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:col-span-2 lg:col-span-3">
@@ -288,61 +252,13 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                 </Card>
 
                 {/* Mutasi Kas */}
-                <Card className="lg:col-span-2 sm:p-6">
-                <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
-                    <div>
-                        <p className="text-base font-bold text-slate-700 mb-1">Mutasi Kas Koperasi</p>
-                        <p className="text-xs text-slate-400">Enam bulan terakhir</p>
-                    </div>
-                    {bisaAkses('laporan.lihat') && (
-                        <Link
-                            href={route('laporan.show', 'arus-kas')}
-                            className={`inline-flex items-center gap-0.5 text-xs font-bold text-brand-green-dark hover:underline ${focusRing} rounded`}
-                        >
-                            Buka Laporan Arus Kas
-                            <ChevronRight size={12} aria-hidden="true" />
-                        </Link>
-                    )}
-                </div>
-                <div className={`min-h-[280px] transition-all duration-300 ${isPrivacyActive ? 'privacy-chart' : ''}`}>
-                    <ResponsiveContainer width="100%" height={280}>
-                    <BarChart key={`kas-chart-${isPrivacyActive ? 'locked' : 'unlocked'}`} data={grafikKas} margin={{ left: -10 }} barCategoryGap="25%">
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                        <XAxis dataKey="bulan" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                        <YAxis
-                            tick={{ fontSize: 12, fill: '#94a3b8' }}
-                            axisLine={false}
-                            tickLine={false}
-                            tickFormatter={isPrivacyActive ? () => '••••' : formatRupiahSingkat}
-                        />
-                        <Tooltip
-                            cursor={{ fill: 'rgba(15, 30, 54, 0.04)' }}
-                            formatter={(value) => (isPrivacyActive ? '••••••••' : formatRupiah(value))}
-                            contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 13 }}
-                        />
-                        {kasSeries.map((s) => (
-                            <Bar
-                                key={s.key}
-                                stackId={s.stack}
-                                dataKey={s.key}
-                                name={s.name}
-                                fill={s.color}
-                                maxBarSize={26}
-                                radius={s.radius ?? [0, 0, 0, 0]}
-                            />
-                        ))}
-                    </BarChart>
-                </ResponsiveContainer>
-                </div>
-                <div className="flex items-center gap-5 mt-3 justify-center flex-wrap">
-                    {kasSeries.map((s) => (
-                        <div key={s.key} className="flex items-center gap-1.5">
-                            <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: s.color }} />
-                            <span className="text-xs text-slate-500">{s.name}</span>
-                        </div>
-                    ))}
-                </div>
-            </Card>
+                <Suspense fallback={<ChartSkeleton className="lg:col-span-2 sm:p-6" />}>
+                    <DashboardKasChart
+                        grafikKas={grafikKas}
+                        bisaAkses={bisaAkses}
+                        isPrivacyActive={isPrivacyActive}
+                    />
+                </Suspense>
             </div>
         </AppLayout>
     );

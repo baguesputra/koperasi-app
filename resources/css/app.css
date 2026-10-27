@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+html,
+body,
+#app {
+    background-color: #f8fafc;
+    min-height: 100vh;
+}
+
 body {
     font-size: 16px; /* base lebih besar dari default browser (biasanya 14-16px), sesuai prinsip elderly-friendly */
     -webkit-tap-highlight-color: transparent;
@@ -79,12 +86,31 @@ body {
     }
 }
 
-/* Hilangkan progress loading bar di bagian atas layar agar tampil seperti APK native */
-#nprogress,
-.nprogress-busy,
-#nprogress .bar,
+/* Progress Loading Bar Elegan (Brand Green #16A34A) */
+#nprogress {
+    pointer-events: none;
+}
+#nprogress .bar {
+    background: #16A34A !important;
+    position: fixed;
+    z-index: 99999;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2.5px;
+}
+#nprogress .peg {
+    display: none !important;
+}
 #nprogress .spinner {
     display: none !important;
+}
+
+/* Transisi Halaman Halus (View Transitions API) tanpa Blank Putih */
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation-duration: 160ms;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Mode Privasi Global Masking */

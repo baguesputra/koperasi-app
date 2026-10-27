@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="bg-slate-50">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -9,10 +9,14 @@
         <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
         <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
 
-        <!-- Fonts (Preconnected & Swap) -->
+        <!-- Fonts (Preconnected & Non-blocking) -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+        <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" media="print" onload="this.media='all'">
+        <noscript>
+            <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+        </noscript>
 
         <!-- PWA Fullscreen & Mobile App -->
         <meta name="theme-color" content="#f8fafc">
@@ -23,7 +27,7 @@
         <meta name="apple-touch-fullscreen" content="yes">
         <meta name="format-detection" content="telephone=no">
         <link rel="manifest" href="/manifest.webmanifest">
-        <link rel="apple-touch-icon" href="/images/logo.png">
+        <link rel="apple-touch-icon" href="/images/logo-192.png">
 
         <!-- Scripts -->
         @routes
@@ -31,7 +35,7 @@
         @vite(['resources/js/app.jsx', "resources/js/Pages/{$page['component']}.jsx"])
         @inertiaHead
     </head>
-    <body class="font-sans antialiased">
+    <body class="font-sans antialiased bg-slate-50 text-slate-800">
         @inertia
     </body>
 </html>

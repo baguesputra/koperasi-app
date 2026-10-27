@@ -44,6 +44,31 @@ class SecurityHeadersMiddleware
             @header_remove('X-Powered-By');
         }
 
+        // HTTP Compression (Gzip) for text/html, json, and svg when client supports gzip
+        if (function_exists('gzencode') &&
+            !$response instanceof \Symfony\Component\HttpFoundation\BinaryFileResponse &&
+            !$response instanceof \Symfony\Component\HttpFoundation\StreamedResponse &&
+            !$response->headers->has('Content-Encoding') &&
+            $request->headers->has('Accept-Encoding') &&
+            str_contains((string) $request->header('Accept-Encoding'), 'gzip')) {
+            $content = $response->getContent();
+            if ($content !== false && strlen($content) > 1024) {
+                $contentType = (string) $response->headers->get('Content-Type', '');
+                if (str_contains($contentType, 'text/html') ||
+                    str_contains($contentType, 'application/json') ||
+                    str_contains($contentType, 'image/svg+xml') ||
+                    str_contains($contentType, 'text/css') ||
+                    str_contains($contentType, 'application/javascript')) {
+                    $compressed = gzencode($content, 6);
+                    if ($compressed !== false) {
+                        $response->setContent($compressed);
+                        $response->headers->set('Content-Encoding', 'gzip');
+                        $response->headers->set('Content-Length', (string) strlen($compressed));
+                    }
+                }
+            }
+        }
+
         return $response;
     }
 }

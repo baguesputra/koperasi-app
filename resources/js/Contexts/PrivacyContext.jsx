@@ -9,8 +9,8 @@ const PrivacyContext = createContext({
     unlockScreen: () => {},
 });
 
-const INACTIVITY_PRIVACY_MS = 15000; // 15 detik: Privasi blur otomatis aktif
-const INACTIVITY_LOCK_MS = 30000;    // 30 detik total: Layar terkunci (Screen Lock)
+const INACTIVITY_PRIVACY_MS = 30000; // 30 detik: Privasi blur otomatis aktif
+const INACTIVITY_LOCK_MS = 60000;    // 60 detik total: Layar terkunci (Screen Lock)
 
 export function PrivacyProvider({ children }) {
     // Default aktif (true) saat sesi baru dibuka

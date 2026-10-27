@@ -12,7 +12,7 @@ export default defineConfig({
         react(),
         VitePWA({
             registerType: 'autoUpdate',
-            includeAssets: ['favicon.ico', 'favicon_custom.ico', 'images/logo.png'],
+            includeAssets: ['favicon.ico', 'favicon_custom.ico', 'images/logo-192.png', 'images/logo-512.png'],
             manifest: {
                 name: 'Koperasi App',
                 short_name: 'Koperasi',
@@ -26,13 +26,13 @@ export default defineConfig({
                 start_url: '/',
                 icons: [
                     {
-                        src: '/images/logo.png',
+                        src: '/images/logo-192.png',
                         sizes: '192x192',
                         type: 'image/png',
                         purpose: 'any maskable'
                     },
                     {
-                        src: '/images/logo.png',
+                        src: '/images/logo-512.png',
                         sizes: '512x512',
                         type: 'image/png',
                         purpose: 'any maskable'

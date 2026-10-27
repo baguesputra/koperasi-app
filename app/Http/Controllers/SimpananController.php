@@ -82,15 +82,18 @@ class SimpananController extends Controller
         $totalSimpananSeluruhAnggota = (float) ($agregatSimpanan->gross ?? 0);
 
         // Outstanding: hanya anggota aktif (simpanan yang masih ditanggung koperasi)
-        $totalSimpananOutstanding = (float) Simpanan::whereIn('jenis', ['pokok', 'wajib'])
-            ->whereHas('anggota', fn ($q) => $q->where('status', 'aktif'))
-            ->sum('jumlah');
+        $totalSimpananOutstanding = (float) Simpanan::whereIn('simpanan.jenis', ['pokok', 'wajib'])
+            ->join('anggota', 'simpanan.anggota_id', '=', 'anggota.id')
+            ->where('anggota.status', 'aktif')
+            ->sum('simpanan.jumlah');
 
         $totalSimpananTampil = $cabangAktif->isEmpty()
             ? $totalSimpananOutstanding
-            : Simpanan::whereIn('jenis', ['pokok', 'wajib'])
-                ->whereHas('anggota', fn ($q) => $q->where('status', 'aktif')->where('cabang', $cabangAktif->value()))
-                ->sum('jumlah');
+            : (float) Simpanan::whereIn('simpanan.jenis', ['pokok', 'wajib'])
+                ->join('anggota', 'simpanan.anggota_id', '=', 'anggota.id')
+                ->where('anggota.status', 'aktif')
+                ->where('anggota.cabang', $cabangAktif->value())
+                ->sum('simpanan.jumlah');
 
         $anggotaCounts = Anggota::selectRaw("
             COUNT(*) as total,
