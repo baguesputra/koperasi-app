@@ -1,0 +1,16 @@
+.git
+.github
+node_modules
+vendor
+tests/
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+playwright.config.js
+docs/
+storage/*.key
+.env
+.env.*
+!.env.example
+*.log

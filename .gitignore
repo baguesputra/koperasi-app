@@ -33,3 +33,7 @@ AGENTS.md
 /storage/app/wa
 /docs/data-koperasi/
 .opencode/
+/test-results/
+/playwright-report/
+/blob-report/
+/.playwright/

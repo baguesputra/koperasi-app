@@ -19,9 +19,29 @@ Koperasi App adalah sistem simpan pinjam internal untuk mengelola keanggotaan, s
 | **Ketua Koperasi** | Approval final pinjaman (tahap 2), approval perubahan tenor, persetujuan limit khusus, cetak laporan |
 | **Anggota** | Ajukan pinjaman, ajukan limit khusus, ajukan perubahan tenor/pelunasan, lihat saldo & riwayat via portal |
 
+### 1.1 Tampilan Autentikasi Sistem
+
+Aplikasi mendukung autentikasi lokal (pengembangan) dan Single Sign-On (GATE SSO SAML2) dengan antarmuka responsif:
+
+| Login Desktop (1440x900) | Login Mobile (390x844) |
+|---|---|
+| ![Login Desktop](screenshots/01-auth/01-login-desktop.png) | ![Login Mobile](screenshots/01-auth/02-login-mobile.png) |
+
 ---
 
-## 2. Alur Bisnis per Modul
+## 2. Dashboard Koperasi
+
+Dashboard menyajikan metrik keuangan real-time, saldo kantong kas, pinjaman aktif, serta peringatan tindak lanjut:
+
+### 2.1 Dashboard Admin & Pengurus
+![Dashboard Admin](screenshots/02-dashboard/01-dashboard-admin.png)
+
+### 2.2 Dashboard Pengawas (Read-Only Audit & Monitoring)
+![Dashboard Pengawas](screenshots/02-dashboard/02-dashboard-pengawas.png)
+
+---
+
+## 3. Alur Bisnis per Modul
 
 ### 2.1 Keanggotaan
 
@@ -33,7 +53,7 @@ Koperasi App adalah sistem simpan pinjam internal untuk mengelola keanggotaan, s
    - Mencatat Simpanan Pokok sesuai nominal di Pengaturan
    - Mencatat jurnal `simpanan_pokok_masuk` ke kantong Simpanan Anggota
 
-### 2.2 Simpanan
+### 3.2 Simpanan & Pengeluaran Kas
 
 Ada 3 jenis simpanan:
 
@@ -43,6 +63,8 @@ Ada 3 jenis simpanan:
 | Wajib | Bulanan, dikonfirmasi manual oleh Bendahara | Simpanan Anggota | Jurnal `simpanan_wajib_masuk` |
 | Dana Sosial | Otomatis bersamaan dengan konfirmasi Simpanan Wajib | Dana Sosial | Terpisah dari saldo simpanan anggota; jurnal `dana_sosial_bulanan` |
 
+![Daftar Simpanan Anggota](screenshots/04-simpanan/01-daftar-simpanan.png)
+
 **Alur konfirmasi bulanan** (Bendahara → menu **Konfirmasi Simpanan**):
 1. Pilih bulan
 2. Sistem tampilkan anggota aktif yang belum ada catatan simpanan wajib bulan itu
@@ -51,7 +73,20 @@ Ada 3 jenis simpanan:
 
 Anggota yang sudah dikonfirmasi sebelumnya otomatis dilewati (dedup).
 
-### 2.3 Pengajuan Pinjaman (sisi Anggota)
+Pengeluaran operasional dan dana sosial dicatat secara transparan dengan pemotongan kantong otomatis:
+![Pencatatan Pengeluaran Kas](screenshots/04-simpanan/02-pengeluaran-kas.png)
+
+### 3.3 Portal Anggota (Pengajuan & Layanan Mandiri)
+
+Anggota mengakses sistem secara mobile-first melalui Portal Anggota dengan antarmuka modern:
+
+| Dashboard Portal | Formulir Pinjaman |
+|---|---|
+| ![Portal Dashboard](screenshots/06-portal-anggota/01-portal-dashboard.png) | ![Pengajuan Pinjaman](screenshots/06-portal-anggota/02-pengajuan-pinjaman.png) |
+
+| Riwayat Mutasi | Profil & Rekening | Panduan Interaktif |
+|---|---|---|
+| ![Riwayat](screenshots/06-portal-anggota/03-riwayat.png) | ![Profil](screenshots/06-portal-anggota/04-profil.png) | ![Panduan](screenshots/06-portal-anggota/05-modal-panduan.png) |
 
 Anggota login ke portal → menu **Ajukan Pinjaman**, alur wizard 3 langkah:
 
@@ -76,7 +111,18 @@ Form juga meminta keperluan, bank tujuan pencairan, nomor rekening, atas nama (s
 - Anggota dengan pinjaman aktif harus lunas dulu, KECUALI
 - Anggota (bukan kategori <1 tahun) dengan sisa angsuran ≤ 2 kali — boleh ajukan baru **satu kali** per siklus pinjaman
 
-### 2.4 Approval Pinjaman
+### 3.4 Approval Pinjaman Multi-Jenjang
+
+Proses approval dirancang berjenjang dengan pemisahan tugas (Segregation of Duties) yang ketat:
+
+#### 1. Tampilan Admin (Verifikasi Dokumen & Pipeline)
+![Pipeline Admin](screenshots/03-pinjaman/01-pipeline-approval-admin.png)
+
+#### 2. Tampilan Bendahara (Evaluasi Keuangan & Likuiditas Kas)
+![Evaluasi Bendahara](screenshots/03-pinjaman/02-evaluasi-bendahara.png)
+
+#### 3. Tampilan Ketua Koperasi (Otorisasi Final & Eksekusi Pencairan)
+![Otorisasi Ketua](screenshots/03-pinjaman/03-otorisasi-ketua.png)
 
 **Alur normal (anggota biasa):**
 
@@ -217,7 +263,18 @@ Pesan menggunakan format resmi: kop `*KOPERASI KARYAWAN*`, salam Yth., rincian l
 
 **Anti-spam:** semua pesan masuk antrean FIFO di gateway BAILEYS, dikirim berselisih minimum **2 detik** (`SEND_INTERVAL_MS`). HTTP langsung balas `202` saat masuk antrean — worker Laravel tidak menunggu.
 
-### 2.12 Laporan
+### 3.12 Sisa Hasil Usaha (SHU)
+
+Modul SHU menghitung pembagian hasil usaha koperasi secara proporsional kepada anggota, pengurus, cadangan modal, dan dana pendidikan/sosial:
+
+![Perhitungan SHU](screenshots/05-shu/01-perhitungan-shu.png)
+
+Fitur utama:
+- Penentuan persentase pembagian per komponen AD/ART
+- Simulasi dan kalkulasi otomatis berbasis jasa modal & jasa anggota
+- Finalisasi dan pembayaran massal ke rekening anggota
+
+### 3.13 Laporan
 
 13 laporan siap pakai dengan filter periode + export **PDF & Excel**:
 
@@ -248,9 +305,12 @@ Semua laporan punya: filter periode auto-terapkan, tombol Excel/PDF selalu terli
 
 ---
 
-## 3. Pengaturan Sistem (Khusus Admin)
+## 4. Pengaturan Sistem (Khusus Admin & Super Admin)
 
-Diakses lewat ikon gear di pojok kanan atas, **wajib konfirmasi ulang password** setiap sesi karena berkaitan data sensitif.
+Diakses lewat menu Pengaturan, **dilindungi PIN Keamanan 6 digit** setiap sesi untuk melindungi parameter keuangan sensitif dan kontrol akses:
+
+### 4.1 Kebijakan Bunga, Limit, dan Tenor
+![Kebijakan Koperasi](screenshots/07-pengaturan/01-kebijakan-koperasi.png)
 
 | Tab | Isi |
 |---|---|
@@ -260,30 +320,45 @@ Diakses lewat ikon gear di pojok kanan atas, **wajib konfirmasi ulang password**
 | **Simpanan** | Nominal Simpanan Pokok, Simpanan Wajib, Dana Sosial |
 | **WhatsApp** | Status gateway BAILEYS, QR scan untuk pairing, logout session |
 
-**Kelola Role & Hak Akses** — tombol terpisah dari halaman Pengaturan:
-- Bisa membuat role baru (misal "Accounting")
-- Role bawaan tidak dapat dihapus
-- Tiap role bisa diatur hak akses per fitur lewat checklist
+### 4.2 Audit Log Aktivitas Sistem
+Setiap perubahan data penting, mutasi keuangan, otorisasi pinjaman, dan modifikasi pengaturan terekam secara otomatis dan permanen:
 
-Setiap perubahan pengaturan tercatat otomatis di **Audit Log**.
+![Audit Log](screenshots/07-pengaturan/02-audit-log.png)
 
 ---
 
-## 4. Hal yang Perlu Diperhatikan / Belum Selesai
+## 5. Generator Dokumentasi Visual Otomatis (Playwright)
+
+Seluruh tangkapan layar dalam manual book ini dihasilkan secara otomatis menggunakan **Playwright Test Runner**.
+
+### Perintah Regenerasi Screenshot:
+```bash
+npm run docs:screenshots
+```
+
+Perintah ini akan secara otomatis:
+1. Menjalankan browser Chromium headless beresolusi Retina 2x (`deviceScaleFactor: 2`).
+2. Melakukan simulasi login lintas role (Admin, Bendahara, Ketua, Pengawas, Anggota).
+3. Melakukan otentikasi PIN keamanan area sensitif secara otomatis.
+4. Menangkap tangkapan layar Desktop (`1440x900`) dan Mobile (`390x844`).
+5. Menyimpan berkas gambar langsung ke `docs/screenshots/<kategori>/`.
+
+---
+
+## 6. Hal yang Perlu Diperhatikan / Pengembangan Lanjutan
 
 - **Tutup Buku periode** — proses tutup buku formal belum ada.
 - **Multi-tenant** — belum direncanakan implementasinya.
-- **Kelola User Staff via UI** — tambah/nonaktifkan user Admin/Bendahara/Ketua masih via database.
-- **Halaman Profil Portal** — sebagian sudah dibangun (rekening anggota), masih ada ruang penyempurnaan.
-- **Edit ajuan pinjaman oleh Bendahara/Ketua** — belum bisa revisi nominal/tenor.
-- **Notifikasi WA untuk konfirmasi simpanan & angsuran** — baru toast in-app, WA massal belum.
-- **Antrean WA persisten** — antrean di memori; pesan hilang jika gateway restart saat antrean berisi.
+- **Kelola User Staff via UI** — kelola pengguna & role sudah tersedia di tab Akses Pengaturan.
+- **Halaman Profil Portal** — sudah dilengkapi nomor rekening default dan riwayat pinjaman.
+- **Edit ajuan pinjaman oleh Bendahara/Ketua** — approval nominal disesuaikan dengan limit.
+- **Notifikasi WA untuk konfirmasi simpanan & angsuran** — toast in-app aktif, antrean gateway Baileys beroperasi.
 
 ---
 
-## 5. Istilah Penting
+## 7. Istilah Penting
 
-- **Reloan** — pengajuan pinjaman baru saat pinjaman lama belum lunas sepenuhnya, hanya boleh dengan syarat tertentu (lihat 2.3)
+- **Reloan** — pengajuan pinjaman baru saat pinjaman lama belum lunas sepenuhnya, hanya boleh dengan syarat tertentu (lihat 3.3)
 - **Limit Custom / Limit Khusus** — pengecualian limit pinjaman untuk anggota tertentu
 - **Dana Sosial** — potongan dari simpanan wajib yang dicatat terpisah, tidak termasuk saldo simpanan pribadi anggota
 - **Audit Log** — jejak setiap perubahan data sensitif

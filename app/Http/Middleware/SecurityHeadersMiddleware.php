@@ -32,14 +32,18 @@ class SecurityHeadersMiddleware
             ? (parse_url($gateUrl, PHP_URL_SCHEME) ?? 'https').'://'.parse_url($gateUrl, PHP_URL_HOST)
             : 'https://gate.appdutamall.com';
 
+        $localDev = app()->environment('local', 'testing')
+            ? ' http://localhost:5173 http://127.0.0.1:5173 ws://localhost:5173 ws://127.0.0.1:5173'
+            : '';
+
         // Content Security Policy (CSP): Mitigasi XSS, data injection, dan untrusted execution
         $csp = [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com",
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-            "font-src 'self' https://fonts.gstatic.com data:",
-            "img-src 'self' data: blob:",
-            "connect-src 'self' ws: wss: https: https://cloudflareinsights.com",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com{$localDev}",
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com{$localDev}",
+            "font-src 'self' https://fonts.gstatic.com data:{$localDev}",
+            "img-src 'self' data: blob:{$localDev}",
+            "connect-src 'self' ws: wss: https: https://cloudflareinsights.com{$localDev}",
             "object-src 'none'",
             "base-uri 'self'",
             "form-action 'self' {$gateOrigin} https://gate.appdutamall.com",

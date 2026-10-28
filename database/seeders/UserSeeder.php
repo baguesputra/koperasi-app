@@ -12,15 +12,23 @@ class UserSeeder extends Seeder
     {
         $superAdmin = User::firstOrCreate(
             ['no_karyawan' => 'SPADM-000001'],
-            ['name' => 'Super Admin Koperasi', 'email' => 'superadmin@koperasi.test', 'password' => Hash::make('SPADM-000001')]
+            ['name' => 'Super Admin Koperasi', 'email' => 'superadmin@koperasi.test', 'password' => Hash::make('SPADM-000001'), 'pin' => '123456']
         );
         $superAdmin->assignRole('super_admin');
+        if (! $superAdmin->hasPin()) {
+            $superAdmin->pin = '123456';
+            $superAdmin->save();
+        }
 
         $admin = User::firstOrCreate(
             ['no_karyawan' => 'ADM-000001'],
-            ['name' => 'Admin Koperasi', 'email' => 'admin@koperasi.test', 'password' => Hash::make('ADM-000001')]
+            ['name' => 'Admin Koperasi', 'email' => 'admin@koperasi.test', 'password' => Hash::make('ADM-000001'), 'pin' => '123456']
         );
         $admin->assignRole('admin');
+        if (! $admin->hasPin()) {
+            $admin->pin = '123456';
+            $admin->save();
+        }
 
         $bendahara = User::firstOrCreate(
             ['no_karyawan' => 'BEN-000001'],
