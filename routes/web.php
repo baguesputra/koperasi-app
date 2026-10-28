@@ -434,6 +434,9 @@ Route::get('/manifest.webmanifest', function () {
 Route::get('/sw.js', function () {
     $path = public_path('build/sw.js');
     if (! file_exists($path)) {
+        $path = public_path('sw.js');
+    }
+    if (! file_exists($path)) {
         return response('// SW not found', 404, ['Content-Type' => 'application/javascript']);
     }
 

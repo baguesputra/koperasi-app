@@ -27,17 +27,22 @@ class SecurityHeadersMiddleware
         // Disable deprecated / vulnerable legacy browser XSS auditor (favor modern CSP & sanitization)
         $response->headers->set('X-XSS-Protection', '0');
 
+        $gateUrl = config('services.gate.base_url', 'https://gate.appdutamall.com');
+        $gateOrigin = parse_url($gateUrl, PHP_URL_HOST)
+            ? (parse_url($gateUrl, PHP_URL_SCHEME) ?? 'https').'://'.parse_url($gateUrl, PHP_URL_HOST)
+            : 'https://gate.appdutamall.com';
+
         // Content Security Policy (CSP): Mitigasi XSS, data injection, dan untrusted execution
         $csp = [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com",
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
             "font-src 'self' https://fonts.gstatic.com data:",
             "img-src 'self' data: blob:",
-            "connect-src 'self' ws: wss: https:",
+            "connect-src 'self' ws: wss: https: https://cloudflareinsights.com",
             "object-src 'none'",
             "base-uri 'self'",
-            "form-action 'self'",
+            "form-action 'self' {$gateOrigin} https://gate.appdutamall.com",
             "frame-ancestors 'self'",
         ];
         $response->headers->set('Content-Security-Policy', implode('; ', $csp));

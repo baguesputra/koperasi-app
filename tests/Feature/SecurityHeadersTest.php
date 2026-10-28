@@ -31,6 +31,12 @@ class SecurityHeadersTest extends TestCase
         $response->assertHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->assertHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
         $this->assertFalse($response->headers->has('X-Powered-By'));
+
+        $csp = $response->headers->get('Content-Security-Policy');
+        $this->assertNotNull($csp);
+        $this->assertStringContainsString("form-action 'self'", $csp);
+        $this->assertStringContainsString("gate.appdutamall.com", $csp);
+        $this->assertStringContainsString("https://static.cloudflareinsights.com", $csp);
     }
 
     public function test_html_includes_anti_indexing_meta_tags(): void

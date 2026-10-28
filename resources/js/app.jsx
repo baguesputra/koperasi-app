@@ -51,8 +51,8 @@ if ('serviceWorker' in navigator) {
                     console.log('PWA: New version available, please refresh');
                 }
             });
-            wb.register();
-        });
+            wb.register().catch(() => {});
+        }).catch(() => {});
     } else {
         navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((r) => r.unregister()));
     }
