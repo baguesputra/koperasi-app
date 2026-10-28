@@ -46,5 +46,5 @@ Route::middleware('auth')->group(function () {
     // Ubah password mandiri dinonaktifkan: akses dikelola GATE.
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
-        ->name('auth.logout');
+        ->name('logout');
 });

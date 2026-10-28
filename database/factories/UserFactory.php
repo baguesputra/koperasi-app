@@ -31,6 +31,8 @@ class UserFactory extends Factory
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
             'pin_failed_attempts' => 0,
+            'sso_id' => null,
+            'auth_provider' => 'local',
         ];
     }
 

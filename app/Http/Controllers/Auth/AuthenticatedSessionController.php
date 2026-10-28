@@ -64,7 +64,7 @@ class AuthenticatedSessionController extends Controller
 
     public function destroy(Request $request): SymfonyResponse
     {
-        if (config('auth.mode') === 'sso' && Auth::guard('web')->user()?->sso_id) {
+        if (Auth::user()?->sso_id) {
             return app(SsoController::class)->logout();
         }
 
@@ -74,7 +74,7 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerateToken();
 
         if (config('auth.mode') === 'sso') {
-            return redirect()->away('https://gate.appdutamall.com/dashboard');
+            return Inertia::location(config('services.gate.base_url', 'https://gate.appdutamall.com').'/dashboard');
         }
 
         return redirect()->route('login');

@@ -45,4 +45,22 @@ class SsoRedirectTest extends TestCase
         $this->get(route('sso.slo'))->assertRedirect(route('login'));
         $this->assertGuest();
     }
+
+    public function test_get_logout_membersihkan_sesi_user(): void
+    {
+        $user = User::factory()->create(['status' => 'aktif']);
+        $this->actingAs($user);
+
+        $res = $this->get('/logout');
+        $this->assertGuest();
+    }
+
+    public function test_post_logout_membersihkan_sesi_user(): void
+    {
+        $user = User::factory()->create(['status' => 'aktif']);
+        $this->actingAs($user);
+
+        $this->post('/logout');
+        $this->assertGuest();
+    }
 }

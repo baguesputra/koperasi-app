@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\PinjamanController as AdminPinjamanController;
 use App\Http\Controllers\AnggotaController;
 use App\Http\Controllers\API\AnggotaController as ApiAnggotaController;
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\MobileSsoController;
 use App\Http\Controllers\Auth\SsoController;
 use App\Http\Controllers\Bendahara\AngsuranController;
@@ -367,19 +368,23 @@ Route::middleware(['auth', 'permission:kas.lihat'])->group(function () {
     Route::post('/pengeluaran', [PengeluaranController::class, 'store'])->name('pengeluaran.store')->middleware(['permission:kas.topup', 'idempotent']);
 });
 
-// SSO logout - must be before auth.php to take precedence
-Route::get('logout', function () {
+Route::get('/logout', function (Illuminate\Http\Request $request) {
+    if (auth()->check()) {
+        return app(AuthenticatedSessionController::class)->destroy($request);
+    }
+
     if (config('auth.mode') === 'sso') {
-        return redirect()->away('https://gate.appdutamall.com/dashboard');
+        return redirect()->away(config('services.gate.base_url', 'https://gate.appdutamall.com').'/dashboard');
     }
 
     return redirect()->route('login');
-})->name('logout');
+})->name('logout.get');
 
 // SSO gagal - accessible without auth, does NOT redirect to SSO
 Route::get('/auth/sso/gagal', function () {
     return Inertia::render('Auth/SsoGagal', [
         'error' => session('error'),
+        'ssoLogoutUrl' => config('services.gate.base_url', 'https://gate.appdutamall.com').'/dashboard',
     ]);
 })->middleware('guest')->name('sso.gagal');
 

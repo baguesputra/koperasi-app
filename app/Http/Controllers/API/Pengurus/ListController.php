@@ -189,6 +189,7 @@ class ListController extends Controller
                 'divisi' => $a->divisi,
                 'no_hp' => $a->no_hp,
                 'status' => $a->status,
+                'foto_url' => $a->foto_url,
             ],
             'simpanan_pokok' => $pokok,
             'simpanan_wajib' => $wajib,
