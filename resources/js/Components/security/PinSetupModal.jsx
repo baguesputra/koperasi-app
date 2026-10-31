@@ -93,6 +93,7 @@ export default function PinSetupModal() {
             });
 
             if (res.data?.status === 'success') {
+                sessionStorage.setItem('koperasi.dashboard-tour.pin-created', '1');
                 router.reload({ preserveScroll: true });
             }
         } catch (err) {

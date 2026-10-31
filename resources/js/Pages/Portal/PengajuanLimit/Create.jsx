@@ -1,7 +1,8 @@
 import AnggotaLayout from '@/Layouts/AnggotaLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { ArrowLeft, Clock, CheckCircle2, XCircle } from 'lucide-react';
 import { withIdempotencyKey } from '@/Utils/idempotency';
+import { useFeatureTour } from '@/Utils/featureTour';
 
 function formatRupiah(angka) {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
@@ -21,6 +22,13 @@ const statusIcon = { diajukan: Clock, approved_bendahara: Clock, disetujui: Chec
 const statusLabel = { diajukan: 'Menunggu Bendahara', approved_bendahara: 'Menunggu Ketua', disetujui: 'Disetujui', ditolak: 'Ditolak' };
 
 export default function Create({ limitSaatIni, plafonKebijakan, riwayat }) {
+    const { auth } = usePage().props;
+    useFeatureTour('tambah-limit', auth?.user?.id, [
+        { element: '[data-tour="limit-current"]', popover: { title: 'Limit Saat Ini', description: 'Lihat limit pinjaman yang aktif sekarang.' } },
+        { element: '[data-tour="limit-request"]', popover: { title: 'Limit yang Diminta', description: 'Masukkan nominal limit tambahan sesuai kebutuhan dan kebijakan koperasi.' } },
+        { element: '[data-tour="limit-reason"]', popover: { title: 'Alasan Pengajuan', description: 'Jelaskan alasan membutuhkan limit lebih besar.' } },
+        { element: '[data-tour="limit-submit"]', popover: { title: 'Kirim Pengajuan', description: 'Kirim untuk diverifikasi Bendahara dan diputuskan Ketua.' } },
+    ]);
     const { data, setData, post, processing, errors, reset } = useForm({
         limit_diminta: '', keterangan: '',
     });
@@ -40,6 +48,10 @@ export default function Create({ limitSaatIni, plafonKebijakan, riwayat }) {
         <AnggotaLayout mobileTitle="Pengajuan Limit" backHref={route('portal.dashboard')}>
             <Head title="Ajukan Tambah Limit" />
 
+            <button type="button" onClick={() => window.dispatchEvent(new CustomEvent('start-feature-tour:tambah-limit'))} className={`mb-5 text-sm font-semibold text-brand-green-dark hover:text-brand-green ${focusRing}`}>
+                Ulangi Tour
+            </button>
+
             <Link
                 href={route('portal.dashboard')}
                 className={`hidden sm:inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-brand-navy mb-5 rounded ${focusRing}`}
@@ -51,7 +63,7 @@ export default function Create({ limitSaatIni, plafonKebijakan, riwayat }) {
             <div className="mb-6">
                 <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Ajukan Tambah Limit</h1>
                 <p className="text-base text-slate-400 mt-1">
-                    Limit pinjaman Anda saat ini: <span className="font-semibold text-slate-600">{formatRupiah(limitSaatIni)}</span>
+                    <span data-tour="limit-current">Limit pinjaman Anda saat ini: <span className="font-semibold text-slate-600">{formatRupiah(limitSaatIni)}</span></span>
                 </p>
             </div>
 
@@ -78,7 +90,7 @@ export default function Create({ limitSaatIni, plafonKebijakan, riwayat }) {
                                 <div className="relative">
                                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-semibold text-slate-400">Rp</span>
                                     <input
-                                        id="limit-diminta"
+                                        id="limit-diminta" data-tour="limit-request"
                                         type="number"
                                         inputMode="numeric"
                                         value={data.limit_diminta}
@@ -100,7 +112,7 @@ export default function Create({ limitSaatIni, plafonKebijakan, riwayat }) {
                                 </label>
                                 <p className="text-xs text-slate-400 -mt-1 mb-2">Minimal 10 karakter.</p>
                                 <textarea
-                                    id="keterangan"
+                                    id="keterangan" data-tour="limit-reason"
                                     value={data.keterangan}
                                     onChange={(e) => setData('keterangan', e.target.value)}
                                     rows={4}
@@ -113,7 +125,8 @@ export default function Create({ limitSaatIni, plafonKebijakan, riwayat }) {
                             <div className="sticky bottom-24 sm:static -mx-1 px-1 pb-1 sm:mx-0 sm:px-0 sm:pb-0 bg-slate-50/95 sm:bg-transparent backdrop-blur pt-2 sm:pt-0">
                                 <button
                                     type="submit"
-                                    disabled={processing || melebihiKebijakan}
+                                    data-tour="limit-submit"
+                                     disabled={processing || melebihiKebijakan}
                                     className={`w-full min-h-[52px] text-base font-bold rounded-2xl bg-brand-green text-white hover:bg-brand-green-dark active:scale-[0.99] transition-all disabled:opacity-50 ${focusRing}`}
                                 >
                                     {processing ? 'Mengirim...' : 'Kirim Pengajuan'}

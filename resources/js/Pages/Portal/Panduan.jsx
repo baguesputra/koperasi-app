@@ -459,6 +459,11 @@ function TabFAQ() {
 export default function Panduan({ onClose }) {
     const [mainTab, setMainTab] = useState('panduan');
 
+    const ulangiTour = () => {
+        onClose();
+        window.setTimeout(() => window.dispatchEvent(new CustomEvent('start-dashboard-tour')), 150);
+    };
+
     return (
         <div
             className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200"
@@ -534,6 +539,9 @@ export default function Panduan({ onClose }) {
                         >
                             Tutup
                         </button>
+                         <button type="button" onClick={ulangiTour} className={`w-full min-h-[48px] text-base font-bold rounded-xl bg-brand-green text-white hover:bg-brand-green-dark transition-colors ${focusRing}`}>
+                             Ulangi Tour Dashboard
+                         </button>
                     </div>
                 </div>
             </div>

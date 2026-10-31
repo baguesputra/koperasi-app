@@ -1,5 +1,5 @@
 import AnggotaLayout from '@/Layouts/AnggotaLayout';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState, useEffect, useRef } from 'react';
 import {
     ArrowLeft, AlertCircle, Check, ShieldCheck,
@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { formatRupiah } from '@/Utils/formatCurrency';
 import { withIdempotencyKey } from '@/Utils/idempotency';
+import { useFeatureTour } from '@/Utils/featureTour';
 
 const focusRing =
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2';
@@ -36,6 +37,17 @@ export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal, lim
 
     const tenorRef = useRef(null);
     const ringkasanRef = useRef(null);
+    const { auth } = usePage().props;
+    const startFeatureTour = useFeatureTour('pinjaman', auth?.user?.id, [
+        { element: '[data-tour="pinjaman-nominal"]', popover: { title: 'Nominal Pinjaman', description: 'Masukkan nominal pinjaman sesuai limit tersedia.' } },
+        { element: '[data-tour="pinjaman-tenor"]', waitForElement: 30000, popover: { title: 'Tenor Cicilan', description: 'Isi nominal, tunggu validasi, lalu pilih lama cicilan.' } },
+        { element: '[data-tour="pinjaman-summary"]', waitForElement: 30000, popover: { title: 'Ringkasan Pengajuan', description: 'Isi keperluan dan rekening pencairan.' } },
+        { element: '[data-tour="pinjaman-review"]', popover: { title: 'Tinjau Pengajuan', description: 'Klik tombol ini untuk membuka syarat. Tour tidak mengirim pengajuan.', onNextClick: (_, __, { driver }) => { document.querySelector('[data-tour="pinjaman-review"]')?.click(); window.setTimeout(() => driver.moveNext(), 0); } } },
+        { element: '[data-tour="pinjaman-terms"]', waitForElement: 30000, popover: { title: 'Syarat Pengajuan', description: 'Baca syarat, centang persetujuan, lalu lanjutkan ke PIN.' } },
+        { element: '[data-tour="pinjaman-terms-check"]', waitForElement: 30000, popover: { title: 'Persetujuan', description: 'Centang persetujuan untuk menampilkan kolom PIN.', onNextClick: (_, __, { driver }) => { document.querySelector('[data-tour="pinjaman-terms-check"]')?.click(); window.setTimeout(() => driver.moveNext(), 0); } } },
+        { element: '[data-tour="pinjaman-pin"]', waitForElement: 30000, popover: { title: 'PIN Transaksi', description: 'Masukkan PIN 6 digit.' } },
+        { element: '[data-tour="pinjaman-submit"]', popover: { title: 'Kirim Pengajuan', description: 'Tour selesai di sini. Jangan tekan tombol ini jika hanya ingin melihat alurnya.' } },
+    ]);
 
     if (!bisaAjukan) {
         return (
@@ -159,6 +171,13 @@ export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal, lim
                 <ArrowLeft size={16} />
                 Batal, kembali ke Beranda
             </Link>
+            <button
+                type="button"
+                onClick={startFeatureTour}
+                className={`mb-5 ml-4 text-sm font-semibold text-brand-green-dark hover:text-brand-green ${focusRing}`}
+            >
+                Ulangi Tour
+            </button>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-5">
@@ -197,6 +216,7 @@ export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal, lim
                             <input
                                 type="number"
                                 inputMode="numeric"
+                                data-tour="pinjaman-nominal"
                                 value={nominal}
                                 onChange={(e) => setNominal(e.target.value)}
                                 placeholder="0"
@@ -215,7 +235,7 @@ export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal, lim
                     </div>
 
                     {nominalValid && tenorMaksimal && (
-                        <div ref={tenorRef} className="bg-white rounded-2xl border border-slate-100 p-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <div data-tour="pinjaman-tenor" ref={tenorRef} className="bg-white rounded-2xl border border-slate-100 p-6 animate-in fade-in slide-in-from-top-2 duration-300">
                             <p className="text-base font-bold text-slate-800 mb-1">Pilih lama cicilan (tenor)</p>
                             <p className="text-sm text-slate-400 mb-4">
                                 Tenor maksimal untuk nominal ini: {tenorMaksimal} bulan
@@ -240,7 +260,7 @@ export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal, lim
                     )}
 
                     {tenorDipilih && jadwal.length > 0 && (
-                        <div ref={ringkasanRef} className="bg-white rounded-2xl border border-slate-100 p-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <div data-tour="pinjaman-summary" ref={ringkasanRef} className="bg-white rounded-2xl border border-slate-100 p-6 animate-in fade-in slide-in-from-top-2 duration-300">
                             <StepRingkasan
                                 nominal={nominal}
                                 tenorDipilih={tenorDipilih}
@@ -348,7 +368,7 @@ export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal, lim
                                 </button>
                             </div>
 
-                            <div className="px-6 py-5 max-h-[55vh] overflow-y-auto">
+                            <div data-tour="pinjaman-terms" className="px-6 py-5 max-h-[55vh] overflow-y-auto">
                                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 mb-4 flex items-start gap-2.5">
                                     <ShieldCheck size={18} className="text-amber-600 shrink-0 mt-0.5" />
                                     <p className="text-xs text-amber-800 leading-relaxed">
@@ -379,6 +399,7 @@ export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal, lim
                                 <label htmlFor="persetujuan-sk" className="flex items-start gap-3 cursor-pointer group">
                                     <input
                                         id="persetujuan-sk"
+                                         data-tour="pinjaman-terms-check"
                                         type="checkbox"
                                         checked={setujuSyarat}
                                         onChange={(e) => {
@@ -411,6 +432,7 @@ export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal, lim
                                         </p>
                                         <input
                                             id="pin-transaksi-input"
+                                             data-tour="pinjaman-pin"
                                             type="password"
                                             inputMode="numeric"
                                             pattern="[0-9]*"
@@ -444,7 +466,8 @@ export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal, lim
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={kirimPengajuan}
+                                        data-tour="pinjaman-submit"
+                                         onClick={kirimPengajuan}
                                         disabled={!setujuSyarat || pinTransaksi.length !== 6 || loadingSubmit}
                                         className={`sm:flex-[2] min-h-[48px] text-base font-bold rounded-xl bg-brand-green text-white hover:bg-brand-green-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${focusRing}`}
                                     >
@@ -589,6 +612,7 @@ function StepRingkasan({
 
             <div className="sticky bottom-24 sm:static -mx-1 px-1 pb-1 sm:mx-0 sm:px-0 sm:pb-0 bg-white/95 sm:bg-transparent backdrop-blur pt-2 sm:pt-0">
                 <button
+                    data-tour="pinjaman-review"
                     onClick={onSubmit}
                     disabled={loading || !bisaSubmit}
                     className="w-full min-h-[52px] text-base font-bold rounded-2xl bg-brand-green text-white hover:bg-brand-green-dark active:scale-[0.99] transition-all disabled:opacity-50"

@@ -1,6 +1,8 @@
 import AnggotaLayout from '@/Layouts/AnggotaLayout';
 import { Head, Link, usePage } from '@inertiajs/react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { driver } from 'driver.js';
+import 'driver.js/dist/driver.css';
 import {
     PiggyBank,
     Wallet,
@@ -265,7 +267,7 @@ export default function Dashboard({
         pinjamanAktifList.some((p) => !p.sudah_pakai_percepatan)
     );
 
-    const { flash } = usePage().props;
+    const { auth, flash } = usePage().props;
     const initial = anggota?.nama?.charAt(0)?.toUpperCase() ?? '?';
 
     const terkirim = flash.pinjamanTerkirim;
@@ -276,6 +278,55 @@ export default function Dashboard({
     const [limitDitutup, setLimitDitutup] = useState(false);
     const [nominalTampil, alihNominal] = usePrivasiNominal();
     const [fotoGagal, setFotoGagal] = useState(false);
+
+    useEffect(() => {
+        const tourKey = `koperasi.dashboard-tour.dismissed.${auth?.user?.id ?? 'guest'}`;
+        let activeTour = null;
+
+        const startTour = () => {
+            const steps = [
+                { element: '[data-tour="member-card"]', popover: { title: 'Kartu Anggota', description: 'Identitas, status keanggotaan, dan status aktif Anda tampil di sini.' } },
+                { element: '[data-tour="privacy-toggle"]', popover: { title: 'Sembunyikan Saldo', description: 'Tombol ini menyembunyikan atau menampilkan seluruh nominal keuangan di Dashboard.' } },
+                { element: '[data-tour="financial-summary"]', popover: { title: 'Ringkasan Keuangan', description: 'Pantau total simpanan dan limit pinjaman yang masih tersedia.' } },
+                { element: '[data-tour="quick-actions"]', popover: { title: 'Menu Utama', description: 'Ajukan pinjaman, tambah limit, ubah tenor, atau buka panduan lengkap.' } },
+                ...(pengajuanBerjalan ? [{ element: '[data-tour="application-tracker"]', popover: { title: 'Pelacakan Pengajuan', description: 'Pantau proses pemeriksaan Admin, Bendahara, hingga persetujuan Ketua.' } }] : []),
+                { element: '[data-tour="loan-progress"]', popover: { title: 'Progres Pinjaman', description: 'Pantau jumlah angsuran terbayar, sisa angsuran, cicilan bulanan, dan persentase pelunasan.' } },
+                { element: '[data-tour="savings-card"]', popover: { title: 'Rincian Simpanan', description: 'Lihat total simpanan beserta komposisi Simpanan Wajib dan Simpanan Pokok. Ketentuan tarif dapat dibuka di bagian ini.' } },
+                { element: '[data-tour="history-summary"]', popover: { title: 'Aktivitas & Riwayat', description: 'Lihat transaksi simpanan dan pembayaran terakhir.' } },
+                { element: '[data-tour="plafon-rules"]', popover: { title: 'Ketentuan & Plafon', description: 'Lihat batas nominal pinjaman dan tenor maksimal. Plafon mengikuti ketentuan koperasi serta diproses melalui verifikasi Admin, Bendahara, lalu persetujuan Ketua.' } },
+            ].filter((step) => document.querySelector(step.element));
+
+            if (!steps.length) return;
+            activeTour = driver({
+                showProgress: true,
+                allowClose: true,
+                overlayClickBehavior: 'close',
+                nextBtnText: 'Lanjut',
+                prevBtnText: 'Kembali',
+                doneBtnText: 'Selesai',
+                onDestroyStarted: () => {
+                    localStorage.setItem(tourKey, '1');
+                    sessionStorage.removeItem('koperasi.dashboard-tour.pin-created');
+                    activeTour?.destroy();
+                },
+            });
+            activeTour.setSteps(steps);
+            activeTour.drive();
+        };
+
+        const requestHandler = () => startTour();
+        window.addEventListener('start-dashboard-tour', requestHandler);
+
+        const pinCreated = sessionStorage.getItem('koperasi.dashboard-tour.pin-created') === '1';
+        const firstVisit = !localStorage.getItem(tourKey) && auth?.user?.has_pin;
+        const timer = firstVisit || pinCreated ? window.setTimeout(startTour, 800) : null;
+
+        return () => {
+            window.removeEventListener('start-dashboard-tour', requestHandler);
+            if (timer) window.clearTimeout(timer);
+            activeTour?.destroy();
+        };
+    }, [auth?.user?.id, pengajuanBerjalan]);
 
     const salamWaktu = useMemo(() => {
         const jam = new Date().getHours();
@@ -364,7 +415,7 @@ export default function Dashboard({
                 {/* =====================================================
                     DIGITAL MEMBER CARD (Executive Minimalist)
                 ====================================================== */}
-                <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-[#0B1527] via-[#0F1E36] to-[#0A2E1A] text-white p-5 sm:p-7 shadow-[0_16px_36px_rgba(15,30,54,0.22)] border border-white/10 group">
+                <div data-tour="member-card" className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-[#0B1527] via-[#0F1E36] to-[#0A2E1A] text-white p-5 sm:p-7 shadow-[0_16px_36px_rgba(15,30,54,0.22)] border border-white/10 group">
                     {/* Background Radial Glow */}
                     <div className="absolute -top-24 -right-24 w-72 h-72 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
                     <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
@@ -406,6 +457,7 @@ export default function Dashboard({
                                     Aktif
                                 </span>
                                 <button
+                                    data-tour="privacy-toggle"
                                     type="button"
                                     onClick={alihNominal}
                                     aria-label={nominalTampil ? 'Sembunyikan saldo' : 'Tampilkan saldo'}
@@ -419,7 +471,7 @@ export default function Dashboard({
                         </div>
 
                         {/* Card Body: Core Balances */}
-                        <div className="mt-5 sm:mt-6 pt-5 sm:pt-6 border-t border-white/10 grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-8">
+                        <div data-tour="financial-summary" className="mt-5 sm:mt-6 pt-5 sm:pt-6 border-t border-white/10 grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-8">
                             <div>
                                 <div className="flex items-center gap-1.5 text-xs text-slate-300 font-medium">
                                     <PiggyBank size={14} className="text-emerald-400" />
@@ -452,7 +504,7 @@ export default function Dashboard({
                 {/* =====================================================
                     QUICK ACTION DOCK
                 ====================================================== */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div data-tour="quick-actions" className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {/* 1. Ajukan Pinjaman */}
                     {bolehAjukanPinjaman ? (
                         <Link
@@ -642,7 +694,7 @@ export default function Dashboard({
                         : 1;
 
                     return (
-                        <div className="bg-white rounded-2xl border border-amber-200/90 shadow-sm p-4 sm:p-5 relative overflow-hidden">
+                        <div data-tour="application-tracker" className="bg-white rounded-2xl border border-amber-200/90 shadow-sm p-4 sm:p-5 relative overflow-hidden">
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-slate-100">
                                 <div>
                                     <div className="flex items-center gap-2">
@@ -912,7 +964,7 @@ export default function Dashboard({
                             ACTIVE LOAN PROGRESS CARD
                         ============================================== */}
                         {pinjamanAktifCount > 0 ? (
-                            <div className="bg-white rounded-2xl border border-slate-100 p-5 sm:p-6 shadow-sm space-y-4">
+                            <div data-tour="loan-progress" className="bg-white rounded-2xl border border-slate-100 p-5 sm:p-6 shadow-sm space-y-4">
                                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                                     <div>
                                         <div className="flex items-center gap-2">
@@ -1002,7 +1054,7 @@ export default function Dashboard({
                         {/* =============================================
                             RECENT ACTIVITY FEED
                         ============================================== */}
-                        <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
+                        <div data-tour="history-summary" className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
                             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
                                 <div>
                                     <h3 className="text-sm font-bold text-slate-800">
@@ -1069,7 +1121,7 @@ export default function Dashboard({
                         {/* =============================================
                             MINI ASSET BREAKDOWN (Rincian Simpanan)
                         ============================================== */}
-                        <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-4">
+                        <div data-tour="savings-card" className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-4">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                     <div className="w-8 h-8 rounded-lg bg-emerald-50 text-brand-green flex items-center justify-center">
@@ -1151,7 +1203,7 @@ export default function Dashboard({
                         {/* =============================================
                             KETENTUAN PINJAMAN & TENOR
                         ============================================== */}
-                        <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-3">
+                        <div data-tour="plafon-rules" className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-3">
                             <div className="flex items-center gap-2">
                                 <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
                                     <Percent size={16} />

@@ -1,5 +1,5 @@
 import AnggotaLayout from '@/Layouts/AnggotaLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { Dialog, DialogPanel, Transition, TransitionChild } from '@headlessui/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { formatRupiah } from '@/Utils/formatCurrency';
 import { withIdempotencyKey } from '@/Utils/idempotency';
+import { useFeatureTour } from '@/Utils/featureTour';
 
 const focusRing =
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2';
@@ -22,6 +23,13 @@ const opsi = [
 ];
 
 export default function Create({ pinjaman }) {
+    const { auth } = usePage().props;
+    useFeatureTour('ubah-tenor', auth?.user?.id, [
+        { element: '[data-tour="tenor-type"]', popover: { title: 'Jenis Perubahan', description: 'Pilih percepat, perpanjang, atau lunas sekarang.' } },
+        { element: '[data-tour="tenor-form"]', popover: { title: 'Tenor & Simulasi', description: 'Pilih tenor baru dan periksa hasil perhitungannya.' } },
+        { element: '[data-tour="tenor-reason"]', popover: { title: 'Alasan Pengajuan', description: 'Tuliskan alasan perubahan tenor minimal 10 karakter.' } },
+        { element: '[data-tour="tenor-submit"]', popover: { title: 'Kirim Pengajuan', description: 'Tinjau rincian, lalu konfirmasi pengajuan.' } },
+    ]);
     const [tipeDipilih, setTipeDipilih] = useState(null);
     const [preview, setPreview] = useState(null);
     const [loadingPreview, setLoadingPreview] = useState(false);
@@ -167,6 +175,10 @@ export default function Create({ pinjaman }) {
         <AnggotaLayout mobileTitle="Perubahan Tenor" backHref={route('portal.dashboard')}>
             <Head title="Ajukan Perubahan Tenor" />
 
+            <button type="button" onClick={() => window.dispatchEvent(new CustomEvent('start-feature-tour:ubah-tenor'))} className={`mb-5 text-sm font-semibold text-brand-green-dark hover:text-brand-green ${focusRing}`}>
+                Ulangi Tour
+            </button>
+
             <Link href={route('portal.dashboard')} className={`hidden sm:inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-brand-navy mb-5 ${focusRing}`}>
                 <ArrowLeft size={16} aria-hidden="true" />
                 Batal, kembali ke Beranda
@@ -210,7 +222,7 @@ export default function Create({ pinjaman }) {
                 </ol>
 
                 {/* Pilihan jenis */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5" role="group" aria-label="Jenis perubahan tenor">
+                <div data-tour="tenor-type" className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5" role="group" aria-label="Jenis perubahan tenor">
                     {opsi.map((o) => {
                         const Icon = o.icon;
                         const aktif = tipeDipilih === o.tipe;
@@ -259,7 +271,7 @@ export default function Create({ pinjaman }) {
                 )}
 
                 {tipeDipilih && (
-                    <form onSubmit={bukaKonfirmasi} className="bg-white rounded-2xl border border-slate-100 p-5 sm:p-6">
+                    <form data-tour="tenor-form" onSubmit={bukaKonfirmasi} className="bg-white rounded-2xl border border-slate-100 p-5 sm:p-6">
                         {errorPreview && (
                             <div role="alert" className="mb-5 flex items-start gap-2.5 bg-red-50 border border-red-100 rounded-xl p-4">
                                 <AlertCircle size={18} aria-hidden="true" className="text-red-500 shrink-0 mt-0.5" />
@@ -355,7 +367,8 @@ export default function Create({ pinjaman }) {
                                     : `Minimal ${MIN_KETERANGAN} karakter, tersisa ${sisaAlasan} lagi.`}
                             </p>
                             <textarea
-                                id="alasan-perubahan"
+                                data-tour="tenor-reason"
+                                 id="alasan-perubahan"
                                 value={data.keterangan}
                                 onChange={(e) => setData('keterangan', e.target.value)}
                                 rows={3}
@@ -398,7 +411,8 @@ export default function Create({ pinjaman }) {
                         <div className="sticky bottom-24 sm:static -mx-1 px-1 pb-1 sm:mx-0 sm:px-0 sm:pb-0 bg-white/95 sm:bg-transparent backdrop-blur pt-2 sm:pt-0">
                             <button
                                 type="submit"
-                                disabled={processing || !bisaSubmit}
+                                data-tour="tenor-submit"
+                                 disabled={processing || !bisaSubmit}
                                 className={`w-full min-h-[52px] text-base font-bold rounded-2xl bg-brand-green text-white hover:bg-brand-green-dark active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed ${focusRing}`}
                             >
                                 {processing ? 'Mengirim...' : 'Tinjau & Kirim Pengajuan'}
