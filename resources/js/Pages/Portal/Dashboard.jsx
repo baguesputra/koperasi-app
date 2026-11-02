@@ -609,7 +609,6 @@ export default function Dashboard({
 
                         <div className="pd-band__tools">
                             <span className="pd-band__badge">
-                                <span className="pd-band__dot" aria-hidden="true" />
                                 {anggotaAktif ? 'Aktif' : 'Nonaktif'}
                             </span>
                             <button
