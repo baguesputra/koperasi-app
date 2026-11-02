@@ -1,0 +1,80 @@
+/* Hallmark · shape: app screen · genre: modern-minimal · theme: brand · redesign: full
+ * paper: oklch(97.8% 0.006 152) · accent: oklch(54% 0.15 149) · display: Plus Jakarta Sans · body: Plus Jakarta Sans
+ * nav: kept, the project's floating pill · signature: the plafon rail and the tenor ladder · states: default hover focus active disabled empty locked pending
+ * axes: light/grotesk-sans/cool · posture: Restrained · contrast: pass · v2.0.0 */
+/* Hallmark · pre-emit critique: P5 H4 E5 S5 R3 V4 · weakest: R, four surfaces competed for the eye at once; cut the shadows, the blurred orbs and the six coloured alert boxes */
+
+:root {
+  --space-3xs: 2px; --space-2xs: 4px; --space-xs: 8px; --space-sm: 12px; --space-md: 16px; --space-lg: 24px; --space-xl: 40px; --space-2xl: 64px; --space-3xl: 96px; --space-4xl: 144px;
+
+  --text-xs: 0.75rem; --text-sm: 0.875rem; --text-md: 1rem; --text-lg: 1.2rem; --text-xl: 1.44rem; --text-2xl: 1.728rem; --text-3xl: 2.074rem;
+  --text-display-s: 1.44rem; --text-display: 1.728rem; --text-section: 1.125rem; --text-title: 1rem; --text-lead: 1rem;
+  --text-label: 0.75rem; --text-figure: 1.75rem; --text-figure-lg: 2.25rem;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1); --ease-in: cubic-bezier(0.7, 0, 0.84, 0); --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms; --dur-short: 220ms; --dur-long: 420ms;
+
+  /* Paper: warm off-white tinted toward the cooperative green. */
+  --color-paper: oklch(97.8% 0.006 152);
+  --color-paper-2: oklch(99.4% 0.003 152);
+  --color-paper-3: oklch(94.6% 0.011 152);
+  --color-paper-4: oklch(92.0% 0.014 152);
+
+  /* Ink: brand navy, tinted neutrals between. */
+  --color-ink: oklch(23.6% 0.051 259);
+  --color-ink-2: oklch(38.0% 0.030 265);
+  --color-muted: oklch(52.0% 0.020 265);
+  --color-faint: oklch(62.0% 0.018 265);
+  --color-rule: oklch(90.5% 0.009 152);
+  --color-rule-2: oklch(82.0% 0.013 152);
+
+  /* Accent: one hue, three grounds. `accent` fills on paper, `accent-dark` writes on paper,
+   * `accent-bright` marks on the night band; `accent-ink` is the text that sits on a fill. */
+  --color-accent: oklch(54.0% 0.150 149);
+  --color-accent-dark: oklch(44.0% 0.120 149);
+  --color-accent-bright: oklch(78.0% 0.150 152);
+  --color-accent-soft: oklch(95.0% 0.030 152);
+  --color-accent-ink: oklch(99.4% 0.003 152);
+  --color-focus: oklch(54.0% 0.150 149);
+
+  /* Night: the member band. */
+  --color-night: oklch(20.0% 0.042 262);
+  --color-night-2: oklch(28.5% 0.036 262);
+  --color-night-ink: oklch(97.5% 0.006 262);
+  --color-night-muted: oklch(74.0% 0.018 262);
+
+  /* States. */
+  --color-warn: oklch(62.0% 0.140 68);
+  --color-warn-soft: oklch(96.5% 0.040 80);
+  --color-warn-ink: oklch(40.0% 0.100 62);
+  --color-danger: oklch(55.0% 0.190 25);
+  --color-danger-soft: oklch(96.0% 0.028 22);
+  --color-danger-ink: oklch(43.0% 0.170 25);
+  --color-info: oklch(55.0% 0.120 255);
+  --color-info-soft: oklch(96.0% 0.022 250);
+  --color-info-ink: oklch(42.0% 0.110 255);
+
+  --color-error: oklch(52% 0.19 27);
+  --color-success: oklch(50% 0.12 150);
+
+  --font-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-outlier: var(--font-body);
+
+  --container: 1280px; --gutter: 24px; --gap-columns: 24px;
+  --section-gap-s: 40px; --section-gap: 48px; --section-gap-l: 64px;
+
+  --radius-card: 12px; --radius-well: 8px; --radius-chip: 6px; --radius-pill: 999px;
+  --rule-hair: 1px; --shadow-card: none;
+
+  --tracking-display: -0.015em;
+
+  --z-base: 1; --z-raised: 10; --z-dropdown: 100; --z-sticky: 200; --z-sticky-nav: 300; --z-modal: 400; --z-toast: 500; --z-tooltip: 600;
+}
+
+@media (max-width: 40rem) {
+  :root {
+    --text-figure: 1.5rem; --text-figure-lg: 1.75rem;
+    --gutter: 16px;
+  }
+}

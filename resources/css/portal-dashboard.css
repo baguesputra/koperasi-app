@@ -1,0 +1,1224 @@
+/* Hallmark · shape: app screen · genre: modern-minimal · theme: brand · redesign: full
+ * paper: oklch(97.8% 0.006 152) · accent: oklch(54% 0.15 149) · display: Plus Jakarta Sans · body: Plus Jakarta Sans
+ * nav: kept, the project's floating pill · signature: the plafon rail and the tenor ladder · states: default hover focus active disabled empty locked pending
+ * axes: light/grotesk-sans/cool · posture: Restrained · contrast: pass · v2.0.0 */
+/* Hallmark · pre-emit critique: P5 H4 E5 S5 R3 V4 · weakest: R, four surfaces competed for the eye at once; cut the shadows, the blurred orbs and the six coloured alert boxes */
+@import url("./tokens.css");
+
+html,
+body {
+    overflow-x: clip;
+}
+
+/* Browser surfaces take the palette (F16). */
+::selection {
+    background: color-mix(in oklab, var(--color-accent) 20%, transparent);
+    color: var(--color-ink);
+}
+
+html {
+    scrollbar-color: var(--color-rule-2) var(--color-paper);
+}
+
+/* Every control keeps a constant border and moves its state to colour. */
+.pd-focus:focus-visible,
+.pd-lock:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+    border-radius: var(--radius-well);
+}
+
+/* ------------------------------------------------------------------ *
+ * The dashboard
+ * ------------------------------------------------------------------ */
+
+.pd {
+    display: grid;
+    gap: var(--space-lg);
+    color: var(--color-ink);
+}
+
+@media (min-width: 40rem) {
+    .pd {
+        gap: var(--space-xl);
+    }
+}
+
+.pd h1 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: var(--text-display);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: var(--tracking-display);
+    text-wrap: balance;
+}
+
+.pd h2 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: var(--text-section);
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+}
+
+.pd-head__line {
+    max-width: 58ch;
+    margin: var(--space-2xs) 0 0;
+    color: var(--color-muted);
+    font-size: var(--text-sm);
+    line-height: 1.5;
+}
+
+.pd-cols {
+    display: grid;
+    gap: var(--space-lg);
+}
+
+.pd-col {
+    display: grid;
+    gap: var(--space-lg);
+    align-content: start;
+}
+
+@media (min-width: 64rem) {
+    .pd-cols {
+        grid-template-columns: minmax(0, 1.85fr) minmax(0, 1fr);
+        gap: var(--space-xl);
+        align-items: start;
+    }
+}
+
+/* ---- Surfaces ---------------------------------------------------- */
+
+.pd-card {
+    display: grid;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-card);
+    background: var(--color-paper-2);
+}
+
+@media (min-width: 40rem) {
+    .pd-card {
+        padding: var(--space-lg);
+        gap: var(--space-md);
+    }
+}
+
+.pd-card__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-xs) var(--space-sm);
+    flex-wrap: wrap;
+}
+
+.pd-card__head > .pd-figure {
+    white-space: nowrap;
+}
+
+.pd-card__note {
+    margin: var(--space-3xs) 0 0;
+    color: var(--color-muted);
+    font-size: var(--text-xs);
+    line-height: 1.45;
+}
+
+.pd-card__foot {
+    margin: 0;
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--color-rule);
+    color: var(--color-muted);
+    font-size: var(--text-xs);
+    line-height: 1.5;
+}
+
+/* ---- The member band (signature) --------------------------------- */
+
+.pd-band {
+    display: grid;
+    gap: var(--space-md);
+    padding: var(--space-md);
+    border-radius: var(--radius-card);
+    background: var(--color-night);
+    color: var(--color-night-ink);
+}
+
+@media (min-width: 40rem) {
+    .pd-band {
+        padding: var(--space-lg);
+        gap: var(--space-lg);
+    }
+}
+
+.pd-band__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+}
+
+.pd-band__who {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    min-width: 0;
+}
+
+.pd-band__avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    border: 1px solid color-mix(in oklab, var(--color-night-ink) 16%, transparent);
+    background: var(--color-night-2);
+    color: var(--color-accent-bright);
+    font-size: var(--text-md);
+    font-weight: 700;
+    object-fit: cover;
+}
+
+.pd-band__id {
+    min-width: 0;
+}
+
+.pd-band__name {
+    margin: 0;
+    font-size: var(--text-md);
+    font-weight: 700;
+    line-height: 1.25;
+    overflow-wrap: break-word;
+}
+
+.pd-band__nip {
+    margin: var(--space-3xs) 0 0;
+    color: var(--color-night-muted);
+    font-size: var(--text-xs);
+    line-height: 1.3;
+}
+
+.pd-band__tools {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    flex: none;
+}
+
+.pd-band__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    padding: var(--space-2xs) var(--space-xs);
+    border: 1px solid color-mix(in oklab, var(--color-night-ink) 18%, transparent);
+    border-radius: var(--radius-pill);
+    font-size: var(--text-xs);
+    line-height: 1.4;
+}
+
+.pd-band__dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--color-accent-bright);
+}
+
+.pd-band__toggle {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    min-height: 32px;
+    padding: 0 var(--space-xs);
+    border: 1px solid color-mix(in oklab, var(--color-night-ink) 18%, transparent);
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--color-night-ink);
+    font: 500 var(--text-xs)/1 var(--font-body);
+    cursor: pointer;
+    transition:
+        background-color var(--dur-short) var(--ease-out),
+        border-color var(--dur-short) var(--ease-out);
+}
+
+/* 32px of chrome, a 44px hit target (39b). */
+.pd-band__toggle::after {
+    content: "";
+    position: absolute;
+    inset: -6px;
+}
+
+.pd-band__toggle-label {
+    display: none;
+}
+
+@media (min-width: 23.75rem) {
+    .pd-band__toggle-label {
+        display: inline;
+    }
+}
+
+.pd-band__toggle:hover {
+    background: color-mix(in oklab, var(--color-night-ink) 10%, transparent);
+}
+
+.pd-band__figures {
+    display: grid;
+    gap: var(--space-md);
+}
+
+@media (min-width: 40rem) {
+    .pd-band__figures {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: var(--space-lg);
+    }
+
+    .pd-band__figure--end {
+        padding-left: var(--space-lg);
+        border-left: 1px solid color-mix(in oklab, var(--color-night-ink) 14%, transparent);
+    }
+}
+
+.pd-band__label {
+    margin: 0;
+    color: var(--color-night-muted);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    line-height: 1.3;
+}
+
+.pd-band__value {
+    margin: var(--space-3xs) 0 0;
+    font-size: var(--text-figure);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+}
+
+.pd-band__value--accent {
+    color: var(--color-accent-bright);
+}
+
+.pd-band__note {
+    margin: var(--space-2xs) 0 0;
+    color: var(--color-night-muted);
+    font-size: var(--text-xs);
+    line-height: 1.4;
+}
+
+.pd-band__pending {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    color: var(--color-warn);
+}
+
+.pd-band__rail {
+    display: grid;
+    gap: var(--space-2xs);
+    padding-top: var(--space-sm);
+    border-top: 1px solid color-mix(in oklab, var(--color-night-ink) 14%, transparent);
+}
+
+.pd-railcap {
+    display: flex;
+    margin-top: var(--space-2xs);
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    color: var(--color-muted);
+    font-size: var(--text-xs);
+    font-variant-numeric: tabular-nums;
+}
+
+.pd-band .pd-railcap {
+    color: var(--color-night-muted);
+}
+
+/* ---- The rail ---------------------------------------------------- *
+ * One track, one fill, both static. The value is a fact, not a spinner. */
+
+.pd-rail {
+    position: relative;
+    height: 6px;
+    border-radius: var(--radius-pill);
+    background: var(--color-paper-4);
+    overflow: hidden;
+}
+
+.pd-rail__fill {
+    height: 100%;
+    border-radius: inherit;
+    background: var(--color-accent);
+}
+
+.pd-rail--night {
+    background: var(--color-night-2);
+}
+
+.pd-rail--night .pd-rail__fill {
+    background: var(--color-accent-bright);
+}
+
+/* ---- Status strip ------------------------------------------------ *
+ * One tone, one surface. Only the conditions that are true today. */
+
+.pd-status {
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-card);
+    background: var(--color-paper-2);
+}
+
+.pd-status__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.pd-status__row + .pd-status__row {
+    border-top: 1px solid var(--color-rule);
+}
+
+.pd-status__link {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    color: var(--color-ink);
+    text-decoration: none;
+    border-radius: inherit;
+    transition: background-color var(--dur-short) var(--ease-out);
+}
+
+a.pd-status__link:hover {
+    background: var(--color-paper);
+}
+
+.pd-status__mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 22px;
+    height: 22px;
+    margin-top: var(--space-3xs);
+    border-radius: 50%;
+}
+
+.pd-status__mark--warn {
+    background: var(--color-warn-soft);
+    color: var(--color-warn-ink);
+}
+
+.pd-status__mark--danger {
+    background: var(--color-danger-soft);
+    color: var(--color-danger-ink);
+}
+
+.pd-status__mark--info {
+    background: var(--color-info-soft);
+    color: var(--color-info-ink);
+}
+
+.pd-status__mark--quiet {
+    background: var(--color-paper-3);
+    color: var(--color-ink-2);
+}
+
+.pd-status__text {
+    display: grid;
+    gap: var(--space-3xs);
+    flex: 1;
+    min-width: 0;
+}
+
+.pd-status__item {
+    display: block;
+}
+
+.pd-status__title {
+    font-size: var(--text-sm);
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.pd-status__body {
+    color: var(--color-muted);
+    font-size: var(--text-xs);
+    line-height: 1.5;
+}
+
+.pd-status__go {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    flex: none;
+    padding-top: var(--space-3xs);
+    color: var(--color-accent-dark);
+    font-size: var(--text-xs);
+    font-weight: 500;
+}
+
+/* ---- Action toolbar ---------------------------------------------- */
+
+.pd-actions {
+    display: grid;
+    gap: var(--space-xs);
+}
+
+@media (min-width: 40rem) {
+    .pd-actions {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: var(--space-sm);
+    }
+}
+
+/* Toolbar buttons keep their labels on one line; the row is the control (49a). */
+
+.pd-action {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    min-height: 56px;
+    padding: var(--space-xs) var(--space-sm);
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-well);
+    background: var(--color-paper-2);
+    color: var(--color-ink);
+    text-decoration: none;
+    text-align: left;
+    cursor: pointer;
+    transition:
+        border-color var(--dur-short) var(--ease-out),
+        background-color var(--dur-short) var(--ease-out);
+}
+
+.pd-action:hover {
+    border-color: var(--color-rule-2);
+    background: var(--color-paper);
+}
+
+.pd-action:active {
+    background: var(--color-paper-3);
+}
+
+.pd-action[aria-disabled="true"],
+.pd-action[aria-disabled="true"]:hover,
+.pd-action[aria-disabled="true"]:active {
+    border-style: dashed;
+    border-color: var(--color-rule);
+    background: transparent;
+    color: var(--color-muted);
+    cursor: not-allowed;
+}
+
+.pd-action__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 30px;
+    height: 30px;
+    border-radius: var(--radius-chip);
+    background: var(--color-accent-soft);
+    color: var(--color-accent-dark);
+}
+
+.pd-action[aria-disabled="true"] .pd-action__icon {
+    background: var(--color-paper-3);
+    color: var(--color-muted);
+}
+
+.pd-action__text {
+    display: grid;
+    gap: var(--space-3xs);
+    flex: 1;
+    min-width: 0;
+}
+
+.pd-action__label {
+    font-size: var(--text-sm);
+    font-weight: 500;
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pd-action__state {
+    color: var(--color-muted);
+    font-size: var(--text-xs);
+    line-height: 1.35;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pd-action__flag {
+    flex: none;
+    white-space: nowrap;
+    color: var(--color-accent-dark);
+    font-size: var(--text-xs);
+    line-height: 1.3;
+    text-align: right;
+}
+
+.pd-action[aria-disabled="true"] .pd-action__flag {
+    color: var(--color-muted);
+}
+
+/* ---- Locked control + its tooltip -------------------------------- */
+
+.pd-lock {
+    position: relative;
+    display: grid;
+    outline: none;
+}
+
+.pd-lock > * {
+    width: 100%;
+}
+
+.pd-lock__tip {
+    position: absolute;
+    bottom: calc(100% + var(--space-xs));
+    left: 50%;
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: min(22rem, calc(100vw - 2.5rem));
+    z-index: var(--z-tooltip);
+    padding: var(--space-2xs) var(--space-xs);
+    border-radius: var(--radius-chip);
+    background: var(--color-ink);
+    color: var(--color-paper-2);
+    font-size: var(--text-xs);
+    font-weight: 400;
+    line-height: 1.45;
+    text-align: left;
+    pointer-events: none;
+    transition: opacity var(--dur-micro) var(--ease-out);
+}
+
+/* Without JavaScript the reason stays visible instead of hiding the page's only explanation. */
+html.js .pd-lock__tip {
+    opacity: 0;
+}
+
+html.js .pd-lock:hover .pd-lock__tip,
+html.js .pd-lock:focus-within .pd-lock__tip,
+html.js .pd-lock:active .pd-lock__tip {
+    opacity: 1;
+}
+
+/* ---- Figures, rows, chips ---------------------------------------- */
+
+.pd-figure {
+    margin: 0;
+    font-size: var(--text-figure);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+}
+
+.pd-rows {
+    display: grid;
+    margin: 0;
+}
+
+.pd-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding: var(--space-xs) 0;
+    font-size: var(--text-sm);
+}
+
+.pd-row + .pd-row {
+    border-top: 1px solid var(--color-rule);
+}
+
+.pd-row dt {
+    color: var(--color-muted);
+    min-width: 0;
+}
+
+.pd-row dd {
+    margin: 0;
+    flex: none;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.pd-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    flex: none;
+    padding: var(--space-3xs) var(--space-xs);
+    border-radius: var(--radius-chip);
+    background: var(--color-accent-soft);
+    color: var(--color-accent-dark);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+.pd-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    flex: none;
+    color: var(--color-accent-dark);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    text-decoration: none;
+    border-radius: var(--radius-chip);
+    transition: color var(--dur-short) var(--ease-out);
+}
+
+.pd-link:hover {
+    color: var(--color-ink);
+    text-decoration: underline;
+}
+
+.pd-empty {
+    margin: 0;
+    padding: var(--space-lg) 0;
+    color: var(--color-muted);
+    font-size: var(--text-sm);
+    text-align: center;
+}
+
+/* ---- Application tracker ---------------------------------------- */
+
+.pd-steps {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+/* Narrow: each stage is one row — who it waits on, then the state. */
+.pd-step {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+    column-gap: var(--space-sm);
+    padding: var(--space-xs) 0;
+    border-top: 2px solid var(--color-rule);
+}
+
+/* Wide enough: the three stages read left to right as a pipeline. */
+@media (min-width: 30rem) {
+    .pd-steps {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: var(--space-md);
+    }
+
+    .pd-step {
+        grid-template-columns: minmax(0, 1fr);
+        padding: var(--space-xs) 0 0;
+    }
+}
+
+.pd-step--done {
+    border-top-color: var(--color-accent);
+}
+
+.pd-step--now {
+    border-top-color: var(--color-warn);
+}
+
+.pd-step__label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    line-height: 1.3;
+}
+
+.pd-step--now .pd-step__label {
+    color: var(--color-warn-ink);
+}
+
+.pd-step__state {
+    color: var(--color-muted);
+    font-size: var(--text-xs);
+    line-height: 1.35;
+}
+
+/* ---- Due row ----------------------------------------------------- */
+
+.pd-due {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm);
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-well);
+    background: var(--color-paper);
+    color: var(--color-ink);
+    text-decoration: none;
+    transition: border-color var(--dur-short) var(--ease-out);
+}
+
+.pd-due:hover {
+    border-color: var(--color-rule-2);
+}
+
+.pd-due__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 30px;
+    height: 30px;
+    border-radius: var(--radius-chip);
+    background: var(--color-accent-soft);
+    color: var(--color-accent-dark);
+}
+
+.pd-due__text {
+    display: grid;
+    gap: var(--space-3xs);
+    flex: 1;
+    min-width: 0;
+}
+
+.pd-due__label {
+    color: var(--color-muted);
+    font-size: var(--text-xs);
+    line-height: 1.3;
+}
+
+.pd-due__value {
+    font-size: var(--text-sm);
+    font-weight: 500;
+    line-height: 1.35;
+}
+
+.pd-due__note {
+    color: var(--color-muted);
+    font-size: var(--text-xs);
+    line-height: 1.35;
+}
+
+.pd-due__amount {
+    display: grid;
+    gap: var(--space-3xs);
+    flex: none;
+    text-align: right;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.pd-due__go {
+    flex: none;
+    color: var(--color-muted);
+}
+
+/* A phone cannot hold the date, the amount and the arrow on one line: the
+ * amount takes the second line and the arrow steps out of the way. */
+@media (max-width: 26rem) {
+    .pd-due {
+        flex-wrap: wrap;
+    }
+
+    .pd-due__text {
+        flex: 1 1 9rem;
+    }
+
+    .pd-due__amount {
+        flex: 1 1 100%;
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: var(--space-sm);
+        text-align: left;
+    }
+
+    .pd-due__go {
+        display: none;
+    }
+}
+
+/* ---- Activity rows ----------------------------------------------- */
+
+.pd-acts {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.pd-act {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-xs) 0;
+    font-size: var(--text-sm);
+}
+
+.pd-act + .pd-act {
+    border-top: 1px solid var(--color-rule);
+}
+
+.pd-act__mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--color-paper-3);
+    color: var(--color-ink-2);
+}
+
+.pd-act__mark--in {
+    background: var(--color-accent-soft);
+    color: var(--color-accent-dark);
+}
+
+.pd-act__text {
+    display: grid;
+    gap: var(--space-3xs);
+    flex: 1;
+    min-width: 0;
+}
+
+.pd-act__label {
+    font-weight: 500;
+    line-height: 1.35;
+    overflow-wrap: break-word;
+}
+
+.pd-act__date {
+    color: var(--color-muted);
+    font-size: var(--text-xs);
+    line-height: 1.3;
+}
+
+.pd-act__amount {
+    flex: none;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+/* ---- Composition bar + legend ------------------------------------ */
+
+.pd-split {
+    display: flex;
+    height: 8px;
+    border-radius: var(--radius-pill);
+    background: var(--color-paper-4);
+    overflow: hidden;
+}
+
+.pd-split__wajib {
+    background: var(--color-accent);
+}
+
+.pd-split__pokok {
+    background: var(--color-ink);
+}
+
+.pd-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2xs) var(--space-md);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    color: var(--color-muted);
+    font-size: var(--text-xs);
+}
+
+.pd-legend li {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+}
+
+.pd-legend__dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 2px;
+    background: var(--color-accent);
+}
+
+.pd-legend__dot--ink {
+    background: var(--color-ink);
+}
+
+/* ---- Tenor ladder ------------------------------------------------ *
+ * Each rung's length is the ceiling it grants: the rule visibly climbs to 12. */
+
+.pd-ladder {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+/* Narrow: the ceiling sits beside the nominal, the rail fills the line below. */
+.pd-rung {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-3xs) var(--space-xs);
+    padding: var(--space-xs) 0;
+    border-top: 1px solid var(--color-rule);
+    font-size: var(--text-xs);
+}
+
+.pd-rung__nominal {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.pd-rung__tenor {
+    grid-column: 2;
+    grid-row: 1;
+}
+
+.pd-rung__bar {
+    grid-column: 1 / -1;
+    grid-row: 2;
+}
+
+/* Wide enough: one rail per rung, every rail starting on the same column. */
+@media (min-width: 30rem) {
+    .pd-rung {
+        grid-template-columns: 11rem minmax(var(--space-sm), 1fr) auto;
+        gap: var(--space-xs);
+    }
+
+    .pd-rung__nominal,
+    .pd-rung__tenor,
+    .pd-rung__bar {
+        grid-column: auto;
+        grid-row: auto;
+    }
+}
+
+.pd-rung:first-child {
+    border-top: 0;
+}
+
+.pd-rung__nominal {
+    color: var(--color-muted);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.4;
+}
+
+.pd-rung__bar {
+    height: 4px;
+    border-radius: var(--radius-pill);
+    background: var(--color-paper-4);
+    overflow: hidden;
+}
+
+.pd-rung__fill {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--color-accent);
+}
+
+.pd-rung__tenor {
+    color: var(--color-ink);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* ---- Disclosure -------------------------------------------------- */
+
+.pd-details {
+    border-top: 1px solid var(--color-rule);
+    padding-top: var(--space-xs);
+}
+
+.pd-details > summary {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    min-height: 32px;
+    color: var(--color-ink-2);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    list-style: none;
+    cursor: pointer;
+}
+
+.pd-details > summary::-webkit-details-marker {
+    display: none;
+}
+
+.pd-details > summary:hover {
+    color: var(--color-ink);
+}
+
+.pd-details__chevron {
+    margin-left: auto;
+    color: var(--color-muted);
+    transition: transform var(--dur-short) var(--ease-out);
+}
+
+.pd-details[open] .pd-details__chevron {
+    transform: rotate(90deg);
+}
+
+.pd-details__body {
+    display: grid;
+    gap: var(--space-2xs);
+    margin-top: var(--space-xs);
+    padding: var(--space-sm);
+    border-radius: var(--radius-well);
+    background: var(--color-paper);
+    font-size: var(--text-xs);
+}
+
+.pd-details__body > div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-md);
+    color: var(--color-muted);
+}
+
+.pd-details__body strong {
+    color: var(--color-ink);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ---- Receipt modal ---------------------------------------------- */
+
+.pd-modal {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-modal);
+    display: grid;
+    place-items: center;
+    padding: var(--space-md);
+    overflow-y: auto;
+    background: color-mix(in oklab, var(--color-night) 62%, transparent);
+}
+
+.pd-modal__panel {
+    display: grid;
+    gap: var(--space-sm);
+    width: 100%;
+    max-width: 26rem;
+    margin: auto;
+    padding: var(--space-lg);
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-card);
+    background: var(--color-paper-2);
+}
+
+.pd-modal__head {
+    display: grid;
+    justify-items: center;
+    gap: var(--space-xs);
+    padding-bottom: var(--space-sm);
+    text-align: center;
+}
+
+.pd-modal__mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: var(--color-accent-soft);
+    color: var(--color-accent-dark);
+}
+
+.pd-modal__rows {
+    display: grid;
+    gap: var(--space-2xs);
+    margin: 0;
+    padding: var(--space-sm) 0;
+    border-top: 1px dashed var(--color-rule-2);
+    border-bottom: 1px dashed var(--color-rule-2);
+}
+
+.pd-modal__row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-md);
+    font-size: var(--text-sm);
+}
+
+.pd-modal__row dt {
+    color: var(--color-muted);
+}
+
+.pd-modal__row dd {
+    margin: 0;
+    font-weight: 700;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.pd-modal__body {
+    margin: 0;
+    color: var(--color-ink-2);
+    font-size: var(--text-sm);
+    line-height: 1.55;
+}
+
+.pd-modal__note {
+    margin: 0;
+    padding: var(--space-sm);
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-well);
+    background: var(--color-paper);
+    color: var(--color-muted);
+    font-size: var(--text-xs);
+    line-height: 1.5;
+}
+
+.pd-modal__close {
+    min-height: 44px;
+    margin-top: var(--space-2xs);
+    border: 1px solid var(--color-ink);
+    border-radius: var(--radius-well);
+    background: var(--color-ink);
+    color: var(--color-paper-2);
+    font: 500 var(--text-sm)/1 var(--font-body);
+    cursor: pointer;
+    transition: background-color var(--dur-short) var(--ease-out);
+}
+
+.pd-modal__close:hover {
+    background: var(--color-ink-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
