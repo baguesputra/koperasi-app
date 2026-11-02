@@ -2,6 +2,7 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="bg-slate-50">
     <head>
         <meta charset="utf-8">
+        <script>document.documentElement.classList.add('js');</script>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 
         <title inertia>Koperasi</title>

@@ -1,3 +1,5 @@
+@import url("./portal-dashboard.css");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -5,7 +7,7 @@
 html,
 body,
 #app {
-    background-color: #f8fafc;
+    background-color: var(--color-paper);
     min-height: 100vh;
 }
 
@@ -47,11 +49,11 @@ body {
     position: sticky;
     left: 0;
     z-index: 10;
-    background: white;
+    background: var(--color-paper-2);
 }
 
 .table-sticky-first tbody tr:hover td:first-child {
-    background: #f8fafc; /* slate-50, sinkron dengan hover:bg-slate-50 */
+    background: var(--color-paper); /* sinkron dengan hover:bg-slate-50 */
 }
 
 .table-sticky-first th:first-child {
@@ -62,7 +64,7 @@ body {
     position: sticky;
     top: 0;
     z-index: 15;
-    background: white;
+    background: var(--color-paper-2);
 }
 
 .table-head-static thead th {
@@ -86,12 +88,12 @@ body {
     }
 }
 
-/* Progress Loading Bar Elegan (Brand Green #16A34A) */
+/* Progress Loading Bar Elegan */
 #nprogress {
     pointer-events: none;
 }
 #nprogress .bar {
-    background: #16A34A !important;
+    background: var(--color-accent) !important;
     position: fixed;
     z-index: 99999;
     top: 0;
