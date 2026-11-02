@@ -36,9 +36,11 @@ export default function AnggotaLayout({
 
     useEffect(() => {
         function handleEsc(e) {
-            if (e.key === 'Escape' && showPanduan) {
+            if (e.key !== 'Escape') return;
+            if (showPanduan) {
                 setShowPanduan(false);
             }
+            setDropdownOpen(false);
         }
         document.addEventListener('keydown', handleEsc);
         return () => document.removeEventListener('keydown', handleEsc);
@@ -58,158 +60,132 @@ export default function AnggotaLayout({
         return (
             <Link
                 href={href}
-                className={`flex flex-col items-center justify-center gap-1 min-h-[52px] py-1.5 text-[11px] font-semibold transition-all active:scale-95 ${
-                    active ? 'text-brand-green font-bold' : 'text-slate-500 hover:text-slate-700'
-                }`}
+                aria-current={active ? 'page' : undefined}
+                className="shell-tab"
             >
-                <Icon size={22} strokeWidth={active ? 2.5 : 2} />
-                <span className="leading-none">{label}</span>
+                <Icon size={22} strokeWidth={active ? 2.5 : 2} aria-hidden="true" />
+                <span>{label}</span>
             </Link>
         );
     }
 
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col">
-            {/* Floating Glass Pill Navbar (Option 2) */}
+            {/* One flush bar for the portal: identity left, the account right. */}
             {!hideNavbar && (
-            <header
-                className={`sticky top-3 sm:top-5 z-40 px-4 sm:px-6 max-w-7xl mx-auto w-full transition-all ${
-                    mobileTitle ? 'hidden sm:block' : ''
-                }`}
-            >
-                <div className="bg-white/65 backdrop-blur-xl backdrop-saturate-150 rounded-2xl border border-slate-200/60 shadow-[0_8px_30px_rgba(15,30,54,0.06)] px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-4 transition-all">
-                    {/* Left: Brand Identity */}
-                    <div className="flex items-center gap-3">
-                        <Link
-                            href={route('portal.dashboard')}
-                            className="flex items-center gap-2.5 group rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green"
-                        >
-                            <img
-                                src="/images/logo-ui.webp"
-                                alt="Koperasi App"
-                                width="32"
-                                height="32"
-                                className="w-7 h-7 sm:w-8 sm:h-8 object-contain transition-transform group-hover:scale-105"
-                            />
-                            <div className="flex items-center gap-2">
-                                <span className="font-bold text-sm sm:text-base text-slate-800 tracking-tight">
-                                    Koperasi App
-                                </span>
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100/70 text-[10px] font-semibold text-slate-600 tracking-wider uppercase border border-slate-200/40">
-                                    Portal Anggota
-                                </span>
-                            </div>
-                        </Link>
-                    </div>
+            <header className={`shell-nav ${mobileTitle ? 'hidden sm:block' : ''}`}>
+                <div className="shell-nav__inner">
+                    <Link href={route('portal.dashboard')} className="shell-brand">
+                        <img
+                            src="/images/logo-ui.webp"
+                            alt="Koperasi App"
+                            width="24"
+                            height="24"
+                            className="shell-brand__logo"
+                        />
+                        <span className="shell-brand__name">Koperasi App</span>
+                    </Link>
 
-                    {/* Right: User Capsule & Dropdown */}
-                    <div className="flex items-center gap-2 shrink-0">
-                        <div className="relative" ref={dropdownRef}>
-                            <button
-                                type="button"
-                                onClick={() => setDropdownOpen(!dropdownOpen)}
-                                aria-expanded={dropdownOpen}
-                                className={`flex items-center gap-2 sm:gap-2.5 pl-1.5 pr-2.5 sm:pr-3 py-1 rounded-xl bg-white/50 hover:bg-white/90 border border-slate-200/70 hover:border-slate-300 transition-all ${
-                                    dropdownOpen ? 'ring-2 ring-brand-green/20 border-brand-green bg-white/90' : ''
-                                } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green`}
-                            >
-                                {auth.user?.foto_url && !avatarGagal ? (
+                    <div className="relative" ref={dropdownRef}>
+                        <button
+                            type="button"
+                            onClick={() => setDropdownOpen(!dropdownOpen)}
+                            aria-expanded={dropdownOpen}
+                            aria-haspopup="menu"
+                            className="shell-account"
+                        >
+                            {auth.user?.foto_url && !avatarGagal ? (
+                                <span className="shell-account__avatar-slot">
+                                    <span className="shell-account__initial" aria-hidden="true">
+                                        {initial}
+                                    </span>
                                     <img
                                         src={auth.user.foto_url}
                                         alt={auth.user.name}
                                         loading="lazy"
                                         referrerPolicy="no-referrer"
                                         onError={() => setAvatarGagal(true)}
-                                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover shadow-xs border border-slate-200"
+                                        className="shell-account__avatar"
                                     />
-                                ) : (
-                                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-brand-green text-white flex items-center justify-center text-xs sm:text-sm font-bold shadow-xs">
-                                        {initial}
-                                    </div>
-                                )}
-                                <div className="text-left hidden sm:block max-w-[130px] truncate">
-                                    <span className="block text-xs font-semibold text-slate-700 truncate leading-tight">
-                                        {firstName}
-                                    </span>
-                                </div>
-                                <ChevronDown
-                                    size={14}
-                                    className={`text-slate-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180 text-slate-600' : ''}`}
-                                />
-                            </button>
-
-                            {dropdownOpen && (
-                                <div className="absolute right-0 mt-2.5 w-64 bg-white rounded-2xl border border-slate-100 shadow-[0_10px_30px_rgba(15,30,54,0.08)] overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150">
-                                    <div className="px-4 py-3.5 bg-slate-50/70 border-b border-slate-100">
-                                        <div className="flex items-center gap-1.5">
-                                            <span className="w-2 h-2 rounded-full bg-brand-green" />
-                                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                                                Anggota Aktif
-                                            </p>
-                                        </div>
-                                        <p className="text-sm font-bold text-slate-800 truncate mt-1">
-                                            {auth.user?.name}
-                                        </p>
-                                        <p className="text-xs text-slate-500 truncate">
-                                            {auth.user?.email}
-                                        </p>
-                                    </div>
-
-                                    <div className="py-1">
-                                        {auth.user?.anggota_status && (
-                                            <Link
-                                                href={route('portal.profil')}
-                                                onClick={() => setDropdownOpen(false)}
-                                                className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-                                            >
-                                                <User size={15} className="text-slate-400" />
-                                                Profil Saya
-                                            </Link>
-                                        )}
-                                        {isPengurus && (
-                                            <Link
-                                                href={route('dashboard')}
-                                                onClick={() => setDropdownOpen(false)}
-                                                className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-                                            >
-                                                <ShieldCheck size={15} className="text-brand-green" />
-                                                Dashboard Koperasi
-                                            </Link>
-                                        )}
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setDropdownOpen(false);
-                                                setShowPanduan(true);
-                                            }}
-                                            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors text-left"
-                                        >
-                                            <Info size={15} className="text-slate-400" />
-                                            Tata Cara & Panduan
-                                        </button>
-                                    </div>
-
-                                    <div className="border-t border-slate-100 p-1">
-                                        <form method="POST" action={route('logout')}>
-                                            <input
-                                                type="hidden"
-                                                name="_token"
-                                                value={document
-                                                    .querySelector('meta[name="csrf-token"]')
-                                                    ?.getAttribute('content')}
-                                            />
-                                            <button
-                                                type="submit"
-                                                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors text-left"
-                                            >
-                                                <LogOut size={15} />
-                                                Keluar
-                                            </button>
-                                        </form>
-                                    </div>
-                                </div>
+                                </span>
+                            ) : (
+                                <span className="shell-account__initial" aria-hidden="true">
+                                    {initial}
+                                </span>
                             )}
-                        </div>
+                            <span className="shell-account__name">{firstName}</span>
+                            <ChevronDown
+                                size={14}
+                                aria-hidden="true"
+                                className="shell-account__chevron"
+                            />
+                        </button>
+
+                        {dropdownOpen && (
+                            <div className="shell-menu" role="menu">
+                                <div className="shell-menu__head">
+                                    <p className="shell-menu__status">Anggota aktif</p>
+                                    <p className="shell-menu__name">{auth.user?.name}</p>
+                                    <p className="shell-menu__email">{auth.user?.email}</p>
+                                </div>
+
+                                <div className="shell-menu__group">
+                                    {auth.user?.anggota_status && (
+                                        <Link
+                                            href={route('portal.profil')}
+                                            onClick={() => setDropdownOpen(false)}
+                                            role="menuitem"
+                                            className="shell-menu__item"
+                                        >
+                                            <User size={15} aria-hidden="true" />
+                                            Profil Saya
+                                        </Link>
+                                    )}
+                                    {isPengurus && (
+                                        <Link
+                                            href={route('dashboard')}
+                                            onClick={() => setDropdownOpen(false)}
+                                            role="menuitem"
+                                            className="shell-menu__item shell-menu__item--accent"
+                                        >
+                                            <ShieldCheck size={15} aria-hidden="true" />
+                                            Dashboard Koperasi
+                                        </Link>
+                                    )}
+                                    <button
+                                        type="button"
+                                        role="menuitem"
+                                        onClick={() => {
+                                            setDropdownOpen(false);
+                                            setShowPanduan(true);
+                                        }}
+                                        className="shell-menu__item"
+                                    >
+                                        <Info size={15} aria-hidden="true" />
+                                        Tata Cara & Panduan
+                                    </button>
+                                </div>
+
+                                <div className="shell-menu__foot">
+                                    <form method="POST" action={route('logout')}>
+                                        <input
+                                            type="hidden"
+                                            name="_token"
+                                            value={document
+                                                .querySelector('meta[name="csrf-token"]')
+                                                ?.getAttribute('content')}
+                                        />
+                                        <button
+                                            type="submit"
+                                            className="shell-menu__item shell-menu__item--danger"
+                                        >
+                                            <LogOut size={15} aria-hidden="true" />
+                                            Keluar
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </header>
@@ -233,21 +209,20 @@ export default function AnggotaLayout({
             {anggotaAktif && (
             <nav
                 aria-label="Navigasi utama"
-                className="sm:hidden fixed bottom-0 inset-x-0 z-50 overflow-visible bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-[0_-4px_20px_rgba(15,30,54,0.06)] pb-[calc(env(safe-area-inset-bottom)+0.25rem)]"
+                className="shell-tabs sm:hidden"
             >
-                <div className="relative overflow-visible">
-                    <div className="grid grid-cols-4 items-end px-2 pt-1 pb-1 overflow-visible">
+                <div className="relative">
+                    <div className="grid grid-cols-4 items-end px-2 pt-1 pb-1">
                         <TabItem href={route('portal.dashboard')} active={isCurrentRoute('portal.dashboard')} icon={Home} label="Beranda" />
                         <TabItem href={route('portal.riwayat')} active={isCurrentRoute('portal.riwayat')} icon={History} label="Riwayat" />
-                        <div className="flex justify-center overflow-visible">
+                        <div className="flex justify-center">
                             <Link
                                 href={route('portal.pinjaman.create')}
                                 aria-label="Ajukan pinjaman"
-                                className="-mt-10 w-[64px] h-[64px] rounded-full text-white flex flex-col items-center justify-center gap-0.5 shadow-[0_8px_20px_rgba(31,162,76,0.45)] ring-4 ring-white hover:brightness-95 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green"
-                                style={{ backgroundColor: '#1FA24C' }}
+                                className="shell-fab"
                             >
-                                <Plus size={26} strokeWidth={2.8} color="#ffffff" />
-                                <span className="text-[10px] font-bold leading-none text-white">Ajukan</span>
+                                <Plus size={24} strokeWidth={2.75} aria-hidden="true" />
+                                <span className="shell-fab__label">Ajukan</span>
                             </Link>
                         </div>
                         <TabItem href={route('portal.profil')} active={isCurrentRoute('portal.profil')} icon={User} label="Profil" />
