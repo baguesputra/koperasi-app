@@ -4,7 +4,9 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SecurityHeadersMiddleware
 {
@@ -42,7 +44,7 @@ class SecurityHeadersMiddleware
             "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com{$localDev}",
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com{$localDev}",
             "font-src 'self' https://fonts.gstatic.com data:{$localDev}",
-            "img-src 'self' data: blob:{$localDev}",
+            "img-src 'self' data: blob: {$gateOrigin} https://*.govindogroup.com https://app.govindogroup.com{$localDev}",
             "connect-src 'self' ws: wss: https: https://cloudflareinsights.com{$localDev}",
             "object-src 'none'",
             "base-uri 'self'",
@@ -70,9 +72,9 @@ class SecurityHeadersMiddleware
 
         // HTTP Compression (Gzip) for text/html, json, and svg when client supports gzip
         if (function_exists('gzencode') &&
-            !$response instanceof \Symfony\Component\HttpFoundation\BinaryFileResponse &&
-            !$response instanceof \Symfony\Component\HttpFoundation\StreamedResponse &&
-            !$response->headers->has('Content-Encoding') &&
+            ! $response instanceof BinaryFileResponse &&
+            ! $response instanceof StreamedResponse &&
+            ! $response->headers->has('Content-Encoding') &&
             $request->headers->has('Accept-Encoding') &&
             str_contains((string) $request->header('Accept-Encoding'), 'gzip')) {
             $content = $response->getContent();

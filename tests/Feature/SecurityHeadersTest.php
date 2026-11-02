@@ -35,8 +35,9 @@ class SecurityHeadersTest extends TestCase
         $csp = $response->headers->get('Content-Security-Policy');
         $this->assertNotNull($csp);
         $this->assertStringContainsString("form-action 'self'", $csp);
-        $this->assertStringContainsString("gate.appdutamall.com", $csp);
-        $this->assertStringContainsString("https://static.cloudflareinsights.com", $csp);
+        $this->assertStringContainsString('gate.appdutamall.com', $csp);
+        $this->assertStringContainsString('https://static.cloudflareinsights.com', $csp);
+        $this->assertStringContainsString('https://app.govindogroup.com', $csp);
     }
 
     public function test_html_includes_anti_indexing_meta_tags(): void
