@@ -37,11 +37,13 @@
   --color-accent-ink: oklch(99.4% 0.003 152);
   --color-focus: oklch(54.0% 0.150 149);
 
-  /* Night: the member band. */
-  --color-night: oklch(20.0% 0.042 262);
-  --color-night-2: oklch(28.5% 0.036 262);
-  --color-night-ink: oklch(97.5% 0.006 262);
-  --color-night-muted: oklch(74.0% 0.018 262);
+  /* Night: the member band. A teal-navy so the band belongs to the same family
+   * as the ground; `night-glow` is the light the card carries across its middle. */
+  --color-night: oklch(20.0% 0.034 242);
+  --color-night-2: oklch(24.0% 0.038 234);
+  --color-night-glow: oklch(48.0% 0.055 219);
+  --color-night-ink: oklch(97.5% 0.006 220);
+  --color-night-muted: oklch(78.0% 0.018 215);
 
   /* States. */
   --color-warn: oklch(62.0% 0.140 68);
@@ -60,11 +62,13 @@
   --color-error: oklch(52% 0.19 27);
   --color-success: oklch(50% 0.12 150);
 
-  /* Glow: the two blooms the shell's ground carries, never behind running text. */
-  --color-glow-a: oklch(80% 0.10 155);
-  --color-glow-b: oklch(82% 0.07 205);
-  --glow-a-alpha: 20%;
-  --glow-b-alpha: 16%;
+  /* Ground: the cool canvas the portal sits on, and the two blooms pinned to its
+   * corners. Both are painted by the shell, never behind a line of running text. */
+  --color-ground: oklch(94.6% 0.006 250);
+  --color-glow-a: oklch(86.0% 0.105 168);
+  --color-glow-b: oklch(66.0% 0.085 200);
+  --glow-a-alpha: 100%;
+  --glow-b-alpha: 100%;
   --shadow-card: 0 1px 2px color-mix(in oklab, var(--color-ink) 6%, transparent);
   --shadow-raised: 0 2px 6px color-mix(in oklab, var(--color-ink) 7%, transparent);
 
@@ -75,7 +79,7 @@
   --container: 1280px; --gutter: 24px; --gap-columns: 24px;
   --section-gap-s: 40px; --section-gap: 48px; --section-gap-l: 64px;
 
-  --radius-card: 12px; --radius-well: 8px; --radius-chip: 6px; --radius-pill: 999px;
+  --radius-card: 12px; --radius-band: 16px; --radius-well: 8px; --radius-chip: 6px; --radius-pill: 999px;
   --rule-hair: 1px;
 
   --tracking-display: -0.015em;

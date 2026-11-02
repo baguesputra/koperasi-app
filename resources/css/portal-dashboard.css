@@ -148,12 +148,20 @@ html {
 
 /* ---- The member band (signature) --------------------------------- */
 
+/* The band carries its own light: a teal bloom at the centre over a deep edge,
+ * the same way the reference builds its member card. */
 .pd-band {
     display: grid;
     gap: var(--space-md);
     padding: var(--space-md);
-    border-radius: var(--radius-card);
-    background: linear-gradient(135deg, var(--color-night) 0%, var(--color-night-2) 100%);
+    border-radius: var(--radius-band);
+    background:
+        radial-gradient(
+            62% 96% at 50% 46%,
+            var(--color-night-glow) 0%,
+            color-mix(in oklab, var(--color-night-glow) 40%, var(--color-night)) 46%,
+            var(--color-night) 88%
+        );
     box-shadow: var(--shadow-raised);
     color: var(--color-night-ink);
 }
@@ -187,14 +195,13 @@ html {
     flex: none;
     width: 56px;
     height: 56px;
-    border-radius: 12px;
-    border: 1px solid color-mix(in oklab, var(--color-accent-bright) 32%, transparent);
+    border-radius: 50%;
+    border: 2px solid color-mix(in oklab, var(--color-accent-bright) 46%, transparent);
     background: var(--color-night-2);
     color: var(--color-accent-bright);
     font-size: var(--text-lg);
     font-weight: 700;
     object-fit: cover;
-    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-night) 60%, transparent);
 }
 
 .pd-band__id {

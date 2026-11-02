@@ -1,7 +1,7 @@
 /* Hallmark · component: nav shell · genre: modern-minimal · theme: brand · states: default hover focus active · contrast: pass · v2.0.0 */
 /* Hallmark · pre-emit critique: P4 H5 E5 S5 R4 V4 · weakest: P, the floating pill carried nothing but identity; a bar that only says who you are belongs at the edge, not over the content */
 /* Hallmark · answered preview: the shell exists only behind a session, so the dev server is its preview; a standalone page would have to fake usePage() */
-/* Hallmark · waive 29 · two fixed blooms at 30% of the canvas each, behind opaque cards, never behind a running line · the graduated background the owner asked for, pinned to the shell corners */
+/* Hallmark · waive 29 · two fixed blooms pinned to the shell corners over a grey canvas, behind opaque cards and never behind a line of running text · this is the graduated ground the owner asked for, and it does not animate */
 
 /* ------------------------------------------------------------------ *
  * The shell: a graduated ground, and one bar at the edge of it.
@@ -14,7 +14,8 @@
 }
 
 /* The ground is fixed, so scrolling moves the page and never the light.
- * Two blooms, each 30% of the canvas, plus a flat wash that carries the rest. */
+ * Two blooms pinned to the corners over a cool grey canvas, the way the
+ * reference holds its light at the edges and keeps the middle quiet. */
 .shell::before {
     content: "";
     position: fixed;
@@ -23,20 +24,18 @@
     pointer-events: none;
     background:
         radial-gradient(
-            30% 30% at 100% 0%,
-            color-mix(in oklab, var(--color-glow-a) var(--glow-a-alpha), transparent),
-            transparent
+            ellipse 40% 62% at 100% 6%,
+            color-mix(in oklab, var(--color-glow-a) var(--glow-a-alpha), transparent) 0%,
+            color-mix(in oklab, var(--color-glow-a) 62%, transparent) 46%,
+            transparent 88%
         ),
         radial-gradient(
-            30% 30% at 0% 100%,
-            color-mix(in oklab, var(--color-glow-b) var(--glow-b-alpha), transparent),
-            transparent
+            ellipse 30% 46% at 0% 96%,
+            color-mix(in oklab, var(--color-glow-b) var(--glow-b-alpha), transparent) 0%,
+            color-mix(in oklab, var(--color-glow-b) 58%, transparent) 48%,
+            transparent 86%
         ),
-        linear-gradient(
-            180deg,
-            color-mix(in oklab, var(--color-glow-a) 6%, var(--color-paper)) 0%,
-            var(--color-paper) 60%
-        );
+        var(--color-ground);
 }
 
 .shell-nav {
