@@ -1,6 +1,6 @@
 /* Hallmark · shape: app screen · genre: modern-minimal · theme: brand · redesign: full
  * paper: oklch(97.8% 0.006 152) · accent: oklch(54% 0.15 149) · display: Plus Jakarta Sans · body: Plus Jakarta Sans
- * nav: a flush account bar, the brand and the account only · signature: the plafon rail and the tenor ladder · states: default hover focus active disabled empty locked pending
+ * nav: an account bar that opens transparent over the ground and closes on scroll · signature: the plafon rail and the tenor ladder · states: default hover focus active disabled empty locked pending
  * axes: light/grotesk-sans/cool · posture: Restrained · contrast: pass · v2.0.0 */
 /* Hallmark · pre-emit critique: P5 H4 E5 S5 R3 V4 · weakest: R, four surfaces competed for the eye at once; cut the shadows, the blurred orbs and the six coloured alert boxes */
 
@@ -53,9 +53,20 @@
   --color-info: oklch(55.0% 0.120 255);
   --color-info-soft: oklch(96.0% 0.022 250);
   --color-info-ink: oklch(42.0% 0.110 255);
+  --color-teal: oklch(55.0% 0.090 200);
+  --color-teal-soft: oklch(96.0% 0.022 200);
+  --color-teal-ink: oklch(43.0% 0.082 200);
 
   --color-error: oklch(52% 0.19 27);
   --color-success: oklch(50% 0.12 150);
+
+  /* Glow: the two blooms the shell's ground carries, never behind running text. */
+  --color-glow-a: oklch(80% 0.10 155);
+  --color-glow-b: oklch(82% 0.07 205);
+  --glow-a-alpha: 20%;
+  --glow-b-alpha: 16%;
+  --shadow-card: 0 1px 2px color-mix(in oklab, var(--color-ink) 6%, transparent);
+  --shadow-raised: 0 2px 6px color-mix(in oklab, var(--color-ink) 7%, transparent);
 
   --font-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-body: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
@@ -65,7 +76,7 @@
   --section-gap-s: 40px; --section-gap: 48px; --section-gap-l: 64px;
 
   --radius-card: 12px; --radius-well: 8px; --radius-chip: 6px; --radius-pill: 999px;
-  --rule-hair: 1px; --shadow-card: none;
+  --rule-hair: 1px;
 
   --tracking-display: -0.015em;
 
