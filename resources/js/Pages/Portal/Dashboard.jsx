@@ -4,9 +4,6 @@ import { useState, useMemo, useEffect } from 'react';
 import { driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
 import {
-    PiggyBank,
-    Wallet,
-    Gauge,
     ArrowRight,
     CheckCircle2,
     ArrowDownCircle,
@@ -14,8 +11,6 @@ import {
     XCircle,
     Info,
     CalendarDays,
-    ShieldCheck,
-    Percent,
     Repeat,
     Eye,
     EyeOff,
@@ -48,60 +43,47 @@ const tipeLabel = {
     lunas_total: 'Pelunasan Dipercepat',
 };
 
-const focusRing =
-    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2';
-
-function AlertLimitBerjalan({ pengajuan, limitSaatIni, tampil }) {
-    if (!pengajuan) {
-        return null;
-    }
-
-    const isKetua = pengajuan.status === 'approved_bendahara';
-    const statusText = isKetua
-        ? 'Menunggu persetujuan Ketua Koperasi'
-        : 'Menunggu pemeriksaan Bendahara';
+function StatusRow({ icon: Icon, tone = 'quiet', title, body, href, linkLabel }) {
+    const isi = (
+        <>
+            <span className={`pd-status__mark pd-status__mark--${tone}`}>
+                <Icon size={13} strokeWidth={2.2} />
+            </span>
+            <span className="pd-status__text">
+                <span className="pd-status__title">{title}</span>
+                {body ? <span className="pd-status__body">{body}</span> : null}
+            </span>
+            {href ? (
+                <span className="pd-status__go">
+                    {linkLabel}
+                    <ArrowRight size={12} />
+                </span>
+            ) : null}
+        </>
+    );
 
     return (
-        <Link
-            href={route('portal.pengajuan-limit.create')}
-            className={`flex items-start gap-3 w-full p-4 rounded-2xl border bg-amber-50 border-amber-200 hover:bg-amber-100/60 transition-colors ${focusRing}`}
-        >
-            <Clock size={18} className="text-amber-600 shrink-0 mt-0.5" />
-            <div className="min-w-0">
-                <p className="text-sm font-bold text-amber-900">
-                    Penambahan limit <Nominal nilai={pengajuan.limit_diminta} tampil={tampil} /> sedang diverifikasi
-                </p>
-                <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
-                    {statusText}
-                    {isKetua && pengajuan.limit_disetujui_bendahara ? (
-                        <span>
-                            {' • Usulan Bendahara: '}
-                            <Nominal nilai={pengajuan.limit_disetujui_bendahara} tampil={tampil} />
-                        </span>
-                    ) : null}
-                    {' • Diajukan '}{pengajuan.tanggal_pengajuan}.
-                    {' '}Anda tetap dapat meminjam hingga plafon aktif saat ini <Nominal nilai={limitSaatIni} tampil={tampil} />.
-                </p>
-            </div>
-        </Link>
+        <li className="pd-status__row">
+            {href ? (
+                <Link href={href} className="pd-status__link pd-focus">
+                    {isi}
+                </Link>
+            ) : (
+                <div className="pd-status__link">{isi}</div>
+            )}
+        </li>
     );
 }
 
-function CaptionLimitBerjalan({ pengajuan, tampil, limitMaksimal }) {
-    if (!pengajuan) {
-        return (
-            <span>
-                Plafon maksimal <Nominal nilai={limitMaksimal} tampil={tampil} />
-            </span>
-        );
-    }
+function CaptionLimitBerjalan({ pengajuan, tampil }) {
+    if (!pengajuan) return null;
 
     const isKetua = pengajuan.status === 'approved_bendahara';
 
     return (
-        <span className="inline-flex items-center gap-1.5 text-amber-300 font-medium">
-            <Clock size={12} className="shrink-0" />
-            <span className="truncate">
+        <span className="pd-band__pending">
+            <Clock size={11} />
+            <span>
                 {isKetua ? 'Menunggu Ketua (' : 'Menunggu Bendahara ('}
                 <Nominal nilai={pengajuan.limit_diminta} tampil={tampil} />
                 {isKetua && pengajuan.limit_disetujui_bendahara ? (
@@ -118,19 +100,12 @@ function CaptionLimitBerjalan({ pengajuan, tampil, limitMaksimal }) {
 
 function PetunjukTerkunci({ pesan, children }) {
     return (
-        <div className="group relative outline-none" tabIndex={0} aria-label={pesan || undefined}>
+        <div className="pd-lock" tabIndex={0} aria-label={pesan || undefined}>
             {children}
             {pesan && (
-                <div
-                    role="tooltip"
-                    className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-44 max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-lg bg-slate-800 px-2.5 py-2 text-center text-[11px] font-medium leading-snug text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100 group-active:opacity-100"
-                >
+                <span role="tooltip" className="pd-lock__tip">
                     {pesan}
-                    <span
-                        aria-hidden="true"
-                        className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-slate-800"
-                    />
-                </div>
+                </span>
             )}
         </div>
     );
@@ -138,53 +113,34 @@ function PetunjukTerkunci({ pesan, children }) {
 
 function KuitansiModal({ judul, rows, paragraf, catatan, onClose }) {
     return (
-        <div
-            className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="konfirmasi-title"
-        >
-            <div className="min-h-full flex items-center justify-center p-4">
-                <div className="bg-white rounded-2xl w-full max-w-md my-8 shadow-2xl overflow-hidden">
-                    <div className="px-6 pt-8 pb-6 text-center">
-                        <div className="w-16 h-16 rounded-full bg-brand-green-light flex items-center justify-center mx-auto mb-4">
-                            <CheckCircle2 size={32} className="text-brand-green" />
-                        </div>
-
-                        <h2 id="konfirmasi-title" className="text-xl font-bold text-slate-800">
-                            {judul}
-                        </h2>
-                    </div>
-
-                    <div className="mx-6 border-t-2 border-dashed border-slate-200" />
-
-                    <div className="px-6 py-4 space-y-2.5">
-                        {rows.map((r) => (
-                            <div key={r.label} className="flex items-start justify-between gap-4 text-sm">
-                                <span className="text-slate-500 shrink-0">{r.label}</span>
-                                <span className="font-bold text-slate-800 text-right">{r.value}</span>
-                            </div>
-                        ))}
-                    </div>
-
-                    <div className="mx-6 border-t-2 border-dashed border-slate-200" />
-
-                    <div className="px-6 py-5">
-                        <p className="text-sm text-slate-600 leading-relaxed">{paragraf}</p>
-
-                        <p className="mt-3 text-xs text-slate-500 leading-relaxed bg-slate-50 border border-slate-100 rounded-lg p-3">
-                            {catatan}
-                        </p>
-
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className={`w-full mt-5 py-3 text-sm font-bold rounded-xl bg-brand-navy text-white hover:bg-brand-navy-dark transition-colors ${focusRing}`}
-                        >
-                            Kembali ke Beranda
-                        </button>
-                    </div>
+        <div className="pd-modal" role="dialog" aria-modal="true" aria-labelledby="konfirmasi-title">
+            <div className="pd-modal__panel">
+                <div className="pd-modal__head">
+                    <span className="pd-modal__mark">
+                        <CheckCircle2 size={22} />
+                    </span>
+                    <h2 id="konfirmasi-title">{judul}</h2>
                 </div>
+
+                <dl className="pd-modal__rows">
+                    {rows.map((r) => (
+                        <div key={r.label} className="pd-modal__row">
+                            <dt>{r.label}</dt>
+                            <dd>{r.value}</dd>
+                        </div>
+                    ))}
+                </dl>
+
+                <p className="pd-modal__body">{paragraf}</p>
+                <p className="pd-modal__note">{catatan}</p>
+
+                <button
+                    type="button"
+                    onClick={onClose}
+                    className="pd-modal__close pd-focus"
+                >
+                    Kembali ke beranda
+                </button>
             </div>
         </div>
     );
@@ -203,10 +159,10 @@ function percepatanRows(p) {
     ];
 
     if (p.tipe === 'lunas_total') {
-        rows.push({ label: 'Pelunasan', value: 'Seluruh sisa pokok \u2022 bunga 1 bulan' });
+        rows.push({ label: 'Pelunasan', value: 'Seluruh sisa pokok ditambah bunga 1 bulan' });
     } else {
         const arah = p.tipe === 'percepat' ? 'Tenor dikurangi' : 'Tenor ditambah';
-        rows.push({ label: arah, value: `${p.tenor_lama} \u2192 ${p.tenor_baru} bulan` });
+        rows.push({ label: arah, value: `${p.tenor_lama} → ${p.tenor_baru} bulan` });
     }
 
     return rows;
@@ -324,6 +280,41 @@ export default function Dashboard({
     const [nominalTampil, alihNominal] = usePrivasiNominal();
     const [fotoGagal, setFotoGagal] = useState(false);
 
+    // Plafon yang sudah terpakai = plafon maksimal dikurangi sisa yang masih bisa diajukan.
+    const plafonTerpakai = Math.max(0, (limitMaksimal || 0) - (limitTersedia || 0));
+    const persenPlafon =
+        limitMaksimal > 0 ? Math.min(100, Math.round((plafonTerpakai / limitMaksimal) * 100)) : 0;
+
+    const adaStatus =
+        Boolean(resignMenunggu) ||
+        Boolean(pengajuanLimitBerjalan) ||
+        (pinjamanAktifCount > 0 && pengajuanPercepatanMenunggu.length > 0) ||
+        (!bisaAjukan && !pengajuanBerjalan) ||
+        (limitTersedia <= 0 && bisaAjukan && !pengajuanBerjalan) ||
+        Boolean(pengajuanDitolak && !pengajuanBerjalan);
+
+    // Tenor ladder: adjacent nominal bands that share the same ceiling collapse
+    // into one rung, so the rule reads as five steps instead of ten identical rows.
+    const tanggaTenor = useMemo(() => {
+        const rungs = [];
+        (tabelTenor || []).forEach((t) => {
+            const tenor = Number(t.tenor_maksimal_bulan);
+            const terakhir = rungs[rungs.length - 1];
+            if (terakhir && terakhir.tenor === tenor) {
+                terakhir.nominal_max = Number(t.nominal_max);
+            } else {
+                rungs.push({
+                    nominal_min: Number(t.nominal_min),
+                    nominal_max: Number(t.nominal_max),
+                    tenor,
+                });
+            }
+        });
+        return rungs;
+    }, [tabelTenor]);
+
+    const tenorTertinggi = tanggaTenor.reduce((max, r) => Math.max(max, r.tenor), 0);
+
     useEffect(() => {
         const tourKey = `koperasi.dashboard-tour.dismissed.${auth?.user?.id ?? 'guest'}`;
         let activeTour = null;
@@ -390,10 +381,10 @@ export default function Dashboard({
             ====================================================== */}
             {terkirim && !konfirmasiDitutup && (
                 <KuitansiModal
-                    judul="Pengajuan Berhasil Terkirim"
+                    judul="Pengajuan berhasil terkirim"
                     rows={[
-                        { label: 'Nominal Pinjaman', value: formatRupiah(terkirim.nominal) },
-                        { label: 'Lama Cicilan', value: `${terkirim.tenor_bulan} bulan` },
+                        { label: 'Nominal pinjaman', value: formatRupiah(terkirim.nominal) },
+                        { label: 'Lama cicilan', value: `${terkirim.tenor_bulan} bulan` },
                     ]}
                     paragraf="Pengajuan pinjaman Anda telah kami terima dan diteruskan melalui WhatsApp Koperasi untuk diproses lebih lanjut."
                     catatan="Selama masa peninjauan, tidak ada tindakan yang perlu Anda lakukan. Apabila pengajuan disetujui, pemberitahuan akan disampaikan melalui WhatsApp. Status pengajuan juga dapat dipantau pada halaman Beranda."
@@ -403,7 +394,7 @@ export default function Dashboard({
 
             {percepatanTerkirim && !percepatanDitutup && (
                 <KuitansiModal
-                    judul="Pengajuan Berhasil Terkirim"
+                    judul="Pengajuan berhasil terkirim"
                     rows={percepatanRows(percepatanTerkirim)}
                     paragraf={percepatanParagraf[percepatanTerkirim.tipe]}
                     catatan="Selama masa peninjauan, tidak ada tindakan yang perlu Anda lakukan. Apabila pengajuan disetujui, pemberitahuan beserta bulan mulai berlakunya akan disampaikan melalui WhatsApp. Status pengajuan juga dapat dipantau pada halaman Beranda."
@@ -413,10 +404,10 @@ export default function Dashboard({
 
             {limitTerkirim && !limitDitutup && (
                 <KuitansiModal
-                    judul="Pengajuan Berhasil Terkirim"
+                    judul="Pengajuan berhasil terkirim"
                     rows={[
-                        { label: 'Limit yang Diminta', value: formatRupiah(limitTerkirim.diminta) },
-                        { label: 'Limit Anda Saat Ini', value: formatRupiah(limitTerkirim.limit_saat_ini) },
+                        { label: 'Limit yang diminta', value: formatRupiah(limitTerkirim.diminta) },
+                        { label: 'Limit Anda saat ini', value: formatRupiah(limitTerkirim.limit_saat_ini) },
                     ]}
                     paragraf="Pengajuan penambahan limit Anda telah kami terima dan diteruskan melalui WhatsApp Koperasi untuk diproses lebih lanjut."
                     catatan="Penambahan limit diverifikasi Bendahara lalu diputuskan final oleh Ketua Koperasi. Nominal final bisa berbeda dari yang Anda minta. Apabila disetujui, pemberitahuan akan disampaikan melalui WhatsApp dan limit baru aktif untuk pinjaman berikutnya."
@@ -424,875 +415,806 @@ export default function Dashboard({
                 />
             )}
 
-            <div className="space-y-6 sm:space-y-8">
+            <div className="pd">
                 <PwaInstallPrompt />
 
-                {/* Resign Warning */}
-                {resignMenunggu && (
-                    <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl p-4">
-                        <Clock size={20} className="text-amber-600 shrink-0 mt-0.5" />
-                        <div>
-                            <p className="text-sm font-bold text-amber-800">
-                                Penyelesaian resign menunggu pelunasan akhir <Nominal nilai={resignMenunggu.shortfall} tampil={nominalTampil} />
-                                {resignMenunggu.jatuh_tempo ? ` sebelum ${resignMenunggu.jatuh_tempo}` : ''}.
-                            </p>
-                            <p className="text-xs text-amber-700 mt-1">
-                                Selesaikan melalui Bendahara (menu Konfirmasi Angsuran).
-                                Pengajuan pinjaman dan limit baru dikunci sampai lunas.
-                            </p>
-                        </div>
-                    </div>
-                )}
-
-
-                {/* =====================================================
-                    MEMBER WELCOME HEADER (Clean Horizontal Typographic)
-                ====================================================== */}
-                <div className="pt-1 sm:pt-2">
-                    <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-800 tracking-tight leading-tight">
+                {/* =================================================
+                    GREETING
+                ================================================== */}
+                <div>
+                    <h1>
                         {salamWaktu}, {anggota.nama}
                     </h1>
-                    <p className="text-xs sm:text-sm text-slate-500 mt-1">
-                        Pantau saldo simpanan dan kelola fasilitas pinjaman Anda secara real-time.
+                    <p className="pd-head__line">
+                        Pantau saldo simpanan dan kelola fasilitas pinjaman Anda di satu tempat.
                     </p>
                 </div>
 
-                {/* =====================================================
-                    DIGITAL MEMBER CARD (Executive Minimalist)
-                ====================================================== */}
-                <div data-tour="member-card" className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-[#0B1527] via-[#0F1E36] to-[#0A2E1A] text-white p-5 sm:p-7 shadow-[0_16px_36px_rgba(15,30,54,0.22)] border border-white/10 group">
-                    {/* Background Radial Glow */}
-                    <div className="absolute -top-24 -right-24 w-72 h-72 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
-                    <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
+                {/* =================================================
+                    STATUS STRIP — only the conditions that are true
+                ================================================== */}
+                {adaStatus && (
+                    <section className="pd-status" aria-label="Status akun Anda">
+                        <ul className="pd-status__list">
+                            {resignMenunggu && (
+                                <StatusRow
+                                    tone="warn"
+                                    icon={Clock}
+                                    title={
+                                        <>
+                                            Penyelesaian resign menunggu pelunasan akhir{' '}
+                                            <Nominal nilai={resignMenunggu.shortfall} tampil={nominalTampil} />
+                                            {resignMenunggu.jatuh_tempo
+                                                ? ` sebelum ${resignMenunggu.jatuh_tempo}`
+                                                : ''}
+                                            .
+                                        </>
+                                    }
+                                    body="Selesaikan melalui Bendahara di menu Konfirmasi Angsuran. Pengajuan pinjaman dan limit baru dikunci sampai lunas."
+                                />
+                            )}
 
-                    <div className="relative z-10">
-                        {/* Card Top: Member Photo, Name & Privacy / Status */}
-                        <div className="flex items-center justify-between gap-4">
-                            <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
-                                {/* Member Photo / Initial Avatar */}
-                                {anggota.foto_url && !fotoGagal ? (
-                                    <img
-                                        src={anggota.foto_url}
-                                        alt={anggota.nama}
-                                        loading="lazy"
-                                        referrerPolicy="no-referrer"
-                                        onError={() => setFotoGagal(true)}
-                                        className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl object-cover border border-white/20 shadow-md shrink-0 bg-slate-800"
-                                    />
-                                ) : (
-                                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-tr from-brand-green to-emerald-400 text-white flex items-center justify-center text-base sm:text-lg font-extrabold border border-white/20 shadow-md shrink-0">
-                                        {initial}
-                                    </div>
-                                )}
+                            {pengajuanLimitBerjalan && (
+                                <StatusRow
+                                    tone="warn"
+                                    icon={Clock}
+                                    href={route('portal.pengajuan-limit.create')}
+                                    linkLabel="Tinjau"
+                                    title={
+                                        <>
+                                            Penambahan limit{' '}
+                                            <Nominal
+                                                nilai={pengajuanLimitBerjalan.limit_diminta}
+                                                tampil={nominalTampil}
+                                            />{' '}
+                                            sedang diverifikasi
+                                        </>
+                                    }
+                                    body={
+                                        <>
+                                            {pengajuanLimitBerjalan.status === 'approved_bendahara'
+                                                ? 'Menunggu persetujuan Ketua Koperasi'
+                                                : 'Menunggu pemeriksaan Bendahara'}
+                                            {pengajuanLimitBerjalan.status === 'approved_bendahara' &&
+                                            pengajuanLimitBerjalan.limit_disetujui_bendahara ? (
+                                                <>
+                                                    , usulan Bendahara{' '}
+                                                    <Nominal
+                                                        nilai={
+                                                            pengajuanLimitBerjalan.limit_disetujui_bendahara
+                                                        }
+                                                        tampil={nominalTampil}
+                                                    />
+                                                </>
+                                            ) : null}
+                                            . Diajukan {pengajuanLimitBerjalan.tanggal_pengajuan}. Anda tetap dapat
+                                            meminjam hingga plafon aktif saat ini{' '}
+                                            <Nominal nilai={limitMaksimal} tampil={nominalTampil} />.
+                                        </>
+                                    }
+                                />
+                            )}
 
-                                <div className="min-w-0">
-                                    <p className="text-sm sm:text-base font-bold text-white tracking-wide truncate">
-                                        {anggota.nama}
-                                    </p>
-                                    <p className="text-[11px] font-mono text-slate-300 tracking-wider truncate">
-                                        NIP: {anggota.no_karyawan}
-                                    </p>
-                                </div>
-                            </div>
+                            {pinjamanAktifCount > 0 && pengajuanPercepatanMenunggu.length > 0 && (
+                                <StatusRow
+                                    tone="warn"
+                                    icon={Repeat}
+                                    title="Pengajuan perubahan tenor atau pelunasan dalam proses"
+                                    body={pengajuanPercepatanMenunggu.map((pp) => (
+                                        <span key={pp.id} className="pd-status__item">
+                                            {tipeLabel[pp.tipe] || pp.tipe}. Pinjaman{' '}
+                                            <Nominal nilai={pp.pinjaman_nominal} tampil={nominalTampil} />,{' '}
+                                            {pp.tenor_lama} menjadi {pp.tenor_baru ?? 'lunas'} bulan.{' '}
+                                            {statusPengajuanLabel[pp.status]?.text ?? pp.status}.
+                                        </span>
+                                    ))}
+                                />
+                            )}
 
-                            {/* Card Status & Privacy Toggle */}
-                            <div className="flex items-center gap-2 shrink-0">
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-[11px] font-semibold text-emerald-300">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                    Aktif
-                                </span>
-                                <button
-                                    data-tour="privacy-toggle"
-                                    type="button"
-                                    onClick={alihNominal}
-                                    aria-label={nominalTampil ? 'Sembunyikan saldo' : 'Tampilkan saldo'}
-                                    title={nominalTampil ? 'Sembunyikan saldo' : 'Tampilkan saldo'}
-                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 text-white/90 hover:text-white text-[11px] font-medium transition-colors border border-white/10"
-                                >
-                                    {nominalTampil ? <EyeOff size={13} /> : <Eye size={13} />}
-                                    <span className="hidden min-[380px]:inline">{nominalTampil ? 'Sembunyikan' : 'Saldo'}</span>
-                                </button>
+                            {!bisaAjukan && !pengajuanBerjalan && (
+                                <StatusRow
+                                    tone="warn"
+                                    icon={Info}
+                                    title="Pengajuan pinjaman belum memenuhi ketentuan"
+                                    body={
+                                        <>
+                                            {alasanTidakBisa ||
+                                                'Anda belum dapat mengajukan pinjaman saat ini sesuai ketentuan koperasi.'}
+                                            {sisaAngsuranAktif > 2 && limitTersedia > 0 ? (
+                                                <>
+                                                    {' '}
+                                                    Sisa plafon yang belum terpakai{' '}
+                                                    <Nominal nilai={limitTersedia} tampil={nominalTampil} /> baru
+                                                    dapat dipakai setelah angsuran tersisa maksimal 2 bulan.
+                                                </>
+                                            ) : null}
+                                        </>
+                                    }
+                                />
+                            )}
+
+                            {limitTersedia <= 0 && bisaAjukan && !pengajuanBerjalan && (
+                                <StatusRow
+                                    tone="info"
+                                    icon={Info}
+                                    title="Plafon pinjaman Anda saat ini terpakai seluruhnya"
+                                    body="Pengajuan pinjaman baru dibuka kembali setelah angsuran berjalan tersisa maksimal 2 bulan, atau Anda dapat mengajukan penambahan limit melalui menu Tambah limit."
+                                />
+                            )}
+
+                            {pengajuanDitolak && !pengajuanBerjalan && (
+                                <StatusRow
+                                    tone="danger"
+                                    icon={XCircle}
+                                    title={
+                                        <>
+                                            Pengajuan pinjaman{' '}
+                                            <Nominal nilai={pengajuanDitolak.nominal} tampil={nominalTampil} />{' '}
+                                            ditolak
+                                        </>
+                                    }
+                                    body={
+                                        <>
+                                            {pengajuanDitolak.catatan
+                                                ? `Alasan: ${pengajuanDitolak.catatan}. `
+                                                : ''}
+                                            Anda dapat mengajukan kembali setelah menyesuaikan nominal atau
+                                            persyaratan.
+                                        </>
+                                    }
+                                />
+                            )}
+                        </ul>
+                    </section>
+                )}
+
+                {/* =================================================
+                    MEMBER BAND — the signature
+                ================================================== */}
+                <section data-tour="member-card" className="pd-band">
+                    <div className="pd-band__top">
+                        <div className="pd-band__who">
+                            {anggota.foto_url && !fotoGagal ? (
+                                <img
+                                    src={anggota.foto_url}
+                                    alt={anggota.nama}
+                                    loading="lazy"
+                                    referrerPolicy="no-referrer"
+                                    onError={() => setFotoGagal(true)}
+                                    className="pd-band__avatar"
+                                />
+                            ) : (
+                                <span className="pd-band__avatar">{initial}</span>
+                            )}
+                            <div className="pd-band__id">
+                                <p className="pd-band__name">{anggota.nama}</p>
+                                <p className="pd-band__nip">NIP {anggota.no_karyawan}</p>
                             </div>
                         </div>
 
-                        {/* Card Body: Core Balances */}
-                        <div data-tour="financial-summary" className="mt-5 sm:mt-6 pt-5 sm:pt-6 border-t border-white/10 grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-8">
-                            <div>
-                                <div className="flex items-center gap-1.5 text-xs text-slate-300 font-medium">
-                                    <PiggyBank size={14} className="text-emerald-400" />
-                                    <span className="tracking-wider uppercase">Total Simpanan</span>
-                                </div>
-                                <div className="mt-1 text-2xl sm:text-3xl font-extrabold text-white tracking-tight tabular-nums">
-                                    <Nominal nilai={totalSimpanan} tampil={nominalTampil} />
-                                </div>
-                                <p className="mt-1 text-[11px] text-emerald-300/80">
-                                    Simpanan Pokok & Wajib
-                                </p>
-                            </div>
-
-                            <div className="sm:border-l sm:border-white/10 sm:pl-6">
-                                <div className="flex items-center gap-1.5 text-xs text-slate-300 font-medium">
-                                    <Gauge size={14} className="text-blue-400" />
-                                    <span className="tracking-wider uppercase">Limit Tersedia</span>
-                                </div>
-                                <div className="mt-1 text-2xl sm:text-3xl font-extrabold text-emerald-300 tracking-tight tabular-nums">
-                                    <Nominal nilai={limitTersedia} tampil={nominalTampil} />
-                                </div>
-                                <p className="mt-1 text-[11px] text-slate-300 truncate">
-                                    <CaptionLimitBerjalan pengajuan={pengajuanLimitBerjalan} tampil={nominalTampil} limitMaksimal={limitMaksimal} />
-                                </p>
-                            </div>
+                        <div className="pd-band__tools">
+                            <span className="pd-band__badge">
+                                <span className="pd-band__dot" aria-hidden="true" />
+                                Aktif
+                            </span>
+                            <button
+                                data-tour="privacy-toggle"
+                                type="button"
+                                onClick={alihNominal}
+                                aria-label={nominalTampil ? 'Sembunyikan saldo' : 'Tampilkan saldo'}
+                                title={nominalTampil ? 'Sembunyikan saldo' : 'Tampilkan saldo'}
+                                className="pd-band__toggle pd-focus"
+                            >
+                                {nominalTampil ? <EyeOff size={13} /> : <Eye size={13} />}
+                                <span className="pd-band__toggle-label">
+                                    {nominalTampil ? 'Sembunyikan' : 'Tampilkan'}
+                                </span>
+                            </button>
                         </div>
                     </div>
-                </div>
 
-                {/* =====================================================
-                    QUICK ACTION DOCK
-                ====================================================== */}
-                <div data-tour="quick-actions" className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {/* 1. Ajukan Pinjaman */}
-                    {bolehAjukanPinjaman ? (
-                        <Link
-                            href={route('portal.pinjaman.create')}
-                            className={`group flex flex-col justify-between p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-100 hover:border-brand-green/40 shadow-sm hover:shadow-md transition-all active:scale-[0.98] ${focusRing}`}
-                        >
-                            <div className="flex items-center justify-between">
-                                <div className="w-10 h-10 rounded-xl bg-brand-green-light text-brand-green flex items-center justify-center group-hover:bg-brand-green group-hover:text-white transition-colors shadow-sm">
-                                    <Plus size={20} strokeWidth={2.5} />
-                                </div>
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-brand-green-dark border border-emerald-100">
-                                    Tersedia
+                    <div data-tour="financial-summary" className="pd-band__figures">
+                        <div className="pd-band__figure">
+                            <p className="pd-band__label">Total simpanan</p>
+                            <p className="pd-band__value">
+                                <Nominal nilai={totalSimpanan} tampil={nominalTampil} />
+                            </p>
+                            <p className="pd-band__note">Simpanan pokok dan wajib</p>
+                        </div>
+
+                        <div className="pd-band__figure pd-band__figure--end">
+                            <p className="pd-band__label">Sisa plafon</p>
+                            <p className="pd-band__value pd-band__value--accent">
+                                <Nominal nilai={limitTersedia} tampil={nominalTampil} />
+                            </p>
+                            {pengajuanLimitBerjalan ? (
+                                <p className="pd-band__note">
+                                    <CaptionLimitBerjalan
+                                        pengajuan={pengajuanLimitBerjalan}
+                                        tampil={nominalTampil}
+                                    />
+                                </p>
+                            ) : null}
+                        </div>
+                    </div>
+
+                    {limitMaksimal > 0 && (
+                        <div className="pd-band__rail">
+                            <div
+                                className="pd-rail pd-rail--night"
+                                role="img"
+                                aria-label={`Plafon terpakai ${persenPlafon} persen`}
+                            >
+                                <div
+                                    className="pd-rail__fill"
+                                    style={{ width: `${persenPlafon}%` }}
+                                />
+                            </div>
+                            <div className="pd-railcap">
+                                <span>
+                                    Terpakai <Nominal nilai={plafonTerpakai} tampil={nominalTampil} /> dari{' '}
+                                    <Nominal nilai={limitMaksimal} tampil={nominalTampil} />
                                 </span>
+                                <span>{persenPlafon}%</span>
                             </div>
-                            <div className="mt-3">
-                                <p className="text-sm font-bold text-slate-800 group-hover:text-brand-green transition-colors">
-                                    Ajukan Pinjaman
-                                </p>
-                                <p className="text-[11px] text-slate-500 mt-0.5">
-                                    Plafon siap digunakan
-                                </p>
-                            </div>
+                        </div>
+                    )}
+                </section>
+
+                {/* =================================================
+                    ACTION TOOLBAR
+                ================================================== */}
+                <nav data-tour="quick-actions" className="pd-actions" aria-label="Aksi cepat">
+                    {bolehAjukanPinjaman ? (
+                        <Link href={route('portal.pinjaman.create')} className="pd-action pd-focus">
+                            <span className="pd-action__icon">
+                                <Plus size={17} strokeWidth={2.3} />
+                            </span>
+                            <span className="pd-action__text">
+                                <span className="pd-action__label">Ajukan pinjaman</span>
+                                <span className="pd-action__state">Plafon siap digunakan</span>
+                            </span>
+                            <span className="pd-action__flag">Tersedia</span>
                         </Link>
                     ) : (
                         <PetunjukTerkunci pesan={pesanTerkunciPinjaman}>
-                            <div className="h-full flex flex-col justify-between p-3.5 sm:p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 opacity-70 cursor-not-allowed select-none">
-                                <div className="flex items-center justify-between">
-                                    <div className="w-10 h-10 rounded-xl bg-slate-200 text-slate-500 flex items-center justify-center">
-                                        <Plus size={20} />
-                                    </div>
-                                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-200 text-slate-600">
-                                        {pengajuanBerjalan
-                                            ? 'Diproses'
-                                            : limitTersedia <= 0
-                                            ? 'Plafon Rp0'
-                                            : 'Terkunci'}
-                                    </span>
-                                </div>
-                                <div className="mt-3">
-                                    <p className="text-sm font-bold text-slate-700">
-                                        Ajukan Pinjaman
-                                    </p>
-                                    <p className="text-[11px] text-slate-400 mt-0.5 truncate">
+                            <div className="pd-action" aria-disabled="true">
+                                <span className="pd-action__icon">
+                                    <Plus size={17} strokeWidth={2.3} />
+                                </span>
+                                <span className="pd-action__text">
+                                    <span className="pd-action__label">Ajukan pinjaman</span>
+                                    <span className="pd-action__state">
                                         {pengajuanBerjalan
                                             ? 'Dalam proses approval'
                                             : limitTersedia <= 0
                                             ? 'Plafon limit habis'
                                             : 'Belum memenuhi syarat'}
-                                    </p>
-                                </div>
+                                    </span>
+                                </span>
+                                <span className="pd-action__flag">
+                                    {pengajuanBerjalan
+                                        ? 'Diproses'
+                                        : limitTersedia <= 0
+                                        ? 'Plafon Rp0'
+                                        : 'Terkunci'}
+                                </span>
                             </div>
                         </PetunjukTerkunci>
                     )}
 
-                    {/* 2. Tambah Limit */}
                     {bolehAjukanLimit ? (
                         <Link
                             href={route('portal.pengajuan-limit.create')}
-                            className={`group flex flex-col justify-between p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-100 hover:border-blue-400/40 shadow-sm hover:shadow-md transition-all active:scale-[0.98] ${focusRing}`}
+                            className="pd-action pd-focus"
                         >
-                            <div className="flex items-center justify-between">
-                                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors shadow-sm">
-                                    <TrendingUp size={20} />
-                                </div>
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
-                                    Plafon
-                                </span>
-                            </div>
-                            <div className="mt-3">
-                                <p className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors">
-                                    Tambah Limit
-                                </p>
-                                <p className="text-[11px] text-slate-500 mt-0.5">
-                                    Ajukan kenaikan
-                                </p>
-                            </div>
+                            <span className="pd-action__icon">
+                                <TrendingUp size={17} strokeWidth={2.3} />
+                            </span>
+                            <span className="pd-action__text">
+                                <span className="pd-action__label">Tambah limit</span>
+                                <span className="pd-action__state">Ajukan kenaikan plafon</span>
+                            </span>
+                            <span className="pd-action__flag">Tersedia</span>
                         </Link>
                     ) : (
                         <PetunjukTerkunci pesan={pesanTerkunciLimit}>
-                            <div className="h-full flex flex-col justify-between p-3.5 sm:p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 opacity-70 cursor-not-allowed select-none">
-                                <div className="flex items-center justify-between">
-                                    <div className="w-10 h-10 rounded-xl bg-slate-200 text-slate-500 flex items-center justify-center">
-                                        <TrendingUp size={20} />
-                                    </div>
-                                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-200 text-slate-600">
-                                        {pengajuanBerjalan ? 'Diproses' : pengajuanLimitBerjalan ? 'Diproses' : 'Terkunci'}
+                            <div className="pd-action" aria-disabled="true">
+                                <span className="pd-action__icon">
+                                    <TrendingUp size={17} strokeWidth={2.3} />
+                                </span>
+                                <span className="pd-action__text">
+                                    <span className="pd-action__label">Tambah limit</span>
+                                    <span className="pd-action__state">
+                                        {pengajuanBerjalan
+                                            ? 'Pengajuan diproses'
+                                            : pengajuanLimitBerjalan
+                                            ? 'Sedang diverifikasi'
+                                            : 'Belum memenuhi'}
                                     </span>
-                                </div>
-                                <div className="mt-3">
-                                    <p className="text-sm font-bold text-slate-700">
-                                        Tambah Limit
-                                    </p>
-                                    <p className="text-[11px] text-slate-400 mt-0.5 truncate">
-                                        {pengajuanBerjalan ? 'Pengajuan pinjaman sedang diproses' : pengajuanLimitBerjalan ? 'Sedang diverifikasi' : 'Belum memenuhi'}
-                                    </p>
-                                </div>
+                                </span>
+                                <span className="pd-action__flag">
+                                    {pengajuanBerjalan || pengajuanLimitBerjalan
+                                        ? 'Diproses'
+                                        : 'Terkunci'}
+                                </span>
                             </div>
                         </PetunjukTerkunci>
                     )}
 
-                    {/* 3. Ubah Tenor */}
                     {bolehUbahTenor ? (
-                        <Link
-                            href={route('portal.percepatan.create')}
-                            className={`group flex flex-col justify-between p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-100 hover:border-amber-400/40 shadow-sm hover:shadow-md transition-all active:scale-[0.98] ${focusRing}`}
-                        >
-                            <div className="flex items-center justify-between">
-                                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center group-hover:bg-amber-600 group-hover:text-white transition-colors shadow-sm">
-                                    <Repeat size={19} />
-                                </div>
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-                                    Tersedia
-                                </span>
-                            </div>
-                            <div className="mt-3">
-                                <p className="text-sm font-bold text-slate-800 group-hover:text-amber-700 transition-colors">
-                                    Ubah Tenor
-                                </p>
-                                <p className="text-[11px] text-slate-500 mt-0.5">
-                                    Percepat / perpanjang
-                                </p>
-                            </div>
+                        <Link href={route('portal.percepatan.create')} className="pd-action pd-focus">
+                            <span className="pd-action__icon">
+                                <Repeat size={17} strokeWidth={2.2} />
+                            </span>
+                            <span className="pd-action__text">
+                                <span className="pd-action__label">Ubah tenor</span>
+                                <span className="pd-action__state">Percepat atau perpanjang</span>
+                            </span>
+                            <span className="pd-action__flag">Tersedia</span>
                         </Link>
                     ) : (
                         <PetunjukTerkunci pesan={pesanTerkunciTenor}>
-                            <div className="h-full flex flex-col justify-between p-3.5 sm:p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 opacity-70 cursor-not-allowed select-none">
-                                <div className="flex items-center justify-between">
-                                    <div className="w-10 h-10 rounded-xl bg-slate-200 text-slate-500 flex items-center justify-center">
-                                        <Repeat size={19} />
-                                    </div>
-                                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-200 text-slate-600">
+                            <div className="pd-action" aria-disabled="true">
+                                <span className="pd-action__icon">
+                                    <Repeat size={17} strokeWidth={2.2} />
+                                </span>
+                                <span className="pd-action__text">
+                                    <span className="pd-action__label">Ubah tenor</span>
+                                    <span className="pd-action__state">
                                         {pengajuanBerjalan
-                                            ? 'Diproses'
-                                            : pengajuanPercepatanMenunggu.length > 0
-                                            ? 'Diproses'
-                                            : pinjamanAktifCount === 0
-                                            ? 'Nonaktif'
-                                            : 'Sudah Dipakai'}
-                                    </span>
-                                </div>
-                                <div className="mt-3">
-                                    <p className="text-sm font-bold text-slate-700">
-                                        Ubah Tenor
-                                    </p>
-                                    <p className="text-[11px] text-slate-400 mt-0.5 truncate">
-                                        {pengajuanBerjalan
-                                            ? 'Pengajuan pinjaman sedang diproses'
+                                            ? 'Pengajuan diproses'
                                             : pengajuanPercepatanMenunggu.length > 0
                                             ? 'Sedang diproses'
                                             : pinjamanAktifCount === 0
                                             ? 'Khusus pinjaman aktif'
                                             : 'Hak telah digunakan'}
-                                    </p>
-                                </div>
+                                    </span>
+                                </span>
+                                <span className="pd-action__flag">
+                                    {pengajuanBerjalan || pengajuanPercepatanMenunggu.length > 0
+                                        ? 'Diproses'
+                                        : pinjamanAktifCount === 0
+                                        ? 'Nonaktif'
+                                        : 'Sudah dipakai'}
+                                </span>
                             </div>
                         </PetunjukTerkunci>
                     )}
 
-                    {/* 4. Tata Cara & Bantuan */}
                     <button
                         type="button"
                         onClick={() => window.dispatchEvent(new CustomEvent('open-panduan'))}
-                        className={`group text-left flex flex-col justify-between p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-100 hover:border-purple-400/40 shadow-sm hover:shadow-md transition-all active:scale-[0.98] ${focusRing}`}
+                        className="pd-action pd-focus"
                     >
-                        <div className="flex items-center justify-between">
-                            <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center group-hover:bg-purple-600 group-hover:text-white transition-colors shadow-sm">
-                                <Info size={20} />
-                            </div>
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-100">
-                                Panduan
-                            </span>
-                        </div>
-                        <div className="mt-3">
-                            <p className="text-sm font-bold text-slate-800 group-hover:text-purple-600 transition-colors">
-                                Tata Cara
-                            </p>
-                            <p className="text-[11px] text-slate-500 mt-0.5">
-                                Syarat & aturan
-                            </p>
-                        </div>
+                        <span className="pd-action__icon">
+                            <Info size={17} strokeWidth={2.2} />
+                        </span>
+                        <span className="pd-action__text">
+                            <span className="pd-action__label">Panduan</span>
+                            <span className="pd-action__state">Aturan koperasi</span>
+                        </span>
                     </button>
-                </div>
+                </nav>
 
-                {/* =====================================================
-                    PENDING APPLICATION TRACKER (3-Jenjang Visual Stepper)
-                ====================================================== */}
-                {pengajuanBerjalan && (() => {
-                    const currentStep =
-                        pengajuanBerjalan.status === 'approved_bendahara' ? 3
-                        : pengajuanBerjalan.status === 'approved_admin' ? 2
-                        : 1;
+                {/* =================================================
+                    APPLICATION TRACKER
+                ================================================== */}
+                {pengajuanBerjalan &&
+                    (() => {
+                        const currentStep =
+                            pengajuanBerjalan.status === 'approved_bendahara'
+                                ? 3
+                                : pengajuanBerjalan.status === 'approved_admin'
+                                ? 2
+                                : 1;
 
-                    return (
-                        <div data-tour="application-tracker" className="bg-white rounded-2xl border border-amber-200/90 shadow-sm p-4 sm:p-5 relative overflow-hidden">
-                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-slate-100">
-                                <div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping" />
-                                        <p className="text-xs font-bold text-amber-800 uppercase tracking-wider">
-                                            Pelacakan Pengajuan Pinjaman (Sedang Diproses)
-                                        </p>
-                                    </div>
-                                    <div className="mt-1 flex items-baseline gap-2">
-                                        <span className="text-xl sm:text-2xl font-bold text-slate-800">
-                                            <Nominal nilai={pengajuanBerjalan.nominal} tampil={nominalTampil} />
-                                        </span>
-                                        <span className="text-xs text-slate-400">
-                                            &bull; Diajukan {pengajuanBerjalan.tanggal_pengajuan}
-                                        </span>
-                                    </div>
-                                </div>
+                        const langkah = [
+                            {
+                                nama: 'Admin',
+                                selesai: currentStep > 1,
+                                kini: currentStep === 1,
+                                selesaiText: 'Selesai diverifikasi',
+                                kiniText: 'Sedang diperiksa',
+                                tungguText: '',
+                            },
+                            {
+                                nama: 'Bendahara',
+                                selesai: currentStep > 2,
+                                kini: currentStep === 2,
+                                selesaiText: 'Selesai diverifikasi',
+                                kiniText: 'Sedang diverifikasi',
+                                tungguText: 'Menunggu Admin',
+                            },
+                            {
+                                nama: 'Ketua Koperasi',
+                                selesai: false,
+                                kini: currentStep === 3,
+                                selesaiText: '',
+                                kiniText: 'Tahap persetujuan',
+                                tungguText: 'Menunggu Bendahara',
+                            },
+                        ];
 
-                                <Link
-                                    href={route('portal.riwayat')}
-                                    className={`self-start sm:self-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-600 transition-colors ${focusRing}`}
-                                >
-                                    <span>Lihat di Riwayat</span>
-                                    <ArrowRight size={13} />
-                                </Link>
-                            </div>
-
-                            {/* 3-Step Visual Stepper */}
-                            <div className="pt-5 pb-1">
-                                <div className="relative flex items-center justify-between">
-                                    {/* Connecting Bar */}
-                                    <div className="absolute left-8 right-8 top-1/2 -translate-y-1/2 h-1 bg-slate-100 -z-0">
-                                        <div
-                                            className="h-full bg-brand-green transition-all duration-500"
-                                            style={{
-                                                width: currentStep === 3 ? '100%' : currentStep === 2 ? '50%' : '0%',
-                                            }}
-                                        />
-                                    </div>
-
-                                    {/* Step 1: Pemeriksaan Admin */}
-                                    <div className="relative z-10 flex flex-col items-center">
-                                        <div
-                                            className={`w-9 h-9 rounded-full flex items-center justify-center shadow-sm transition-colors ${
-                                                currentStep > 1
-                                                    ? 'bg-brand-green text-white'
-                                                    : 'bg-amber-500 text-white ring-4 ring-amber-100 animate-pulse'
-                                            }`}
-                                        >
-                                            {currentStep > 1 ? <CheckCircle2 size={18} /> : <Clock size={16} />}
-                                        </div>
-                                        <span className="mt-2 text-xs font-bold text-slate-800 text-center">
-                                            Admin
-                                        </span>
-                                        <span className="text-[10px] text-slate-400 hidden sm:block">
-                                            {currentStep > 1 ? 'Selesai diverifikasi' : 'Sedang diperiksa'}
-                                        </span>
-                                    </div>
-
-                                    {/* Step 2: Pemeriksaan Bendahara */}
-                                    <div className="relative z-10 flex flex-col items-center">
-                                        <div
-                                            className={`w-9 h-9 rounded-full flex items-center justify-center shadow-sm transition-colors ${
-                                                currentStep > 2
-                                                    ? 'bg-brand-green text-white'
-                                                    : currentStep === 2
-                                                    ? 'bg-amber-500 text-white ring-4 ring-amber-100 animate-pulse'
-                                                    : 'bg-slate-100 text-slate-400 border border-slate-200'
-                                            }`}
-                                        >
-                                            {currentStep > 2 ? (
-                                                <CheckCircle2 size={18} />
-                                            ) : (
-                                                <Clock size={16} />
-                                            )}
-                                        </div>
-                                        <span className="mt-2 text-xs font-bold text-slate-800 text-center">
-                                            Bendahara
-                                        </span>
-                                        <span className="text-[10px] text-slate-400 hidden sm:block">
-                                            {currentStep > 2
-                                                ? 'Selesai diverifikasi'
-                                                : currentStep === 2
-                                                ? 'Sedang diverifikasi'
-                                                : 'Menunggu Admin'}
-                                        </span>
-                                    </div>
-
-                                    {/* Step 3: Persetujuan Ketua */}
-                                    <div className="relative z-10 flex flex-col items-center">
-                                        <div
-                                            className={`w-9 h-9 rounded-full flex items-center justify-center shadow-sm transition-colors ${
-                                                currentStep === 3
-                                                    ? 'bg-amber-500 text-white ring-4 ring-amber-100 animate-pulse'
-                                                    : 'bg-slate-100 text-slate-400 border border-slate-200'
-                                            }`}
-                                        >
-                                            <ShieldCheck size={16} />
-                                        </div>
-                                        <span className="mt-2 text-xs font-bold text-slate-800 text-center">
-                                            Ketua Koperasi
-                                        </span>
-                                        <span className="text-[10px] text-slate-400 hidden sm:block">
-                                            {currentStep === 3 ? 'Tahap persetujuan' : 'Menunggu Bendahara'}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                {/* Status Explanation Note */}
-                                <div className="mt-5 p-3 rounded-xl bg-amber-50/80 border border-amber-200/60 text-xs text-amber-800 flex items-center gap-2">
-                                    <Info size={15} className="shrink-0 text-amber-600" />
-                                    <span>
-                                        {statusPengajuanLabel[pengajuanBerjalan.status]?.text ?? 'Menunggu pemeriksaan'}.
-                                        {pengajuanBerjalan.nominal_disetujui_bendahara && (
-                                            <span className="font-semibold">
-                                                {' '}Usulan Bendahara:{' '}
-                                                <Nominal nilai={pengajuanBerjalan.nominal_disetujui_bendahara} tampil={nominalTampil} />
-                                            </span>
-                                        )}
-                                        {' '}&bull; Pengajuan pinjaman baru dikunci hingga proses ini selesai diputuskan.
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    );
-                })()}
-
-                {/* Not Eligible / Reason Locked Alert */}
-                {!bisaAjukan && !pengajuanBerjalan && (
-                    <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl p-4">
-                        <Info className="text-amber-600 shrink-0 mt-0.5" size={18} />
-                        <div className="min-w-0">
-                            <p className="text-sm font-bold text-amber-900">
-                                Pengajuan Pinjaman Belum Memenuhi Ketentuan
-                            </p>
-                            <p className="text-xs text-amber-800 mt-1 leading-relaxed">
-                                {alasanTidakBisa || 'Anda belum dapat mengajukan pinjaman saat ini sesuai ketentuan koperasi.'}
-                            </p>
-                            {sisaAngsuranAktif > 2 && limitTersedia > 0 && (
-                                <p className="text-xs text-amber-800 mt-1 leading-relaxed">
-                                    Sisa plafon yang belum terpakai:{' '}
-                                    <span className="font-bold">
-                                        <Nominal nilai={limitTersedia} tampil={nominalTampil} />
-                                    </span>{' '}
-                                    &mdash; baru dapat dipakai setelah angsuran tersisa maksimal 2 bulan.
-                                </p>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                {/* Limit Exhausted Alert */}
-                {limitTersedia <= 0 && bisaAjukan && !pengajuanBerjalan && (
-                    <div className="flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-2xl p-4">
-                        <Info className="text-blue-600 shrink-0 mt-0.5" size={18} />
-                        <div className="min-w-0">
-                            <p className="text-sm font-bold text-blue-900">
-                                Plafon Pinjaman Anda Saat Ini Telah Digunakan Seluruhnya (Rp0)
-                            </p>
-                            <p className="text-xs text-blue-800 mt-1 leading-relaxed">
-                                Pengajuan pinjaman baru dibuka kembali setelah angsuran berjalan tersisa maksimal 2 bulan, atau Anda dapat mengajukan penambahan limit melalui menu Tambah Limit.
-                            </p>
-                        </div>
-                    </div>
-                )}
-
-                {/* Limit Request in Progress */}
-                {pengajuanLimitBerjalan && (
-                    <AlertLimitBerjalan pengajuan={pengajuanLimitBerjalan} limitSaatIni={limitMaksimal} tampil={nominalTampil} />
-                )}
-
-                {/* Tenor Change in Progress */}
-                {pinjamanAktifCount > 0 && pengajuanPercepatanMenunggu.length > 0 && (
-                    <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl p-4">
-                        <Repeat className="text-amber-600 shrink-0 mt-0.5" size={18} />
-                        <div className="min-w-0">
-                            <p className="text-sm font-bold text-amber-800">
-                                Pengajuan Perubahan Tenor / Pelunasan Dalam Proses
-                            </p>
-                            <div className="mt-1 space-y-1">
-                                {pengajuanPercepatanMenunggu.map((pp) => (
-                                    <p key={pp.id} className="text-xs text-amber-700">
-                                        {tipeLabel[pp.tipe] || pp.tipe} &bull; Pinjaman{' '}
-                                        <Nominal nilai={pp.pinjaman_nominal} tampil={nominalTampil} /> &bull;{' '}
-                                        {pp.tenor_lama} &rarr; {pp.tenor_baru ?? 'lunas'} bulan &bull;{' '}
-                                        {statusPengajuanLabel[pp.status]?.text ?? pp.status}
-                                    </p>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Rejected Loan Alert */}
-                {pengajuanDitolak && !pengajuanBerjalan && (
-                    <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-2xl p-4">
-                        <XCircle className="text-red-600 shrink-0 mt-0.5" size={18} />
-                        <div className="min-w-0">
-                            <p className="text-sm font-bold text-red-800">
-                                Pengajuan Pinjaman <Nominal nilai={pengajuanDitolak.nominal} tampil={nominalTampil} /> Ditolak
-                            </p>
-                            {pengajuanDitolak.catatan && (
-                                <p className="text-xs text-red-700 mt-1 leading-relaxed">
-                                    Alasan: {pengajuanDitolak.catatan}
-                                </p>
-                            )}
-                            <p className="text-xs text-red-600/80 mt-1">
-                                Anda dapat mengajukan kembali pinjaman setelah menyesuaikan nominal atau persyaratan.
-                            </p>
-                        </div>
-                    </div>
-                )}
-
-                {/* =====================================================
-                    MAIN CONTENT 2-COLUMN GRID
-                ====================================================== */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-                    {/* =================================================
-                        LEFT COLUMN (Primary Operations & Activity)
-                    ================================================== */}
-                    <div className="lg:col-span-2 space-y-6">
-
-                        {/* =============================================
-                            SMART DUE-DATE TICKET
-                        ============================================== */}
-                        {pinjamanAktifCount > 0 && angsuranBerikutnya && (
-                            <Link
-                                href={route('portal.riwayat')}
-                                className={`group relative flex flex-col sm:flex-row items-stretch bg-gradient-to-r from-emerald-50/90 via-white to-emerald-50/60 border border-emerald-200/90 rounded-2xl shadow-sm hover:shadow-md transition-all overflow-hidden ${focusRing}`}
-                            >
-                                {/* Perforated ticket cutouts */}
-                                <span aria-hidden="true" className="hidden sm:block absolute -left-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-50 border-r border-emerald-200/80" />
-                                <span aria-hidden="true" className="hidden sm:block absolute -right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-50 border-l border-emerald-200/80" />
-
-                                <div className="flex items-center gap-3.5 flex-1 p-4 sm:p-5">
-                                    <div className="w-11 h-11 rounded-xl bg-brand-green text-white flex items-center justify-center shrink-0 shadow-sm">
-                                        <CalendarDays size={20} />
-                                    </div>
-                                    <div className="min-w-0">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-[10px] font-bold uppercase tracking-wider text-brand-green-dark bg-emerald-100/70 px-2 py-0.5 rounded-md">
-                                                Jatuh Tempo Berikutnya
-                                            </span>
-                                        </div>
-                                        <p className="text-sm sm:text-base font-bold text-slate-800 mt-1 truncate">
-                                            Angsuran ke-{angsuranBerikutnya.cicilan_ke}
-                                            <span className="text-slate-400 font-normal"> &bull; </span>
-                                            {angsuranBerikutnya.tanggal_jatuh_tempo}
-                                        </p>
-                                        <p className="text-xs text-slate-500 mt-0.5">
-                                            Pembayaran dipotong via payroll atau transfer rutin
-                                        </p>
-                                    </div>
-                                </div>
-
-                                {/* Ticket Perforation Divider */}
-                                <div className="flex sm:flex-col items-center justify-between sm:justify-center gap-3 px-4 py-3 sm:px-6 sm:py-4 bg-emerald-100/30 sm:border-l-2 sm:border-dashed sm:border-emerald-200/80 border-t border-dashed border-emerald-200/80 shrink-0">
+                        return (
+                            <section data-tour="application-tracker" className="pd-card">
+                                <div className="pd-card__head">
                                     <div>
-                                        <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
-                                            Total Bayar
-                                        </p>
-                                        <p className="text-base sm:text-lg font-extrabold text-slate-800 tabular-nums">
-                                            <Nominal nilai={angsuranBerikutnya.total_bayar} tampil={nominalTampil} />
-                                        </p>
-                                    </div>
-                                    <div className="flex items-center gap-1 text-xs font-semibold text-brand-green group-hover:translate-x-0.5 transition-transform">
-                                        <span>Rincian</span>
-                                        <ArrowRight size={14} />
-                                    </div>
-                                </div>
-                            </Link>
-                        )}
-
-                        {/* =============================================
-                            ACTIVE LOAN PROGRESS CARD
-                        ============================================== */}
-                        {pinjamanAktifCount > 0 ? (
-                            <div data-tour="loan-progress" className="bg-white rounded-2xl border border-slate-100 p-5 sm:p-6 shadow-sm space-y-4">
-                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                                    <div>
-                                        <div className="flex items-center gap-2">
-                                            <Wallet size={16} className="text-brand-green" />
-                                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                                Status Pinjaman Berjalan {pinjamanAktifCount > 1 ? `(${pinjamanAktifCount} Pinjaman)` : ''}
+                                        <h2>Pengajuan pinjaman sedang diproses</h2>
+                                        {pengajuanBerjalan.tanggal_pengajuan ? (
+                                            <p className="pd-card__note">
+                                                Diajukan {pengajuanBerjalan.tanggal_pengajuan}
                                             </p>
-                                        </div>
-                                        <div className="mt-1 flex items-baseline gap-2">
-                                            <span className="text-2xl font-extrabold text-slate-800 tabular-nums">
-                                                <Nominal nilai={aggregateSisaTotalBayar} tampil={nominalTampil} />
-                                            </span>
-                                            <span className="text-xs text-slate-400">
-                                                sisa pokok & bunga
-                                            </span>
-                                        </div>
+                                        ) : null}
                                     </div>
-
-                                    <div className="flex items-center gap-2">
-                                        <span className="inline-flex items-center px-3 py-1 rounded-full bg-emerald-50 text-brand-green-dark border border-emerald-200 text-xs font-bold">
-                                            {progress}% Lunas
-                                        </span>
-                                    </div>
+                                    <Link href={route('portal.riwayat')} className="pd-link pd-focus">
+                                        Lihat di riwayat
+                                        <ArrowRight size={13} />
+                                    </Link>
                                 </div>
 
-                                {/* Progress Bar */}
+                                <p className="pd-figure">
+                                    <Nominal nilai={pengajuanBerjalan.nominal} tampil={nominalTampil} />
+                                </p>
+
+                                <ol className="pd-steps">
+                                    {langkah.map((l) => {
+                                        const status = l.selesai
+                                            ? l.selesaiText
+                                            : l.kini
+                                            ? l.kiniText
+                                            : l.tungguText;
+
+                                        return (
+                                            <li
+                                                key={l.nama}
+                                                className={`pd-step ${
+                                                    l.selesai
+                                                        ? 'pd-step--done'
+                                                        : l.kini
+                                                        ? 'pd-step--now'
+                                                        : ''
+                                                }`}
+                                            >
+                                                <span className="pd-step__label">
+                                                    {l.selesai && <CheckCircle2 size={13} />}
+                                                    {l.kini && <Clock size={13} />}
+                                                    {l.nama}
+                                                </span>
+                                                <span className="pd-step__state">{status}</span>
+                                            </li>
+                                        );
+                                    })}
+                                </ol>
+
+                                <p className="pd-card__foot">
+                                    {statusPengajuanLabel[pengajuanBerjalan.status]?.text ??
+                                        'Menunggu pemeriksaan'}
+                                    .
+                                    {pengajuanBerjalan.nominal_disetujui_bendahara ? (
+                                        <>
+                                            {' '}
+                                            Usulan Bendahara{' '}
+                                            <strong>
+                                                <Nominal
+                                                    nilai={pengajuanBerjalan.nominal_disetujui_bendahara}
+                                                    tampil={nominalTampil}
+                                                />
+                                            </strong>
+                                            .
+                                        </>
+                                    ) : null}{' '}
+                                    Pengajuan pinjaman baru dikunci hingga proses ini selesai diputuskan.
+                                </p>
+                            </section>
+                        );
+                    })()}
+
+                {/* =================================================
+                    TWO COLUMNS
+                ================================================== */}
+                <div className="pd-cols">
+                    <div className="pd-col">
+                        {/* ---------------- LOAN ---------------- */}
+                        {pinjamanAktifCount > 0 ? (
+                            <section data-tour="loan-progress" className="pd-card">
+                                <div className="pd-card__head">
+                                    <div>
+                                        <h2>
+                                            Pinjaman berjalan
+                                            {pinjamanAktifCount > 1
+                                                ? ` (${pinjamanAktifCount} pinjaman)`
+                                                : ''}
+                                        </h2>
+                                        <p className="pd-card__note">Sisa pokok dan bunga</p>
+                                    </div>
+                                    <span className="pd-chip">{progress}% lunas</span>
+                                </div>
+
+                                <p className="pd-figure">
+                                    <Nominal nilai={aggregateSisaTotalBayar} tampil={nominalTampil} />
+                                </p>
+
                                 <div>
-                                    <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                                    <div className="pd-rail">
                                         <div
-                                            className="h-full bg-gradient-to-r from-brand-green to-emerald-400 rounded-full transition-all duration-500"
+                                            className="pd-rail__fill"
                                             style={{ width: `${progress}%` }}
                                         />
                                     </div>
-                                    <div className="flex items-center justify-between mt-2 text-xs text-slate-500">
+                                    <div className="pd-railcap">
                                         <span>
-                                            {aggregateTotalAngsuran - aggregateTotalSisaAngsuran} angsuran terbayar
+                                            {aggregateTotalAngsuran - aggregateTotalSisaAngsuran}{' '}
+                                            angsuran terbayar
                                         </span>
-                                        <span>
-                                            Sisa {aggregateTotalSisaAngsuran} angsuran
-                                        </span>
+                                        <span>Sisa {aggregateTotalSisaAngsuran} angsuran</span>
                                     </div>
                                 </div>
 
-                                {/* Metric Highlights */}
-                                <div className="grid grid-cols-2 gap-3 pt-2">
-                                    <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
-                                        <p className="text-xs text-slate-500">Cicilan per bulan</p>
-                                        <p className="text-sm font-bold text-slate-800 mt-0.5 tabular-nums">
+                                <dl className="pd-rows">
+                                    <div className="pd-row">
+                                        <dt>Cicilan per bulan</dt>
+                                        <dd>
                                             <Nominal nilai={cicilanPerBulan} tampil={nominalTampil} />
-                                        </p>
+                                        </dd>
                                     </div>
-                                    <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
-                                        <p className="text-xs text-slate-500">Total pinjaman awal</p>
-                                        <p className="text-sm font-bold text-slate-800 mt-0.5 tabular-nums">
+                                    <div className="pd-row">
+                                        <dt>Total pinjaman awal</dt>
+                                        <dd>
                                             <Nominal nilai={aggregateTotalNominal} tampil={nominalTampil} />
-                                        </p>
+                                        </dd>
                                     </div>
-                                </div>
+                                </dl>
 
-                                {/* Notice if used early acceleration */}
-                                {pengajuanPercepatanMenunggu.length === 0 && pinjamanAktifList.some((p) => p.sudah_pakai_percepatan) && (
-                                    <div className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200/80 text-xs text-slate-500">
-                                        <Info size={16} className="text-slate-400 shrink-0 mt-0.5" />
-                                        <p className="leading-relaxed">
-                                            Hak perubahan tenor atau pelunasan dipercepat telah digunakan pada salah satu pinjaman berjalan.
-                                        </p>
-                                    </div>
+                                {angsuranBerikutnya && (
+                                    <Link href={route('portal.riwayat')} className="pd-due pd-focus">
+                                        <span className="pd-due__icon">
+                                            <CalendarDays size={15} />
+                                        </span>
+                                        <span className="pd-due__text">
+                                            <span className="pd-due__label">Angsuran berikutnya</span>
+                                            <span className="pd-due__value">
+                                                Ke-{angsuranBerikutnya.cicilan_ke}, {' '}
+                                                {angsuranBerikutnya.tanggal_jatuh_tempo}
+                                            </span>
+                                            <span className="pd-due__note">
+                                                Dipotong via payroll atau transfer rutin
+                                            </span>
+                                        </span>
+                                        <span className="pd-due__amount">
+                                            <span className="pd-due__label">Total bayar</span>
+                                            <span>
+                                                <Nominal
+                                                    nilai={angsuranBerikutnya.total_bayar}
+                                                    tampil={nominalTampil}
+                                                />
+                                            </span>
+                                        </span>
+                                        <ArrowRight size={15} className="pd-due__go" />
+                                    </Link>
                                 )}
-                            </div>
-                        ) : !pengajuanBerjalan && (
-                            <div className="bg-white rounded-2xl border border-slate-100 p-5 sm:p-6 shadow-sm">
-                                <div className="space-y-1">
-                                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-brand-green-dark text-xs font-semibold">
-                                        <CheckCircle2 size={14} />
-                                        Bebas Beban Pinjaman
-                                    </div>
-                                    <h2 className="text-base font-bold text-slate-800">
-                                        Saat ini Anda tidak memiliki pinjaman aktif
-                                    </h2>
-                                    <p className="text-xs text-slate-500 max-w-lg leading-relaxed">
-                                        Plafon limit pinjaman Anda sebesar <Nominal nilai={limitMaksimal} tampil={nominalTampil} /> siap diajukan kapan saja melalui menu di atas sesuai kebutuhan Anda.
+
+                                {pengajuanPercepatanMenunggu.length === 0 &&
+                                    pinjamanAktifList.some((p) => p.sudah_pakai_percepatan) && (
+                                        <p className="pd-card__foot">
+                                            Hak perubahan tenor atau pelunasan dipercepat telah digunakan
+                                            pada salah satu pinjaman berjalan.
+                                        </p>
+                                    )}
+                            </section>
+                        ) : (
+                            !pengajuanBerjalan && (
+                                <section className="pd-card">
+                                    <h2>Saat ini Anda tidak memiliki pinjaman aktif</h2>
+                                    <p className="pd-card__note">
+                                        Plafon pinjaman Anda sebesar{' '}
+                                        <Nominal nilai={limitMaksimal} tampil={nominalTampil} /> siap
+                                        diajukan kapan saja melalui menu di atas sesuai kebutuhan Anda.
                                     </p>
-                                </div>
-                            </div>
+                                </section>
+                            )
                         )}
 
-                        {/* =============================================
-                            RECENT ACTIVITY FEED
-                        ============================================== */}
-                        <div data-tour="history-summary" className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
-                            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+                        {/* ---------------- ACTIVITY ---------------- */}
+                        <section data-tour="history-summary" className="pd-card">
+                            <div className="pd-card__head">
                                 <div>
-                                    <h3 className="text-sm font-bold text-slate-800">
-                                        Aktivitas Terbaru
-                                    </h3>
-                                    <p className="text-xs text-slate-400 mt-0.5">
-                                        Transaksi simpanan & pembayaran terakhir
+                                    <h2>Aktivitas terbaru</h2>
+                                    <p className="pd-card__note">
+                                        Transaksi simpanan dan pembayaran terakhir
                                     </p>
                                 </div>
-
-                                <Link
-                                    href={route('portal.riwayat')}
-                                    className={`text-xs font-semibold text-brand-green flex items-center gap-1 rounded px-2 py-1 hover:text-brand-green-dark hover:bg-emerald-50 transition-colors ${focusRing}`}
-                                >
+                                <Link href={route('portal.riwayat')} className="pd-link pd-focus">
                                     Lihat riwayat
                                     <ArrowRight size={13} />
                                 </Link>
                             </div>
 
                             {riwayatGabungan.length === 0 ? (
-                                <div className="text-center py-10 px-4">
-                                    <p className="text-sm text-slate-400">
-                                        Belum ada aktivitas transaksi.
-                                    </p>
-                                </div>
+                                <p className="pd-empty">Belum ada aktivitas transaksi.</p>
                             ) : (
-                                <div className="divide-y divide-slate-100">
+                                <ul className="pd-acts">
                                     {riwayatGabungan.map((item, i) => (
-                                        <div key={i} className="flex items-center gap-3.5 px-5 py-3.5 hover:bg-slate-50/60 transition-colors">
-                                            {item.tipe === 'simpanan' ? (
-                                                <div className="w-9 h-9 rounded-full bg-brand-green-light text-brand-green-dark flex items-center justify-center shrink-0">
-                                                    <ArrowDownCircle size={16} />
-                                                </div>
-                                            ) : (
-                                                <div className="w-9 h-9 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                                                    <CheckCircle2 size={16} />
-                                                </div>
-                                            )}
-
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-semibold text-slate-800 truncate">
-                                                    {item.label}
-                                                </p>
-                                                <p className="text-xs text-slate-400 mt-0.5">
+                                        <li key={i} className="pd-act">
+                                            <span
+                                                className={`pd-act__mark ${
+                                                    item.tipe === 'simpanan' ? 'pd-act__mark--in' : ''
+                                                }`}
+                                            >
+                                                {item.tipe === 'simpanan' ? (
+                                                    <ArrowDownCircle size={14} />
+                                                ) : (
+                                                    <CheckCircle2 size={14} />
+                                                )}
+                                            </span>
+                                            <span className="pd-act__text">
+                                                <span className="pd-act__label">{item.label}</span>
+                                                <span className="pd-act__date">
                                                     {item.tanggal_format}
-                                                </p>
-                                            </div>
-
-                                            <p className="text-sm font-bold text-slate-800 shrink-0 tabular-nums">
-                                                <Nominal nilai={item.nominal} tampil={nominalTampil} />
-                                            </p>
-                                        </div>
+                                                </span>
+                                            </span>
+                                            <span className="pd-act__amount">
+                                                <Nominal
+                                                    nilai={item.nominal}
+                                                    tampil={nominalTampil}
+                                                />
+                                            </span>
+                                        </li>
                                     ))}
-                                </div>
+                                </ul>
                             )}
-                        </div>
+                        </section>
                     </div>
 
-                    {/* =================================================
-                        RIGHT COLUMN (Financial Breakdown & Reference)
-                    ================================================== */}
-                    <div className="space-y-6 sm:space-y-8">
-
-                        {/* =============================================
-                            MINI ASSET BREAKDOWN (Rincian Simpanan)
-                        ============================================== */}
-                        <div data-tour="savings-card" className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-8 h-8 rounded-lg bg-emerald-50 text-brand-green flex items-center justify-center">
-                                        <PiggyBank size={18} />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-sm font-bold text-slate-800">Rincian Simpanan</h3>
-                                        <p className="text-[11px] text-slate-400">Total akumulasi aset</p>
-                                    </div>
+                    <div className="pd-col">
+                        {/* ---------------- SIMPANAN ---------------- */}
+                        <section data-tour="savings-card" className="pd-card">
+                            <div className="pd-card__head">
+                                <div>
+                                    <h2>Rincian simpanan</h2>
+                                    <p className="pd-card__note">
+                                        Komposisi dari total{' '}
+                                        <Nominal nilai={totalSimpanan} tampil={nominalTampil} />
+                                    </p>
                                 </div>
-                                <span className="text-sm font-extrabold text-slate-800 tabular-nums">
-                                    <Nominal nilai={totalSimpanan} tampil={nominalTampil} />
-                                </span>
                             </div>
 
-                            {/* Proportional Progress Bar */}
                             {totalSimpanan > 0 && (
-                                <div className="space-y-1.5 pt-1">
-                                    <div className="w-full h-3 rounded-full overflow-hidden flex bg-slate-100">
+                                <>
+                                    <div className="pd-split">
                                         <div
-                                            className="h-full bg-brand-green"
-                                            style={{ width: `${Math.round((simpananWajib / totalSimpanan) * 100)}%` }}
-                                            title={`Simpanan Wajib: ${Math.round((simpananWajib / totalSimpanan) * 100)}%`}
+                                            className="pd-split__wajib"
+                                            style={{
+                                                width: `${Math.round(
+                                                    (simpananWajib / totalSimpanan) * 100
+                                                )}%`,
+                                            }}
                                         />
                                         <div
-                                            className="h-full bg-brand-navy"
-                                            style={{ width: `${Math.round((simpananPokok / totalSimpanan) * 100)}%` }}
-                                            title={`Simpanan Pokok: ${Math.round((simpananPokok / totalSimpanan) * 100)}%`}
+                                            className="pd-split__pokok"
+                                            style={{
+                                                width: `${Math.round(
+                                                    (simpananPokok / totalSimpanan) * 100
+                                                )}%`,
+                                            }}
                                         />
                                     </div>
-                                    <div className="flex items-center justify-between text-[11px] text-slate-500">
-                                        <span className="flex items-center gap-1.5">
-                                            <span className="w-2 h-2 rounded-full bg-brand-green inline-block" />
-                                            Wajib ({totalSimpanan > 0 ? Math.round((simpananWajib / totalSimpanan) * 100) : 0}%)
-                                        </span>
-                                        <span className="flex items-center gap-1.5">
-                                            <span className="w-2 h-2 rounded-full bg-brand-navy inline-block" />
-                                            Pokok ({totalSimpanan > 0 ? Math.round((simpananPokok / totalSimpanan) * 100) : 0}%)
-                                        </span>
-                                    </div>
-                                </div>
+                                    <ul className="pd-legend">
+                                        <li>
+                                            <span className="pd-legend__dot" aria-hidden="true" />
+                                            Wajib
+                                        </li>
+                                        <li>
+                                            <span
+                                                className="pd-legend__dot pd-legend__dot--ink"
+                                                aria-hidden="true"
+                                            />
+                                            Pokok
+                                        </li>
+                                    </ul>
+                                </>
                             )}
 
-                            {/* Itemized Simpanan */}
-                            <div className="divide-y divide-slate-100 pt-1">
-                                <div className="py-2.5 flex items-center justify-between text-xs">
-                                    <span className="text-slate-600 font-medium">Simpanan Wajib</span>
-                                    <span className="font-bold text-slate-800 tabular-nums">
+                            <dl className="pd-rows">
+                                <div className="pd-row">
+                                    <dt>
+                                        Simpanan wajib
+                                        {totalSimpanan > 0
+                                            ? ` (${Math.round(
+                                                  (simpananWajib / totalSimpanan) * 100
+                                              )}%)`
+                                            : ''}
+                                    </dt>
+                                    <dd>
                                         <Nominal nilai={simpananWajib} tampil={nominalTampil} />
-                                    </span>
+                                    </dd>
                                 </div>
-                                <div className="py-2.5 flex items-center justify-between text-xs">
-                                    <span className="text-slate-600 font-medium">Simpanan Pokok</span>
-                                    <span className="font-bold text-slate-800 tabular-nums">
+                                <div className="pd-row">
+                                    <dt>
+                                        Simpanan pokok
+                                        {totalSimpanan > 0
+                                            ? ` (${Math.round(
+                                                  (simpananPokok / totalSimpanan) * 100
+                                              )}%)`
+                                            : ''}
+                                    </dt>
+                                    <dd>
                                         <Nominal nilai={simpananPokok} tampil={nominalTampil} />
-                                    </span>
+                                    </dd>
                                 </div>
-                            </div>
+                            </dl>
 
-                            {/* Setting Simpanan Details */}
                             {settingSimpanan.length > 0 && (
-                                <details className="group pt-2 border-t border-slate-100">
-                                    <summary className="flex items-center gap-2 cursor-pointer select-none list-none text-xs font-semibold text-slate-500 hover:text-slate-700">
-                                        <span>Ketentuan Tarif Simpanan</span>
-                                        <ChevronRight size={13} className="ml-auto group-open:rotate-90 transition-transform" />
+                                <details className="pd-details">
+                                    <summary>
+                                        Ketentuan tarif simpanan
+                                        <ChevronRight
+                                            size={14}
+                                            className="pd-details__chevron"
+                                            aria-hidden="true"
+                                        />
                                     </summary>
-                                    <div className="mt-2.5 space-y-1.5 bg-slate-50 rounded-xl p-3 border border-slate-100 text-xs">
+                                    <div className="pd-details__body">
                                         {settingSimpanan.map((s, i) => (
-                                            <div key={i} className="flex items-center justify-between text-slate-600">
+                                            <div key={i}>
                                                 <span>{s.label}</span>
-                                                <span className="font-semibold text-slate-800">{formatRupiah(s.nominal)}</span>
+                                                <strong>{formatRupiah(s.nominal)}</strong>
                                             </div>
                                         ))}
                                     </div>
                                 </details>
                             )}
-                        </div>
+                        </section>
 
-                        {/* =============================================
-                            KETENTUAN PINJAMAN & TENOR
-                        ============================================== */}
-                        <div data-tour="plafon-rules" className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-3">
-                            <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                                    <Percent size={16} />
-                                </div>
+                        {/* ---------------- PLAFON RULES ---------------- */}
+                        <section data-tour="plafon-rules" className="pd-card">
+                            <div className="pd-card__head">
                                 <div>
-                                    <h3 className="text-sm font-bold text-slate-800">Ketentuan & Plafon</h3>
-                                    <p className="text-[11px] text-slate-400">Aturan tenor pinjaman</p>
+                                    <h2>Ketentuan &amp; plafon</h2>
+                                    <p className="pd-card__note">
+                                        Batas nominal dan tenor maksimal
+                                    </p>
                                 </div>
                             </div>
 
-                            <div className="space-y-1.5 pt-1">
-                                {tabelTenor.map((t, i) => (
-                                    <div key={i} className="flex items-center justify-between text-xs py-1.5 border-b border-slate-50 last:border-0">
-                                        <span className="text-slate-500">
-                                            {formatRupiah(t.nominal_min)} &ndash; {formatRupiah(t.nominal_max)}
+                            <ol className="pd-ladder">
+                                {tanggaTenor.map((r, i) => (
+                                    <li key={i} className="pd-rung">
+                                        <span className="pd-rung__nominal">
+                                            {formatRupiah(r.nominal_min)}
+                                            {r.nominal_max > r.nominal_min ? (
+                                                <>
+                                                    {' '}
+                                                    &ndash; {formatRupiah(r.nominal_max)}
+                                                </>
+                                            ) : null}
                                         </span>
-                                        <span className="font-semibold text-slate-700 bg-slate-50 px-2 py-0.5 rounded">
-                                            Maks. {t.tenor_maksimal_bulan} bulan
+                                        <span className="pd-rung__bar" aria-hidden="true">
+                                            <span
+                                                className="pd-rung__fill"
+                                                style={{
+                                                    width: `${
+                                                        tenorTertinggi > 0
+                                                            ? Math.round(
+                                                                  (r.tenor / tenorTertinggi) * 100
+                                                              )
+                                                            : 0
+                                                    }%`,
+                                                }}
+                                            />
                                         </span>
-                                    </div>
+                                        <span className="pd-rung__tenor">
+                                            Maks. {r.tenor} bulan
+                                        </span>
+                                    </li>
                                 ))}
-                            </div>
+                            </ol>
 
-                            {/* Alur Persetujuan */}
-                            <div className="mt-3 pt-3 border-t border-slate-100 flex items-start gap-2 text-xs text-slate-500 bg-slate-50/70 rounded-xl p-3">
-                                <ShieldCheck size={16} className="text-brand-green shrink-0 mt-0.5" />
-                                <p className="leading-relaxed">
-                                    Pengajuan pinjaman diproses berjenjang: verifikasi Admin, pemeriksaan Bendahara, dan persetujuan Ketua Koperasi.
-                                </p>
-                            </div>
-                        </div>
+                            <p className="pd-card__foot">
+                                Pengajuan pinjaman diproses berjenjang: verifikasi Admin, pemeriksaan
+                                Bendahara, dan persetujuan Ketua Koperasi.
+                            </p>
+                        </section>
                     </div>
                 </div>
             </div>
