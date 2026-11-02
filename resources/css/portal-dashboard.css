@@ -1,8 +1,9 @@
-/* Hallmark · shape: app screen · genre: modern-minimal · theme: brand · redesign: full
+/* Hallmark · shape: app screen · genre: modern-minimal · theme: brand · redesign: restyle
  * paper: oklch(97.8% 0.006 152) · accent: oklch(54% 0.15 149) · display: Plus Jakarta Sans · body: Plus Jakarta Sans
- * nav: a flush account bar, the brand and the account only · signature: the plafon rail and the tenor ladder · states: default hover focus active disabled empty locked pending
+ * nav: an account bar that opens transparent over the ground and closes on scroll · signature: the plafon rail and the tenor ladder · states: default hover focus active disabled empty locked pending
  * axes: light/grotesk-sans/cool · posture: Restrained · contrast: pass · v2.0.0 */
-/* Hallmark · pre-emit critique: P5 H4 E5 S5 R3 V4 · weakest: R, four surfaces competed for the eye at once; cut the shadows, the blurred orbs and the six coloured alert boxes */
+/* Hallmark · pre-emit critique: P5 H4 E5 S5 R3 V4 · weakest: R, four surfaces competed for the eye at once; the ground now carries the light, so nothing else may glow */
+/* Hallmark · finish-review: subagent · 8 findings · 6 resolved 1 partial 1 answered — the tariff disclosure keeps its real figures, they are the cooperative's published rates, not the member's own money */
 @import url("./tokens.css");
 
 html,
@@ -54,6 +55,14 @@ html {
     text-wrap: balance;
 }
 
+/* The greeting carries a name; at phone width a balanced break splits the
+ * greeting from it, which reads as two sentences. */
+@media (max-width: 30rem) {
+    .pd h1 {
+        text-wrap: wrap;
+    }
+}
+
 .pd h2 {
     margin: 0;
     font-family: var(--font-display);
@@ -99,6 +108,7 @@ html {
     border: 1px solid var(--color-rule);
     border-radius: var(--radius-card);
     background: var(--color-paper-2);
+    box-shadow: var(--shadow-card);
 }
 
 @media (min-width: 40rem) {
@@ -143,7 +153,8 @@ html {
     gap: var(--space-md);
     padding: var(--space-md);
     border-radius: var(--radius-card);
-    background: var(--color-night);
+    background: linear-gradient(135deg, var(--color-night) 0%, var(--color-night-2) 100%);
+    box-shadow: var(--shadow-raised);
     color: var(--color-night-ink);
 }
 
@@ -174,19 +185,27 @@ html {
     align-items: center;
     justify-content: center;
     flex: none;
-    width: 44px;
-    height: 44px;
-    border-radius: 10px;
-    border: 1px solid color-mix(in oklab, var(--color-night-ink) 16%, transparent);
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    border: 1px solid color-mix(in oklab, var(--color-accent-bright) 32%, transparent);
     background: var(--color-night-2);
     color: var(--color-accent-bright);
-    font-size: var(--text-md);
+    font-size: var(--text-lg);
     font-weight: 700;
     object-fit: cover;
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-night) 60%, transparent);
 }
 
 .pd-band__id {
     min-width: 0;
+}
+
+.pd-band__meta {
+    margin: var(--space-3xs) 0 0;
+    color: var(--color-night-muted);
+    font-size: var(--text-xs);
+    line-height: 1.3;
 }
 
 .pd-band__name {
@@ -217,7 +236,7 @@ html {
     gap: var(--space-2xs);
     padding: var(--space-2xs) var(--space-xs);
     border: 1px solid color-mix(in oklab, var(--color-night-ink) 18%, transparent);
-    border-radius: var(--radius-pill);
+    border-radius: var(--radius-chip);
     font-size: var(--text-xs);
     line-height: 1.4;
 }
@@ -225,7 +244,7 @@ html {
 .pd-band__dot {
     width: 5px;
     height: 5px;
-    border-radius: 50%;
+    border-radius: var(--radius-chip);
     background: var(--color-accent-bright);
 }
 
@@ -349,7 +368,7 @@ html {
 .pd-rail {
     position: relative;
     height: 6px;
-    border-radius: var(--radius-pill);
+    border-radius: var(--radius-chip);
     background: var(--color-paper-4);
     overflow: hidden;
 }
@@ -368,6 +387,32 @@ html {
     background: var(--color-accent-bright);
 }
 
+/* Marks along the track, so a reader can judge the length without a number. */
+.pd-rail__tick {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: color-mix(in oklab, var(--color-night-ink) 28%, transparent);
+}
+
+.pd-rail--night .pd-rail__tick {
+    background: color-mix(in oklab, var(--color-night) 40%, transparent);
+}
+
+/* ---- Quiet row ---------------------------------------------------- *
+ * A fact with no action and no chrome; it never earns a card. */
+
+.pd-quiet {
+    margin: 0;
+    padding: var(--space-sm) var(--space-md);
+    border: 1px dashed var(--color-rule-2);
+    border-radius: var(--radius-well);
+    color: var(--color-muted);
+    font-size: var(--text-sm);
+    line-height: 1.5;
+}
+
 /* ---- Status strip ------------------------------------------------ *
  * One tone, one surface. Only the conditions that are true today. */
 
@@ -375,6 +420,7 @@ html {
     border: 1px solid var(--color-rule);
     border-radius: var(--radius-card);
     background: var(--color-paper-2);
+    box-shadow: var(--shadow-card);
 }
 
 .pd-status__list {
@@ -410,7 +456,7 @@ a.pd-status__link:hover {
     width: 22px;
     height: 22px;
     margin-top: var(--space-3xs);
-    border-radius: 50%;
+    border-radius: var(--radius-chip);
 }
 
 .pd-status__mark--warn {
@@ -492,6 +538,7 @@ a.pd-status__link:hover {
     border: 1px solid var(--color-rule);
     border-radius: var(--radius-well);
     background: var(--color-paper-2);
+    box-shadow: var(--shadow-card);
     color: var(--color-ink);
     text-decoration: none;
     text-align: left;
@@ -516,6 +563,7 @@ a.pd-status__link:hover {
     border-style: dashed;
     border-color: var(--color-rule);
     background: transparent;
+    box-shadow: none;
     color: var(--color-muted);
     cursor: not-allowed;
 }
@@ -525,11 +573,28 @@ a.pd-status__link:hover {
     align-items: center;
     justify-content: center;
     flex: none;
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
     border-radius: var(--radius-chip);
     background: var(--color-accent-soft);
     color: var(--color-accent-dark);
+}
+
+/* Four actions, four tones: the primary one, the request, the schedule change, the reference.
+ * Amber stays out of this row; in this system it means "in progress". */
+.pd-action--limit .pd-action__icon {
+    background: var(--color-info-soft);
+    color: var(--color-info-ink);
+}
+
+.pd-action--tenor .pd-action__icon {
+    background: var(--color-teal-soft);
+    color: var(--color-teal-ink);
+}
+
+.pd-action--guide .pd-action__icon {
+    background: var(--color-paper-4);
+    color: var(--color-ink);
 }
 
 .pd-action[aria-disabled="true"] .pd-action__icon {
@@ -881,7 +946,7 @@ html.js .pd-lock:active .pd-lock__tip {
     flex: none;
     width: 26px;
     height: 26px;
-    border-radius: 50%;
+    border-radius: var(--radius-chip);
     background: var(--color-paper-3);
     color: var(--color-ink-2);
 }
@@ -1145,7 +1210,7 @@ html.js .pd-lock:active .pd-lock__tip {
     justify-content: center;
     width: 42px;
     height: 42px;
-    border-radius: 50%;
+    border-radius: var(--radius-chip);
     background: var(--color-accent-soft);
     color: var(--color-accent-dark);
 }
