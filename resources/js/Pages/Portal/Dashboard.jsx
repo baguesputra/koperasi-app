@@ -56,7 +56,7 @@ function StatusRow({ icon: Icon, tone = 'quiet', title, body, href, linkLabel })
             {href ? (
                 <span className="pd-status__go">
                     {linkLabel}
-                    <ArrowRight size={12} />
+                    <ArrowRight size={12} aria-hidden="true" />
                 </span>
             ) : null}
         </>
@@ -82,7 +82,7 @@ function CaptionLimitBerjalan({ pengajuan, tampil }) {
 
     return (
         <span className="pd-band__pending">
-            <Clock size={11} />
+            <Clock size={11} aria-hidden="true" />
             <span>
                 {isKetua ? 'Menunggu Ketua (' : 'Menunggu Bendahara ('}
                 <Nominal nilai={pengajuan.limit_diminta} tampil={tampil} />
@@ -117,7 +117,7 @@ function KuitansiModal({ judul, rows, paragraf, catatan, onClose }) {
             <div className="pd-modal__panel">
                 <div className="pd-modal__head">
                     <span className="pd-modal__mark">
-                        <CheckCircle2 size={22} />
+                        <CheckCircle2 size={22} aria-hidden="true" />
                     </span>
                     <h2 id="konfirmasi-title">{judul}</h2>
                 </div>
@@ -152,9 +152,9 @@ const percepatanParagraf = {
     lunas_total: 'Pengajuan pelunasan dipercepat Anda telah kami terima dan diteruskan melalui WhatsApp Koperasi untuk diproses lebih lanjut.',
 };
 
-function percepatanRows(p) {
+function percepatanRows(p, tampil) {
     const rows = [
-        { label: 'Pinjaman', value: formatRupiah(p.nominal) },
+        { label: 'Pinjaman', value: <Nominal nilai={p.nominal} tampil={tampil} /> },
         { label: 'Tenor saat ini', value: `${p.tenor_lama} bulan` },
     ];
 
@@ -269,6 +269,7 @@ export default function Dashboard({
         : 'Hak perubahan tenor untuk pinjaman ini sudah digunakan.';
 
     const { auth, flash } = usePage().props;
+    const anggotaAktif = (auth?.user?.anggota_status ?? 'aktif') === 'aktif';
     const initial = anggota?.nama?.charAt(0)?.toUpperCase() ?? '?';
 
     const terkirim = flash.pinjamanTerkirim;
@@ -383,7 +384,10 @@ export default function Dashboard({
                 <KuitansiModal
                     judul="Pengajuan berhasil terkirim"
                     rows={[
-                        { label: 'Nominal pinjaman', value: formatRupiah(terkirim.nominal) },
+                        {
+                            label: 'Nominal pinjaman',
+                            value: <Nominal nilai={terkirim.nominal} tampil={nominalTampil} />,
+                        },
                         { label: 'Lama cicilan', value: `${terkirim.tenor_bulan} bulan` },
                     ]}
                     paragraf="Pengajuan pinjaman Anda telah kami terima dan diteruskan melalui WhatsApp Koperasi untuk diproses lebih lanjut."
@@ -395,7 +399,7 @@ export default function Dashboard({
             {percepatanTerkirim && !percepatanDitutup && (
                 <KuitansiModal
                     judul="Pengajuan berhasil terkirim"
-                    rows={percepatanRows(percepatanTerkirim)}
+                    rows={percepatanRows(percepatanTerkirim, nominalTampil)}
                     paragraf={percepatanParagraf[percepatanTerkirim.tipe]}
                     catatan="Selama masa peninjauan, tidak ada tindakan yang perlu Anda lakukan. Apabila pengajuan disetujui, pemberitahuan beserta bulan mulai berlakunya akan disampaikan melalui WhatsApp. Status pengajuan juga dapat dipantau pada halaman Beranda."
                     onClose={() => setPercepatanDitutup(true)}
@@ -406,8 +410,14 @@ export default function Dashboard({
                 <KuitansiModal
                     judul="Pengajuan berhasil terkirim"
                     rows={[
-                        { label: 'Limit yang diminta', value: formatRupiah(limitTerkirim.diminta) },
-                        { label: 'Limit Anda saat ini', value: formatRupiah(limitTerkirim.limit_saat_ini) },
+                        {
+                            label: 'Limit yang diminta',
+                            value: <Nominal nilai={limitTerkirim.diminta} tampil={nominalTampil} />,
+                        },
+                        {
+                            label: 'Limit Anda saat ini',
+                            value: <Nominal nilai={limitTerkirim.limit_saat_ini} tampil={nominalTampil} />,
+                        },
                     ]}
                     paragraf="Pengajuan penambahan limit Anda telah kami terima dan diteruskan melalui WhatsApp Koperasi untuk diproses lebih lanjut."
                     catatan="Penambahan limit diverifikasi Bendahara lalu diputuskan final oleh Ketua Koperasi. Nominal final bisa berbeda dari yang Anda minta. Apabila disetujui, pemberitahuan akan disampaikan melalui WhatsApp dan limit baru aktif untuk pinjaman berikutnya."
@@ -589,13 +599,18 @@ export default function Dashboard({
                             <div className="pd-band__id">
                                 <p className="pd-band__name">{anggota.nama}</p>
                                 <p className="pd-band__nip">NIP {anggota.no_karyawan}</p>
+                                {anggota.lama_keanggotaan_label ? (
+                                    <p className="pd-band__meta">
+                                        Anggota {anggota.lama_keanggotaan_label}
+                                    </p>
+                                ) : null}
                             </div>
                         </div>
 
                         <div className="pd-band__tools">
                             <span className="pd-band__badge">
                                 <span className="pd-band__dot" aria-hidden="true" />
-                                Aktif
+                                {anggotaAktif ? 'Aktif' : 'Nonaktif'}
                             </span>
                             <button
                                 data-tour="privacy-toggle"
@@ -605,7 +620,7 @@ export default function Dashboard({
                                 title={nominalTampil ? 'Sembunyikan saldo' : 'Tampilkan saldo'}
                                 className="pd-band__toggle pd-focus"
                             >
-                                {nominalTampil ? <EyeOff size={13} /> : <Eye size={13} />}
+                                {nominalTampil ? <EyeOff size={13} aria-hidden="true" /> : <Eye size={13} aria-hidden="true" />}
                                 <span className="pd-band__toggle-label">
                                     {nominalTampil ? 'Sembunyikan' : 'Tampilkan'}
                                 </span>
@@ -649,6 +664,9 @@ export default function Dashboard({
                                     className="pd-rail__fill"
                                     style={{ width: `${persenPlafon}%` }}
                                 />
+                                <span className="pd-rail__tick" style={{ left: '25%' }} aria-hidden="true" />
+                                <span className="pd-rail__tick" style={{ left: '50%' }} aria-hidden="true" />
+                                <span className="pd-rail__tick" style={{ left: '75%' }} aria-hidden="true" />
                             </div>
                             <div className="pd-railcap">
                                 <span>
@@ -668,7 +686,7 @@ export default function Dashboard({
                     {bolehAjukanPinjaman ? (
                         <Link href={route('portal.pinjaman.create')} className="pd-action pd-focus">
                             <span className="pd-action__icon">
-                                <Plus size={17} strokeWidth={2.3} />
+                                <Plus size={17} strokeWidth={2.3} aria-hidden="true" />
                             </span>
                             <span className="pd-action__text">
                                 <span className="pd-action__label">Ajukan pinjaman</span>
@@ -680,7 +698,7 @@ export default function Dashboard({
                         <PetunjukTerkunci pesan={pesanTerkunciPinjaman}>
                             <div className="pd-action" aria-disabled="true">
                                 <span className="pd-action__icon">
-                                    <Plus size={17} strokeWidth={2.3} />
+                                    <Plus size={17} strokeWidth={2.3} aria-hidden="true" />
                                 </span>
                                 <span className="pd-action__text">
                                     <span className="pd-action__label">Ajukan pinjaman</span>
@@ -706,10 +724,10 @@ export default function Dashboard({
                     {bolehAjukanLimit ? (
                         <Link
                             href={route('portal.pengajuan-limit.create')}
-                            className="pd-action pd-focus"
+                            className="pd-action pd-action--limit pd-focus"
                         >
                             <span className="pd-action__icon">
-                                <TrendingUp size={17} strokeWidth={2.3} />
+                                <TrendingUp size={17} strokeWidth={2.3} aria-hidden="true" />
                             </span>
                             <span className="pd-action__text">
                                 <span className="pd-action__label">Tambah limit</span>
@@ -719,9 +737,9 @@ export default function Dashboard({
                         </Link>
                     ) : (
                         <PetunjukTerkunci pesan={pesanTerkunciLimit}>
-                            <div className="pd-action" aria-disabled="true">
+                            <div className="pd-action pd-action--limit" aria-disabled="true">
                                 <span className="pd-action__icon">
-                                    <TrendingUp size={17} strokeWidth={2.3} />
+                                    <TrendingUp size={17} strokeWidth={2.3} aria-hidden="true" />
                                 </span>
                                 <span className="pd-action__text">
                                     <span className="pd-action__label">Tambah limit</span>
@@ -743,9 +761,12 @@ export default function Dashboard({
                     )}
 
                     {bolehUbahTenor ? (
-                        <Link href={route('portal.percepatan.create')} className="pd-action pd-focus">
+                        <Link
+                            href={route('portal.percepatan.create')}
+                            className="pd-action pd-action--tenor pd-focus"
+                        >
                             <span className="pd-action__icon">
-                                <Repeat size={17} strokeWidth={2.2} />
+                                <Repeat size={17} strokeWidth={2.2} aria-hidden="true" />
                             </span>
                             <span className="pd-action__text">
                                 <span className="pd-action__label">Ubah tenor</span>
@@ -755,9 +776,9 @@ export default function Dashboard({
                         </Link>
                     ) : (
                         <PetunjukTerkunci pesan={pesanTerkunciTenor}>
-                            <div className="pd-action" aria-disabled="true">
+                            <div className="pd-action pd-action--tenor" aria-disabled="true">
                                 <span className="pd-action__icon">
-                                    <Repeat size={17} strokeWidth={2.2} />
+                                    <Repeat size={17} strokeWidth={2.2} aria-hidden="true" />
                                 </span>
                                 <span className="pd-action__text">
                                     <span className="pd-action__label">Ubah tenor</span>
@@ -785,10 +806,10 @@ export default function Dashboard({
                     <button
                         type="button"
                         onClick={() => window.dispatchEvent(new CustomEvent('open-panduan'))}
-                        className="pd-action pd-focus"
+                        className="pd-action pd-action--guide pd-focus"
                     >
                         <span className="pd-action__icon">
-                            <Info size={17} strokeWidth={2.2} />
+                            <Info size={17} strokeWidth={2.2} aria-hidden="true" />
                         </span>
                         <span className="pd-action__text">
                             <span className="pd-action__label">Panduan</span>
@@ -849,7 +870,7 @@ export default function Dashboard({
                                     </div>
                                     <Link href={route('portal.riwayat')} className="pd-link pd-focus">
                                         Lihat di riwayat
-                                        <ArrowRight size={13} />
+                                        <ArrowRight size={13} aria-hidden="true" />
                                     </Link>
                                 </div>
 
@@ -877,8 +898,8 @@ export default function Dashboard({
                                                 }`}
                                             >
                                                 <span className="pd-step__label">
-                                                    {l.selesai && <CheckCircle2 size={13} />}
-                                                    {l.kini && <Clock size={13} />}
+                                                    {l.selesai && <CheckCircle2 size={13} aria-hidden="true" />}
+                                                    {l.kini && <Clock size={13} aria-hidden="true" />}
                                                     {l.nama}
                                                 </span>
                                                 <span className="pd-step__state">{status}</span>
@@ -969,7 +990,7 @@ export default function Dashboard({
                                 {angsuranBerikutnya && (
                                     <Link href={route('portal.riwayat')} className="pd-due pd-focus">
                                         <span className="pd-due__icon">
-                                            <CalendarDays size={15} />
+                                            <CalendarDays size={15} aria-hidden="true" />
                                         </span>
                                         <span className="pd-due__text">
                                             <span className="pd-due__label">Angsuran berikutnya</span>
@@ -990,7 +1011,7 @@ export default function Dashboard({
                                                 />
                                             </span>
                                         </span>
-                                        <ArrowRight size={15} className="pd-due__go" />
+                                        <ArrowRight size={15} className="pd-due__go" aria-hidden="true" />
                                     </Link>
                                 )}
 
@@ -1004,14 +1025,11 @@ export default function Dashboard({
                             </section>
                         ) : (
                             !pengajuanBerjalan && (
-                                <section className="pd-card">
-                                    <h2>Saat ini Anda tidak memiliki pinjaman aktif</h2>
-                                    <p className="pd-card__note">
-                                        Plafon pinjaman Anda sebesar{' '}
-                                        <Nominal nilai={limitMaksimal} tampil={nominalTampil} /> siap
-                                        diajukan kapan saja melalui menu di atas sesuai kebutuhan Anda.
-                                    </p>
-                                </section>
+                                <p className="pd-quiet">
+                                    Belum ada pinjaman aktif. Plafon{' '}
+                                    <Nominal nilai={limitMaksimal} tampil={nominalTampil} /> siap
+                                    diajukan lewat menu di atas.
+                                </p>
                             )
                         )}
 
@@ -1026,7 +1044,7 @@ export default function Dashboard({
                                 </div>
                                 <Link href={route('portal.riwayat')} className="pd-link pd-focus">
                                     Lihat riwayat
-                                    <ArrowRight size={13} />
+                                    <ArrowRight size={13} aria-hidden="true" />
                                 </Link>
                             </div>
 
@@ -1042,9 +1060,9 @@ export default function Dashboard({
                                                 }`}
                                             >
                                                 {item.tipe === 'simpanan' ? (
-                                                    <ArrowDownCircle size={14} />
+                                                    <ArrowDownCircle size={14} aria-hidden="true" />
                                                 ) : (
-                                                    <CheckCircle2 size={14} />
+                                                    <CheckCircle2 size={14} aria-hidden="true" />
                                                 )}
                                             </span>
                                             <span className="pd-act__text">
