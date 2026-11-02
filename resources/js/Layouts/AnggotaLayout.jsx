@@ -22,7 +22,17 @@ export default function AnggotaLayout({
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [showPanduan, setShowPanduan] = useState(false);
     const [avatarGagal, setAvatarGagal] = useState(false);
+    const [navSolid, setNavSolid] = useState(false);
     const dropdownRef = useRef(null);
+
+    useEffect(() => {
+        function handleScroll() {
+            setNavSolid(window.scrollY > 8);
+        }
+        handleScroll();
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
 
     useEffect(() => {
         function handleClickOutside(e) {
@@ -70,10 +80,14 @@ export default function AnggotaLayout({
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col">
+        <div className="shell flex flex-col">
             {/* One flush bar for the portal: identity left, the account right. */}
             {!hideNavbar && (
-            <header className={`shell-nav ${mobileTitle ? 'hidden sm:block' : ''}`}>
+            <header
+                className={`shell-nav shell-nav--veil ${navSolid ? 'is-solid' : ''} ${
+                    mobileTitle ? 'hidden sm:block' : ''
+                }`}
+            >
                 <div className="shell-nav__inner">
                     <Link href={route('portal.dashboard')} className="shell-brand">
                         <img
@@ -113,7 +127,16 @@ export default function AnggotaLayout({
                                     {initial}
                                 </span>
                             )}
-                            <span className="shell-account__name">{firstName}</span>
+                            <span className="shell-account__id">
+                                <span className="shell-account__name">{firstName}</span>
+                                <span
+                                    className={`shell-account__status${
+                                        anggotaAktif ? '' : ' shell-account__status--off'
+                                    }`}
+                                >
+                                    {anggotaAktif ? 'Anggota aktif' : 'Anggota nonaktif'}
+                                </span>
+                            </span>
                             <ChevronDown
                                 size={14}
                                 aria-hidden="true"
@@ -124,7 +147,9 @@ export default function AnggotaLayout({
                         {dropdownOpen && (
                             <div className="shell-menu" role="menu">
                                 <div className="shell-menu__head">
-                                    <p className="shell-menu__status">Anggota aktif</p>
+                                    <p className="shell-menu__status">
+                                        {anggotaAktif ? 'Anggota aktif' : 'Anggota nonaktif'}
+                                    </p>
                                     <p className="shell-menu__name">{auth.user?.name}</p>
                                     <p className="shell-menu__email">{auth.user?.email}</p>
                                 </div>
