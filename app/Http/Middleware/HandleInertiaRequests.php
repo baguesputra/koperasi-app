@@ -75,40 +75,37 @@ class HandleInertiaRequests extends Middleware
                     return [];
                 }
 
-                // Cache notifikasi berjangka 15 detik agar navigasi antar halaman instan
-                return Cache::remember("user_notif_{$user->id}", 15, function () use ($permissions) {
-                    $notifications = [];
+                $notifications = [];
 
-                    if ($permissions->contains('pinjaman.tinjau-admin')) {
-                        $notifications['menunggu_tinjauan_admin'] = Pinjaman::where('status', 'diajukan')->count();
-                    }
+                if ($permissions->contains('pinjaman.tinjau-admin')) {
+                    $notifications['menunggu_tinjauan_admin'] = Pinjaman::where('status', 'diajukan')->count();
+                }
 
-                    if ($permissions->contains('pinjaman.tinjau-bendahara')) {
-                        $notifications['menunggu_tinjauan_bendahara'] = Pinjaman::where('status', 'approved_admin')->count();
-                        $notifications['menunggu_perubahan_tenor_bendahara'] = PengajuanPercepatan::where('status', 'diajukan')->count();
-                    }
+                if ($permissions->contains('pinjaman.tinjau-bendahara')) {
+                    $notifications['menunggu_tinjauan_bendahara'] = Pinjaman::where('status', 'approved_admin')->count();
+                    $notifications['menunggu_perubahan_tenor_bendahara'] = PengajuanPercepatan::where('status', 'diajukan')->count();
+                }
 
-                    if ($permissions->contains('limit.tinjau-bendahara')) {
-                        $notifications['menunggu_pengajuan_limit_bendahara'] = PengajuanLimit::where('status', 'diajukan')->count();
-                    }
+                if ($permissions->contains('limit.tinjau-bendahara')) {
+                    $notifications['menunggu_pengajuan_limit_bendahara'] = PengajuanLimit::where('status', 'diajukan')->count();
+                }
 
-                    if ($permissions->contains('pinjaman.approve-ketua')) {
-                        $notifications['menunggu_approval_ketua'] = Pinjaman::where('status', 'approved_bendahara')
-                            ->where('cair_oleh_bendahara', false)
-                            ->count();
-                        $notifications['menunggu_perubahan_tenor_ketua'] = PengajuanPercepatan::where('status', 'approved_bendahara')->count();
-                    }
+                if ($permissions->contains('pinjaman.approve-ketua')) {
+                    $notifications['menunggu_approval_ketua'] = Pinjaman::where('status', 'approved_bendahara')
+                        ->where('cair_oleh_bendahara', false)
+                        ->count();
+                    $notifications['menunggu_perubahan_tenor_ketua'] = PengajuanPercepatan::where('status', 'approved_bendahara')->count();
+                }
 
-                    if ($permissions->contains('limit.approve-ketua')) {
-                        $notifications['menunggu_pengajuan_limit'] = PengajuanLimit::where('status', 'approved_bendahara')->count();
-                    }
+                if ($permissions->contains('limit.approve-ketua')) {
+                    $notifications['menunggu_pengajuan_limit'] = PengajuanLimit::where('status', 'approved_bendahara')->count();
+                }
 
-                    if ($permissions->contains('aktivasi.approve-ketua')) {
-                        $notifications['menunggu_aktivasi'] = PengajuanAktivasi::where('status', 'diajukan')->count();
-                    }
+                if ($permissions->contains('aktivasi.approve-ketua')) {
+                    $notifications['menunggu_aktivasi'] = PengajuanAktivasi::where('status', 'diajukan')->count();
+                }
 
-                    return $notifications;
-                });
+                return $notifications;
             },
         ];
     }
