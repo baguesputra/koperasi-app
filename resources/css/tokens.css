@@ -67,8 +67,8 @@
   --color-ground: oklch(94.6% 0.006 250);
   --color-glow-a: oklch(86.0% 0.105 168);
   --color-glow-b: oklch(66.0% 0.085 200);
-  --glow-a-alpha: 100%;
-  --glow-b-alpha: 100%;
+  --glow-a-alpha: 35%;
+  --glow-b-alpha: 28%;
   --shadow-card: 0 1px 2px color-mix(in oklab, var(--color-ink) 6%, transparent);
   --shadow-raised: 0 2px 6px color-mix(in oklab, var(--color-ink) 7%, transparent);
 

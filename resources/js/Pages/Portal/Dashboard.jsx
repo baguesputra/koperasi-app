@@ -582,7 +582,7 @@ export default function Dashboard({
                     MEMBER BAND — the signature
                 ================================================== */}
                 <section data-tour="member-card" className="pd-band">
-                    <div className="pd-band__top">
+                    <div className="pd-band__main">
                         <div className="pd-band__who">
                             {anggota.foto_url && !fotoGagal ? (
                                 <img
@@ -606,27 +606,6 @@ export default function Dashboard({
                                 ) : null}
                             </div>
                         </div>
-
-                        <div className="pd-band__tools">
-                            <span className="pd-band__badge">
-                                <span className="pd-band__dot" aria-hidden="true" />
-                                {anggotaAktif ? 'Aktif' : 'Nonaktif'}
-                            </span>
-                            <button
-                                data-tour="privacy-toggle"
-                                type="button"
-                                onClick={alihNominal}
-                                aria-label={nominalTampil ? 'Sembunyikan saldo' : 'Tampilkan saldo'}
-                                title={nominalTampil ? 'Sembunyikan saldo' : 'Tampilkan saldo'}
-                                className="pd-band__toggle pd-focus"
-                            >
-                                {nominalTampil ? <EyeOff size={13} aria-hidden="true" /> : <Eye size={13} aria-hidden="true" />}
-                                <span className="pd-band__toggle-label">
-                                    {nominalTampil ? 'Sembunyikan' : 'Tampilkan'}
-                                </span>
-                            </button>
-                        </div>
-                    </div>
 
                     <div data-tour="financial-summary" className="pd-band__figures">
                         <div className="pd-band__figure">
@@ -652,6 +631,7 @@ export default function Dashboard({
                             ) : null}
                         </div>
                     </div>
+                    </div>
 
                     {limitMaksimal > 0 && (
                         <div className="pd-band__rail">
@@ -674,6 +654,25 @@ export default function Dashboard({
                                     <Nominal nilai={limitMaksimal} tampil={nominalTampil} />
                                 </span>
                                 <span>{persenPlafon}%</span>
+                            </div>
+                            <div className="pd-band__tools">
+                                <span className="pd-band__badge">
+                                    <span className="pd-band__dot" aria-hidden="true" />
+                                    {anggotaAktif ? 'Aktif' : 'Nonaktif'}
+                                </span>
+                                <button
+                                    data-tour="privacy-toggle"
+                                    type="button"
+                                    onClick={alihNominal}
+                                    aria-label={nominalTampil ? 'Sembunyikan saldo' : 'Tampilkan saldo'}
+                                    title={nominalTampil ? 'Sembunyikan saldo' : 'Tampilkan saldo'}
+                                    className="pd-band__toggle pd-focus"
+                                >
+                                    {nominalTampil ? <EyeOff size={13} aria-hidden="true" /> : <Eye size={13} aria-hidden="true" />}
+                                    <span className="pd-band__toggle-label">
+                                        {nominalTampil ? 'Sembunyikan' : 'Tampilkan'}
+                                    </span>
+                                </button>
                             </div>
                         </div>
                     )}

@@ -168,20 +168,17 @@ html {
     color: var(--color-night-ink);
 }
 
-/* Circuit traces etched into the band: short runs with elbow bends and
- * round pads hugging the left and right edges, over a curved perspective
- * grid clipped to the centre-right, the way the reference layers its card.
- * Runs sit at the top, middle and bottom of the viewBox so a trace stays
- * visible whether the wide desktop band crops to its middle or a narrow
- * phone card shows the full height. The centre stays clear so the traces
- * frame the figures instead of crossing them. */
+/* Texture etched into the band: a broad warped perspective field pinned to
+ * the upper right and fine circuit runs hugging the left, right and bottom
+ * edges — the layering of the reference card. The field and traces stay at
+ * the corners, so the middle stays clear for the figures. */
 .pd-band::before {
     content: "";
     position: absolute;
     inset: 0;
     pointer-events: none;
     background:
-        url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 360' preserveAspectRatio='xMidYMid slice'><defs><clipPath id='gc'><path d='M400 0H640V170C540 160 450 120 400 0Z'/></clipPath></defs><g clip-path='url(%23gc)' fill='none' stroke='%237fdcc9' stroke-width='0.6' opacity='0.19'><path d='M330 0C360 120 370 240 400 360'/><path d='M370 0C400 120 410 240 440 360'/><path d='M410 0C435 120 445 240 480 360'/><path d='M450 0C470 120 480 240 520 360'/><path d='M490 0C505 120 515 240 560 360'/><path d='M530 0C540 120 550 240 600 360'/><path d='M570 0C580 120 590 240 640 360'/><path d='M610 0C620 120 630 240 680 360'/><path d='M300 40C400 55 520 65 640 70'/><path d='M300 80C400 95 520 105 640 110'/><path d='M310 120C410 135 520 145 640 150'/><path d='M315 160C415 175 525 185 640 190'/><path d='M320 200C420 215 530 225 640 230'/><path d='M325 240C425 255 535 265 640 270'/><path d='M330 280C430 295 540 305 640 310'/><path d='M335 320C435 335 545 345 640 350'/></g><g fill='none' stroke='%237fdcc9' stroke-width='1.0' opacity='0.28'><path d='M470 150H560L590 180H640'/><path d='M500 184H585L615 210H680'/><path d='M0 258H60L92 290H190L220 320H300'/><path d='M470 216H560L592 248H672'/><path d='M500 254H590L622 286H702'/><path d='M0 296H48L80 322H170'/></g><g fill='none' stroke='%237fdcc9' stroke-width='1.3' opacity='0.28'><circle cx='560' cy='150' r='4.5'/><circle cx='590' cy='180' r='4.5'/><circle cx='60' cy='258' r='4.5'/><circle cx='220' cy='320' r='4.5'/><circle cx='560' cy='216' r='4.5'/><circle cx='592' cy='248' r='4.5'/><circle cx='48' cy='296' r='4.5'/></g></svg>") center / cover no-repeat;
+        url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 360' preserveAspectRatio='xMidYMid slice'><defs><clipPath id='gc'><path d='M505 0H640V150C585 140 540 90 505 0Z'/></clipPath></defs><g clip-path='url(%23gc)' fill='none' stroke='%237fdcc9' stroke-width='0.55' opacity='0.15'><path d='M505 0C525 35 555 70 595 100C615 114 630 124 640 129'/><path d='M528 0C545 32 573 63 608 89C623 100 633 108 640 112'/><path d='M550 0C565 28 590 55 620 78C630 86 636 92 640 95'/><path d='M572 0C584 23 607 47 630 65'/><path d='M594 0C604 18 622 38 636 49'/><path d='M505 0C535 40 575 75 615 100C628 108 636 113 640 116'/><path d='M518 28C546 62 582 92 616 113'/><path d='M533 55C558 83 590 107 618 123'/><path d='M550 82C572 104 598 120 620 131'/></g><g fill='none' stroke='%237fdcc9' stroke-width='1.0' opacity='0.26'><path d='M0 40V150L22 172V250'/><path d='M0 78V140L14 154V220'/><path d='M630 40V150L608 172V250'/><path d='M614 78V142L600 156V220'/><path d='M0 330H120L148 352H260'/><path d='M380 332H500L528 352H620'/></g><g fill='none' stroke='%237fdcc9' stroke-width='1.3' opacity='0.26'><circle cx='22' cy='172' r='4.5'/><circle cx='608' cy='172' r='4.5'/><circle cx='148' cy='352' r='4.5'/><circle cx='528' cy='352' r='4.5'/></g></svg>") center / cover no-repeat;
 }
 
 @media (min-width: 40rem) {
@@ -191,19 +188,30 @@ html {
     }
 }
 
-.pd-band__top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-sm);
-    flex-wrap: wrap;
+.pd-band__main {
+    display: grid;
+    gap: var(--space-md);
+}
+
+@media (min-width: 40rem) {
+    .pd-band__main {
+        grid-template-columns: minmax(0, 7fr) minmax(0, 12fr);
+        align-items: center;
+        gap: var(--space-xl);
+    }
 }
 
 .pd-band__who {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: var(--space-sm);
     min-width: 0;
+}
+
+@media (min-width: 40rem) {
+    .pd-band__who {
+        gap: var(--space-md);
+    }
 }
 
 .pd-band__avatar {
@@ -211,8 +219,8 @@ html {
     align-items: center;
     justify-content: center;
     flex: none;
-    width: 56px;
-    height: 56px;
+    width: 64px;
+    height: 64px;
     border-radius: 50%;
     border: 2px solid color-mix(in oklab, var(--color-accent-bright) 46%, transparent);
     background: var(--color-night-2);
@@ -220,6 +228,19 @@ html {
     font-size: var(--text-lg);
     font-weight: 700;
     object-fit: cover;
+}
+
+@media (min-width: 40rem) {
+    .pd-band__avatar {
+        width: 120px;
+        height: 120px;
+        border-width: 3px;
+        font-size: var(--text-display);
+    }
+
+    .pd-band__name {
+        font-size: var(--text-section);
+    }
 }
 
 .pd-band__id {
@@ -320,7 +341,8 @@ html {
 @media (min-width: 40rem) {
     .pd-band__figures {
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-        gap: var(--space-lg);
+        align-items: start;
+        gap: var(--space-md) var(--space-lg);
     }
 
     .pd-band__figure--end {
@@ -367,9 +389,24 @@ html {
 
 .pd-band__rail {
     display: grid;
-    gap: var(--space-2xs);
+    gap: var(--space-xs);
     padding-top: var(--space-sm);
     border-top: 1px solid color-mix(in oklab, var(--color-night-ink) 14%, transparent);
+}
+
+.pd-band__rail .pd-band__tools {
+    margin-top: var(--space-2xs);
+}
+
+@media (min-width: 40rem) {
+    .pd-band__rail .pd-railcap {
+        grid-column: 1 / -1;
+    }
+
+    .pd-band__rail .pd-band__tools {
+        grid-column: 1 / -1;
+        justify-content: flex-end;
+    }
 }
 
 .pd-railcap {
