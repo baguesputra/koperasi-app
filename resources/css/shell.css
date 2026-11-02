@@ -1,0 +1,416 @@
+/* Hallmark · component: nav shell · genre: modern-minimal · theme: brand · states: default hover focus active · contrast: pass · v2.0.0 */
+/* Hallmark · pre-emit critique: P4 H5 E5 S5 R4 V4 · weakest: P, the floating pill carried nothing but identity; a bar that only says who you are belongs at the edge, not over the content */
+/* Hallmark · answered preview: the shell exists only behind a session, so the dev server is its preview; a standalone page would have to fake usePage() */
+
+/* ------------------------------------------------------------------ *
+ * The portal shell: one flush bar, shared by the dashboard and the
+ * sub-page header, so the phone never carries two chromes.
+ * ------------------------------------------------------------------ */
+
+.shell-nav {
+    position: sticky;
+    top: 0;
+    z-index: var(--z-sticky-nav);
+    padding-top: env(safe-area-inset-top);
+    border-bottom: var(--rule-hair) solid var(--color-rule);
+    background: var(--color-paper-2);
+}
+
+.shell-nav__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    width: 100%;
+    max-width: var(--container);
+    min-height: 3.25rem;
+    margin-inline: auto;
+    padding-inline: var(--gutter);
+}
+
+@media (min-width: 40rem) {
+    .shell-nav__inner {
+        min-height: 3.5rem;
+    }
+}
+
+/* ---- Brand -------------------------------------------------------- */
+
+.shell-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    min-height: 2.75rem;
+    border-radius: var(--radius-well);
+    color: var(--color-ink);
+    text-decoration: none;
+}
+
+.shell-brand:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+}
+
+.shell-brand__logo {
+    width: 1.5rem;
+    height: 1.5rem;
+    object-fit: contain;
+}
+
+.shell-brand__name {
+    font-family: var(--font-display);
+    font-size: var(--text-sm);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+}
+
+/* ---- Account ------------------------------------------------------- */
+
+.shell-account {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    min-height: 2.75rem;
+    padding: var(--space-2xs) var(--space-xs) var(--space-2xs) var(--space-2xs);
+    border: var(--rule-hair) solid transparent;
+    border-radius: var(--radius-well);
+    background: transparent;
+    color: var(--color-ink-2);
+    cursor: pointer;
+    transition: background-color var(--dur-micro) var(--ease-out);
+}
+
+.shell-account:hover,
+.shell-account[aria-expanded='true'] {
+    background: var(--color-paper-3);
+}
+
+.shell-account:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+}
+
+.shell-account__name {
+    display: none;
+    max-width: 9rem;
+    overflow: hidden;
+    color: var(--color-ink);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (min-width: 40rem) {
+    .shell-account__name {
+        display: block;
+    }
+}
+
+.shell-account__avatar-slot {
+    position: relative;
+    flex-shrink: 0;
+    width: 1.75rem;
+    height: 1.75rem;
+}
+
+.shell-account__avatar,
+.shell-account__initial {
+    flex-shrink: 0;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: var(--radius-pill);
+}
+
+/* The initial sits underneath, so a slow photo never leaves an empty ring. */
+.shell-account__avatar {
+    position: absolute;
+    inset: 0;
+    border: var(--rule-hair) solid var(--color-rule);
+    object-fit: cover;
+}
+
+.shell-account__initial {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-accent);
+    color: var(--color-accent-ink);
+    font-size: var(--text-label);
+    font-weight: 700;
+}
+
+.shell-account__chevron {
+    flex-shrink: 0;
+    color: var(--color-faint);
+    transition: transform var(--dur-micro) var(--ease-out);
+}
+
+.shell-account[aria-expanded='true'] .shell-account__chevron {
+    color: var(--color-muted);
+    transform: rotate(180deg);
+}
+
+/* ---- Menu ---------------------------------------------------------- */
+
+.shell-menu {
+    position: absolute;
+    top: calc(100% + var(--space-xs));
+    right: 0;
+    z-index: var(--z-dropdown);
+    width: 17rem;
+    max-width: calc(var(--container) - (2 * var(--gutter)));
+    overflow: hidden;
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-card);
+    background: var(--color-paper-2);
+    color: var(--color-ink);
+    animation: shell-menu-in var(--dur-micro) var(--ease-out);
+}
+
+@keyframes shell-menu-in {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+}
+
+.shell-menu__head {
+    padding: var(--space-sm) var(--space-md);
+    border-bottom: var(--rule-hair) solid var(--color-rule);
+}
+
+.shell-menu__status {
+    color: var(--color-muted);
+    font-size: var(--text-label);
+}
+
+.shell-menu__name,
+.shell-menu__email {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.shell-menu__name {
+    margin-top: var(--space-3xs);
+    font-size: var(--text-sm);
+    font-weight: 700;
+}
+
+.shell-menu__email {
+    color: var(--color-muted);
+    font-size: var(--text-xs);
+}
+
+.shell-menu__group {
+    padding-block: var(--space-2xs);
+}
+
+.shell-menu__foot {
+    padding: var(--space-2xs);
+    border-top: var(--rule-hair) solid var(--color-rule);
+}
+
+.shell-menu__item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    width: 100%;
+    min-height: 2.5rem;
+    padding: var(--space-xs) var(--space-md);
+    border: 0;
+    background: transparent;
+    color: var(--color-ink-2);
+    font-size: var(--text-sm);
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+        background-color var(--dur-micro) var(--ease-out),
+        color var(--dur-micro) var(--ease-out);
+}
+
+.shell-menu__item svg {
+    flex-shrink: 0;
+    color: var(--color-faint);
+}
+
+.shell-menu__item:hover {
+    background: var(--color-paper-3);
+    color: var(--color-ink);
+}
+
+/* The logout submit enters this state while the form posts. */
+.shell-menu__item:disabled {
+    background: transparent;
+    color: var(--color-faint);
+    cursor: not-allowed;
+}
+
+.shell-menu__item:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: -2px;
+}
+
+.shell-menu__item--accent svg {
+    color: var(--color-accent);
+}
+
+.shell-menu__item--danger {
+    border-radius: var(--radius-well);
+    color: var(--color-danger-ink);
+}
+
+.shell-menu__item--danger svg {
+    color: inherit;
+}
+
+.shell-menu__item--danger:hover {
+    background: var(--color-danger-soft);
+    color: var(--color-danger-ink);
+}
+
+/* ---- Bottom tabs --------------------------------------------------- */
+
+.shell-tabs {
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: var(--z-sticky-nav);
+    padding-bottom: calc(env(safe-area-inset-bottom) + var(--space-2xs));
+    border-top: var(--rule-hair) solid var(--color-rule);
+    background: var(--color-paper-2);
+}
+
+.shell-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2xs);
+    min-height: 3.25rem;
+    padding-block: var(--space-2xs);
+    border-radius: var(--radius-well);
+    color: var(--color-muted);
+    font-size: var(--text-label);
+    font-weight: 600;
+    line-height: 1;
+    text-decoration: none;
+    transition: color var(--dur-micro) var(--ease-out);
+}
+
+.shell-tab:hover {
+    color: var(--color-ink-2);
+}
+
+.shell-tab:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: -2px;
+}
+
+.shell-tab[aria-current='page'] {
+    color: var(--color-accent-dark);
+    font-weight: 700;
+}
+
+.shell-fab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3xs);
+    width: 4rem;
+    height: 4rem;
+    margin-top: -2.5rem;
+    border-radius: var(--radius-pill);
+    background: var(--color-accent);
+    color: var(--color-accent-ink);
+    box-shadow:
+        0 0 0 4px var(--color-paper-2),
+        0 6px 16px color-mix(in oklab, var(--color-night) 20%, transparent);
+    text-decoration: none;
+    transition:
+        background-color var(--dur-micro) var(--ease-out),
+        transform var(--dur-micro) var(--ease-out);
+}
+
+.shell-fab:hover {
+    background: var(--color-accent-dark);
+}
+
+.shell-fab:active {
+    transform: scale(0.96);
+}
+
+.shell-fab:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 3px;
+}
+
+.shell-fab__label {
+    font-size: var(--text-label);
+    font-weight: 700;
+    line-height: 1;
+}
+
+/* ---- Sub-page header ----------------------------------------------- */
+
+.shell-back {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border: var(--rule-hair) solid transparent;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--color-ink-2);
+    cursor: pointer;
+    transition:
+        background-color var(--dur-micro) var(--ease-out),
+        color var(--dur-micro) var(--ease-out);
+}
+
+.shell-back:hover {
+    background: var(--color-paper-3);
+    color: var(--color-ink);
+}
+
+.shell-back:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+}
+
+.shell-sub-title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--color-ink);
+    font-size: var(--text-sm);
+    font-weight: 700;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .shell-account,
+    .shell-account__chevron,
+    .shell-menu__item,
+    .shell-tab,
+    .shell-fab,
+    .shell-back {
+        transition: none;
+    }
+
+    .shell-menu {
+        animation: none;
+    }
+
+    .shell-fab:active {
+        transform: none;
+    }
+}

@@ -1,4 +1,5 @@
 @import url("./portal-dashboard.css");
+@import url("./shell.css");
 
 @tailwind base;
 @tailwind components;
