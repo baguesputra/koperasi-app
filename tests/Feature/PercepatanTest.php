@@ -43,6 +43,30 @@ class PercepatanTest extends TestCase
         return $pinjaman;
     }
 
+    public function test_anggota_dengan_pinjaman_diproses_tidak_bisa_akses_atau_mengirim_perubahan_tenor(): void
+    {
+        $pinjamanAktif = $this->buatPinjamanAktif();
+        Pinjaman::create([
+            'anggota_id' => $pinjamanAktif->anggota_id,
+            'pengaju_user_id' => $pinjamanAktif->pengaju_user_id,
+            'nominal' => 1_000_000,
+            'tenor_bulan' => 3,
+            'persentase_bunga' => 1,
+            'status' => 'diajukan',
+            'tanggal_pengajuan' => now(),
+        ]);
+        $this->actingAs($pinjamanAktif->anggota->user);
+
+        $this->get(route('portal.percepatan.create'))->assertForbidden();
+        $this->post(route('portal.percepatan.store'), [
+            'tipe' => 'perpanjang',
+            'tenor_baru' => 6,
+            'keterangan' => 'Mohon perpanjangan jadwal cicilan.',
+        ])->assertSessionHasErrors(['tipe' => 'Pengajuan pinjaman sedang diproses.']);
+
+        $this->assertDatabaseMissing('pengajuan_percepatan', ['pinjaman_id' => $pinjamanAktif->id]);
+    }
+
     public function test_validasi_pengajuan_ditolak_service(): void
     {
         // Pinjaman belum aktif → tolak

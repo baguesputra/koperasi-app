@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Portal;
 
 use App\Http\Controllers\Controller;
+use App\Models\Pinjaman;
 use App\Services\Pinjaman\PercepatanPinjamanService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -16,6 +17,11 @@ class PercepatanController extends Controller
     public function create(): Response
     {
         $anggota = auth()->user()->anggota;
+
+        if ($this->hasLoanApplicationInProgress($anggota->id)) {
+            abort(403, 'Pengajuan pinjaman sedang diproses.');
+        }
+
         $pinjaman = $anggota->pinjamanAktif();
 
         return Inertia::render('Portal/Percepatan/Create', [
@@ -37,7 +43,13 @@ class PercepatanController extends Controller
             'keterangan' => ['required', 'string', 'min:10', 'max:500'],
         ]);
 
-        $pinjaman = auth()->user()->anggota->pinjamanAktif();
+        $anggota = auth()->user()->anggota;
+
+        if ($this->hasLoanApplicationInProgress($anggota->id)) {
+            return back()->withErrors(['tipe' => 'Pengajuan pinjaman sedang diproses.']);
+        }
+
+        $pinjaman = $anggota->pinjamanAktif();
 
         if (! $pinjaman) {
             return back()->withErrors(['tipe' => 'Anda tidak memiliki pinjaman aktif.']);
@@ -59,6 +71,13 @@ class PercepatanController extends Controller
             ]);
     }
 
+    private function hasLoanApplicationInProgress(int $anggotaId): bool
+    {
+        return Pinjaman::where('anggota_id', $anggotaId)
+            ->whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara'])
+            ->exists();
+    }
+
     public function preview(Request $request)
     {
         $request->validate([
@@ -66,7 +85,13 @@ class PercepatanController extends Controller
             'tenor_baru' => ['required_if:tipe,percepat,perpanjang', 'nullable', 'integer', 'min:1'],
         ]);
 
-        $pinjaman = auth()->user()->anggota->pinjamanAktif();
+        $anggota = auth()->user()->anggota;
+
+        if ($this->hasLoanApplicationInProgress($anggota->id)) {
+            return response()->json(['message' => 'Pengajuan pinjaman sedang diproses.'], 422);
+        }
+
+        $pinjaman = $anggota->pinjamanAktif();
 
         if (! $pinjaman) {
             return response()->json(['message' => 'Tidak ada pinjaman aktif.'], 422);

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Portal;
 
 use App\Http\Controllers\Controller;
 use App\Models\PengajuanLimit;
+use App\Models\Pinjaman;
 use App\Services\Pinjaman\EligibilitasPinjamanService;
 use App\Services\Pinjaman\PengajuanLimitService;
 use Illuminate\Http\Request;
@@ -21,6 +22,10 @@ class PengajuanLimitController extends Controller
     public function create(): Response
     {
         $anggota = auth()->user()->anggota;
+
+        if ($this->hasLoanApplicationInProgress($anggota->id)) {
+            abort(403, 'Pengajuan pinjaman sedang diproses.');
+        }
 
         $riwayat = PengajuanLimit::where('anggota_id', $anggota->id)
             ->latest('tanggal_pengajuan')
@@ -44,6 +49,13 @@ class PengajuanLimitController extends Controller
         ]);
     }
 
+    private function hasLoanApplicationInProgress(int $anggotaId): bool
+    {
+        return Pinjaman::where('anggota_id', $anggotaId)
+            ->whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara'])
+            ->exists();
+    }
+
     public function store(Request $request)
     {
         $request->validate([
@@ -52,6 +64,10 @@ class PengajuanLimitController extends Controller
         ]);
 
         $anggota = auth()->user()->anggota;
+
+        if ($this->hasLoanApplicationInProgress($anggota->id)) {
+            return back()->withErrors(['limit_diminta' => 'Pengajuan pinjaman sedang diproses.']);
+        }
 
         try {
             $this->service->ajukan(

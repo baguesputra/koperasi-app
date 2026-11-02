@@ -16,6 +16,14 @@ class PercepatanPinjamanService
 
     public function ajukan(Pinjaman $pinjaman, string $tipe, ?int $tenorBaru, string $keterangan): PengajuanPercepatan
     {
+        $adaPinjamanBerjalan = $pinjaman->anggota->pinjaman()
+            ->whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara'])
+            ->exists();
+
+        if ($adaPinjamanBerjalan) {
+            throw new RuntimeException('Pengajuan pinjaman sedang diproses.');
+        }
+
         if ($pinjaman->status !== 'aktif') {
             throw new RuntimeException('Hanya pinjaman aktif yang bisa diajukan perubahan.');
         }

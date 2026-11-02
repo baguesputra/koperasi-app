@@ -584,6 +584,7 @@ export default function Dashboard({
                         </Link>
                     ) : (
                         <div
+                            title={pengajuanBerjalan ? 'Pengajuan pinjaman sedang diproses' : undefined}
                             className="flex flex-col justify-between p-3.5 sm:p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 opacity-70 cursor-not-allowed select-none"
                         >
                             <div className="flex items-center justify-between">
@@ -591,7 +592,7 @@ export default function Dashboard({
                                     <TrendingUp size={20} />
                                 </div>
                                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-200 text-slate-600">
-                                    {pengajuanLimitBerjalan ? 'Diproses' : 'Terkunci'}
+                                    {pengajuanBerjalan ? 'Diproses' : pengajuanLimitBerjalan ? 'Diproses' : 'Terkunci'}
                                 </span>
                             </div>
                             <div className="mt-3">
@@ -599,7 +600,7 @@ export default function Dashboard({
                                     Tambah Limit
                                 </p>
                                 <p className="text-[11px] text-slate-400 mt-0.5 truncate">
-                                    {pengajuanLimitBerjalan ? 'Sedang diverifikasi' : 'Belum memenuhi'}
+                                    {pengajuanBerjalan ? 'Pengajuan pinjaman sedang diproses' : pengajuanLimitBerjalan ? 'Sedang diverifikasi' : 'Belum memenuhi'}
                                 </p>
                             </div>
                         </div>
@@ -630,6 +631,7 @@ export default function Dashboard({
                         </Link>
                     ) : (
                         <div
+                            title={pengajuanBerjalan ? 'Pengajuan pinjaman sedang diproses' : undefined}
                             className="flex flex-col justify-between p-3.5 sm:p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 opacity-70 cursor-not-allowed select-none"
                         >
                             <div className="flex items-center justify-between">
@@ -637,7 +639,9 @@ export default function Dashboard({
                                     <Repeat size={19} />
                                 </div>
                                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-200 text-slate-600">
-                                    {pengajuanPercepatanMenunggu.length > 0
+                                    {pengajuanBerjalan
+                                        ? 'Diproses'
+                                        : pengajuanPercepatanMenunggu.length > 0
                                         ? 'Diproses'
                                         : pinjamanAktifCount === 0
                                         ? 'Nonaktif'
@@ -649,7 +653,9 @@ export default function Dashboard({
                                     Ubah Tenor
                                 </p>
                                 <p className="text-[11px] text-slate-400 mt-0.5 truncate">
-                                    {pengajuanPercepatanMenunggu.length > 0
+                                    {pengajuanBerjalan
+                                        ? 'Pengajuan pinjaman sedang diproses'
+                                        : pengajuanPercepatanMenunggu.length > 0
                                         ? 'Sedang diproses'
                                         : pinjamanAktifCount === 0
                                         ? 'Khusus pinjaman aktif'

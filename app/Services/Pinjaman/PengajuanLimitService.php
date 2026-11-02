@@ -23,6 +23,14 @@ class PengajuanLimitService
             throw new RuntimeException('Anda masih memiliki pengajuan limit yang belum diproses.');
         }
 
+        $adaPinjamanBerjalan = $anggota->pinjaman()
+            ->whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara'])
+            ->exists();
+
+        if ($adaPinjamanBerjalan) {
+            throw new RuntimeException('Pengajuan pinjaman sedang diproses.');
+        }
+
         $limitSaatIni = $this->eligibilitas->limitMaksimal($anggota);
 
         if ($limitDiminta <= $limitSaatIni) {

@@ -36,7 +36,7 @@ class DashboardController extends Controller
 
         // Pengajuan yang sedang berjalan (belum aktif/lunas/ditolak)
         $pengajuanBerjalan = $anggota->pinjaman()
-            ->whereIn('status', ['diajukan', 'approved_bendahara'])
+            ->whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara'])
             ->latest('tanggal_pengajuan')
             ->first();
 
@@ -48,7 +48,7 @@ class DashboardController extends Controller
 
         // Pengajuan limit yang sedang berjalan (diajukan ke bendahara / approved_bendahara ke ketua)
         $pengajuanLimitBerjalan = $anggota->pengajuanLimit()
-            ->whereIn('status', ['diajukan', 'approved_bendahara'])
+            ->whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara'])
             ->latest('tanggal_pengajuan')
             ->first();
 
@@ -146,7 +146,7 @@ class DashboardController extends Controller
         $pengajuanPercepatanMenunggu = $pinjamanAktifIds->isEmpty()
             ? collect()
             : PengajuanPercepatan::whereIn('pinjaman_id', $pinjamanAktifIds)
-                ->whereIn('status', ['diajukan', 'approved_bendahara'])
+                ->whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara'])
                 ->with('pinjaman:id,nominal,tenor_bulan')
                 ->orderBy('tanggal_pengajuan')
                 ->get()

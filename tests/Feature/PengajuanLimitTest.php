@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\AuditLog;
 use App\Models\PengajuanLimit;
+use App\Models\Pinjaman;
 use App\Services\Pinjaman\PengajuanLimitService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\MembuatDataUji;
@@ -60,6 +61,29 @@ class PengajuanLimitTest extends TestCase
             'anggota_id' => $anggota->id,
             'limit_diminta' => 15_000_000,
         ]);
+    }
+
+    public function test_anggota_dengan_pinjaman_diproses_tidak_bisa_akses_atau_mengirim_pengajuan_limit(): void
+    {
+        $anggota = $this->buatAnggota();
+        Pinjaman::create([
+            'anggota_id' => $anggota->id,
+            'pengaju_user_id' => $anggota->user_id,
+            'nominal' => 2_000_000,
+            'tenor_bulan' => 4,
+            'persentase_bunga' => 1,
+            'status' => 'diajukan',
+            'tanggal_pengajuan' => now(),
+        ]);
+        $this->actingAs($anggota->user);
+
+        $this->get(route('portal.pengajuan-limit.create'))->assertForbidden();
+        $this->post(route('portal.pengajuan-limit.store'), [
+            'limit_diminta' => 8_000_000,
+            'keterangan' => 'Menaikkan limit untuk kebutuhan modal.',
+        ])->assertSessionHasErrors(['limit_diminta' => 'Pengajuan pinjaman sedang diproses.']);
+
+        $this->assertDatabaseMissing('pengajuan_limit', ['anggota_id' => $anggota->id]);
     }
 
     public function test_tidak_boleh_dua_pengajuan_berjalan(): void
