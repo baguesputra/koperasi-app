@@ -116,6 +116,26 @@ function CaptionLimitBerjalan({ pengajuan, tampil, limitMaksimal }) {
     );
 }
 
+function PetunjukTerkunci({ pesan, children }) {
+    return (
+        <div className="group relative outline-none" tabIndex={0} aria-label={pesan || undefined}>
+            {children}
+            {pesan && (
+                <div
+                    role="tooltip"
+                    className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-44 max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-lg bg-slate-800 px-2.5 py-2 text-center text-[11px] font-medium leading-snug text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100 group-active:opacity-100"
+                >
+                    {pesan}
+                    <span
+                        aria-hidden="true"
+                        className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-slate-800"
+                    />
+                </div>
+            )}
+        </div>
+    );
+}
+
 function KuitansiModal({ judul, rows, paragraf, catatan, onClose }) {
     return (
         <div
@@ -256,8 +276,8 @@ export default function Dashboard({
     // 1. Ajukan Pinjaman: hanya bisa jika eligibel, tidak ada pengajuan berjalan, limit tersedia > 0, dan tidak ada resign shortfall.
     const bolehAjukanPinjaman = Boolean(bisaAjukan && !pengajuanBerjalan && limitTersedia > 0 && !resignMenunggu);
 
-    // 2. Tambah Limit: hanya bisa jika eligibel, tidak sedang ada pengajuan limit berjalan, dan tidak ada resign shortfall.
-    const bolehAjukanLimit = Boolean(bisaAjukan && !pengajuanLimitBerjalan && !resignMenunggu);
+    // 2. Tambah Limit: hanya bisa jika eligibel, tidak ada pengajuan pinjaman/limit berjalan, dan tidak ada resign shortfall.
+    const bolehAjukanLimit = Boolean(bisaAjukan && !pengajuanBerjalan && !pengajuanLimitBerjalan && !resignMenunggu);
 
     // 3. Ubah Tenor: hanya jika ada pinjaman aktif, tidak ada pengajuan berjalan, tidak ada percepatan menunggu, dan ada pinjaman yang belum pakai percepatan.
     const bolehUbahTenor = Boolean(
@@ -266,6 +286,31 @@ export default function Dashboard({
         pengajuanPercepatanMenunggu.length === 0 &&
         pinjamanAktifList.some((p) => !p.sudah_pakai_percepatan)
     );
+
+    // Alasan penolakan per menu, dipakai sebagai tooltip saat kartu nonaktif.
+    const pesanTerkunciPinjaman = pengajuanBerjalan
+        ? 'Pengajuan pinjaman Anda masih diproses.'
+        : limitTersedia <= 0
+        ? 'Plafon pinjaman Anda sudah terpakai penuh.'
+        : resignMenunggu
+        ? 'Penyelesaian resign Anda sedang menunggu pelunasan.'
+        : alasanTidakBisa || 'Belum memenuhi ketentuan koperasi.';
+
+    const pesanTerkunciLimit = pengajuanBerjalan
+        ? 'Pengajuan kenaikan limit tidak dapat dibuat karena pengajuan pinjaman Anda masih diproses.'
+        : pengajuanLimitBerjalan
+        ? 'Pengajuan kenaikan limit Anda masih diverifikasi.'
+        : resignMenunggu
+        ? 'Penyelesaian resign Anda sedang menunggu pelunasan.'
+        : alasanTidakBisa || 'Belum memenuhi ketentuan pengajuan limit.';
+
+    const pesanTerkunciTenor = pengajuanBerjalan
+        ? 'Perubahan tenor tidak dapat diajukan karena pengajuan pinjaman Anda masih diproses.'
+        : pengajuanPercepatanMenunggu.length > 0
+        ? 'Pengajuan perubahan tenor Anda masih diproses.'
+        : pinjamanAktifCount === 0
+        ? 'Ubah tenor hanya tersedia saat Anda memiliki pinjaman aktif.'
+        : 'Hak perubahan tenor untuk pinjaman ini sudah digunakan.';
 
     const { auth, flash } = usePage().props;
     const initial = anggota?.nama?.charAt(0)?.toUpperCase() ?? '?';
@@ -529,34 +574,34 @@ export default function Dashboard({
                             </div>
                         </Link>
                     ) : (
-                        <div
-                            className="flex flex-col justify-between p-3.5 sm:p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 opacity-70 cursor-not-allowed select-none"
-                        >
-                            <div className="flex items-center justify-between">
-                                <div className="w-10 h-10 rounded-xl bg-slate-200 text-slate-500 flex items-center justify-center">
-                                    <Plus size={20} />
+                        <PetunjukTerkunci pesan={pesanTerkunciPinjaman}>
+                            <div className="h-full flex flex-col justify-between p-3.5 sm:p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 opacity-70 cursor-not-allowed select-none">
+                                <div className="flex items-center justify-between">
+                                    <div className="w-10 h-10 rounded-xl bg-slate-200 text-slate-500 flex items-center justify-center">
+                                        <Plus size={20} />
+                                    </div>
+                                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-200 text-slate-600">
+                                        {pengajuanBerjalan
+                                            ? 'Diproses'
+                                            : limitTersedia <= 0
+                                            ? 'Plafon Rp0'
+                                            : 'Terkunci'}
+                                    </span>
                                 </div>
-                                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-200 text-slate-600">
-                                    {pengajuanBerjalan
-                                        ? 'Diproses'
-                                        : limitTersedia <= 0
-                                        ? 'Plafon Rp0'
-                                        : 'Terkunci'}
-                                </span>
+                                <div className="mt-3">
+                                    <p className="text-sm font-bold text-slate-700">
+                                        Ajukan Pinjaman
+                                    </p>
+                                    <p className="text-[11px] text-slate-400 mt-0.5 truncate">
+                                        {pengajuanBerjalan
+                                            ? 'Dalam proses approval'
+                                            : limitTersedia <= 0
+                                            ? 'Plafon limit habis'
+                                            : 'Belum memenuhi syarat'}
+                                    </p>
+                                </div>
                             </div>
-                            <div className="mt-3">
-                                <p className="text-sm font-bold text-slate-700">
-                                    Ajukan Pinjaman
-                                </p>
-                                <p className="text-[11px] text-slate-400 mt-0.5 truncate">
-                                    {pengajuanBerjalan
-                                        ? 'Dalam proses approval'
-                                        : limitTersedia <= 0
-                                        ? 'Plafon limit habis'
-                                        : 'Belum memenuhi syarat'}
-                                </p>
-                            </div>
-                        </div>
+                        </PetunjukTerkunci>
                     )}
 
                     {/* 2. Tambah Limit */}
@@ -583,27 +628,26 @@ export default function Dashboard({
                             </div>
                         </Link>
                     ) : (
-                        <div
-                            title={pengajuanBerjalan ? 'Pengajuan pinjaman sedang diproses' : undefined}
-                            className="flex flex-col justify-between p-3.5 sm:p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 opacity-70 cursor-not-allowed select-none"
-                        >
-                            <div className="flex items-center justify-between">
-                                <div className="w-10 h-10 rounded-xl bg-slate-200 text-slate-500 flex items-center justify-center">
-                                    <TrendingUp size={20} />
+                        <PetunjukTerkunci pesan={pesanTerkunciLimit}>
+                            <div className="h-full flex flex-col justify-between p-3.5 sm:p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 opacity-70 cursor-not-allowed select-none">
+                                <div className="flex items-center justify-between">
+                                    <div className="w-10 h-10 rounded-xl bg-slate-200 text-slate-500 flex items-center justify-center">
+                                        <TrendingUp size={20} />
+                                    </div>
+                                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-200 text-slate-600">
+                                        {pengajuanBerjalan ? 'Diproses' : pengajuanLimitBerjalan ? 'Diproses' : 'Terkunci'}
+                                    </span>
                                 </div>
-                                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-200 text-slate-600">
-                                    {pengajuanBerjalan ? 'Diproses' : pengajuanLimitBerjalan ? 'Diproses' : 'Terkunci'}
-                                </span>
+                                <div className="mt-3">
+                                    <p className="text-sm font-bold text-slate-700">
+                                        Tambah Limit
+                                    </p>
+                                    <p className="text-[11px] text-slate-400 mt-0.5 truncate">
+                                        {pengajuanBerjalan ? 'Pengajuan pinjaman sedang diproses' : pengajuanLimitBerjalan ? 'Sedang diverifikasi' : 'Belum memenuhi'}
+                                    </p>
+                                </div>
                             </div>
-                            <div className="mt-3">
-                                <p className="text-sm font-bold text-slate-700">
-                                    Tambah Limit
-                                </p>
-                                <p className="text-[11px] text-slate-400 mt-0.5 truncate">
-                                    {pengajuanBerjalan ? 'Pengajuan pinjaman sedang diproses' : pengajuanLimitBerjalan ? 'Sedang diverifikasi' : 'Belum memenuhi'}
-                                </p>
-                            </div>
-                        </div>
+                        </PetunjukTerkunci>
                     )}
 
                     {/* 3. Ubah Tenor */}
@@ -630,39 +674,38 @@ export default function Dashboard({
                             </div>
                         </Link>
                     ) : (
-                        <div
-                            title={pengajuanBerjalan ? 'Pengajuan pinjaman sedang diproses' : undefined}
-                            className="flex flex-col justify-between p-3.5 sm:p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 opacity-70 cursor-not-allowed select-none"
-                        >
-                            <div className="flex items-center justify-between">
-                                <div className="w-10 h-10 rounded-xl bg-slate-200 text-slate-500 flex items-center justify-center">
-                                    <Repeat size={19} />
+                        <PetunjukTerkunci pesan={pesanTerkunciTenor}>
+                            <div className="h-full flex flex-col justify-between p-3.5 sm:p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 opacity-70 cursor-not-allowed select-none">
+                                <div className="flex items-center justify-between">
+                                    <div className="w-10 h-10 rounded-xl bg-slate-200 text-slate-500 flex items-center justify-center">
+                                        <Repeat size={19} />
+                                    </div>
+                                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-200 text-slate-600">
+                                        {pengajuanBerjalan
+                                            ? 'Diproses'
+                                            : pengajuanPercepatanMenunggu.length > 0
+                                            ? 'Diproses'
+                                            : pinjamanAktifCount === 0
+                                            ? 'Nonaktif'
+                                            : 'Sudah Dipakai'}
+                                    </span>
                                 </div>
-                                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-200 text-slate-600">
-                                    {pengajuanBerjalan
-                                        ? 'Diproses'
-                                        : pengajuanPercepatanMenunggu.length > 0
-                                        ? 'Diproses'
-                                        : pinjamanAktifCount === 0
-                                        ? 'Nonaktif'
-                                        : 'Sudah Dipakai'}
-                                </span>
+                                <div className="mt-3">
+                                    <p className="text-sm font-bold text-slate-700">
+                                        Ubah Tenor
+                                    </p>
+                                    <p className="text-[11px] text-slate-400 mt-0.5 truncate">
+                                        {pengajuanBerjalan
+                                            ? 'Pengajuan pinjaman sedang diproses'
+                                            : pengajuanPercepatanMenunggu.length > 0
+                                            ? 'Sedang diproses'
+                                            : pinjamanAktifCount === 0
+                                            ? 'Khusus pinjaman aktif'
+                                            : 'Hak telah digunakan'}
+                                    </p>
+                                </div>
                             </div>
-                            <div className="mt-3">
-                                <p className="text-sm font-bold text-slate-700">
-                                    Ubah Tenor
-                                </p>
-                                <p className="text-[11px] text-slate-400 mt-0.5 truncate">
-                                    {pengajuanBerjalan
-                                        ? 'Pengajuan pinjaman sedang diproses'
-                                        : pengajuanPercepatanMenunggu.length > 0
-                                        ? 'Sedang diproses'
-                                        : pinjamanAktifCount === 0
-                                        ? 'Khusus pinjaman aktif'
-                                        : 'Hak telah digunakan'}
-                                </p>
-                            </div>
-                        </div>
+                        </PetunjukTerkunci>
                     )}
 
                     {/* 4. Tata Cara & Bantuan */}
