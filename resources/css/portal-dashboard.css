@@ -151,10 +151,12 @@ html {
 /* The band carries its own light: a teal bloom at the centre over a deep edge,
  * the same way the reference builds its member card. */
 .pd-band {
+    position: relative;
     display: grid;
     gap: var(--space-md);
     padding: var(--space-md);
     border-radius: var(--radius-band);
+    overflow: clip;
     background:
         radial-gradient(
             62% 96% at 50% 46%,
@@ -164,6 +166,22 @@ html {
         );
     box-shadow: var(--shadow-raised);
     color: var(--color-night-ink);
+}
+
+/* Circuit traces etched into the band: short runs with elbow bends and
+ * round pads hugging the left and right edges, over a curved perspective
+ * grid clipped to the centre-right, the way the reference layers its card.
+ * Runs sit at the top, middle and bottom of the viewBox so a trace stays
+ * visible whether the wide desktop band crops to its middle or a narrow
+ * phone card shows the full height. The centre stays clear so the traces
+ * frame the figures instead of crossing them. */
+.pd-band::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 360' preserveAspectRatio='xMidYMid slice'><defs><clipPath id='gc'><path d='M400 0H640V170C540 160 450 120 400 0Z'/></clipPath></defs><g clip-path='url(%23gc)' fill='none' stroke='%237fdcc9' stroke-width='0.6' opacity='0.19'><path d='M330 0C360 120 370 240 400 360'/><path d='M370 0C400 120 410 240 440 360'/><path d='M410 0C435 120 445 240 480 360'/><path d='M450 0C470 120 480 240 520 360'/><path d='M490 0C505 120 515 240 560 360'/><path d='M530 0C540 120 550 240 600 360'/><path d='M570 0C580 120 590 240 640 360'/><path d='M610 0C620 120 630 240 680 360'/><path d='M300 40C400 55 520 65 640 70'/><path d='M300 80C400 95 520 105 640 110'/><path d='M310 120C410 135 520 145 640 150'/><path d='M315 160C415 175 525 185 640 190'/><path d='M320 200C420 215 530 225 640 230'/><path d='M325 240C425 255 535 265 640 270'/><path d='M330 280C430 295 540 305 640 310'/><path d='M335 320C435 335 545 345 640 350'/></g><g fill='none' stroke='%237fdcc9' stroke-width='1.0' opacity='0.28'><path d='M470 150H560L590 180H640'/><path d='M500 184H585L615 210H680'/><path d='M0 258H60L92 290H190L220 320H300'/><path d='M470 216H560L592 248H672'/><path d='M500 254H590L622 286H702'/><path d='M0 296H48L80 322H170'/></g><g fill='none' stroke='%237fdcc9' stroke-width='1.3' opacity='0.28'><circle cx='560' cy='150' r='4.5'/><circle cx='590' cy='180' r='4.5'/><circle cx='60' cy='258' r='4.5'/><circle cx='220' cy='320' r='4.5'/><circle cx='560' cy='216' r='4.5'/><circle cx='592' cy='248' r='4.5'/><circle cx='48' cy='296' r='4.5'/></g></svg>") center / cover no-repeat;
 }
 
 @media (min-width: 40rem) {

@@ -15,7 +15,10 @@
 
 /* The ground is fixed, so scrolling moves the page and never the light.
  * Two blooms pinned to the corners over a cool grey canvas, the way the
- * reference holds its light at the edges and keeps the middle quiet. */
+ * reference holds its light at the edges and keeps the middle quiet.
+ * Each bloom carries one faint edge-only texture: a dense flowing ribbon mesh
+ * sweeping down the right edge, a curved weave sweeping up from the left.
+ * Both stay pinned to the corners so the middle of the page stays quiet. */
 .shell::before {
     content: "";
     position: fixed;
@@ -23,6 +26,8 @@
     z-index: -1;
     pointer-events: none;
     background:
+        url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 800'><defs><pattern id='m' width='2.4' height='2.4' patternUnits='userSpaceOnUse' patternTransform='rotate(45)'><path d='M2.4 0H0V2.4' fill='none' stroke='%238fd6a8' stroke-width='0.6'/></pattern></defs><path d='M400 0L400 340C330 310 285 230 275 110Z' fill='url(%23m)' opacity='0.70'/><g fill='none' stroke='%238bd598' stroke-width='1.0' opacity='0.55'><path d='M400 20C300 120 250 260 200 430C175 515 165 610 162 710'/><path d='M400 95C315 185 270 300 225 450C202 530 194 620 192 716'/><path d='M400 175C330 255 290 350 250 480C232 552 226 632 224 722'/><path d='M352 0C295 80 262 175 222 300C197 372 186 448 183 530'/></g></svg>") right top / 34vmin 78vmin no-repeat,
+        url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'><defs><pattern id='w' width='2.4' height='2.4' patternUnits='userSpaceOnUse' patternTransform='rotate(45)'><path d='M2.4 0H0V2.4' fill='none' stroke='%236fb0c0' stroke-width='0.6'/></pattern></defs><path d='M0 400L0 180C80 160 130 110 145 40Z' fill='url(%23w)' opacity='0.62'/><g fill='none' stroke='%237fc0cb' stroke-width='0.9' opacity='0.52'><path d='M0 380C70 300 115 200 142 80C148 52 151 30 152 10'/><path d='M0 320C60 250 100 170 122 70'/><path d='M0 260C50 200 85 135 102 55'/><path d='M48 400C105 330 142 240 164 130'/></g></svg>") left bottom / 36vmin 40vmin no-repeat,
         radial-gradient(
             ellipse 40% 62% at 100% 6%,
             color-mix(in oklab, var(--color-glow-a) var(--glow-a-alpha), transparent) 0%,
