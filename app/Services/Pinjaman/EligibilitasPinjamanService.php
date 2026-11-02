@@ -45,8 +45,11 @@ class EligibilitasPinjamanService
      * Return array:
      *   - boleh: bool
      *   - alasan: string|null
-     *   - limit_tersedia: float (0 selama terkunci; rumus berjalan saat terbuka;
+     *   - limit_tersedia: float (sisa plafon = maks − sisa×cicilan; selalu dihitung
+     *                            apa adanya sebagai informasi, termasuk saat terkunci;
      *                            full limit jika tidak ada pinjaman aktif)
+     *     PENTING: limit_tersedia BUKAN gerbang izin. Gerbangnya `boleh`. Saat
+     *     sisa > 2 angsuran, limit_tersedia tetap > 0 tapi `boleh` = false.
      *   - sisa_angsuran: int (0 jika tidak ada pinjaman aktif; gabungan semua pinjaman aktif)
      *   - cicilan_pokok: float (0 jika tidak ada angsuran belum_bayar; weighted avg dari semua)
      *
@@ -92,20 +95,21 @@ class EligibilitasPinjamanService
         $sisaAngsuran = (int) $agg['sisa_total'];
         $cicilanPokok = (float) $agg['cicilan_pokok_weighted_avg'];
 
-        // Kuncian: angsuran yang dibayar tidak langsung membuka limit.
+        // Sisa plafon selalu dihitung apa adanya (informatif), terlepas dari kuncian.
+        $limitMaksimal = $this->limitMaksimal($anggota);
+        $limitTersedia = max(0.0, $limitMaksimal - ($sisaAngsuran * $cicilanPokok));
+
+        // Kuncian: angsuran yang dibayar tidak langsung membuka pengajuan.
         // Baru terbuka saat tersisa <= 2 angsuran; lunas penuh = limit awal pulih.
         if ($sisaAngsuran > 2) {
             return [
                 'boleh' => false,
                 'alasan' => 'Pinjaman sebelumnya belum lunas. Selesaikan pembayaran hingga tersisa maksimal 2 angsuran untuk membuka pengajuan berikutnya.',
-                'limit_tersedia' => 0.0,
+                'limit_tersedia' => $limitTersedia,
                 'sisa_angsuran' => $sisaAngsuran,
                 'cicilan_pokok' => $cicilanPokok,
             ];
         }
-
-        $limitMaksimal = $this->limitMaksimal($anggota);
-        $limitTersedia = max(0.0, $limitMaksimal - ($sisaAngsuran * $cicilanPokok));
 
         // Anggota < 1 tahun: wajib lunas dulu, tidak dapat privilege reloan
         if ($this->isAnggotaBaru($anggota)) {
@@ -195,8 +199,11 @@ class EligibilitasPinjamanService
     /**
      * Limit efektif yang boleh diajukan anggota saat ini.
      * - Tanpa pinjaman aktif: limit maksimal penuh.
-     * - Sisa > 2: 0 (terkunci; angsuran yang dibayar belum membuka limit).
-     * - Sisa <= 2: rumus berjalan (maks - sisa × cicilan), floor 0.
+     * - Ada pinjaman aktif: rumus berjalan (maks - sisa × cicilan), floor 0 —
+     *   dihitung juga saat terkunci karena hanya informatif.
+     *
+     * CATATAN: nilai ini BUKAN gerbang izin mengajukan. Gunakan cek()['boleh']
+     * untuk memutuskan boleh/tidak (terkunci saat sisa > 2 angsuran).
      */
     public function limitTersedia(Anggota $anggota): float
     {
@@ -207,11 +214,6 @@ class EligibilitasPinjamanService
         }
 
         $sisaTotal = (int) $agg['sisa_total'];
-
-        if ($sisaTotal > 2) {
-            return 0.0;
-        }
-
         $limitMaksimal = $this->limitMaksimal($anggota);
         $cicilanPokok = (float) $agg['cicilan_pokok_weighted_avg'];
 

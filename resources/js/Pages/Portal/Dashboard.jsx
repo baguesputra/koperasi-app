@@ -839,6 +839,15 @@ export default function Dashboard({
                             <p className="text-xs text-amber-800 mt-1 leading-relaxed">
                                 {alasanTidakBisa || 'Anda belum dapat mengajukan pinjaman saat ini sesuai ketentuan koperasi.'}
                             </p>
+                            {sisaAngsuranAktif > 2 && limitTersedia > 0 && (
+                                <p className="text-xs text-amber-800 mt-1 leading-relaxed">
+                                    Sisa plafon yang belum terpakai:{' '}
+                                    <span className="font-bold">
+                                        <Nominal nilai={limitTersedia} tampil={nominalTampil} />
+                                    </span>{' '}
+                                    &mdash; baru dapat dipakai setelah angsuran tersisa maksimal 2 bulan.
+                                </p>
+                            )}
                         </div>
                     </div>
                 )}
