@@ -16,8 +16,8 @@
 /* The ground is fixed, so scrolling moves the page and never the light.
  * Two blooms pinned to the corners over a cool grey canvas, the way the
  * reference holds its light at the edges and keeps the middle quiet.
- * Each bloom carries one edge-only texture: a curved ribbon mesh flowing
- * down the right edge, a diagonal weave sweeping up from the left.
+ * Each bloom carries one faint edge-only texture: a dense flowing ribbon mesh
+ * sweeping down the right edge, a curved weave sweeping up from the left.
  * Both stay pinned to the corners so the middle of the page stays quiet. */
 .shell::before {
     content: "";
@@ -26,16 +26,16 @@
     z-index: -1;
     pointer-events: none;
     background:
-        url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 800'><defs><pattern id='m' width='2' height='2' patternUnits='userSpaceOnUse' patternTransform='rotate(38)'><path d='M2 0H0V2' fill='none' stroke='%238fd6a8' stroke-width='0.55'/></pattern></defs><path d='M400 0L400 300C330 272 288 200 278 100Z' fill='url(%23m)' opacity='0.60'/><g fill='none' stroke='%238bd598' stroke-width='1.2' opacity='0.55'><path d='M400 8C296 120 246 262 196 432C171 517 161 612 158 712'/><path d='M400 88C311 188 266 302 221 452C198 532 190 622 188 718'/><path d='M400 172C326 257 286 352 246 482C228 554 222 634 220 724'/><path d='M344 0C291 82 258 177 218 302C193 374 182 450 179 532'/></g></svg>") right top / 30vmin 68vmin no-repeat,
-        url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'><defs><pattern id='w' width='2' height='2' patternUnits='userSpaceOnUse' patternTransform='rotate(52)'><path d='M2 0H0V2' fill='none' stroke='%236fb0c0' stroke-width='0.55'/></pattern></defs><path d='M0 400L0 200C80 180 128 120 142 50Z' fill='url(%23w)' opacity='0.55'/><g fill='none' stroke='%237fc0cb' stroke-width='1.0' opacity='0.50'><path d='M0 382C72 300 118 198 146 78C152 50 155 28 156 8'/><path d='M0 322C62 250 103 168 126 68'/><path d='M0 262C52 200 88 133 106 53'/><path d='M52 400C109 330 146 238 168 128'/></g></svg>") left bottom / 32vmin 36vmin no-repeat,
+        url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 800'><defs><pattern id='m' width='2.4' height='2.4' patternUnits='userSpaceOnUse' patternTransform='rotate(45)'><path d='M2.4 0H0V2.4' fill='none' stroke='%238fd6a8' stroke-width='0.6'/></pattern></defs><path d='M400 0L400 340C330 310 285 230 275 110Z' fill='url(%23m)' opacity='0.70'/><g fill='none' stroke='%238bd598' stroke-width='1.0' opacity='0.55'><path d='M400 20C300 120 250 260 200 430C175 515 165 610 162 710'/><path d='M400 95C315 185 270 300 225 450C202 530 194 620 192 716'/><path d='M400 175C330 255 290 350 250 480C232 552 226 632 224 722'/><path d='M352 0C295 80 262 175 222 300C197 372 186 448 183 530'/></g></svg>") right top / 34vmin 78vmin no-repeat,
+        url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'><defs><pattern id='w' width='2.4' height='2.4' patternUnits='userSpaceOnUse' patternTransform='rotate(45)'><path d='M2.4 0H0V2.4' fill='none' stroke='%236fb0c0' stroke-width='0.6'/></pattern></defs><path d='M0 400L0 180C80 160 130 110 145 40Z' fill='url(%23w)' opacity='0.62'/><g fill='none' stroke='%237fc0cb' stroke-width='0.9' opacity='0.52'><path d='M0 380C70 300 115 200 142 80C148 52 151 30 152 10'/><path d='M0 320C60 250 100 170 122 70'/><path d='M0 260C50 200 85 135 102 55'/><path d='M48 400C105 330 142 240 164 130'/></g></svg>") left bottom / 36vmin 40vmin no-repeat,
         radial-gradient(
-            ellipse 32% 48% at 100% 4%,
+            ellipse 40% 62% at 100% 6%,
             color-mix(in oklab, var(--color-glow-a) var(--glow-a-alpha), transparent) 0%,
             color-mix(in oklab, var(--color-glow-a) 62%, transparent) 46%,
             transparent 88%
         ),
         radial-gradient(
-            ellipse 24% 36% at 0% 96%,
+            ellipse 30% 46% at 0% 96%,
             color-mix(in oklab, var(--color-glow-b) var(--glow-b-alpha), transparent) 0%,
             color-mix(in oklab, var(--color-glow-b) 58%, transparent) 48%,
             transparent 86%
@@ -44,9 +44,25 @@
 }
 
 .shell-nav {
-    position: static;
+    position: sticky;
+    top: 0;
+    z-index: var(--z-sticky-nav);
     padding-top: env(safe-area-inset-top);
     border-bottom: var(--rule-hair) solid var(--color-rule);
+    background: var(--color-paper-2);
+}
+
+/* The portal bar starts open and closes once the page moves under it. */
+.shell-nav--veil {
+    border-bottom-color: transparent;
+    background: transparent;
+    transition:
+        background-color var(--dur-short) var(--ease-out),
+        border-color var(--dur-short) var(--ease-out);
+}
+
+.shell-nav--veil.is-solid {
+    border-bottom-color: var(--color-rule);
     background: var(--color-paper-2);
 }
 
@@ -210,29 +226,33 @@
     transform: rotate(180deg);
 }
 
-/* ---- Menu: plain text list, no box ------------------------------
- * The list stays boxless (no border, no card, no shadow) but keeps a soft
- * blurred ground veil so the text stays legible over the band behind it. */
+/* ---- Menu ---------------------------------------------------------- */
 
 .shell-menu {
     position: absolute;
-    top: calc(100% + var(--space-2xs));
+    top: calc(100% + var(--space-xs));
     right: 0;
     z-index: var(--z-dropdown);
     width: 17rem;
     max-width: calc(var(--container) - (2 * var(--gutter)));
-    padding: var(--space-2xs) 0;
-    border: 0;
-    border-radius: 0;
-    background: color-mix(in oklab, var(--color-paper-2) 78%, transparent);
-    box-shadow: none;
+    overflow: hidden;
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-card);
+    background: var(--color-paper-2);
     color: var(--color-ink);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
+    animation: shell-menu-in var(--dur-micro) var(--ease-out);
+}
+
+@keyframes shell-menu-in {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
 }
 
 .shell-menu__head {
-    padding: var(--space-2xs) var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    border-bottom: var(--rule-hair) solid var(--color-rule);
 }
 
 .shell-menu__status {
@@ -263,7 +283,8 @@
 }
 
 .shell-menu__foot {
-    padding: var(--space-2xs) 0;
+    padding: var(--space-2xs);
+    border-top: var(--rule-hair) solid var(--color-rule);
 }
 
 .shell-menu__item {
@@ -274,13 +295,15 @@
     min-height: 2.5rem;
     padding: var(--space-xs) var(--space-md);
     border: 0;
-    border-radius: 0;
     background: transparent;
     color: var(--color-ink-2);
     font-size: var(--text-sm);
     text-align: left;
     text-decoration: none;
     cursor: pointer;
+    transition:
+        background-color var(--dur-micro) var(--ease-out),
+        color var(--dur-micro) var(--ease-out);
 }
 
 .shell-menu__item svg {
@@ -289,6 +312,7 @@
 }
 
 .shell-menu__item:hover {
+    background: var(--color-paper-3);
     color: var(--color-ink);
 }
 
@@ -309,6 +333,7 @@
 }
 
 .shell-menu__item--danger {
+    border-radius: var(--radius-well);
     color: var(--color-danger-ink);
 }
 
@@ -317,6 +342,7 @@
 }
 
 .shell-menu__item--danger:hover {
+    background: var(--color-danger-soft);
     color: var(--color-danger-ink);
 }
 
@@ -447,10 +473,16 @@
 @media (prefers-reduced-motion: reduce) {
     .shell-account,
     .shell-account__chevron,
+    .shell-menu__item,
     .shell-tab,
     .shell-fab,
-    .shell-back {
+    .shell-back,
+    .shell-nav--veil {
         transition: none;
+    }
+
+    .shell-menu {
+        animation: none;
     }
 
     .shell-fab:active {
