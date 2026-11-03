@@ -20,12 +20,13 @@ services:
     container_name: koperasi_mysql
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: koperasi_db
-      MYSQL_USER: koperasi_user
-      MYSQL_PASSWORD: koperasi_pass
-      MYSQL_ROOT_PASSWORD: root_pass
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-koperasi_db}
+      MYSQL_USER: ${MYSQL_USER:-koperasi_user}
+      # ponytail: tanpa default; compose gagal bila env kosong. Isi via secret aaPanel.
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?wajib isi MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?wajib isi MYSQL_ROOT_PASSWORD}
     ports:
-      - "3306:3306"
+      - "127.0.0.1:3306:3306"
     volumes:
       - koperasi_mysql_data:/var/lib/mysql
     networks:
@@ -49,9 +50,9 @@ services:
     container_name: koperasi_baileys
     restart: unless-stopped
     environment:
-      TOKEN: ${BAILEYS_TOKEN:-change-me-in-production}
+      TOKEN: ${BAILEYS_TOKEN:?wajib isi BAILEYS_TOKEN}
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     volumes:
       - koperasi_baileys_session:/app/session
     networks:

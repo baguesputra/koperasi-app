@@ -3,6 +3,8 @@
 .env
 .env.backup
 .env.production
+baileys-service/.env
+baileys-service/session/
 .phpactor.json
 .phpunit.result.cache
 /.codex

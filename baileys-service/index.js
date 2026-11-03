@@ -1,4 +1,5 @@
 // ponytail: single-session WA gateway; multi-device/queueing add when needed
+const crypto = require('node:crypto')
 const http = require('node:http')
 const fs = require('node:fs')
 const path = require('node:path')
@@ -11,7 +12,12 @@ const {
 } = require('@whiskeysockets/baileys')
 
 const PORT = Number(process.env.PORT || 3000)
-const TOKEN = process.env.TOKEN || 'change-me-in-production'
+// ponytail: TOKEN wajib; tanpa fallback default. Mati saat boot bila kosong.
+const TOKEN = process.env.TOKEN
+if (!TOKEN) {
+    console.error('[baileys-service] FATAL: env TOKEN kosong. Isi BAILEYS_TOKEN.')
+    process.exit(1)
+}
 const SESSION_DIR = path.join(process.cwd(), 'session')
 
 let sock = null
@@ -91,7 +97,10 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, 'http://localhost')
     const auth = req.headers['x-token'] || String(req.headers['authorization'] || '').replace(/^Bearer\s+/i, '')
 
-    if (auth !== TOKEN) {
+    // ponytail: timing-safe + panjang sama agar tak bocor via timing. Rate-limit penuh bila perlu gateway.
+    const a = Buffer.from(String(auth))
+    const b = Buffer.from(String(TOKEN))
+    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
         return json(res, 401, { error: 'unauthorized' })
     }
 
