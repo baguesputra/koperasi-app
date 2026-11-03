@@ -273,7 +273,8 @@ Route::middleware(['auth', 'permission:user.kelola', 'password.confirm'])->prefi
 // ==========================================
 // KEAMANAN PIN & SCREEN LOCK
 // ==========================================
-Route::middleware('auth')->prefix('security/pin')->name('security.pin.')->group(function () {
+// ponytail: throttle per user+IP (defense-in-depth lawan brute-force 6 digit).
+Route::middleware(['auth', 'throttle:pin'])->prefix('security/pin')->name('security.pin.')->group(function () {
     Route::post('/setup', [PinSecurityController::class, 'setup'])->name('setup');
     Route::post('/verify-unlock', [PinSecurityController::class, 'verifyUnlock'])->name('verify-unlock');
 });

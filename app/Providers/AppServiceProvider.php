@@ -55,6 +55,13 @@ class AppServiceProvider extends ServiceProvider
             });
         });
 
+        // ponytail: 5 PIN/menit per user+IP; cukup lawan brute-force 6 digit tanpa ganggu wajar.
+        RateLimiter::for('pin', function (Request $request) {
+            $kunci = $request->user()?->getAuthIdentifier().'|'.$request->ip();
+
+            return Limit::perMinute(5)->by($kunci);
+        });
+
         PreventRequestForgery::except([
             '/auth/sso/callback',
             '/auth/sso/slo',

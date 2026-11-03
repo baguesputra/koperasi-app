@@ -16,17 +16,18 @@ class PinSecurityController extends Controller
 
     /**
      * Setup PIN baru atau perbarui PIN pengguna.
+     * ponytail: old_pin wajib bila sudah punya PIN; reset hanya via admin/percobaan habis.
      */
     public function setup(Request $request): JsonResponse
     {
         $user = $request->user();
 
         $rules = [
-            'pin' => ['required', 'string', 'size:6', 'regex:/^[0-9]{6}$/', 'confirmed'],
+            'pin' => ['required', 'string', 'size:6', 'regex:/^[0-9]{6}$/', 'confirmed', 'not_regex:/(.)\\1{5}/'],
         ];
 
-        // Jika user sudah memiliki PIN sebelumnya dan mengirim old_pin untuk verifikasi ganti PIN
-        if ($user->hasPin() && $request->has('old_pin')) {
+        // Wajib verifikasi PIN lama bila sudah punya PIN — tanpa celah overwrite via sesi terbajak.
+        if ($user->hasPin()) {
             $rules['old_pin'] = ['required', 'string', 'size:6'];
         }
 
@@ -35,11 +36,12 @@ class PinSecurityController extends Controller
             'pin.size' => 'PIN harus tepat 6 digit angka.',
             'pin.regex' => 'PIN hanya boleh berisi angka.',
             'pin.confirmed' => 'Konfirmasi PIN tidak cocok.',
+            'pin.not_regex' => 'PIN terlalu lemah (6 digit sama).',
             'old_pin.required' => 'PIN lama wajib diisi.',
             'old_pin.size' => 'PIN lama harus 6 digit angka.',
         ]);
 
-        if ($user->hasPin() && $request->has('old_pin')) {
+        if ($user->hasPin()) {
             if (! Hash::check($request->old_pin, $user->pin)) {
                 return response()->json([
                     'status' => 'failed',

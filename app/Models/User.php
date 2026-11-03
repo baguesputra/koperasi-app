@@ -23,6 +23,7 @@ class User extends Authenticatable
         'password',
         'pin',
         'pin_failed_attempts',
+        'pin_locked_until',
         'harus_ganti_password',
         'sso_id',
         'gate_id',
@@ -48,6 +49,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'pin' => 'hashed',
             'pin_failed_attempts' => 'integer',
+            'pin_locked_until' => 'datetime',
             'harus_ganti_password' => 'boolean',
         ];
     }

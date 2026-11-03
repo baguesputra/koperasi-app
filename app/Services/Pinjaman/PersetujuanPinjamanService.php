@@ -15,6 +15,21 @@ use Illuminate\Support\Facades\DB;
 
 class PersetujuanPinjamanService
 {
+    /**
+     * Tolak pemrosesan pengajuan sendiri (defense-in-depth: mirror API tolakBilaSelfApproval).
+     * Wajib dipanggil tiap aksi approve/reject/cair web sebelum cek status.
+     */
+    public function tolakBilaSelfApproval(Pinjaman $pinjaman): void
+    {
+        $saya = auth()->id();
+        $pengaju = $pinjaman->pengaju_user_id;
+        $pemilik = $pinjaman->anggota?->user_id;
+
+        if (($pengaju && $pengaju === $saya) || ($pemilik && $pemilik === $saya)) {
+            throw new \RuntimeException('Anda tidak dapat memproses pengajuan Anda sendiri.');
+        }
+    }
+
     public function __construct(
         private PerhitunganBungaService $bunga,
         private JurnalKasService $jurnalKas,
@@ -61,6 +76,7 @@ class PersetujuanPinjamanService
 
     public function approveAdmin(Pinjaman $pinjaman, string $catatan): void
     {
+        $this->tolakBilaSelfApproval($pinjaman);
         if ($pinjaman->status !== 'diajukan') {
             throw new \RuntimeException('Hanya pinjaman berstatus Diajukan yang dapat diteruskan Admin.');
         }
@@ -97,6 +113,7 @@ class PersetujuanPinjamanService
 
     public function rejectAdmin(Pinjaman $pinjaman, string $catatan): void
     {
+        $this->tolakBilaSelfApproval($pinjaman);
         if ($pinjaman->status !== 'diajukan') {
             throw new \RuntimeException('Hanya pinjaman berstatus Diajukan yang dapat ditolak Admin.');
         }
@@ -122,6 +139,7 @@ class PersetujuanPinjamanService
 
     public function approveBendahara(Pinjaman $pinjaman, string $catatan, ?float $nominal = null, ?int $tenorBulan = null): void
     {
+        $this->tolakBilaSelfApproval($pinjaman);
         if ($pinjaman->status !== 'approved_admin') {
             throw new \RuntimeException('Hanya pinjaman berstatus Diteruskan Admin yang dapat disetujui Bendahara.');
         }
@@ -163,6 +181,7 @@ class PersetujuanPinjamanService
 
     public function rejectBendahara(Pinjaman $pinjaman, string $catatan): void
     {
+        $this->tolakBilaSelfApproval($pinjaman);
         if ($pinjaman->status !== 'approved_admin') {
             throw new \RuntimeException('Hanya pinjaman berstatus Diteruskan Admin yang dapat ditolak Bendahara.');
         }
@@ -195,6 +214,7 @@ class PersetujuanPinjamanService
      */
     public function cairBendahara(Pinjaman $pinjaman, string $catatan): void
     {
+        $this->tolakBilaSelfApproval($pinjaman);
         if ($pinjaman->status !== 'approved_bendahara' || ! $pinjaman->cair_oleh_bendahara) {
             throw new \RuntimeException('Pinjaman ini tidak dalam status menunggu pencairan Bendahara.');
         }
@@ -212,6 +232,7 @@ class PersetujuanPinjamanService
 
     public function approveKetua(Pinjaman $pinjaman, string $catatan, ?float $nominal = null, ?int $tenorBulan = null): void
     {
+        $this->tolakBilaSelfApproval($pinjaman);
         if ($pinjaman->status !== 'approved_bendahara') {
             throw new \RuntimeException('Hanya pinjaman berstatus Disetujui Bendahara yang dapat disetujui Ketua.');
         }
@@ -317,6 +338,7 @@ class PersetujuanPinjamanService
 
     public function rejectKetua(Pinjaman $pinjaman, string $catatan): void
     {
+        $this->tolakBilaSelfApproval($pinjaman);
         if ($pinjaman->status !== 'approved_bendahara') {
             throw new \RuntimeException('Hanya pinjaman berstatus Disetujui Bendahara yang dapat ditolak Ketua.');
         }

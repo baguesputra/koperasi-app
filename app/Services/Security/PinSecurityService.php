@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Hash;
 class PinSecurityService
 {
     public const MAX_ATTEMPTS = 3;
+    public const LOCKOUT_MINUTES = 15;
 
     /**
      * Set up or update a PIN for the user.
@@ -21,6 +22,7 @@ class PinSecurityService
     {
         $user->pin = $pin;
         $user->pin_failed_attempts = 0;
+        $user->pin_locked_until = null;
         $user->save();
 
         $raw = $user->getAttributes();
@@ -37,11 +39,21 @@ class PinSecurityService
     /**
      * Verify PIN. If failed, increments failed attempts.
      * If failed >= MAX_ATTEMPTS, triggers security alert & session termination.
+     * Lockout 15 menit per akun (bertahan walau sesi dibuat ulang).
      *
      * @return array{valid: bool, remaining: int, locked_out: bool, message: string}
      */
     public function verify(User $user, string $pin, Request $request): array
     {
+        if ($this->terkunci($user)) {
+            return [
+                'valid' => false,
+                'remaining' => 0,
+                'locked_out' => true,
+                'message' => 'PIN dikunci 15 menit karena terlalu banyak salah. Hubungi admin bila lupa.',
+            ];
+        }
+
         if (! $user->hasPin()) {
             return [
                 'valid' => false,
@@ -86,10 +98,32 @@ class PinSecurityService
     }
 
     /**
+     * Cek + buka kunci kedaluwarsa. True bila masih dikunci.
+     * ponytail: tahan model parsial (tanpa kolom) — anggap terkunci bila counter mentok.
+     */
+    public function terkunci(User $user): bool
+    {
+        $raw = $user->getAttributes();
+        $sampai = $raw['pin_locked_until'] ?? null;
+        if (! $sampai) {
+            return ((int) ($raw['pin_failed_attempts'] ?? 0)) >= self::MAX_ATTEMPTS;
+        }
+        $sampai = $sampai instanceof \DateTimeInterface ? $sampai : now()->parse($sampai);
+        if (now()->gte($sampai)) {
+            $user->update(['pin_failed_attempts' => 0, 'pin_locked_until' => null]);
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Handle security lockout when attempts reach threshold.
      */
     public function handleFailedThreshold(User $user, Request $request): void
     {
+        $user->update(['pin_locked_until' => now()->addMinutes(self::LOCKOUT_MINUTES)]);
         $raw = $user->getAttributes();
         $identitas = ! empty($raw['no_karyawan']) ? $raw['no_karyawan'] : (! empty($raw['email']) ? $raw['email'] : "ID:{$user->id}");
 
@@ -122,7 +156,8 @@ class PinSecurityService
             }
         }
 
-        // Invalidate current session
+        // Cabut semua token API + sesi web: lockout wajib tendang semua perangkat.
+        $user->tokens()->delete();
         Auth::guard('web')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
