@@ -470,4 +470,89 @@ class KasKoperasiHalamanTest extends TestCase
         $this->assertGreaterThanOrEqual(500_000, $props['ringkasanPerTanggal'][$tgl]['masuk']);
         $this->assertGreaterThanOrEqual(100_000, $props['ringkasanPerTanggal'][$tgl]['keluar']);
     }
+
+    public function test_filter_rentang_tanggal_berhasil_memfilter_transaksi(): void
+    {
+        $user = $this->masuk('ADM-000001');
+
+        $tglSebelum = '2026-05-01';
+        $tglDiRentang1 = '2026-05-10';
+        $tglDiRentang2 = '2026-05-15';
+        $tglSetelah = '2026-05-25';
+
+        JurnalKas::create([
+            'tipe' => 'masuk',
+            'kategori' => 'topup_bulanan',
+            'kantong' => 'bank',
+            'jumlah' => 100_000,
+            'saldo_setelah' => 0,
+            'keterangan' => 'Mutasi sebelum rentang',
+            'tanggal' => $tglSebelum,
+            'created_by' => $user->id,
+        ]);
+        JurnalKas::create([
+            'tipe' => 'masuk',
+            'kategori' => 'topup_bulanan',
+            'kantong' => 'bank',
+            'jumlah' => 200_000,
+            'saldo_setelah' => 0,
+            'keterangan' => 'Mutasi di dalam rentang A',
+            'tanggal' => $tglDiRentang1,
+            'created_by' => $user->id,
+        ]);
+        JurnalKas::create([
+            'tipe' => 'keluar',
+            'kategori' => 'pengeluaran_koperasi',
+            'kantong' => 'kas_kecil',
+            'jumlah' => 50_000,
+            'saldo_setelah' => 0,
+            'keterangan' => 'Mutasi di dalam rentang B',
+            'tanggal' => $tglDiRentang2,
+            'created_by' => $user->id,
+        ]);
+        JurnalKas::create([
+            'tipe' => 'masuk',
+            'kategori' => 'topup_bulanan',
+            'kantong' => 'bank',
+            'jumlah' => 300_000,
+            'saldo_setelah' => 0,
+            'keterangan' => 'Mutasi setelah rentang',
+            'tanggal' => $tglSetelah,
+            'created_by' => $user->id,
+        ]);
+
+        $props = $this->get(route('kas-koperasi.index', [
+            'dari_tanggal' => '2026-05-10',
+            'sampai_tanggal' => '2026-05-20',
+        ]))
+            ->assertOk()
+            ->viewData('page')['props'];
+
+        $keteranganList = array_column($props['riwayat']['data'], 'keterangan');
+
+        $this->assertContains('Mutasi di dalam rentang A', $keteranganList);
+        $this->assertContains('Mutasi di dalam rentang B', $keteranganList);
+        $this->assertNotContains('Mutasi sebelum rentang', $keteranganList);
+        $this->assertNotContains('Mutasi setelah rentang', $keteranganList);
+
+        $this->assertSame('2026-05-10', $props['filters']['dari_tanggal']);
+        $this->assertSame('2026-05-20', $props['filters']['sampai_tanggal']);
+        $this->assertEqualsWithDelta(200_000, $props['ringkasanPeriode']['total_masuk'], 0.01);
+        $this->assertEqualsWithDelta(50_000, $props['ringkasanPeriode']['total_keluar'], 0.01);
+    }
+
+    public function test_filter_rentang_tanggal_terbalik_otomatis_diselaraskan(): void
+    {
+        $this->masuk('ADM-000001');
+
+        $props = $this->get(route('kas-koperasi.index', [
+            'dari_tanggal' => '2026-05-20',
+            'sampai_tanggal' => '2026-05-10',
+        ]))
+            ->assertOk()
+            ->viewData('page')['props'];
+
+        $this->assertSame('2026-05-10', $props['filters']['dari_tanggal']);
+        $this->assertSame('2026-05-20', $props['filters']['sampai_tanggal']);
+    }
 }

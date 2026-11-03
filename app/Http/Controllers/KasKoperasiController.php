@@ -29,14 +29,34 @@ class KasKoperasiController extends Controller
         $kanalFilter = (string) $request->input('kanal', '');
         $tipeFilter = (string) $request->input('tipe', '');
         $tanggalFilter = (string) $request->input('tanggal', '');
+        $dariTanggal = (string) $request->input('dari_tanggal', '');
+        $sampaiTanggal = (string) $request->input('sampai_tanggal', '');
         $cari = trim((string) $request->input('cari', ''));
         $tipePengeluaranFilter = (string) $request->input('tipe_pengeluaran', '');
 
         $periodeAwal = null;
         $periodeAkhir = null;
 
-        // Jika filter tanggal diisi, selaraskan bulanFilter dengan bulan dari tanggal tersebut
-        if ($tanggalFilter && preg_match('/^\d{4}-\d{2}-\d{2}$/', $tanggalFilter)) {
+        $validTgl = fn ($t) => (bool) preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $t);
+
+        // Prioritas filter periode:
+        // 1. Rentang tanggal kustom (dari_tanggal / sampai_tanggal)
+        // 2. Tanggal tunggal spesifik (tanggal)
+        // 3. Bulanan (bulan)
+        if (($dariTanggal && $validTgl($dariTanggal)) || ($sampaiTanggal && $validTgl($sampaiTanggal))) {
+            $dari = ($dariTanggal && $validTgl($dariTanggal)) ? $dariTanggal : $sampaiTanggal;
+            $sampai = ($sampaiTanggal && $validTgl($sampaiTanggal)) ? $sampaiTanggal : $dariTanggal;
+
+            if ($dari > $sampai) {
+                [$dari, $sampai] = [$sampai, $dari];
+            }
+
+            $dariTanggal = $dari;
+            $sampaiTanggal = $sampai;
+            $periodeAwal = Carbon::createFromFormat('Y-m-d', $dari)->startOfDay();
+            $periodeAkhir = Carbon::createFromFormat('Y-m-d', $sampai)->endOfDay();
+            $bulanFilter = $periodeAwal->format('Y-m');
+        } elseif ($tanggalFilter && $validTgl($tanggalFilter)) {
             $periodeAwal = Carbon::createFromFormat('Y-m-d', $tanggalFilter)->startOfDay();
             $periodeAkhir = $periodeAwal->copy()->endOfDay();
             $bulanFilter = $periodeAwal->format('Y-m');
@@ -211,6 +231,8 @@ class KasKoperasiController extends Controller
                 'cari' => $cari,
                 'tipe' => $tipeFilter,
                 'tanggal' => $tanggalFilter,
+                'dari_tanggal' => $dariTanggal,
+                'sampai_tanggal' => $sampaiTanggal,
                 'tipe_pengeluaran' => $tipePengeluaranFilter,
             ],
             'tipePengeluaranList' => Pengeluaran::TIPE_LABEL,

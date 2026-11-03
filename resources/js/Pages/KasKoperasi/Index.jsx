@@ -2,7 +2,7 @@ import AppLayout from '@/Layouts/AppLayout';
 import { Head, usePage, useForm, router, Link } from '@inertiajs/react';
 import {
     Wallet, ArrowDownCircle, ArrowUpCircle, Plus, ChevronLeft, ChevronRight,
-    Landmark, CalendarDays, Search, X, ArrowRightLeft, Check
+    Landmark, CalendarDays, Search, X, ArrowRightLeft, Check, ChevronDown
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
 import Card from '@/Components/ui/Card';
@@ -90,9 +90,31 @@ export default function Index({
     const [tipe, setTipe] = useState(filters.tipe ?? '');
     const [tipePengeluaran, setTipePengeluaran] = useState(filters.tipe_pengeluaran ?? '');
     const [tanggal, setTanggal] = useState(filters.tanggal ?? '');
+    const [dariTanggal, setDariTanggal] = useState(filters.dari_tanggal ?? '');
+    const [sampaiTanggal, setSampaiTanggal] = useState(filters.sampai_tanggal ?? '');
+    const [bukaPeriodePopover, setBukaPeriodePopover] = useState(false);
+    const [tabPeriode, setTabPeriode] = useState(filters.dari_tanggal || filters.sampai_tanggal ? 'rentang' : 'bulan');
+    const [tempBulan, setTempBulan] = useState(bulanFilter);
+    const [tempDari, setTempDari] = useState(filters.dari_tanggal ?? '');
+    const [tempSampai, setTempSampai] = useState(filters.sampai_tanggal ?? '');
+    const popoverRef = useRef(null);
     const [memuatFilter, setMemuatFilter] = useState(false);
     const pertama = useRef(true);
     const hariIni = new Date().toISOString().slice(0, 10);
+
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (popoverRef.current && !popoverRef.current.contains(event.target)) {
+                setBukaPeriodePopover(false);
+            }
+        }
+        if (bukaPeriodePopover) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [bukaPeriodePopover]);
 
     const pemasukanForm = useForm({
         jumlah: '',
@@ -123,6 +145,8 @@ export default function Index({
             cari,
             tipe,
             tanggal,
+            dari_tanggal: dariTanggal,
+            sampai_tanggal: sampaiTanggal,
             tipe_pengeluaran: tipePengeluaran,
             page: 1,
             ...overrides,
@@ -148,6 +172,86 @@ export default function Index({
         );
     }
 
+    function formatTglIso(d) {
+        const thn = d.getFullYear();
+        const bln = String(d.getMonth() + 1).padStart(2, '0');
+        const tgl = String(d.getDate()).padStart(2, '0');
+        return `${thn}-${bln}-${tgl}`;
+    }
+
+    function terapkanPreset(tipePreset) {
+        const now = new Date();
+        let dari = '';
+        let sampai = '';
+
+        if (tipePreset === 'hari_ini') {
+            dari = formatTglIso(now);
+            sampai = formatTglIso(now);
+        } else if (tipePreset === '7_hari') {
+            const lalu = new Date();
+            lalu.setDate(now.getDate() - 6);
+            dari = formatTglIso(lalu);
+            sampai = formatTglIso(now);
+        } else if (tipePreset === '30_hari') {
+            const lalu = new Date();
+            lalu.setDate(now.getDate() - 29);
+            dari = formatTglIso(lalu);
+            sampai = formatTglIso(now);
+        } else if (tipePreset === 'bulan_ini') {
+            const awal = new Date(now.getFullYear(), now.getMonth(), 1);
+            const akhir = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            dari = formatTglIso(awal);
+            sampai = formatTglIso(akhir);
+        } else if (tipePreset === 'bulan_lalu') {
+            const awal = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            const akhir = new Date(now.getFullYear(), now.getMonth(), 0);
+            dari = formatTglIso(awal);
+            sampai = formatTglIso(akhir);
+        }
+
+        setTempDari(dari);
+        setTempSampai(sampai);
+    }
+
+    function handleTerapkanRentang() {
+        if (!tempDari && !tempSampai) return;
+        setBukaPeriodePopover(false);
+        setDariTanggal(tempDari);
+        setSampaiTanggal(tempSampai);
+        setTanggal('');
+        terapkan({
+            dari_tanggal: tempDari,
+            sampai_tanggal: tempSampai,
+            tanggal: '',
+        });
+    }
+
+    function handleTerapkanBulan() {
+        if (!tempBulan) return;
+        setBukaPeriodePopover(false);
+        setDariTanggal('');
+        setSampaiTanggal('');
+        setTanggal('');
+        terapkan({
+            bulan: tempBulan,
+            tanggal: '',
+            dari_tanggal: '',
+            sampai_tanggal: '',
+        });
+    }
+
+    function handleHapusRentang() {
+        setTempDari('');
+        setTempSampai('');
+        setDariTanggal('');
+        setSampaiTanggal('');
+        terapkan({
+            dari_tanggal: '',
+            sampai_tanggal: '',
+            tanggal: '',
+        });
+    }
+
     function handlePilihTipe(tipeBaru) {
         setTipe(tipeBaru);
         const overrides = { tipe: tipeBaru };
@@ -170,7 +274,7 @@ export default function Index({
 
     function handlePilihTanggal(tanggalBaru) {
         setTanggal(tanggalBaru);
-        const overrides = { tanggal: tanggalBaru };
+        const overrides = { tanggal: tanggalBaru, dari_tanggal: '', sampai_tanggal: '' };
         if (tanggalBaru && tanggalBaru.length >= 7) {
             overrides.bulan = tanggalBaru.slice(0, 7);
         }
@@ -185,9 +289,16 @@ export default function Index({
     function geserBulan(delta) {
         const [tahun, bulanAngka] = bulanFilter.split('-').map(Number);
         const d = new Date(tahun, bulanAngka - 1 + delta, 1);
+        const blnBaru = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        setTempBulan(blnBaru);
+        setDariTanggal('');
+        setSampaiTanggal('');
+        setTanggal('');
         terapkan({
-            bulan: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+            bulan: blnBaru,
             tanggal: '',
+            dari_tanggal: '',
+            sampai_tanggal: '',
         });
     }
 
@@ -196,6 +307,10 @@ export default function Index({
         setTipe('');
         setTipePengeluaran('');
         setTanggal('');
+        setDariTanggal('');
+        setSampaiTanggal('');
+        setTempDari('');
+        setTempSampai('');
         router.get(
             route('kas-koperasi.index'),
             { bulan: bulanFilter, page: 1 },
@@ -236,15 +351,56 @@ export default function Index({
         setTanggal(filters.tanggal ?? '');
     }, [filters.tanggal]);
 
+    useEffect(() => {
+        setDariTanggal(filters.dari_tanggal ?? '');
+        setTempDari(filters.dari_tanggal ?? '');
+    }, [filters.dari_tanggal]);
+
+    useEffect(() => {
+        setSampaiTanggal(filters.sampai_tanggal ?? '');
+        setTempSampai(filters.sampai_tanggal ?? '');
+    }, [filters.sampai_tanggal]);
+
+    useEffect(() => {
+        setTempBulan(bulanFilter);
+    }, [bulanFilter]);
+
+    function formatTglIndo(tglStr) {
+        if (!tglStr) return '';
+        try {
+            const [y, m, d] = tglStr.split('-').map(Number);
+            const dt = new Date(y, m - 1, d);
+            return dt.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+        } catch {
+            return tglStr;
+        }
+    }
+
     const labelBulan = useMemo(() => {
         const [tahun, bulanAngka] = bulanFilter.split('-').map(Number);
         return new Date(tahun, bulanAngka - 1, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
     }, [bulanFilter]);
 
+    const isRentangAktif = Boolean(filters.dari_tanggal || filters.sampai_tanggal);
+
+    const labelPeriode = useMemo(() => {
+        if (filters.dari_tanggal && filters.sampai_tanggal) {
+            if (filters.dari_tanggal === filters.sampai_tanggal) {
+                return formatTglIndo(filters.dari_tanggal);
+            }
+            return `${formatTglIndo(filters.dari_tanggal)} – ${formatTglIndo(filters.sampai_tanggal)}`;
+        }
+        if (filters.dari_tanggal) return `Mulai ${formatTglIndo(filters.dari_tanggal)}`;
+        if (filters.sampai_tanggal) return `Hingga ${formatTglIndo(filters.sampai_tanggal)}`;
+        if (filters.tanggal) return `per ${formatTglIndo(filters.tanggal)}`;
+        return labelBulan;
+    }, [filters.dari_tanggal, filters.sampai_tanggal, filters.tanggal, labelBulan]);
+
     const bulanIni = new Date();
     const kunciBulanIni = `${bulanIni.getFullYear()}-${String(bulanIni.getMonth() + 1).padStart(2, '0')}`;
-    const filterAktif = Boolean(filters.kanal || filters.cari || filters.tanggal || filters.tipe_pengeluaran);
-    const labelPeriode = filters.tanggal ? `per ${filters.tanggal}` : labelBulan;
+    const filterAktif = Boolean(
+        filters.kanal || filters.cari || filters.tanggal || filters.dari_tanggal || filters.sampai_tanggal || filters.tipe_pengeluaran
+    );
     const labelAkunSaldo = filters.kanal === 'bank' ? ' Bank' : filters.kanal === 'kas_kecil' ? ' Kas Kecil' : '';
     const saldoValid = ringkasanPeriode?.saldo_valid ?? true;
 
@@ -864,67 +1020,262 @@ export default function Index({
                 <div className="p-3 sm:p-3.5 bg-slate-50/70 border-b border-slate-100 flex flex-col gap-3">
                     {/* Baris Kontrol Utama: Stepper Periode, Segmented Pill Arus Kas, Search */}
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
-                        {/* Kiri: Stepper Bulan & Filter Harian */}
-                        <div className="flex flex-wrap items-center gap-2">
-                            {/* Stepper Bulan */}
-                            <div className="flex items-center rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
-                                <button
-                                    type="button"
-                                    onClick={() => geserBulan(-1)}
-                                    aria-label="Bulan sebelumnya"
-                                    className={`px-2.5 py-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition-colors ${fokusRing}`}
-                                >
-                                    <ChevronLeft size={16} />
-                                </button>
-                                <input
-                                    type="month"
-                                    value={bulanFilter}
-                                    onChange={(e) => e.target.value && terapkan({ bulan: e.target.value, tanggal: '' })}
-                                    aria-label="Pilih bulan"
-                                    className="px-2 py-1 text-xs sm:text-sm font-semibold text-slate-700 bg-transparent focus:outline-none border-x border-slate-100 tabular-nums text-center cursor-pointer"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => geserBulan(1)}
-                                    aria-label="Bulan berikutnya"
-                                    className={`px-2.5 py-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition-colors ${fokusRing}`}
-                                >
-                                    <ChevronRight size={16} />
-                                </button>
-                            </div>
+                        {/* Kiri: Unified Periode Capsule (Bulanan + Rentang Tanggal Popover) */}
+                        <div className="relative" ref={popoverRef}>
+                            <div className="flex items-center gap-1.5 sm:gap-2">
+                                {isRentangAktif ? (
+                                    /* Kapsul Mode Rentang Tanggal Aktif */
+                                    <div className="inline-flex items-center rounded-xl border border-brand-green/30 bg-brand-green/10 text-brand-green-dark shadow-2xs overflow-hidden">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setTabPeriode('rentang');
+                                                setBukaPeriodePopover((v) => !v);
+                                            }}
+                                            aria-expanded={bukaPeriodePopover}
+                                            aria-label="Ubah rentang tanggal"
+                                            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm font-bold text-brand-green-dark hover:bg-brand-green/15 transition-colors ${fokusRing}`}
+                                        >
+                                            <CalendarDays size={14} className="text-brand-green shrink-0" />
+                                            <span className="truncate max-w-[200px] sm:max-w-none">{labelPeriode}</span>
+                                            <ChevronDown size={14} className={`text-brand-green/70 shrink-0 transition-transform duration-200 ${bukaPeriodePopover ? 'rotate-180' : ''}`} />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleHapusRentang}
+                                            title="Kembali ke filter bulanan"
+                                            aria-label="Hapus filter rentang tanggal"
+                                            className="px-2 py-1.5 text-brand-green-dark/70 hover:text-red-600 hover:bg-red-50/50 transition-colors border-l border-brand-green/20"
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    /* Kapsul Mode Bulanan Default dengan Stepper */
+                                    <div className="inline-flex items-center rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
+                                        <button
+                                            type="button"
+                                            onClick={() => geserBulan(-1)}
+                                            aria-label="Bulan sebelumnya"
+                                            className={`px-2 py-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition-colors ${fokusRing}`}
+                                        >
+                                            <ChevronLeft size={16} />
+                                        </button>
 
-                            {bulanFilter !== kunciBulanIni && (
-                                <button
-                                    type="button"
-                                    onClick={() => terapkan({ bulan: kunciBulanIni, tanggal: '' })}
-                                    className="text-xs font-bold text-brand-green-dark bg-brand-green-light rounded-full px-2.5 py-1 hover:bg-brand-green/20 transition-colors whitespace-nowrap"
-                                >
-                                    Bulan ini
-                                </button>
-                            )}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setTabPeriode('bulan');
+                                                setBukaPeriodePopover((v) => !v);
+                                            }}
+                                            aria-expanded={bukaPeriodePopover}
+                                            aria-label="Pilih periode kas"
+                                            className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors border-x border-slate-100 ${fokusRing}`}
+                                        >
+                                            <CalendarDays size={14} className="text-slate-400 shrink-0" />
+                                            <span className="capitalize">{labelBulan}</span>
+                                            <ChevronDown size={14} className={`text-slate-400 shrink-0 transition-transform duration-200 ${bukaPeriodePopover ? 'rotate-180' : ''}`} />
+                                        </button>
 
-                            {/* Tanggal Spesifik (Harian) Inline */}
-                            <div className="relative inline-flex items-center">
-                                <CalendarDays size={14} className="absolute left-2.5 text-slate-400 pointer-events-none" />
-                                <input
-                                    type="date"
-                                    value={tanggal}
-                                    onChange={(e) => handlePilihTanggal(e.target.value)}
-                                    aria-label="Filter tanggal spesifik"
-                                    title="Pilih tanggal spesifik (harian)"
-                                    className="pl-8 pr-7 py-1 text-xs font-medium text-slate-700 bg-white rounded-xl border border-slate-200 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-green/30 transition-all cursor-pointer"
-                                />
-                                {tanggal && (
+                                        <button
+                                            type="button"
+                                            onClick={() => geserBulan(1)}
+                                            aria-label="Bulan berikutnya"
+                                            className={`px-2 py-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition-colors ${fokusRing}`}
+                                        >
+                                            <ChevronRight size={16} />
+                                        </button>
+                                    </div>
+                                )}
+
+                                {!isRentangAktif && bulanFilter !== kunciBulanIni && (
                                     <button
                                         type="button"
-                                        onClick={handleHapusTanggal}
-                                        aria-label="Hapus filter tanggal"
-                                        className="absolute right-2 text-slate-400 hover:text-slate-600 p-0.5"
+                                        onClick={() => terapkan({ bulan: kunciBulanIni, tanggal: '', dari_tanggal: '', sampai_tanggal: '' })}
+                                        className="text-xs font-bold text-brand-green-dark bg-brand-green-light rounded-full px-2.5 py-1 hover:bg-brand-green/20 transition-colors whitespace-nowrap"
                                     >
-                                        <X size={13} />
+                                        Bulan ini
                                     </button>
                                 )}
                             </div>
+
+                            {/* Popover Flyout Periode */}
+                            {bukaPeriodePopover && (
+                                <div className="absolute left-0 top-full mt-2 z-40 w-[310px] sm:w-[350px] rounded-2xl bg-white p-3.5 shadow-xl border border-slate-200/90 animate-in fade-in zoom-in-95 duration-150">
+                                    {/* Segmented Switcher Popover: Bulan vs Rentang */}
+                                    <div className="flex rounded-xl bg-slate-100 p-1 mb-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => setTabPeriode('bulan')}
+                                            className={`flex-1 py-1 text-xs font-bold rounded-lg transition-all ${
+                                                tabPeriode === 'bulan'
+                                                    ? 'bg-white text-slate-800 shadow-2xs'
+                                                    : 'text-slate-500 hover:text-slate-800'
+                                            }`}
+                                        >
+                                            Per Bulan
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setTabPeriode('rentang')}
+                                            className={`flex-1 py-1 text-xs font-bold rounded-lg transition-all ${
+                                                tabPeriode === 'rentang'
+                                                    ? 'bg-white text-brand-green-dark shadow-2xs'
+                                                    : 'text-slate-500 hover:text-slate-800'
+                                            }`}
+                                        >
+                                            Rentang Tanggal
+                                        </button>
+                                    </div>
+
+                                    {tabPeriode === 'bulan' ? (
+                                        /* Mode Tab Bulan */
+                                        <div className="space-y-3">
+                                            <div>
+                                                <label className="block text-[11px] font-semibold text-slate-500 mb-1">
+                                                    Pilih Bulan & Tahun
+                                                </label>
+                                                <input
+                                                    type="month"
+                                                    value={tempBulan}
+                                                    onChange={(e) => setTempBulan(e.target.value)}
+                                                    className="w-full px-3 py-1.5 text-xs sm:text-sm font-semibold rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-green/30"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                                                    Pintasan Bulan
+                                                </span>
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setTempBulan(kunciBulanIni)}
+                                                        className="px-2.5 py-1 text-xs rounded-lg font-medium bg-slate-100 hover:bg-slate-200/70 text-slate-700 transition-colors"
+                                                    >
+                                                        Bulan Ini
+                                                    </button>
+                                                    {(() => {
+                                                        const dLalu = new Date();
+                                                        dLalu.setMonth(dLalu.getMonth() - 1);
+                                                        const kunciLalu = `${dLalu.getFullYear()}-${String(dLalu.getMonth() + 1).padStart(2, '0')}`;
+                                                        return (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setTempBulan(kunciLalu)}
+                                                                className="px-2.5 py-1 text-xs rounded-lg font-medium bg-slate-100 hover:bg-slate-200/70 text-slate-700 transition-colors"
+                                                            >
+                                                                Bulan Lalu
+                                                            </button>
+                                                        );
+                                                    })()}
+                                                </div>
+                                            </div>
+
+                                            <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setBukaPeriodePopover(false)}
+                                                    className="px-2.5 py-1 text-xs font-semibold text-slate-500 hover:text-slate-800"
+                                                >
+                                                    Batal
+                                                </button>
+                                                <Button
+                                                    size="sm"
+                                                    type="button"
+                                                    onClick={handleTerapkanBulan}
+                                                    className="rounded-xl text-xs py-1"
+                                                >
+                                                    Terapkan Bulan
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        /* Mode Tab Rentang Tanggal */
+                                        <div className="space-y-3">
+                                            <div>
+                                                <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                                                    Pintasan Rentang
+                                                </span>
+                                                <div className="flex flex-wrap gap-1">
+                                                    {[
+                                                        { id: 'hari_ini', label: 'Hari Ini' },
+                                                        { id: '7_hari', label: '7 Hari' },
+                                                        { id: '30_hari', label: '30 Hari' },
+                                                        { id: 'bulan_ini', label: 'Bulan Ini' },
+                                                        { id: 'bulan_lalu', label: 'Bulan Lalu' },
+                                                    ].map((p) => (
+                                                        <button
+                                                            key={p.id}
+                                                            type="button"
+                                                            onClick={() => terapkanPreset(p.id)}
+                                                            className="px-2 py-0.5 text-[11px] rounded-lg font-semibold bg-slate-100 hover:bg-brand-green/10 hover:text-brand-green-dark text-slate-700 transition-colors"
+                                                        >
+                                                            {p.label}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                                                        Dari Tanggal
+                                                    </label>
+                                                    <input
+                                                        type="date"
+                                                        value={tempDari}
+                                                        onChange={(e) => setTempDari(e.target.value)}
+                                                        className="w-full px-2 py-1 text-xs font-medium rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-green/30"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                                                        Sampai Tanggal
+                                                    </label>
+                                                    <input
+                                                        type="date"
+                                                        value={tempSampai}
+                                                        onChange={(e) => setTempSampai(e.target.value)}
+                                                        className="w-full px-2 py-1 text-xs font-medium rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-green/30"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setTempDari('');
+                                                        setTempSampai('');
+                                                    }}
+                                                    className="px-2 py-1 text-xs font-semibold text-slate-400 hover:text-slate-600"
+                                                >
+                                                    Bersihkan
+                                                </button>
+                                                <div className="flex items-center gap-1.5">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setBukaPeriodePopover(false)}
+                                                        className="px-2.5 py-1 text-xs font-semibold text-slate-500 hover:text-slate-800"
+                                                    >
+                                                        Batal
+                                                    </button>
+                                                    <Button
+                                                        size="sm"
+                                                        type="button"
+                                                        disabled={!tempDari && !tempSampai}
+                                                        onClick={handleTerapkanRentang}
+                                                        className="rounded-xl text-xs py-1"
+                                                    >
+                                                        Terapkan Rentang
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         {/* Kanan / Tengah: Segmented Arus Kas + Kategori Keluar + Search */}
@@ -1040,7 +1391,22 @@ export default function Index({
                                     </span>
                                 )}
 
-                                {filters.tanggal && (
+                                {isRentangAktif && (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-brand-green/10 border border-brand-green/30 text-brand-green-dark font-medium shadow-2xs text-[11px]">
+                                        <CalendarDays size={11} className="text-brand-green" />
+                                        <span>Rentang: {labelPeriode}</span>
+                                        <button
+                                            type="button"
+                                            onClick={handleHapusRentang}
+                                            className="hover:text-red-500 rounded-full p-0.5 transition-colors"
+                                            aria-label="Hapus filter rentang tanggal"
+                                        >
+                                            <X size={11} />
+                                        </button>
+                                    </span>
+                                )}
+
+                                {filters.tanggal && !isRentangAktif && (
                                     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white border border-slate-200 text-slate-700 font-medium shadow-2xs text-[11px]">
                                         <CalendarDays size={11} className="text-slate-400" />
                                         <span>{filters.tanggal}</span>
@@ -1100,8 +1466,7 @@ export default function Index({
                     <div className="flex items-center gap-2 min-w-0">
                         <CalendarDays size={16} className="text-slate-400 shrink-0" />
                         <p className="text-xs sm:text-sm text-slate-600 truncate">
-                            Mutasi kas <span className="font-bold text-slate-800">{labelBulan}</span>
-                            {filters.tanggal && <span className="text-brand-navy font-semibold"> • {filters.tanggal}</span>}
+                            Mutasi kas <span className="font-bold text-slate-800">{labelPeriode}</span>
                             {filters.kanal && <span className="text-slate-600"> • {kanalMeta[filters.kanal]?.label}</span>}
                         </p>
                     </div>
