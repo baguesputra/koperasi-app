@@ -9,11 +9,12 @@ import { PrivacyProvider } from './Contexts/PrivacyContext';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Koperasi App';
 
-if (typeof window !== 'undefined' && typeof document !== 'undefined' && 'startViewTransition' in document) {
-    router.on('before', (event) => {
-        event.detail.visit.viewTransition = true;
-    });
-}
+// View Transition dinonaktifkan untuk mencegah bug kilatan kanvas hitam (black flash) pada Chromium
+// if (typeof window !== 'undefined' && typeof document !== 'undefined' && 'startViewTransition' in document) {
+//     router.on('before', (event) => {
+//         event.detail.visit.viewTransition = true;
+//     });
+// }
 
 createInertiaApp({
     title: (title) => `${title} - ${appName}`,

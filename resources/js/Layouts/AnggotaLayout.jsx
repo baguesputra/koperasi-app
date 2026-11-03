@@ -22,17 +22,7 @@ export default function AnggotaLayout({
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [showPanduan, setShowPanduan] = useState(false);
     const [avatarGagal, setAvatarGagal] = useState(false);
-    const [navSolid, setNavSolid] = useState(false);
     const dropdownRef = useRef(null);
-
-    useEffect(() => {
-        function handleScroll() {
-            setNavSolid(window.scrollY > 8);
-        }
-        handleScroll();
-        window.addEventListener('scroll', handleScroll, { passive: true });
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
 
     useEffect(() => {
         function handleClickOutside(e) {
@@ -84,7 +74,7 @@ export default function AnggotaLayout({
             {/* One flush bar for the portal: identity left, the account right. */}
             {!hideNavbar && (
             <header
-                className={`shell-nav shell-nav--veil ${navSolid ? 'is-solid' : ''} ${
+                className={`shell-nav ${
                     mobileTitle ? 'hidden sm:block' : ''
                 }`}
             >
@@ -93,8 +83,8 @@ export default function AnggotaLayout({
                         <img
                             src="/images/logo-ui.webp"
                             alt="Koperasi App"
-                            width="24"
-                            height="24"
+                            width="42"
+                            height="42"
                             className="shell-brand__logo"
                         />
                         <span className="shell-brand__name">Koperasi App</span>

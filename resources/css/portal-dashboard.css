@@ -148,8 +148,8 @@ html {
 
 /* ---- The member band (signature) --------------------------------- */
 
-/* The band carries its own light: a teal bloom at the centre over a deep edge,
- * the same way the reference builds its member card. */
+/* ---- The member band (Digital Member Card - Signature) ----------- */
+
 .pd-band {
     position: relative;
     display: grid;
@@ -159,25 +159,31 @@ html {
     overflow: clip;
     background:
         radial-gradient(
-            62% 96% at 50% 46%,
-            var(--color-night-glow) 0%,
-            color-mix(in oklab, var(--color-night-glow) 40%, var(--color-night)) 46%,
-            var(--color-night) 88%
+            85% 120% at 50% 30%,
+            oklch(28.0% 0.055 185) 0%,
+            oklch(22.0% 0.045 195) 50%,
+            oklch(17.0% 0.035 210) 100%
         );
-    box-shadow: var(--shadow-raised);
+    border: 1px solid color-mix(in oklab, var(--color-night-ink) 12%, transparent);
+    box-shadow:
+        0 14px 34px -8px color-mix(in oklab, var(--color-night) 40%, transparent),
+        0 4px 12px -2px color-mix(in oklab, var(--color-night) 20%, transparent);
     color: var(--color-night-ink);
 }
 
-/* Texture etched into the band: a compact warped perspective field pinned to
- * the upper right corner, plus fine circuit runs hugging the left, right and
- * bottom edges. The middle stays clear so the figures read without noise. */
+/* Subtle, smooth wave watermark — minimalist, smooth, non-busy (no circuit/solder dots) */
 .pd-band::before {
     content: "";
     position: absolute;
     inset: 0;
     pointer-events: none;
     background:
-        url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 360' preserveAspectRatio='xMidYMid slice'><defs><clipPath id='gc'><path d='M505 0H640V150C585 140 540 90 505 0Z'/></clipPath></defs><g clip-path='url(%23gc)' fill='none' stroke='%237fdcc9' stroke-width='0.55' opacity='0.15'><path d='M505 0C525 35 555 70 595 100C615 114 630 124 640 129'/><path d='M528 0C545 32 573 63 608 89C623 100 633 108 640 112'/><path d='M550 0C565 28 590 55 620 78C630 86 636 92 640 95'/><path d='M572 0C584 23 607 47 630 65'/><path d='M594 0C604 18 622 38 636 49'/><path d='M505 0C535 40 575 75 615 100C628 108 636 113 640 116'/><path d='M518 28C546 62 582 92 616 113'/><path d='M533 55C558 83 590 107 618 123'/><path d='M550 82C572 104 598 120 620 131'/></g><g fill='none' stroke='%237fdcc9' stroke-width='1.0' opacity='0.26'><path d='M0 40V150L22 172V250'/><path d='M0 78V140L14 154V220'/><path d='M630 40V150L608 172V250'/><path d='M614 78V142L600 156V220'/><path d='M0 330H120L148 352H260'/><path d='M380 332H500L528 352H620'/></g><g fill='none' stroke='%237fdcc9' stroke-width='1.3' opacity='0.26'><circle cx='22' cy='172' r='4.5'/><circle cx='608' cy='172' r='4.5'/><circle cx='148' cy='352' r='4.5'/><circle cx='528' cy='352' r='4.5'/></g></svg>") center / cover no-repeat;
+        url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 700 350' fill='none'><g stroke='%234ade80' stroke-width='0.75' opacity='0.10'><path d='M350 0C440 60 550 110 700 95'/><path d='M320 0C420 70 540 125 700 115'/><path d='M290 0C400 80 530 140 700 135'/><path d='M260 0C380 90 520 155 700 155'/><path d='M230 0C360 100 510 170 700 175'/><path d='M0 250C140 210 270 220 400 270C480 300 580 325 700 330'/><path d='M0 275C150 230 280 240 410 285C490 310 590 332 700 340'/><path d='M0 300C160 250 290 260 420 300C500 320 600 340 700 350'/></g></svg>") center / cover no-repeat,
+        radial-gradient(
+            circle at 85% 15%,
+            color-mix(in oklab, var(--color-accent-bright) 10%, transparent) 0%,
+            transparent 60%
+        );
 }
 
 @media (min-width: 40rem) {
@@ -187,96 +193,188 @@ html {
     }
 }
 
-.pd-band__main {
-    display: grid;
-    gap: var(--space-md);
+/* Header bar inside the card: Status Pill on left, Privacy Toggle on right */
+.pd-band__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    padding-bottom: var(--space-xs);
 }
 
-@media (min-width: 40rem) {
-    .pd-band__main {
-        grid-template-columns: minmax(0, 5fr) minmax(0, 12fr);
+.pd-band__status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px;
+    border-radius: var(--radius-pill);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    background: color-mix(in oklab, var(--color-accent) 22%, transparent);
+    border: 1px solid color-mix(in oklab, var(--color-accent-bright) 35%, transparent);
+    color: var(--color-accent-bright);
+}
+
+.pd-band__status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-accent-bright);
+    box-shadow: 0 0 6px var(--color-accent-bright);
+}
+
+.pd-band__status-pill--off {
+    background: color-mix(in oklab, var(--color-muted) 20%, transparent);
+    border-color: color-mix(in oklab, var(--color-muted) 30%, transparent);
+    color: var(--color-night-muted);
+}
+
+.pd-band__status-pill--off .pd-band__status-dot {
+    background: var(--color-night-muted);
+    box-shadow: none;
+}
+
+.pd-band__body {
+    display: grid;
+    gap: var(--space-lg);
+}
+
+@media (min-width: 48rem) {
+    .pd-band__body {
+        grid-template-columns: minmax(0, 1.35fr) minmax(0, 1.15fr);
         align-items: center;
         gap: var(--space-xl);
     }
 }
 
-.pd-band__who {
+.pd-band__profile {
     display: flex;
     align-items: center;
     gap: var(--space-md);
     min-width: 0;
+    justify-content: flex-start;
 }
 
-.pd-band__avatar {
-    display: inline-flex;
+.pd-band__profile-meta {
+    min-width: 0;
+    display: grid;
+    gap: 4px;
+    text-align: left;
+}
+
+.pd-band__avatar-wrap {
+    position: relative;
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
     flex: none;
-    width: 72px;
-    height: 72px;
-    border-radius: 50%;
-    border: 2px solid color-mix(in oklab, var(--color-accent-bright) 46%, transparent);
-    background: var(--color-night-2);
-    color: var(--color-accent-bright);
-    font-size: var(--text-xl);
-    font-weight: 700;
-    object-fit: cover;
 }
 
-@media (min-width: 40rem) {
-    .pd-band__avatar {
-        width: 96px;
-        height: 96px;
+/* Avatar Container: bundar sempurna, overflow hidden mutlak agar tidak ada kebocoran kotak */
+.pd-band__avatar-container {
+    position: relative;
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2.5px solid color-mix(in oklab, var(--color-accent-bright) 70%, transparent);
+    box-shadow:
+        0 0 0 2px color-mix(in oklab, var(--color-accent-bright) 30%, transparent),
+        0 0 20px color-mix(in oklab, var(--color-accent) 45%, transparent);
+    background: rgba(16, 185, 129, 0.20);
+    flex-shrink: 0;
+}
+
+@media (min-width: 48rem) {
+    .pd-band__avatar-container {
+        width: 114px;
+        height: 114px;
     }
 }
 
-.pd-band__id {
-    min-width: 0;
+.pd-band__avatar {
+    border-radius: 50%;
+    object-fit: cover;
 }
 
-.pd-band__meta {
-    margin: var(--space-3xs) 0 0;
-    color: var(--color-night-muted);
-    font-size: var(--text-sm);
-    line-height: 1.3;
+.pd-band__avatar--fallback {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #ffffff;
+    font-size: 2.2rem;
+    font-weight: 700;
+}
+
+@media (min-width: 48rem) {
+    .pd-band__avatar--fallback {
+        font-size: 2.6rem;
+    }
+}
+
+.pd-band__avatar--img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    background: transparent;
+}
+
+.pd-band__profile-meta {
+    min-width: 0;
+    display: grid;
+    gap: 4px;
 }
 
 .pd-band__name {
     margin: 0;
-    font-size: var(--text-lg);
+    font-size: 1.35rem;
     font-weight: 700;
-    line-height: 1.25;
-    overflow-wrap: break-word;
+    line-height: 1.2;
+    color: #ffffff;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.35);
 }
 
-@media (min-width: 40rem) {
+@media (min-width: 48rem) {
     .pd-band__name {
-        font-size: var(--text-xl);
+        font-size: 1.65rem;
     }
 }
 
 .pd-band__nip {
-    margin: var(--space-3xs) 0 0;
+    margin: 0;
+    color: color-mix(in oklab, var(--color-accent-bright) 95%, transparent);
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 48rem) {
+    .pd-band__nip {
+        font-size: 1.15rem;
+    }
+}
+
+.pd-band__joined {
+    margin: 0;
     color: var(--color-night-muted);
-    font-size: var(--text-sm);
-    line-height: 1.3;
+    font-size: 0.92rem;
+    font-weight: 500;
 }
 
-.pd-band__tools {
-    display: flex;
-    align-items: center;
-    gap: var(--space-xs);
-    flex: none;
-}
-
-.pd-band__badge {
-    display: inline-flex;
-    align-items: center;
-    padding: var(--space-2xs) var(--space-xs);
-    border: 1px solid color-mix(in oklab, var(--color-night-ink) 18%, transparent);
-    border-radius: var(--radius-chip);
-    font-size: var(--text-xs);
-    line-height: 1.4;
+@media (min-width: 48rem) {
+    .pd-band__joined {
+        font-size: 0.98rem;
+    }
 }
 
 .pd-band__toggle {
@@ -284,11 +382,11 @@ html {
     display: inline-flex;
     align-items: center;
     gap: var(--space-2xs);
-    min-height: 32px;
+    min-height: 30px;
     padding: 0 var(--space-xs);
-    border: 1px solid color-mix(in oklab, var(--color-night-ink) 18%, transparent);
+    border: 1px solid color-mix(in oklab, var(--color-night-ink) 20%, transparent);
     border-radius: var(--radius-pill);
-    background: transparent;
+    background: rgba(255, 255, 255, 0.08);
     color: var(--color-night-ink);
     font: 500 var(--text-xs)/1 var(--font-body);
     cursor: pointer;
@@ -297,7 +395,6 @@ html {
         border-color var(--dur-short) var(--ease-out);
 }
 
-/* 32px of chrome, a 44px hit target (39b). */
 .pd-band__toggle::after {
     content: "";
     position: absolute;
@@ -315,23 +412,28 @@ html {
 }
 
 .pd-band__toggle:hover {
-    background: color-mix(in oklab, var(--color-night-ink) 10%, transparent);
+    background: color-mix(in oklab, var(--color-night-ink) 16%, transparent);
 }
 
 .pd-band__figures {
     display: grid;
     gap: var(--space-md);
+    background: color-mix(in oklab, var(--color-night) 30%, transparent);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-well);
+    border: 1px solid color-mix(in oklab, var(--color-night-ink) 8%, transparent);
 }
 
-@media (min-width: 40rem) {
+@media (min-width: 32rem) {
     .pd-band__figures {
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-        gap: var(--space-lg);
+        gap: var(--space-md);
+        align-items: center;
     }
 
     .pd-band__figure--end {
-        padding-left: var(--space-lg);
-        border-left: 1px solid color-mix(in oklab, var(--color-night-ink) 14%, transparent);
+        padding-left: var(--space-md);
+        border-left: 1px solid color-mix(in oklab, var(--color-night-ink) 12%, transparent);
     }
 }
 
@@ -373,33 +475,36 @@ html {
 
 .pd-band__rail {
     display: grid;
+    gap: var(--space-xs);
+    padding-top: var(--space-sm);
+    border-top: 1px solid color-mix(in oklab, var(--color-night-ink) 10%, transparent);
+}
+
+.pd-band__rail-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     gap: var(--space-sm);
-    padding-top: var(--space-md);
-    border-top: 1px solid color-mix(in oklab, var(--color-night-ink) 14%, transparent);
+    color: var(--color-night-muted);
+    font-size: var(--text-xs);
+    font-variant-numeric: tabular-nums;
 }
 
-.pd-band__rail .pd-rail {
-    margin-top: var(--space-2xs);
+.pd-band__rail-bar {
+    position: relative;
+    height: 7px;
+    border-radius: var(--radius-pill);
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    overflow: hidden;
 }
 
-.pd-band__rail .pd-railcap {
-    margin-top: 0;
-}
-
-.pd-band__rail .pd-band__tools {
-    margin-top: 0;
-}
-
-@media (min-width: 40rem) {
-    .pd-band__rail {
-        grid-template-columns: minmax(0, 1fr) auto;
-        align-items: end;
-        column-gap: var(--space-lg);
-    }
-
-    .pd-band__rail .pd-rail {
-        grid-column: 1 / -1;
-    }
+.pd-band__rail-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+    box-shadow: 0 0 10px rgba(52, 211, 153, 0.5);
+    transition: width var(--dur-long) var(--ease-out);
 }
 
 .pd-railcap {
@@ -587,28 +692,31 @@ a.pd-status__link:hover {
     display: flex;
     align-items: center;
     gap: var(--space-xs);
-    min-height: 56px;
+    min-height: 58px;
     padding: var(--space-xs) var(--space-sm);
     border: 1px solid var(--color-rule);
     border-radius: var(--radius-well);
-    background: var(--color-paper-2);
-    box-shadow: var(--shadow-card);
+    background: #ffffff;
+    box-shadow: 0 1px 3px color-mix(in oklab, var(--color-ink) 4%, transparent);
     color: var(--color-ink);
     text-decoration: none;
     text-align: left;
     cursor: pointer;
     transition:
         border-color var(--dur-short) var(--ease-out),
-        background-color var(--dur-short) var(--ease-out);
+        box-shadow var(--dur-short) var(--ease-out),
+        transform var(--dur-short) var(--ease-out);
 }
 
 .pd-action:hover {
-    border-color: var(--color-rule-2);
-    background: var(--color-paper);
+    border-color: color-mix(in oklab, var(--color-accent) 30%, var(--color-rule));
+    box-shadow: 0 4px 12px color-mix(in oklab, var(--color-ink) 6%, transparent);
+    transform: translateY(-1px);
 }
 
 .pd-action:active {
-    background: var(--color-paper-3);
+    background: var(--color-paper-2);
+    transform: translateY(0);
 }
 
 .pd-action[aria-disabled="true"],
@@ -616,10 +724,11 @@ a.pd-status__link:hover {
 .pd-action[aria-disabled="true"]:active {
     border-style: dashed;
     border-color: var(--color-rule);
-    background: transparent;
+    background: rgba(255, 255, 255, 0.6);
     box-shadow: none;
     color: var(--color-muted);
     cursor: not-allowed;
+    transform: none;
 }
 
 .pd-action__icon {
@@ -627,28 +736,27 @@ a.pd-status__link:hover {
     align-items: center;
     justify-content: center;
     flex: none;
-    width: 32px;
-    height: 32px;
+    width: 34px;
+    height: 34px;
     border-radius: var(--radius-chip);
-    background: var(--color-accent-soft);
-    color: var(--color-accent-dark);
+    background: #ecfdf5;
+    color: #059669;
 }
 
-/* Four actions, four tones: the primary one, the request, the schedule change, the reference.
- * Amber stays out of this row; in this system it means "in progress". */
+/* Four actions: primary emerald, request coral/red, schedule teal, reference blue */
 .pd-action--limit .pd-action__icon {
-    background: var(--color-info-soft);
-    color: var(--color-info-ink);
+    background: #fff1f2;
+    color: #e11d48;
 }
 
 .pd-action--tenor .pd-action__icon {
-    background: var(--color-teal-soft);
-    color: var(--color-teal-ink);
+    background: #f0fdfa;
+    color: #0d9488;
 }
 
 .pd-action--guide .pd-action__icon {
-    background: var(--color-paper-4);
-    color: var(--color-ink);
+    background: #eff6ff;
+    color: #2563eb;
 }
 
 .pd-action[aria-disabled="true"] .pd-action__icon {
@@ -1092,45 +1200,14 @@ html.js .pd-lock:active .pd-lock__tip {
     list-style: none;
 }
 
-/* Narrow: the ceiling sits beside the nominal, the rail fills the line below. */
 .pd-rung {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    display: flex;
     align-items: center;
-    gap: var(--space-3xs) var(--space-xs);
+    justify-content: space-between;
+    gap: var(--space-xs);
     padding: var(--space-xs) 0;
     border-top: 1px solid var(--color-rule);
     font-size: var(--text-xs);
-}
-
-.pd-rung__nominal {
-    grid-column: 1;
-    grid-row: 1;
-}
-
-.pd-rung__tenor {
-    grid-column: 2;
-    grid-row: 1;
-}
-
-.pd-rung__bar {
-    grid-column: 1 / -1;
-    grid-row: 2;
-}
-
-/* Wide enough: one rail per rung, every rail starting on the same column. */
-@media (min-width: 30rem) {
-    .pd-rung {
-        grid-template-columns: 11rem minmax(var(--space-sm), 1fr) auto;
-        gap: var(--space-xs);
-    }
-
-    .pd-rung__nominal,
-    .pd-rung__tenor,
-    .pd-rung__bar {
-        grid-column: auto;
-        grid-row: auto;
-    }
 }
 
 .pd-rung:first-child {
@@ -1143,25 +1220,12 @@ html.js .pd-lock:active .pd-lock__tip {
     line-height: 1.4;
 }
 
-.pd-rung__bar {
-    height: 4px;
-    border-radius: var(--radius-pill);
-    background: var(--color-paper-4);
-    overflow: hidden;
-}
-
-.pd-rung__fill {
-    display: block;
-    height: 100%;
-    border-radius: inherit;
-    background: var(--color-accent);
-}
-
 .pd-rung__tenor {
     color: var(--color-ink);
-    font-weight: 500;
+    font-weight: 600;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
+    text-align: right;
 }
 
 /* ---- Disclosure -------------------------------------------------- */

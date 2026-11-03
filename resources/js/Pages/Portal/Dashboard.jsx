@@ -99,11 +99,21 @@ function CaptionLimitBerjalan({ pengajuan, tampil }) {
 }
 
 function PetunjukTerkunci({ pesan, children }) {
+    const [buka, setBuka] = useState(false);
+
     return (
-        <div className="pd-lock" tabIndex={0} aria-label={pesan || undefined}>
+        <div
+            className="pd-lock"
+            tabIndex={0}
+            onMouseEnter={() => setBuka(true)}
+            onMouseLeave={() => setBuka(false)}
+            onFocus={() => setBuka(true)}
+            onBlur={() => setBuka(false)}
+            aria-label={pesan || undefined}
+        >
             {children}
-            {pesan && (
-                <span role="tooltip" className="pd-lock__tip">
+            {pesan && buka && (
+                <span role="tooltip" className="pd-lock__tip is-open">
                     {pesan}
                 </span>
             )}
@@ -247,7 +257,7 @@ export default function Dashboard({
     const pesanTerkunciPinjaman = pengajuanBerjalan
         ? 'Pengajuan pinjaman Anda masih diproses.'
         : limitTersedia <= 0
-        ? 'Plafon pinjaman Anda sudah terpakai penuh.'
+        ? 'Limit pinjaman Anda sudah terpakai penuh.'
         : resignMenunggu
         ? 'Penyelesaian resign Anda sedang menunggu pelunasan.'
         : alasanTidakBisa || 'Belum memenuhi ketentuan koperasi.';
@@ -281,10 +291,10 @@ export default function Dashboard({
     const [nominalTampil, alihNominal] = usePrivasiNominal();
     const [fotoGagal, setFotoGagal] = useState(false);
 
-    // Plafon yang sudah terpakai = plafon maksimal dikurangi sisa yang masih bisa diajukan.
-    const plafonTerpakai = Math.max(0, (limitMaksimal || 0) - (limitTersedia || 0));
-    const persenPlafon =
-        limitMaksimal > 0 ? Math.min(100, Math.round((plafonTerpakai / limitMaksimal) * 100)) : 0;
+    // Limit yang sudah terpakai = limit maksimal dikurangi sisa yang masih bisa diajukan.
+    const limitTerpakai = Math.max(0, (limitMaksimal || 0) - (limitTersedia || 0));
+    const persenLimit =
+        limitMaksimal > 0 ? Math.min(100, Math.round((limitTerpakai / limitMaksimal) * 100)) : 0;
 
     const adaStatus =
         Boolean(resignMenunggu) ||
@@ -314,8 +324,6 @@ export default function Dashboard({
         return rungs;
     }, [tabelTenor]);
 
-    const tenorTertinggi = tanggaTenor.reduce((max, r) => Math.max(max, r.tenor), 0);
-
     useEffect(() => {
         const tourKey = `koperasi.dashboard-tour.dismissed.${auth?.user?.id ?? 'guest'}`;
         let activeTour = null;
@@ -328,9 +336,9 @@ export default function Dashboard({
                 { element: '[data-tour="quick-actions"]', popover: { title: 'Menu Utama', description: 'Ajukan pinjaman, tambah limit, ubah tenor, atau buka panduan lengkap.' } },
                 ...(pengajuanBerjalan ? [{ element: '[data-tour="application-tracker"]', popover: { title: 'Pelacakan Pengajuan', description: 'Pantau proses pemeriksaan Admin, Bendahara, hingga persetujuan Ketua.' } }] : []),
                 { element: '[data-tour="loan-progress"]', popover: { title: 'Progres Pinjaman', description: 'Pantau jumlah angsuran terbayar, sisa angsuran, cicilan bulanan, dan persentase pelunasan.' } },
-                { element: '[data-tour="savings-card"]', popover: { title: 'Rincian Simpanan', description: 'Lihat total simpanan beserta komposisi Simpanan Wajib dan Simpanan Pokok. Ketentuan tarif dapat dibuka di bagian ini.' } },
+                { element: '[data-tour="savings-card"]', popover: { title: 'Rincian Simpanan', description: 'Lihat total simpanan beserta rincian Simpanan Wajib dan Simpanan Pokok. Ketentuan tarif dapat dibuka di bagian ini.' } },
                 { element: '[data-tour="history-summary"]', popover: { title: 'Aktivitas & Riwayat', description: 'Lihat transaksi simpanan dan pembayaran terakhir.' } },
-                { element: '[data-tour="plafon-rules"]', popover: { title: 'Ketentuan & Plafon', description: 'Lihat batas nominal pinjaman dan tenor maksimal. Plafon mengikuti ketentuan koperasi serta diproses melalui verifikasi Admin, Bendahara, lalu persetujuan Ketua.' } },
+                { element: '[data-tour="plafon-rules"]', popover: { title: 'Ketentuan Pinjaman', description: 'Lihat batas nominal pinjaman dan tenor maksimal. Limit mengikuti ketentuan koperasi serta diproses melalui verifikasi Admin, Bendahara, lalu persetujuan Ketua.' } },
             ].filter((step) => document.querySelector(step.element));
 
             if (!steps.length) return;
@@ -354,13 +362,11 @@ export default function Dashboard({
         const requestHandler = () => startTour();
         window.addEventListener('start-dashboard-tour', requestHandler);
 
-        const pinCreated = sessionStorage.getItem('koperasi.dashboard-tour.pin-created') === '1';
-        const firstVisit = !localStorage.getItem(tourKey) && auth?.user?.has_pin;
-        const timer = firstVisit || pinCreated ? window.setTimeout(startTour, 800) : null;
+        // Hapus flag pembuatan PIN jika ada agar tidak memicu overlay Driver.js saat reload
+        sessionStorage.removeItem('koperasi.dashboard-tour.pin-created');
 
         return () => {
             window.removeEventListener('start-dashboard-tour', requestHandler);
-            if (timer) window.clearTimeout(timer);
             activeTour?.destroy();
         };
     }, [auth?.user?.id, pengajuanBerjalan]);
@@ -498,7 +504,7 @@ export default function Dashboard({
                                                 </>
                                             ) : null}
                                             . Diajukan {pengajuanLimitBerjalan.tanggal_pengajuan}. Anda tetap dapat
-                                            meminjam hingga plafon aktif saat ini{' '}
+                                            meminjam hingga limit aktif saat ini{' '}
                                             <Nominal nilai={limitMaksimal} tampil={nominalTampil} />.
                                         </>
                                     }
@@ -533,7 +539,7 @@ export default function Dashboard({
                                             {sisaAngsuranAktif > 2 && limitTersedia > 0 ? (
                                                 <>
                                                     {' '}
-                                                    Sisa plafon yang belum terpakai{' '}
+                                                    Sisa limit yang belum terpakai{' '}
                                                     <Nominal nilai={limitTersedia} tampil={nominalTampil} /> baru
                                                     dapat dipakai setelah angsuran tersisa maksimal 2 bulan.
                                                 </>
@@ -547,7 +553,7 @@ export default function Dashboard({
                                 <StatusRow
                                     tone="info"
                                     icon={Info}
-                                    title="Plafon pinjaman Anda saat ini terpakai seluruhnya"
+                                    title="Limit pinjaman Anda saat ini terpakai seluruhnya"
                                     body="Pengajuan pinjaman baru dibuka kembali setelah angsuran berjalan tersisa maksimal 2 bulan, atau Anda dapat mengajukan penambahan limit melalui menu Tambah limit."
                                 />
                             )}
@@ -579,99 +585,119 @@ export default function Dashboard({
                 )}
 
                 {/* =================================================
-                    MEMBER BAND — the signature
+                    MEMBER CARD — Digital Member Card (Signature)
                 ================================================== */}
                 <section data-tour="member-card" className="pd-band">
-                    <div className="pd-band__main">
-                        <div className="pd-band__who">
-                            {anggota.foto_url && !fotoGagal ? (
-                                <img
-                                    src={anggota.foto_url}
-                                    alt={anggota.nama}
-                                    loading="lazy"
-                                    referrerPolicy="no-referrer"
-                                    onError={() => setFotoGagal(true)}
-                                    className="pd-band__avatar"
-                                />
+                    {/* Header: Status Pill on left, Privacy Toggle on right */}
+                    <div className="pd-band__header">
+                        <span
+                            className={`pd-band__status-pill ${
+                                anggotaAktif ? '' : 'pd-band__status-pill--off'
+                            }`}
+                        >
+                            <span className="pd-band__status-dot" aria-hidden="true" />
+                            {anggotaAktif ? 'AKTIF' : 'NONAKTIF'}
+                        </span>
+
+                        <button
+                            data-tour="privacy-toggle"
+                            type="button"
+                            onClick={alihNominal}
+                            aria-label={nominalTampil ? 'Sembunyikan saldo' : 'Tampilkan saldo'}
+                            title={nominalTampil ? 'Sembunyikan saldo' : 'Tampilkan saldo'}
+                            className="pd-band__toggle pd-focus"
+                        >
+                            {nominalTampil ? (
+                                <EyeOff size={13} aria-hidden="true" />
                             ) : (
-                                <span className="pd-band__avatar">{initial}</span>
+                                <Eye size={13} aria-hidden="true" />
                             )}
-                            <div className="pd-band__id">
+                            <span className="pd-band__toggle-label">
+                                {nominalTampil ? 'Sembunyikan' : 'Tampilkan'}
+                            </span>
+                        </button>
+                    </div>
+
+                    {/* Body: Profile on left, Financial figures on right */}
+                    <div className="pd-band__body">
+                        <div className="pd-band__profile">
+                            <div className="pd-band__avatar-wrap">
+                                <div className="pd-band__avatar-container">
+                                    <span className="pd-band__avatar pd-band__avatar--fallback" aria-hidden="true">
+                                        {initial}
+                                    </span>
+                                    {anggota.foto_url && !fotoGagal && (
+                                        <img
+                                            src={anggota.foto_url}
+                                            alt={anggota.nama}
+                                            loading="eager"
+                                            referrerPolicy="no-referrer"
+                                            onLoad={() => setFotoGagal(false)}
+                                            onError={() => setFotoGagal(true)}
+                                            className="pd-band__avatar pd-band__avatar--img"
+                                        />
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="pd-band__profile-meta">
                                 <p className="pd-band__name">{anggota.nama}</p>
-                                <p className="pd-band__nip">NIP {anggota.no_karyawan}</p>
+                                <p className="pd-band__nip">{anggota.no_karyawan}</p>
                                 {anggota.lama_keanggotaan_label ? (
-                                    <p className="pd-band__meta">
-                                        Anggota {anggota.lama_keanggotaan_label}
+                                    <p className="pd-band__joined">
+                                        Masa Keanggotaan: {anggota.lama_keanggotaan_label}
                                     </p>
                                 ) : null}
                             </div>
                         </div>
 
-                    <div data-tour="financial-summary" className="pd-band__figures">
-                        <div className="pd-band__figure">
-                            <p className="pd-band__label">Total simpanan</p>
-                            <p className="pd-band__value">
-                                <Nominal nilai={totalSimpanan} tampil={nominalTampil} />
-                            </p>
-                            <p className="pd-band__note">Simpanan pokok dan wajib</p>
-                        </div>
-
-                        <div className="pd-band__figure pd-band__figure--end">
-                            <p className="pd-band__label">Sisa plafon</p>
-                            <p className="pd-band__value pd-band__value--accent">
-                                <Nominal nilai={limitTersedia} tampil={nominalTampil} />
-                            </p>
-                            {pengajuanLimitBerjalan ? (
-                                <p className="pd-band__note">
-                                    <CaptionLimitBerjalan
-                                        pengajuan={pengajuanLimitBerjalan}
-                                        tampil={nominalTampil}
-                                    />
+                        <div data-tour="financial-summary" className="pd-band__figures">
+                            <div className="pd-band__figure">
+                                <p className="pd-band__label">Total Simpanan</p>
+                                <p className="pd-band__value">
+                                    <Nominal nilai={totalSimpanan} tampil={nominalTampil} />
                                 </p>
-                            ) : null}
+                                <p className="pd-band__note">Simpanan Pokok &amp; Wajib</p>
+                            </div>
+
+                            <div className="pd-band__figure pd-band__figure--end">
+                                <p className="pd-band__label">Limit Tersedia</p>
+                                <p className="pd-band__value pd-band__value--accent">
+                                    <Nominal nilai={limitTersedia} tampil={nominalTampil} />
+                                </p>
+                                {pengajuanLimitBerjalan ? (
+                                    <p className="pd-band__note">
+                                        <CaptionLimitBerjalan
+                                            pengajuan={pengajuanLimitBerjalan}
+                                            tampil={nominalTampil}
+                                        />
+                                    </p>
+                                ) : (
+                                    <p className="pd-band__note">Limit siap digunakan</p>
+                                )}
+                            </div>
                         </div>
                     </div>
-                    </div>
 
+                    {/* Bottom: Limit Usage Rail */}
                     {limitMaksimal > 0 && (
                         <div className="pd-band__rail">
-                            <div
-                                className="pd-rail pd-rail--night"
-                                role="img"
-                                aria-label={`Plafon terpakai ${persenPlafon} persen`}
-                            >
-                                <div
-                                    className="pd-rail__fill"
-                                    style={{ width: `${persenPlafon}%` }}
-                                />
-                                <span className="pd-rail__tick" style={{ left: '25%' }} aria-hidden="true" />
-                                <span className="pd-rail__tick" style={{ left: '50%' }} aria-hidden="true" />
-                                <span className="pd-rail__tick" style={{ left: '75%' }} aria-hidden="true" />
-                            </div>
-                            <div className="pd-railcap">
+                            <div className="pd-band__rail-top">
                                 <span>
-                                    Terpakai <Nominal nilai={plafonTerpakai} tampil={nominalTampil} /> dari{' '}
+                                    Terpakai <Nominal nilai={limitTerpakai} tampil={nominalTampil} /> dari{' '}
                                     <Nominal nilai={limitMaksimal} tampil={nominalTampil} />
                                 </span>
-                                <span>{persenPlafon}%</span>
+                                <span className="font-semibold">{persenLimit}%</span>
                             </div>
-                            <div className="pd-band__tools">
-                                <span className="pd-band__badge">
-                                    {anggotaAktif ? 'Aktif' : 'Nonaktif'}
-                                </span>
-                                <button
-                                    data-tour="privacy-toggle"
-                                    type="button"
-                                    onClick={alihNominal}
-                                    aria-label={nominalTampil ? 'Sembunyikan saldo' : 'Tampilkan saldo'}
-                                    title={nominalTampil ? 'Sembunyikan saldo' : 'Tampilkan saldo'}
-                                    className="pd-band__toggle pd-focus"
-                                >
-                                    {nominalTampil ? <EyeOff size={13} aria-hidden="true" /> : <Eye size={13} aria-hidden="true" />}
-                                    <span className="pd-band__toggle-label">
-                                        {nominalTampil ? 'Sembunyikan' : 'Tampilkan'}
-                                    </span>
-                                </button>
+                            <div
+                                className="pd-band__rail-bar"
+                                role="img"
+                                aria-label={`Limit terpakai ${persenLimit} persen`}
+                            >
+                                <div
+                                    className="pd-band__rail-fill"
+                                    style={{ width: `${persenLimit}%` }}
+                                />
                             </div>
                         </div>
                     )}
@@ -688,7 +714,7 @@ export default function Dashboard({
                             </span>
                             <span className="pd-action__text">
                                 <span className="pd-action__label">Ajukan pinjaman</span>
-                                <span className="pd-action__state">Plafon siap digunakan</span>
+                                <span className="pd-action__state">Limit siap digunakan</span>
                             </span>
                             <span className="pd-action__flag">Tersedia</span>
                         </Link>
@@ -704,7 +730,7 @@ export default function Dashboard({
                                         {pengajuanBerjalan
                                             ? 'Dalam proses approval'
                                             : limitTersedia <= 0
-                                            ? 'Plafon limit habis'
+                                            ? 'Limit pinjaman habis'
                                             : 'Belum memenuhi syarat'}
                                     </span>
                                 </span>
@@ -712,7 +738,7 @@ export default function Dashboard({
                                     {pengajuanBerjalan
                                         ? 'Diproses'
                                         : limitTersedia <= 0
-                                        ? 'Plafon Rp0'
+                                        ? 'Limit Rp0'
                                         : 'Terkunci'}
                                 </span>
                             </div>
@@ -729,7 +755,7 @@ export default function Dashboard({
                             </span>
                             <span className="pd-action__text">
                                 <span className="pd-action__label">Tambah limit</span>
-                                <span className="pd-action__state">Ajukan kenaikan plafon</span>
+                                <span className="pd-action__state">Ajukan kenaikan limit</span>
                             </span>
                             <span className="pd-action__flag">Tersedia</span>
                         </Link>
@@ -1024,7 +1050,7 @@ export default function Dashboard({
                         ) : (
                             !pengajuanBerjalan && (
                                 <p className="pd-quiet">
-                                    Belum ada pinjaman aktif. Plafon{' '}
+                                    Belum ada pinjaman aktif. Limit{' '}
                                     <Nominal nilai={limitMaksimal} tampil={nominalTampil} /> siap
                                     diajukan lewat menu di atas.
                                 </p>
@@ -1089,71 +1115,21 @@ export default function Dashboard({
                                 <div>
                                     <h2>Rincian simpanan</h2>
                                     <p className="pd-card__note">
-                                        Komposisi dari total{' '}
+                                        Total simpanan saat ini{' '}
                                         <Nominal nilai={totalSimpanan} tampil={nominalTampil} />
                                     </p>
                                 </div>
                             </div>
 
-                            {totalSimpanan > 0 && (
-                                <>
-                                    <div className="pd-split">
-                                        <div
-                                            className="pd-split__wajib"
-                                            style={{
-                                                width: `${Math.round(
-                                                    (simpananWajib / totalSimpanan) * 100
-                                                )}%`,
-                                            }}
-                                        />
-                                        <div
-                                            className="pd-split__pokok"
-                                            style={{
-                                                width: `${Math.round(
-                                                    (simpananPokok / totalSimpanan) * 100
-                                                )}%`,
-                                            }}
-                                        />
-                                    </div>
-                                    <ul className="pd-legend">
-                                        <li>
-                                            <span className="pd-legend__dot" aria-hidden="true" />
-                                            Wajib
-                                        </li>
-                                        <li>
-                                            <span
-                                                className="pd-legend__dot pd-legend__dot--ink"
-                                                aria-hidden="true"
-                                            />
-                                            Pokok
-                                        </li>
-                                    </ul>
-                                </>
-                            )}
-
                             <dl className="pd-rows">
                                 <div className="pd-row">
-                                    <dt>
-                                        Simpanan wajib
-                                        {totalSimpanan > 0
-                                            ? ` (${Math.round(
-                                                  (simpananWajib / totalSimpanan) * 100
-                                              )}%)`
-                                            : ''}
-                                    </dt>
+                                    <dt>Simpanan wajib</dt>
                                     <dd>
                                         <Nominal nilai={simpananWajib} tampil={nominalTampil} />
                                     </dd>
                                 </div>
                                 <div className="pd-row">
-                                    <dt>
-                                        Simpanan pokok
-                                        {totalSimpanan > 0
-                                            ? ` (${Math.round(
-                                                  (simpananPokok / totalSimpanan) * 100
-                                              )}%)`
-                                            : ''}
-                                    </dt>
+                                    <dt>Simpanan pokok</dt>
                                     <dd>
                                         <Nominal nilai={simpananPokok} tampil={nominalTampil} />
                                     </dd>
@@ -1182,11 +1158,11 @@ export default function Dashboard({
                             )}
                         </section>
 
-                        {/* ---------------- PLAFON RULES ---------------- */}
+                        {/* ---------------- KETENTUAN PINJAMAN ---------------- */}
                         <section data-tour="plafon-rules" className="pd-card">
                             <div className="pd-card__head">
                                 <div>
-                                    <h2>Ketentuan &amp; plafon</h2>
+                                    <h2>Ketentuan pinjaman</h2>
                                     <p className="pd-card__note">
                                         Batas nominal dan tenor maksimal
                                     </p>
@@ -1204,20 +1180,6 @@ export default function Dashboard({
                                                     &ndash; {formatRupiah(r.nominal_max)}
                                                 </>
                                             ) : null}
-                                        </span>
-                                        <span className="pd-rung__bar" aria-hidden="true">
-                                            <span
-                                                className="pd-rung__fill"
-                                                style={{
-                                                    width: `${
-                                                        tenorTertinggi > 0
-                                                            ? Math.round(
-                                                                  (r.tenor / tenorTertinggi) * 100
-                                                              )
-                                                            : 0
-                                                    }%`,
-                                                }}
-                                            />
                                         </span>
                                         <span className="pd-rung__tenor">
                                             Maks. {r.tenor} bulan

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import {
     User, Building2, Briefcase, Calendar, Mail,
     CreditCard, Plus, Star, Trash2, Landmark, Network,
-    LogOut, Info, ShieldCheck, ChevronRight, Copy, Check,
+    Info, ShieldCheck, ChevronRight, Copy, Check,
     Sparkles, X,
 } from 'lucide-react';
 
@@ -86,26 +86,20 @@ export default function Profil({ anggota, rekening }) {
                                         loading="lazy"
                                         referrerPolicy="no-referrer"
                                         onError={() => setFotoGagal(true)}
-                                        className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-emerald-500/20 shadow-md bg-slate-100"
+                                        className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover ring-4 ring-emerald-500/15 shadow-sm bg-slate-100"
                                     />
                                 ) : (
-                                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-brand-green to-emerald-400 text-white flex items-center justify-center text-2xl sm:text-3xl font-extrabold shadow-md border border-white">
+                                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center text-2xl sm:text-3xl font-extrabold shadow-sm ring-4 ring-emerald-500/15">
                                         {initial}
                                     </div>
                                 )}
-                                <div
-                                    className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 border-2 border-white flex items-center justify-center shadow-xs"
-                                    title="Anggota Aktif"
-                                >
-                                    <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                                </div>
                             </div>
 
                             {/* Core Identity Details */}
                             <div className="min-w-0">
                                 <div className="flex flex-wrap items-center gap-2">
-                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-[11px] font-bold text-brand-green-dark border border-emerald-100">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-brand-green" />
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-[11px] font-bold text-emerald-800 border border-emerald-100">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
                                         Anggota Aktif
                                     </span>
                                     {anggota.no_anggota && (
@@ -120,7 +114,7 @@ export default function Profil({ anggota, rekening }) {
                                 </h1>
 
                                 <p className="text-xs sm:text-sm text-slate-500 font-medium truncate mt-0.5">
-                                    NIP: <span className="font-mono text-slate-700 font-semibold">{anggota.no_karyawan}</span> &bull; {anggota.jabatan ?? 'Anggota'}
+                                    <span className="font-mono text-slate-700 font-semibold">{anggota.no_karyawan}</span> &bull; {anggota.jabatan ?? 'Anggota'}
                                 </p>
 
                                 <p className="text-xs text-slate-400 mt-1 truncate">
@@ -428,18 +422,6 @@ export default function Profil({ anggota, rekening }) {
                                 <ChevronRight size={16} className="text-slate-400 group-hover:translate-x-0.5 transition-transform" />
                             </Link>
                         )}
-                    </div>
-
-                    {/* Logout Button */}
-                    <div className="pt-3 border-t border-slate-100">
-                        <button
-                            type="button"
-                            onClick={() => router.post(route('logout'))}
-                            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-red-600 font-semibold text-xs sm:text-sm bg-red-50 hover:bg-red-100 active:bg-red-200 transition-colors"
-                        >
-                            <LogOut size={16} />
-                            <span>Keluar dari Akun Koperasi</span>
-                        </button>
                     </div>
                 </div>
             </div>

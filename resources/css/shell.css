@@ -26,44 +26,40 @@
     z-index: -1;
     pointer-events: none;
     background:
-        url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 800'><defs><pattern id='m' width='2.4' height='2.4' patternUnits='userSpaceOnUse' patternTransform='rotate(45)'><path d='M2.4 0H0V2.4' fill='none' stroke='%238fd6a8' stroke-width='0.6'/></pattern></defs><path d='M400 0L400 340C330 310 285 230 275 110Z' fill='url(%23m)' opacity='0.70'/><g fill='none' stroke='%238bd598' stroke-width='1.0' opacity='0.55'><path d='M400 20C300 120 250 260 200 430C175 515 165 610 162 710'/><path d='M400 95C315 185 270 300 225 450C202 530 194 620 192 716'/><path d='M400 175C330 255 290 350 250 480C232 552 226 632 224 722'/><path d='M352 0C295 80 262 175 222 300C197 372 186 448 183 530'/></g></svg>") right top / 34vmin 78vmin no-repeat,
-        url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'><defs><pattern id='w' width='2.4' height='2.4' patternUnits='userSpaceOnUse' patternTransform='rotate(45)'><path d='M2.4 0H0V2.4' fill='none' stroke='%236fb0c0' stroke-width='0.6'/></pattern></defs><path d='M0 400L0 180C80 160 130 110 145 40Z' fill='url(%23w)' opacity='0.62'/><g fill='none' stroke='%237fc0cb' stroke-width='0.9' opacity='0.52'><path d='M0 380C70 300 115 200 142 80C148 52 151 30 152 10'/><path d='M0 320C60 250 100 170 122 70'/><path d='M0 260C50 200 85 135 102 55'/><path d='M48 400C105 330 142 240 164 130'/></g></svg>") left bottom / 36vmin 40vmin no-repeat,
+        url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 500 900' fill='none'><defs><linearGradient id='rg' x1='1' y1='0' x2='0' y2='1'><stop offset='0%' stop-color='%2310b981' stop-opacity='0.36'/><stop offset='60%' stop-color='%2334d399' stop-opacity='0.20'/><stop offset='100%' stop-color='%2314b8a6' stop-opacity='0.03'/></linearGradient></defs><g stroke='url(%23rg)' fill='none'><path d='M500 40C400 130 310 270 260 450C220 590 225 720 240 860' stroke-width='1.4'/><path d='M500 100C415 190 335 320 290 490C255 620 260 740 275 880' stroke-width='1.2'/><path d='M500 160C430 245 360 370 320 530C290 650 295 760 310 900' stroke-width='1.0'/><path d='M500 220C445 300 385 420 350 570C325 680 330 780 345 920' stroke-width='0.9'/><path d='M500 280C460 350 410 470 380 610C360 710 365 800 380 940' stroke-width='0.8'/><path d='M470 0C380 90 280 230 220 420C170 570 175 710 190 850' stroke-width='0.7' stroke-opacity='0.6'/><path d='M440 0C360 80 250 210 185 400C135 550 140 690 155 830' stroke-width='0.6' stroke-opacity='0.4'/></g></svg>") right top / 38vmin 85vmin no-repeat,
+        url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 500 500' fill='none'><defs><linearGradient id='lg' x1='0' y1='1' x2='1' y2='0'><stop offset='0%' stop-color='%2314b8a6' stop-opacity='0.32'/><stop offset='60%' stop-color='%2334d399' stop-opacity='0.16'/><stop offset='100%' stop-color='%2310b981' stop-opacity='0.02'/></linearGradient></defs><g stroke='url(%23lg)' fill='none'><path d='M0 460C110 400 210 310 270 200C315 110 320 40 320 0' stroke-width='1.4'/><path d='M0 400C95 345 185 265 240 160C280 80 285 20 285 0' stroke-width='1.2'/><path d='M0 340C80 290 160 220 210 120C245 50 250 0 250 0' stroke-width='1.0'/><path d='M0 280C65 235 135 175 180 80C210 20 215 0 215 0' stroke-width='0.8'/><path d='M40 500C140 430 230 330 285 210C325 120 330 40 330 0' stroke-width='0.7' stroke-opacity='0.5'/></g></svg>") left bottom / 40vmin 42vmin no-repeat,
         radial-gradient(
-            ellipse 40% 62% at 100% 6%,
-            color-mix(in oklab, var(--color-glow-a) var(--glow-a-alpha), transparent) 0%,
-            color-mix(in oklab, var(--color-glow-a) 62%, transparent) 46%,
-            transparent 88%
+            ellipse 42% 64% at 100% 5%,
+            color-mix(in oklab, var(--color-glow-a) 40%, transparent) 0%,
+            color-mix(in oklab, var(--color-glow-a) 18%, transparent) 45%,
+            transparent 85%
         ),
         radial-gradient(
-            ellipse 30% 46% at 0% 96%,
-            color-mix(in oklab, var(--color-glow-b) var(--glow-b-alpha), transparent) 0%,
-            color-mix(in oklab, var(--color-glow-b) 58%, transparent) 48%,
-            transparent 86%
+            ellipse 32% 48% at 0% 98%,
+            color-mix(in oklab, var(--color-glow-b) 36%, transparent) 0%,
+            color-mix(in oklab, var(--color-glow-b) 16%, transparent) 46%,
+            transparent 85%
         ),
         var(--color-ground);
 }
 
 .shell-nav {
-    position: sticky;
-    top: 0;
+    position: relative;
     z-index: var(--z-sticky-nav);
     padding-top: env(safe-area-inset-top);
-    border-bottom: var(--rule-hair) solid var(--color-rule);
-    background: var(--color-paper-2);
+    border-bottom: none;
+    background: transparent;
 }
 
-/* The portal bar starts open and closes once the page moves under it. */
+/* Navbar transparan murni dan menyatu dengan kanvas halaman tanpa glitch saat scroll */
 .shell-nav--veil {
-    border-bottom-color: transparent;
+    border-bottom: none;
     background: transparent;
-    transition:
-        background-color var(--dur-short) var(--ease-out),
-        border-color var(--dur-short) var(--ease-out);
 }
 
 .shell-nav--veil.is-solid {
-    border-bottom-color: var(--color-rule);
-    background: var(--color-paper-2);
+    border-bottom: none;
+    background: transparent;
 }
 
 .shell-nav__inner {
@@ -89,11 +85,16 @@
 .shell-brand {
     display: inline-flex;
     align-items: center;
-    gap: var(--space-xs);
+    gap: var(--space-sm);
     min-height: 2.75rem;
     border-radius: var(--radius-well);
     color: var(--color-ink);
     text-decoration: none;
+    transition: opacity var(--dur-micro) var(--ease-out);
+}
+
+.shell-brand:hover {
+    opacity: 0.88;
 }
 
 .shell-brand:focus-visible {
@@ -102,17 +103,32 @@
 }
 
 .shell-brand__logo {
-    width: 1.5rem;
-    height: 1.5rem;
+    width: 2.25rem;
+    height: 2.25rem;
     object-fit: contain;
+    flex-shrink: 0;
+}
+
+@media (min-width: 40rem) {
+    .shell-brand__logo {
+        width: 2.65rem;
+        height: 2.65rem;
+    }
 }
 
 .shell-brand__name {
     font-family: var(--font-display);
-    font-size: var(--text-sm);
-    font-weight: 700;
-    letter-spacing: -0.01em;
+    font-size: 1.05rem;
+    font-weight: 750;
+    letter-spacing: -0.015em;
     white-space: nowrap;
+    color: var(--color-ink);
+}
+
+@media (min-width: 40rem) {
+    .shell-brand__name {
+        font-size: 1.15rem;
+    }
 }
 
 /* ---- Account ------------------------------------------------------- */
@@ -121,19 +137,21 @@
     display: inline-flex;
     align-items: center;
     gap: var(--space-xs);
-    min-height: 2.75rem;
-    padding: var(--space-2xs) var(--space-xs) var(--space-2xs) var(--space-2xs);
-    border: var(--rule-hair) solid transparent;
-    border-radius: var(--radius-well);
+    min-height: 2.5rem;
+    padding: 3px 10px 3px 4px;
+    border: none;
+    border-radius: var(--radius-pill);
     background: transparent;
     color: var(--color-ink-2);
     cursor: pointer;
-    transition: background-color var(--dur-micro) var(--ease-out);
+    transition:
+        background-color var(--dur-micro) var(--ease-out),
+        color var(--dur-micro) var(--ease-out);
 }
 
 .shell-account:hover,
 .shell-account[aria-expanded='true'] {
-    background: var(--color-paper-3);
+    background: color-mix(in oklab, var(--color-accent) 6%, transparent);
 }
 
 .shell-account:focus-visible {
@@ -150,6 +168,12 @@
     font-weight: 600;
     text-overflow: ellipsis;
     white-space: nowrap;
+    transition: color var(--dur-micro) var(--ease-out);
+}
+
+.shell-account:hover .shell-account__name,
+.shell-account[aria-expanded='true'] .shell-account__name {
+    color: var(--color-accent-dark, #047857);
 }
 
 .shell-account__id {
@@ -187,6 +211,17 @@
     height: 2rem;
     border-radius: 50%;
     box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-accent) 22%, transparent);
+    transition:
+        transform var(--dur-micro) var(--ease-out),
+        box-shadow var(--dur-micro) var(--ease-out);
+}
+
+.shell-account:hover .shell-account__avatar-slot,
+.shell-account[aria-expanded='true'] .shell-account__avatar-slot {
+    transform: scale(1.06);
+    box-shadow:
+        0 0 0 2.5px var(--color-accent-bright),
+        0 2px 8px -1px color-mix(in oklab, var(--color-accent) 35%, transparent);
 }
 
 .shell-account__avatar,
@@ -218,11 +253,18 @@
 .shell-account__chevron {
     flex-shrink: 0;
     color: var(--color-faint);
-    transition: transform var(--dur-micro) var(--ease-out);
+    transition:
+        transform var(--dur-micro) var(--ease-out),
+        color var(--dur-micro) var(--ease-out);
+}
+
+.shell-account:hover .shell-account__chevron {
+    color: var(--color-accent-dark, #047857);
+    transform: translateY(1.5px);
 }
 
 .shell-account[aria-expanded='true'] .shell-account__chevron {
-    color: var(--color-muted);
+    color: var(--color-accent-dark, #047857);
     transform: rotate(180deg);
 }
 
