@@ -20,6 +20,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 use Maatwebsite\Excel\Facades\Excel;
@@ -109,8 +110,9 @@ class AnggotaController extends Controller
                 'name' => $request->nama,
                 'no_karyawan' => $request->no_karyawan,
                 'email' => $request->email,
-                'password' => Hash::make($request->no_karyawan),
-                'harus_ganti_password' => true,
+                // Login lokal dihapus (SSO-only): tanpa password yang bisa ditebak.
+                'password' => Hash::make(Str::random(32)),
+                'harus_ganti_password' => false,
             ]);
             $user->assignRole('anggota');
 
@@ -132,7 +134,7 @@ class AnggotaController extends Controller
         });
 
         return redirect()->route('anggota.index')
-            ->with('status', 'Anggota berhasil ditambahkan beserta akun login (password awal = no karyawan).');
+            ->with('status', 'Anggota berhasil ditambahkan beserta akun login (login via SSO).');
     }
 
     public function update(UpdateAnggotaRequest $request, Anggota $anggota)

@@ -13,7 +13,8 @@ class EnsurePasswordChanged
     {
         $user = $request->user();
 
-        // Wajib ganti password dinonaktifkan: akses dikelola GATE.
+        // Safety net: akun lama yang masih bertanda wajib ganti password diarahkan ke profil
+        // sampai password diganti. Akun baru SSO-only tidak memakai flag ini.
         // Blokir anggota yang sudah di-resign dari mengakses aplikasi.
         // Hanya cek untuk user yang punya relasi anggota (bukan admin/bendahara/ketua).
         if ($user && $user->anggota && $user->anggota->status === 'resign') {
@@ -23,6 +24,19 @@ class EnsurePasswordChanged
 
             return redirect()->route('login')->withErrors([
                 'no_karyawan' => 'Akun Anda telah di-resign dari koperasi. Hubungi admin untuk informasi lebih lanjut.',
+            ]);
+        }
+
+        // ponytail: tahan model parsial (tanpa kolom) — anggap tidak wajib ganti.
+        $raw = $user ? $user->getAttributes() : [];
+        $wajibGanti = (bool) ($raw['harus_ganti_password'] ?? false);
+
+        if ($wajibGanti
+            && ! $request->routeIs('profile.*', 'logout', 'logout.get')
+            && ! $request->is('profile*', 'logout')
+        ) {
+            return redirect()->route('profile.edit')->withErrors([
+                'password' => 'Demi keamanan, ganti password awal Anda sebelum melanjutkan.',
             ]);
         }
 

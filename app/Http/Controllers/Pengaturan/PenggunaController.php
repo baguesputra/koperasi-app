@@ -8,15 +8,22 @@ use App\Models\Pinjaman;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Permission\Models\Role;
 
 class PenggunaController extends Controller
 {
-    private const ROLE_DIPERBOLEHKAN = ['super_admin', 'admin', 'bendahara', 'ketua_koperasi', 'pengawas', 'anggota'];
+    private const ROLE_ASSIGNABLE = ['admin', 'bendahara', 'ketua_koperasi', 'pengawas', 'anggota'];
 
     private const NO_KARYAWAN_ROOT = ['SPADM-000001', 'ADM-000001'];
+
+    private function peranBolehDitetapkan(string $role): bool
+    {
+        return in_array($role, self::ROLE_ASSIGNABLE, true)
+            || (auth()->user()?->hasRole('super_admin') && $role === 'super_admin');
+    }
 
     public function index(Request $request): Response
     {
@@ -61,7 +68,10 @@ class PenggunaController extends Controller
 
         return Inertia::render('Pengaturan/Pengguna/Index', [
             'pengguna' => $pengguna,
-            'daftarRole' => Role::orderBy('name')->pluck('name'),
+            // ponytail: super_admin hilang dari pilihan kecuali operator super_admin. Backend tetap gate.
+            'daftarRole' => Role::orderBy('name')->pluck('name')
+                ->reject(fn ($r) => $r === 'super_admin' && ! $request->user()->hasRole('super_admin'))
+                ->values(),
             'filters' => $request->only(['cari', 'role', 'status']),
         ]);
     }
@@ -70,21 +80,24 @@ class PenggunaController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'no_karyawan' => ['required', 'string', 'max:50', 'unique:users,no_karyawan'],
+            'no_karyawan' => ['required', 'string', 'max:50', 'regex:/^(TOP-\d{6}|\d{6,16}|[A-Z]+-\d+)$/', 'unique:users,no_karyawan'],
             'email' => ['nullable', 'email', 'max:255', 'unique:users,email'],
-            'role' => ['required', 'in:'.implode(',', self::ROLE_DIPERBOLEHKAN)],
-            'password' => ['nullable', 'string', 'min:8'],
+            // ponytail: super_admin hanya via gate super_admin (peranBolehDitetapkan); tanpa UI khusus.
+            'role' => ['required', 'string', 'max:50', function ($attr, $value, $fail) {
+                if (! $this->peranBolehDitetapkan((string) $value)) {
+                    $fail('Role tidak boleh ditetapkan oleh akun Anda.');
+                }
+            }],
+            // Login lokal dihapus (SSO-only): akun baru tanpa password lokal yang bisa ditebak.
         ]);
-
-        $passwordDiberikan = filled($validated['password'] ?? null);
-        $password = $passwordDiberikan ? $validated['password'] : $validated['no_karyawan'];
 
         $user = User::create([
             'name' => $validated['name'],
             'no_karyawan' => $validated['no_karyawan'],
             'email' => $validated['email'] ?? null,
-            'password' => Hash::make($password),
-            'harus_ganti_password' => ! $passwordDiberikan,
+            // ponytail: random 32 char, tak pernah ditampilkan; login via SSO. Hapus kolom bila SSO penuh.
+            'password' => Hash::make(Str::random(32)),
+            'harus_ganti_password' => false,
             'status' => 'aktif',
         ]);
         $user->syncRoles([$validated['role']]);
@@ -103,11 +116,19 @@ class PenggunaController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'no_karyawan' => ['required', 'string', 'max:50', 'unique:users,no_karyawan,'.$user->id],
+            'no_karyawan' => ['required', 'string', 'max:50', 'regex:/^(TOP-\d{6}|\d{6,16}|[A-Z]+-\d+)$/', 'unique:users,no_karyawan,'.$user->id],
             'email' => ['nullable', 'email', 'max:255', 'unique:users,email,'.$user->id],
-            'role' => ['required', 'in:'.implode(',', self::ROLE_DIPERBOLEHKAN)],
+            'role' => ['required', 'string', 'max:50', function ($attr, $value, $fail) {
+                if (! $this->peranBolehDitetapkan((string) $value)) {
+                    $fail('Role tidak boleh ditetapkan oleh akun Anda.');
+                }
+            }],
             'status' => ['required', 'in:aktif,nonaktif'],
         ]);
+
+        if ($user->id === auth()->id() && $validated['role'] !== $user->getRoleNames()->first()) {
+            return back()->withErrors(['pengguna' => 'Tidak dapat mengubah role akun sendiri.']);
+        }
 
         if ($this->akunDilindungi($user)) {
             return back()->withErrors(['pengguna' => 'Akun utama sistem tidak dapat diubah oleh pengguna lain.']);
@@ -147,12 +168,18 @@ class PenggunaController extends Controller
 
     public function resetPassword(Request $request, User $user)
     {
+        if ($this->akunDilindungi($user)) {
+            return back()->withErrors(['pengguna' => 'Akun utama sistem tidak dapat di-reset password-nya.']);
+        }
+
         $request->validate(['password' => ['required', 'string', 'min:8']]);
 
         $user->update([
             'password' => Hash::make($request->password),
             'harus_ganti_password' => ! ((bool) $request->boolean('tanpa_wajib_ganti')),
         ]);
+        // ponytail: cabut token API agar sesi lama tak selamat dari reset. Logout semua perangkat bila perlu.
+        $user->tokens()->delete();
 
         AuditLog::catat('reset_password_pengguna', "Kata sandi akun {$user->name} ({$user->no_karyawan}) di-reset oleh pengurus.", null, ['user_id' => $user->id]);
 
@@ -161,10 +188,16 @@ class PenggunaController extends Controller
 
     public function resetPin(Request $request, User $user)
     {
+        if ($this->akunDilindungi($user)) {
+            return back()->withErrors(['pengguna' => 'Akun utama sistem tidak dapat di-reset PIN-nya.']);
+        }
+
         $user->update([
             'pin' => null,
             'pin_failed_attempts' => 0,
+            'pin_locked_until' => null,
         ]);
+        $user->tokens()->delete();
 
         AuditLog::catat(
             'reset_pin_pengguna',
@@ -190,6 +223,8 @@ class PenggunaController extends Controller
                 return back()->withErrors(['pengguna' => 'Akun utama sistem tidak dapat dinonaktifkan.']);
             }
             $user->update(['status' => 'nonaktif']);
+            // ponytail: nonaktif = tendang semua perangkat.
+            $user->tokens()->delete();
             $status = 'dinonaktifkan';
         }
 

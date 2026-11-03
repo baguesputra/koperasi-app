@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 class SinkronisasiAnggotaService
@@ -270,8 +271,9 @@ class SinkronisasiAnggotaService
                     'email' => $email ?: null,
                     'no_karyawan' => $nik,
                     'gate_id' => $gateId,
-                    'password' => Hash::make($nik),
-                    'harus_ganti_password' => true,
+                    // Login lokal dihapus (SSO-only): tanpa password yang bisa ditebak.
+                    'password' => Hash::make(Str::random(32)),
+                    'harus_ganti_password' => false,
                 ]);
                 $user->assignRole('anggota');
             } else {

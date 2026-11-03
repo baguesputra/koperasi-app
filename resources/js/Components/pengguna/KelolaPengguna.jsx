@@ -11,7 +11,7 @@ import Select from '@/Components/ui/Select';
 import KataSandi from '@/Components/ui/KataSandi';
 import Pagination from '@/Components/ui/Pagination';
 
-const labelRole = { admin: 'Admin', bendahara: 'Bendahara', ketua_koperasi: 'Ketua', anggota: 'Anggota' };
+const labelRole = { super_admin: 'Super Admin', admin: 'Admin', bendahara: 'Bendahara', ketua_koperasi: 'Ketua', pengawas: 'Pengawas', anggota: 'Anggota' };
 
 function TombolAksi({ label, title, onClick, tone, disabled }) {
     const tones = {
@@ -51,7 +51,7 @@ export default function KelolaPengguna({
     const cariDebounced = useDebouncedValue(cari);
     const pertama = useRef(true);
 
-    const tambah = useForm({ name: '', no_karyawan: '', email: '', role: '', password: '' });
+    const tambah = useForm({ name: '', no_karyawan: '', email: '', role: '' });
     const edit = useForm({ name: '', no_karyawan: '', email: '', role: '', status: '' });
     const reset = useForm({ password: '', tanpa_wajib_ganti: false });
 
@@ -195,9 +195,7 @@ export default function KelolaPengguna({
                     <FormField label="Email" error={tambah.errors.email}>
                         <TextField size="sm" type="email" value={tambah.data.email} onChange={(e) => tambah.setData('email', e.target.value)} placeholder="budi@koperasi.test" />
                     </FormField>
-                    <FormField label="Password" error={tambah.errors.password} hint="Kosongkan agar memakai no. karyawan (wajib ganti saat login pertama)">
-                        <KataSandi size="sm" meter value={tambah.data.password} onChange={(e) => tambah.setData('password', e.target.value)} placeholder="Min. 8 karakter" />
-                    </FormField>
+                    <p className="-mt-2 mb-3 text-xs text-slate-500">Akun baru login via SSO — tanpa password lokal.</p>
                     <div className="flex items-center gap-2 pt-1">
                         <Button type="submit" size="sm" disabled={tambah.processing} className="rounded-full shadow-md shadow-brand-green/25">
                             {tambah.processing ? 'Menyimpan...' : 'Simpan Pengguna'}

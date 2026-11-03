@@ -9,6 +9,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
@@ -45,8 +46,9 @@ class AnggotaImport implements ToCollection, WithHeadingRow
             $user = User::create([
                 'name' => trim((string) $row['nama']),
                 'no_karyawan' => $noKaryawan,
-                'password' => Hash::make($noKaryawan),
-                'harus_ganti_password' => true,
+                // Login lokal dihapus (SSO-only): tanpa password yang bisa ditebak.
+                'password' => Hash::make(Str::random(32)),
+                'harus_ganti_password' => false,
             ]);
             $user->assignRole('anggota');
 
