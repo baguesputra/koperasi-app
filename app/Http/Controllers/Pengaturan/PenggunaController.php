@@ -176,14 +176,14 @@ class PenggunaController extends Controller
 
         $user->update([
             'password' => Hash::make($request->password),
-            'harus_ganti_password' => ! ((bool) $request->boolean('tanpa_wajib_ganti')),
+            'harus_ganti_password' => false,
         ]);
         // ponytail: cabut token API agar sesi lama tak selamat dari reset. Logout semua perangkat bila perlu.
         $user->tokens()->delete();
 
         AuditLog::catat('reset_password_pengguna', "Kata sandi akun {$user->name} ({$user->no_karyawan}) di-reset oleh pengurus.", null, ['user_id' => $user->id]);
 
-        return back()->with('status', 'Kata sandi berhasil di-reset. Pengguna akan diminta menggantinya saat login berikutnya.');
+        return back()->with('status', 'Kata sandi berhasil di-reset.');
     }
 
     public function resetPin(Request $request, User $user)
