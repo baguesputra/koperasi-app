@@ -588,6 +588,31 @@ html {
     list-style: none;
 }
 
+.pd-status__row {
+    position: relative;
+    max-height: 240px;
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    transition:
+        max-height 320ms cubic-bezier(0.16, 1, 0.3, 1),
+        opacity 240ms ease-out,
+        transform 320ms cubic-bezier(0.16, 1, 0.3, 1),
+        padding 320ms ease-out,
+        margin 320ms ease-out;
+    overflow: hidden;
+}
+
+.pd-status__row.is-closing {
+    max-height: 0 !important;
+    opacity: 0 !important;
+    transform: scale(0.97) translateY(-6px) !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    border-top-width: 0 !important;
+}
+
 .pd-status__row + .pd-status__row {
     border-top: 1px solid var(--color-rule);
 }
@@ -670,6 +695,28 @@ a.pd-status__link:hover {
     color: var(--color-accent-dark);
     font-size: var(--text-xs);
     font-weight: 500;
+}
+
+.pd-status__close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 26px;
+    height: 26px;
+    margin-top: -2px;
+    margin-left: auto;
+    border: none;
+    background: transparent;
+    border-radius: var(--radius-chip);
+    color: var(--color-muted);
+    cursor: pointer;
+    transition: background-color var(--dur-short) var(--ease-out), color var(--dur-short) var(--ease-out);
+}
+
+.pd-status__close:hover {
+    background: var(--color-paper-3);
+    color: var(--color-ink);
 }
 
 /* ---- Action toolbar ---------------------------------------------- */

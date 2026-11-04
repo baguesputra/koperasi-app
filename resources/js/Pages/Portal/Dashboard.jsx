@@ -17,6 +17,7 @@ import {
     Plus,
     TrendingUp,
     ChevronRight,
+    X,
 } from 'lucide-react';
 import { formatRupiah } from '@/Utils/formatCurrency';
 import Nominal, { usePrivasiNominal } from '@/Components/ui/Nominal';
@@ -43,7 +44,17 @@ const tipeLabel = {
     lunas_total: 'Pelunasan Dipercepat',
 };
 
-function StatusRow({ icon: Icon, tone = 'quiet', title, body, href, linkLabel }) {
+function StatusRow({
+    icon: Icon,
+    tone = 'quiet',
+    title,
+    body,
+    href,
+    linkLabel,
+    onDismiss,
+    dismissLabel = 'Tutup pemberitahuan',
+    isClosing = false,
+}) {
     const isi = (
         <>
             <span className={`pd-status__mark pd-status__mark--${tone}`}>
@@ -59,11 +70,26 @@ function StatusRow({ icon: Icon, tone = 'quiet', title, body, href, linkLabel })
                     <ArrowRight size={12} aria-hidden="true" />
                 </span>
             ) : null}
+            {onDismiss ? (
+                <button
+                    type="button"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        onDismiss();
+                    }}
+                    aria-label={dismissLabel}
+                    title={dismissLabel}
+                    className="pd-status__close pd-focus"
+                >
+                    <X size={14} aria-hidden="true" />
+                </button>
+            ) : null}
         </>
     );
 
     return (
-        <li className="pd-status__row">
+        <li className={`pd-status__row ${isClosing ? 'is-closing' : ''}`}>
             {href ? (
                 <Link href={href} className="pd-status__link pd-focus">
                     {isi}
@@ -291,6 +317,35 @@ export default function Dashboard({
     const [nominalTampil, alihNominal] = usePrivasiNominal();
     const [fotoGagal, setFotoGagal] = useState(false);
 
+    const storageKeyDitolak = pengajuanDitolak?.id
+        ? `koperasi.dismissed-notice.rejected-loan.${auth?.user?.id}.${pengajuanDitolak.id}`
+        : null;
+
+    const [ditolakDismissed, setDitolakDismissed] = useState(() => {
+        if (!storageKeyDitolak) return false;
+        try {
+            return localStorage.getItem(storageKeyDitolak) === '1';
+        } catch {
+            return false;
+        }
+    });
+    const [ditolakClosing, setDitolakClosing] = useState(false);
+
+    function handleDismissDitolak() {
+        setDitolakClosing(true);
+        setTimeout(() => {
+            setDitolakDismissed(true);
+            setDitolakClosing(false);
+            if (storageKeyDitolak) {
+                try {
+                    localStorage.setItem(storageKeyDitolak, '1');
+                } catch {
+                    // ignore storage error
+                }
+            }
+        }, 300);
+    }
+
     // Limit yang sudah terpakai = limit maksimal dikurangi sisa yang masih bisa diajukan.
     const limitTerpakai = Math.max(0, (limitMaksimal || 0) - (limitTersedia || 0));
     const persenLimit =
@@ -302,7 +357,7 @@ export default function Dashboard({
         (pinjamanAktifCount > 0 && pengajuanPercepatanMenunggu.length > 0) ||
         (!bisaAjukan && !pengajuanBerjalan) ||
         (limitTersedia <= 0 && bisaAjukan && !pengajuanBerjalan) ||
-        Boolean(pengajuanDitolak && !pengajuanBerjalan);
+        Boolean(pengajuanDitolak && !pengajuanBerjalan && !ditolakDismissed);
 
     // Tenor ladder: adjacent nominal bands that share the same ceiling collapse
     // into one rung, so the rule reads as five steps instead of ten identical rows.
@@ -445,144 +500,6 @@ export default function Dashboard({
                         Pantau saldo simpanan dan kelola fasilitas pinjaman Anda di satu tempat.
                     </p>
                 </div>
-
-                {/* =================================================
-                    STATUS STRIP — only the conditions that are true
-                ================================================== */}
-                {adaStatus && (
-                    <section className="pd-status" aria-label="Status akun Anda">
-                        <ul className="pd-status__list">
-                            {resignMenunggu && (
-                                <StatusRow
-                                    tone="warn"
-                                    icon={Clock}
-                                    title={
-                                        <>
-                                            Penyelesaian resign menunggu pelunasan akhir{' '}
-                                            <Nominal nilai={resignMenunggu.shortfall} tampil={nominalTampil} />
-                                            {resignMenunggu.jatuh_tempo
-                                                ? ` sebelum ${resignMenunggu.jatuh_tempo}`
-                                                : ''}
-                                            .
-                                        </>
-                                    }
-                                    body="Selesaikan melalui Bendahara di menu Konfirmasi Angsuran. Pengajuan pinjaman dan limit baru dikunci sampai lunas."
-                                />
-                            )}
-
-                            {pengajuanLimitBerjalan && (
-                                <StatusRow
-                                    tone="warn"
-                                    icon={Clock}
-                                    href={route('portal.pengajuan-limit.create')}
-                                    linkLabel="Tinjau"
-                                    title={
-                                        <>
-                                            Penambahan limit{' '}
-                                            <Nominal
-                                                nilai={pengajuanLimitBerjalan.limit_diminta}
-                                                tampil={nominalTampil}
-                                            />{' '}
-                                            sedang diverifikasi
-                                        </>
-                                    }
-                                    body={
-                                        <>
-                                            {pengajuanLimitBerjalan.status === 'approved_bendahara'
-                                                ? 'Menunggu persetujuan Ketua Koperasi'
-                                                : 'Menunggu pemeriksaan Bendahara'}
-                                            {pengajuanLimitBerjalan.status === 'approved_bendahara' &&
-                                            pengajuanLimitBerjalan.limit_disetujui_bendahara ? (
-                                                <>
-                                                    , usulan Bendahara{' '}
-                                                    <Nominal
-                                                        nilai={
-                                                            pengajuanLimitBerjalan.limit_disetujui_bendahara
-                                                        }
-                                                        tampil={nominalTampil}
-                                                    />
-                                                </>
-                                            ) : null}
-                                            . Diajukan {pengajuanLimitBerjalan.tanggal_pengajuan}. Anda tetap dapat
-                                            meminjam hingga limit aktif saat ini{' '}
-                                            <Nominal nilai={limitMaksimal} tampil={nominalTampil} />.
-                                        </>
-                                    }
-                                />
-                            )}
-
-                            {pinjamanAktifCount > 0 && pengajuanPercepatanMenunggu.length > 0 && (
-                                <StatusRow
-                                    tone="warn"
-                                    icon={Repeat}
-                                    title="Pengajuan perubahan tenor atau pelunasan dalam proses"
-                                    body={pengajuanPercepatanMenunggu.map((pp) => (
-                                        <span key={pp.id} className="pd-status__item">
-                                            {tipeLabel[pp.tipe] || pp.tipe}. Pinjaman{' '}
-                                            <Nominal nilai={pp.pinjaman_nominal} tampil={nominalTampil} />,{' '}
-                                            {pp.tenor_lama} menjadi {pp.tenor_baru ?? 'lunas'} bulan.{' '}
-                                            {statusPengajuanLabel[pp.status]?.text ?? pp.status}.
-                                        </span>
-                                    ))}
-                                />
-                            )}
-
-                            {!bisaAjukan && !pengajuanBerjalan && (
-                                <StatusRow
-                                    tone="warn"
-                                    icon={Info}
-                                    title="Pengajuan pinjaman belum memenuhi ketentuan"
-                                    body={
-                                        <>
-                                            {alasanTidakBisa ||
-                                                'Anda belum dapat mengajukan pinjaman saat ini sesuai ketentuan koperasi.'}
-                                            {sisaAngsuranAktif > 2 && limitTersedia > 0 ? (
-                                                <>
-                                                    {' '}
-                                                    Sisa limit yang belum terpakai{' '}
-                                                    <Nominal nilai={limitTersedia} tampil={nominalTampil} /> baru
-                                                    dapat dipakai setelah angsuran tersisa maksimal 2 bulan.
-                                                </>
-                                            ) : null}
-                                        </>
-                                    }
-                                />
-                            )}
-
-                            {limitTersedia <= 0 && bisaAjukan && !pengajuanBerjalan && (
-                                <StatusRow
-                                    tone="info"
-                                    icon={Info}
-                                    title="Limit pinjaman Anda saat ini terpakai seluruhnya"
-                                    body="Pengajuan pinjaman baru dibuka kembali setelah angsuran berjalan tersisa maksimal 2 bulan, atau Anda dapat mengajukan penambahan limit melalui menu Tambah limit."
-                                />
-                            )}
-
-                            {pengajuanDitolak && !pengajuanBerjalan && (
-                                <StatusRow
-                                    tone="danger"
-                                    icon={XCircle}
-                                    title={
-                                        <>
-                                            Pengajuan pinjaman{' '}
-                                            <Nominal nilai={pengajuanDitolak.nominal} tampil={nominalTampil} />{' '}
-                                            ditolak
-                                        </>
-                                    }
-                                    body={
-                                        <>
-                                            {pengajuanDitolak.catatan
-                                                ? `Alasan: ${pengajuanDitolak.catatan}. `
-                                                : ''}
-                                            Anda dapat mengajukan kembali setelah menyesuaikan nominal atau
-                                            persyaratan.
-                                        </>
-                                    }
-                                />
-                            )}
-                        </ul>
-                    </section>
-                )}
 
                 {/* =================================================
                     MEMBER CARD — Digital Member Card (Signature)
@@ -841,6 +758,147 @@ export default function Dashboard({
                         </span>
                     </button>
                 </nav>
+
+                {/* =================================================
+                    STATUS STRIP — only the conditions that are true
+                ================================================== */}
+                {adaStatus && (
+                    <section className="pd-status" aria-label="Status akun Anda">
+                        <ul className="pd-status__list">
+                            {resignMenunggu && (
+                                <StatusRow
+                                    tone="warn"
+                                    icon={Clock}
+                                    title={
+                                        <>
+                                            Penyelesaian resign menunggu pelunasan akhir{' '}
+                                            <Nominal nilai={resignMenunggu.shortfall} tampil={nominalTampil} />
+                                            {resignMenunggu.jatuh_tempo
+                                                ? ` sebelum ${resignMenunggu.jatuh_tempo}`
+                                                : ''}
+                                            .
+                                        </>
+                                    }
+                                    body="Selesaikan melalui Bendahara di menu Konfirmasi Angsuran. Pengajuan pinjaman dan limit baru dikunci sampai lunas."
+                                />
+                            )}
+
+                            {pengajuanLimitBerjalan && (
+                                <StatusRow
+                                    tone="warn"
+                                    icon={Clock}
+                                    href={route('portal.pengajuan-limit.create')}
+                                    linkLabel="Tinjau"
+                                    title={
+                                        <>
+                                            Penambahan limit{' '}
+                                            <Nominal
+                                                nilai={pengajuanLimitBerjalan.limit_diminta}
+                                                tampil={nominalTampil}
+                                            />{' '}
+                                            sedang diverifikasi
+                                        </>
+                                    }
+                                    body={
+                                        <>
+                                            {pengajuanLimitBerjalan.status === 'approved_bendahara'
+                                                ? 'Menunggu persetujuan Ketua Koperasi'
+                                                : 'Menunggu pemeriksaan Bendahara'}
+                                            {pengajuanLimitBerjalan.status === 'approved_bendahara' &&
+                                            pengajuanLimitBerjalan.limit_disetujui_bendahara ? (
+                                                <>
+                                                    , usulan Bendahara{' '}
+                                                    <Nominal
+                                                        nilai={
+                                                            pengajuanLimitBerjalan.limit_disetujui_bendahara
+                                                        }
+                                                        tampil={nominalTampil}
+                                                    />
+                                                </>
+                                            ) : null}
+                                            . Diajukan {pengajuanLimitBerjalan.tanggal_pengajuan}. Anda tetap dapat
+                                            meminjam hingga limit aktif saat ini{' '}
+                                            <Nominal nilai={limitMaksimal} tampil={nominalTampil} />.
+                                        </>
+                                    }
+                                />
+                            )}
+
+                            {pinjamanAktifCount > 0 && pengajuanPercepatanMenunggu.length > 0 && (
+                                <StatusRow
+                                    tone="warn"
+                                    icon={Repeat}
+                                    title="Pengajuan perubahan tenor atau pelunasan dalam proses"
+                                    body={pengajuanPercepatanMenunggu.map((pp) => (
+                                        <span key={pp.id} className="pd-status__item">
+                                            {tipeLabel[pp.tipe] || pp.tipe}. Pinjaman{' '}
+                                            <Nominal nilai={pp.pinjaman_nominal} tampil={nominalTampil} />,{' '}
+                                            {pp.tenor_lama} menjadi {pp.tenor_baru ?? 'lunas'} bulan.{' '}
+                                            {statusPengajuanLabel[pp.status]?.text ?? pp.status}.
+                                        </span>
+                                    ))}
+                                />
+                            )}
+
+                            {!bisaAjukan && !pengajuanBerjalan && (
+                                <StatusRow
+                                    tone="warn"
+                                    icon={Info}
+                                    title="Pengajuan pinjaman belum memenuhi ketentuan"
+                                    body={
+                                        <>
+                                            {alasanTidakBisa ||
+                                                'Anda belum dapat mengajukan pinjaman saat ini sesuai ketentuan koperasi.'}
+                                            {sisaAngsuranAktif > 2 && limitTersedia > 0 ? (
+                                                <>
+                                                    {' '}
+                                                    Sisa limit yang belum terpakai{' '}
+                                                    <Nominal nilai={limitTersedia} tampil={nominalTampil} /> baru
+                                                    dapat dipakai setelah angsuran tersisa maksimal 2 bulan.
+                                                </>
+                                            ) : null}
+                                        </>
+                                    }
+                                />
+                            )}
+
+                            {limitTersedia <= 0 && bisaAjukan && !pengajuanBerjalan && (
+                                <StatusRow
+                                    tone="info"
+                                    icon={Info}
+                                    title="Limit pinjaman Anda saat ini terpakai seluruhnya"
+                                    body="Pengajuan pinjaman baru dibuka kembali setelah angsuran berjalan tersisa maksimal 2 bulan, atau Anda dapat mengajukan penambahan limit melalui menu Tambah limit."
+                                />
+                            )}
+
+                            {pengajuanDitolak && !pengajuanBerjalan && !ditolakDismissed && (
+                                <StatusRow
+                                    tone="danger"
+                                    icon={XCircle}
+                                    onDismiss={handleDismissDitolak}
+                                    dismissLabel="Tutup pemberitahuan penolakan"
+                                    isClosing={ditolakClosing}
+                                    title={
+                                        <>
+                                            Pengajuan pinjaman{' '}
+                                            <Nominal nilai={pengajuanDitolak.nominal} tampil={nominalTampil} />{' '}
+                                            ditolak
+                                        </>
+                                    }
+                                    body={
+                                        <>
+                                            {pengajuanDitolak.catatan
+                                                ? `Alasan: ${pengajuanDitolak.catatan}. `
+                                                : ''}
+                                            Anda dapat mengajukan kembali setelah menyesuaikan nominal atau
+                                            persyaratan.
+                                        </>
+                                    }
+                                />
+                            )}
+                        </ul>
+                    </section>
+                )}
 
                 {/* =================================================
                     APPLICATION TRACKER

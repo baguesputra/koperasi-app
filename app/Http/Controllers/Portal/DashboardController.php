@@ -43,6 +43,7 @@ class DashboardController extends Controller
         // Pengajuan yang baru saja ditolak (untuk ditampilkan sekali)
         $pengajuanDitolak = $anggota->pinjaman()
             ->where('status', 'ditolak')
+            ->where('updated_at', '>=', now()->subDays(30))
             ->latest('updated_at')
             ->first();
 
@@ -206,6 +207,7 @@ class DashboardController extends Controller
             ] : null,
             'resignMenunggu' => $resignMenunggu,
             'pengajuanDitolak' => $pengajuanDitolak ? [
+                'id' => $pengajuanDitolak->id,
                 'nominal' => (float) $pengajuanDitolak->nominal,
                 'catatan' => $pengajuanDitolak->catatan_ketua ?? $pengajuanDitolak->catatan_bendahara,
             ] : null,
