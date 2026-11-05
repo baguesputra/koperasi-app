@@ -212,6 +212,7 @@ class KasKoperasiController extends Controller
             $riwayat->through(function (array $row) use (&$saldoJalan) {
                 $saldoJalan[$row['kanal']] += $row['tipe'] === 'masuk' ? $row['jumlah'] : -$row['jumlah'];
                 $row['saldo_setelah'] = $saldoJalan[$row['kanal']];
+                $row['saldo_gabungan_setelah'] = $saldoJalan['bank'] + $saldoJalan['kas_kecil'];
 
                 return $row;
             });
