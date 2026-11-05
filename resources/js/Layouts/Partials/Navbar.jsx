@@ -85,7 +85,8 @@ export default function Navbar() {
                     href={route('logout')}
                     method="post"
                     as="button"
-                    className="flex items-center text-slate-400 hover:text-red-600 transition-colors"
+                    aria-label="Keluar dari akun"
+                    className="flex items-center text-slate-500 hover:text-red-600 transition-colors"
                 >
                     <LogOut size={18} />
                 </Link>

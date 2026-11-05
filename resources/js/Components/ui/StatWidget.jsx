@@ -31,7 +31,7 @@ export default function StatWidget({ label, value, icon: Icon, tone = 'navy', co
                     <p className="text-lg sm:text-xl font-bold text-slate-900 leading-tight tabular-nums tracking-tight truncate">
                         {renderedValue}
                     </p>
-                    {caption && <p className="text-[11px] font-medium text-slate-400 mt-1 truncate">{caption}</p>}
+                    {caption && <p className="text-[11px] font-medium text-slate-500 mt-1 truncate">{caption}</p>}
                 </div>
             </div>
         );
@@ -44,7 +44,7 @@ export default function StatWidget({ label, value, icon: Icon, tone = 'navy', co
             </div>
             <p className="text-xs font-semibold text-slate-500">{label}</p>
             <p className="text-xl font-bold text-slate-900 mt-1 tabular-nums tracking-tight">{renderedValue}</p>
-            {caption && <p className="text-xs text-slate-400 mt-1">{caption}</p>}
+            {caption && <p className="text-xs text-slate-500 mt-1">{caption}</p>}
         </div>
     );
 }

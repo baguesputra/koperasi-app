@@ -79,10 +79,10 @@ export default function AnggotaLayout({
                 }`}
             >
                 <div className="shell-nav__inner">
-                    <Link href={route('portal.dashboard')} className="shell-brand">
+                    <Link href={route('portal.dashboard')} className="shell-brand" aria-label="Beranda Portal Koperasi">
                         <img
                             src="/images/logo-ui.webp"
-                            alt="Koperasi App"
+                            alt=""
                             width="42"
                             height="42"
                             className="shell-brand__logo"

@@ -598,7 +598,7 @@ export default function Index({
                                         <h3 className={`text-xs font-bold uppercase tracking-wider ${isAktif ? 'text-white' : 'text-slate-800'}`}>
                                             Semua Kas
                                         </h3>
-                                        <p className={`text-[11px] ${isAktif ? 'text-slate-300/80' : 'text-slate-400'}`}>
+                                        <p className={`text-[11px] ${isAktif ? 'text-slate-300/80' : 'text-slate-500'}`}>
                                             Gabungan Bank &amp; Kas Kecil
                                         </p>
                                     </div>
@@ -609,14 +609,14 @@ export default function Index({
                                         Aktif
                                     </span>
                                 ) : (
-                                    <span className="text-[11px] font-medium text-slate-400 group-hover:text-slate-600 transition-colors">
+                                    <span className="text-[11px] font-medium text-slate-500 group-hover:text-slate-700 transition-colors">
                                         Pilih
                                     </span>
                                 )}
                             </div>
 
                             <div className="mt-3.5">
-                                <p className={`text-[11px] font-medium ${isAktif ? 'text-slate-300/80' : 'text-slate-400'}`}>
+                                <p className={`text-[11px] font-medium ${isAktif ? 'text-slate-300/80' : 'text-slate-500'}`}>
                                     Saldo Saat Ini
                                 </p>
                                 <p className={`text-xl sm:text-2xl font-extrabold tracking-tight tabular-nums privacy-blur mt-0.5 truncate ${isAktif ? 'text-white' : 'text-slate-900'}`}>
@@ -666,7 +666,7 @@ export default function Index({
                                         <h3 className={`text-xs font-bold uppercase tracking-wider ${isAktif ? 'text-white' : 'text-slate-800'}`}>
                                             Kas Bank
                                         </h3>
-                                        <p className={`text-[11px] ${isAktif ? 'text-slate-300/80' : 'text-slate-400'}`}>
+                                        <p className={`text-[11px] ${isAktif ? 'text-slate-300/80' : 'text-slate-500'}`}>
                                             Rekening Operasional
                                         </p>
                                     </div>
@@ -677,14 +677,14 @@ export default function Index({
                                         Aktif
                                     </span>
                                 ) : (
-                                    <span className="text-[11px] font-medium text-slate-400 group-hover:text-slate-600 transition-colors">
+                                    <span className="text-[11px] font-medium text-slate-500 group-hover:text-slate-700 transition-colors">
                                         Pilih
                                     </span>
                                 )}
                             </div>
 
                             <div className="mt-3.5">
-                                <p className={`text-[11px] font-medium ${isAktif ? 'text-slate-300/80' : 'text-slate-400'}`}>
+                                <p className={`text-[11px] font-medium ${isAktif ? 'text-slate-300/80' : 'text-slate-500'}`}>
                                     Saldo Saat Ini
                                 </p>
                                 <p className={`text-xl sm:text-2xl font-extrabold tracking-tight tabular-nums privacy-blur mt-0.5 truncate ${isAktif ? 'text-white' : 'text-slate-900'}`}>
@@ -734,7 +734,7 @@ export default function Index({
                                         <h3 className={`text-xs font-bold uppercase tracking-wider ${isAktif ? 'text-white' : 'text-slate-800'}`}>
                                             Kas Kecil Fisik
                                         </h3>
-                                        <p className={`text-[11px] ${isAktif ? 'text-slate-300/80' : 'text-slate-400'}`}>
+                                        <p className={`text-[11px] ${isAktif ? 'text-slate-300/80' : 'text-slate-500'}`}>
                                             Petty Cash Tunai
                                         </p>
                                     </div>
@@ -745,14 +745,14 @@ export default function Index({
                                         Aktif
                                     </span>
                                 ) : (
-                                    <span className="text-[11px] font-medium text-slate-400 group-hover:text-slate-600 transition-colors">
+                                    <span className="text-[11px] font-medium text-slate-500 group-hover:text-slate-700 transition-colors">
                                         Pilih
                                     </span>
                                 )}
                             </div>
 
                             <div className="mt-3.5">
-                                <p className={`text-[11px] font-medium ${isAktif ? 'text-slate-300/80' : 'text-slate-400'}`}>
+                                <p className={`text-[11px] font-medium ${isAktif ? 'text-slate-300/80' : 'text-slate-500'}`}>
                                     Saldo Saat Ini
                                 </p>
                                 <p className={`text-xl sm:text-2xl font-extrabold tracking-tight tabular-nums privacy-blur mt-0.5 truncate ${isAktif ? 'text-white' : 'text-slate-900'}`}>
@@ -1528,7 +1528,7 @@ export default function Index({
                     <dl className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3">
                         {/* Kolom 1: Saldo Awal */}
                         <div className="rounded-xl bg-slate-50/90 border border-slate-200/60 px-3.5 py-2.5">
-                            <dt className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                            <dt className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                                 Saldo Awal{labelAkunSaldo}
                             </dt>
                             <dd className="mt-0.5 text-sm sm:text-base font-bold tabular-nums text-slate-800 privacy-blur">
@@ -1558,7 +1558,7 @@ export default function Index({
 
                         {/* Kolom 4: Mutasi Bersih (Net Cashflow) */}
                         <div className="rounded-xl bg-slate-50/90 border border-slate-200/60 px-3.5 py-2.5">
-                            <dt className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                            <dt className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                                 Mutasi Bersih (Net)
                             </dt>
                             <dd className={`mt-0.5 text-sm sm:text-base font-bold tabular-nums privacy-blur ${
@@ -1574,7 +1574,7 @@ export default function Index({
 
                         {/* Kolom 5: Saldo Akhir */}
                         <div className="col-span-2 sm:col-span-1 rounded-xl bg-slate-900 text-white border border-slate-800 px-3.5 py-2.5 shadow-2xs">
-                            <dt className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                            <dt className="text-[11px] font-semibold uppercase tracking-wider text-slate-300">
                                 = Saldo Akhir{labelAkunSaldo}
                             </dt>
                             <dd className="mt-0.5 text-sm sm:text-base font-extrabold tabular-nums text-white privacy-blur">
@@ -1633,7 +1633,7 @@ export default function Index({
                                                             <div className="flex items-center gap-2">
                                                                 <span className="font-bold text-slate-900">{grup.tanggal}</span>
                                                                 <span className="text-slate-500 font-medium">({grup.hari})</span>
-                                                                <span className="text-[11px] font-medium text-slate-400">• {grup.baris.length} transaksi</span>
+                                                                <span className="text-[11px] font-medium text-slate-500">• {grup.baris.length} transaksi</span>
                                                             </div>
                                                         </td>
                                                         <td className="px-4 py-2 text-right font-bold text-emerald-700 tabular-nums text-xs whitespace-nowrap privacy-blur">
@@ -1712,7 +1712,7 @@ export default function Index({
                                                                         <p className="font-bold text-slate-900 text-sm">
                                                                             {r.saldo_setelah !== null && r.saldo_setelah !== undefined ? formatRupiah(r.saldo_setelah) : '—'}
                                                                         </p>
-                                                                        <p className="text-[10px] text-slate-400 uppercase tracking-wider mt-0.5">
+                                                                        <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mt-0.5">
                                                                             {r.kanal === 'bank' ? 'Saldo Bank' : 'Saldo Kas Kecil'}
                                                                         </p>
                                                                     </>

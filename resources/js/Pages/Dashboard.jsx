@@ -198,7 +198,7 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                                 </span>
                             )}
                         </div>
-                        <p className="text-xs font-medium text-slate-400">
+                        <p className="text-xs font-medium text-slate-500">
                             {semuaBeres ? 'Semua beres' : `${jumlahMenunggu} domain menunggu aksi`}
                         </p>
                     </div>
@@ -232,7 +232,7 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                                                     className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 ${
                                                         sibuk
                                                             ? 'bg-amber-50 border-amber-200/70 text-amber-700'
-                                                            : 'bg-slate-100 border-slate-200/60 text-slate-400'
+                                                            : 'bg-slate-100 border-slate-200/60 text-slate-500'
                                                     }`}
                                                 >
                                                     <Icon size={16} aria-hidden="true" />
@@ -243,7 +243,7 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                                                 className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold tabular-nums shrink-0 ${
                                                     sibuk
                                                         ? 'bg-amber-50 border border-amber-200/80 text-amber-800'
-                                                        : 'bg-slate-100 text-slate-400'
+                                                        : 'bg-slate-100 text-slate-500'
                                                 }`}
                                             >
                                                 {sibuk && <span className="w-1.5 h-1.5 rounded-full bg-amber-500" aria-hidden="true" />}
@@ -261,14 +261,14 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                                                         className={`flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                                                             aktif
                                                                 ? 'bg-slate-50/90 hover:bg-amber-50/60 text-slate-700 hover:text-slate-900 border border-slate-200/70'
-                                                                : 'text-slate-400 hover:bg-slate-100/70 hover:text-slate-600'
+                                                                : 'text-slate-500 hover:bg-slate-100/70 hover:text-slate-700'
                                                         } ${focusRing}`}
                                                     >
                                                         <span className="truncate">{a.label}</span>
                                                         <span className="inline-flex items-center gap-1 shrink-0">
                                                             <span
                                                                 className={`tabular-nums px-1.5 py-0.2 rounded-md text-[11px] font-bold ${
-                                                                    aktif ? 'bg-amber-100/80 text-amber-800' : 'text-slate-400'
+                                                                    aktif ? 'bg-amber-100/80 text-amber-800' : 'text-slate-500'
                                                                 }`}
                                                             >
                                                                 {a.value}
@@ -315,7 +315,7 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                     <div className="flex items-start justify-between gap-3 mb-4">
                         <div>
                             <h2 className="text-base font-bold text-slate-800 tracking-tight">Aktivitas Terbaru</h2>
-                            <p className="text-xs text-slate-400 mt-0.5">Pengajuan &amp; pembayaran terkini</p>
+                            <p className="text-xs text-slate-500 mt-0.5">Pengajuan &amp; pembayaran terkini</p>
                         </div>
                         {bisaAkses('pinjaman.lihat') && aktivitasTerbaru.length > 0 && (
                             <Link
@@ -330,7 +330,7 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
 
                     {aktivitasTerbaru.length === 0 ? (
                         <div className="flex-1 flex items-center justify-center py-10">
-                            <p className="text-sm text-slate-400 text-center">Belum ada aktivitas tercatat.</p>
+                            <p className="text-sm text-slate-500 text-center">Belum ada aktivitas tercatat.</p>
                         </div>
                     ) : (
                         <div className="divide-y divide-slate-100 -my-1">
@@ -363,7 +363,7 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                                                     {formatKeteranganAktivitas(item.keterangan)}
                                                 </PrivacyWrapper>
                                             </p>
-                                            <p className="text-[11px] text-slate-400 mt-0.5 tabular-nums">
+                                            <p className="text-[11px] text-slate-500 mt-0.5 tabular-nums">
                                                 {relatif ? `${relatif} • ${item.tanggal_format}` : item.tanggal_format}
                                             </p>
                                         </div>

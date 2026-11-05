@@ -37,7 +37,7 @@ export default function Login({ status }) {
                     </p>
                 </div>
 
-                <p className="text-sm text-slate-400">
+                <p className="text-sm text-slate-500">
                     &copy; {new Date().getFullYear()} Koperasi App - PT. Tata Optima Property
                 </p>
             </div>
@@ -117,13 +117,13 @@ export default function Login({ status }) {
                         <button
                             type="submit"
                             disabled={processing}
-                            className="w-full py-3.5 text-base font-semibold rounded-xl bg-brand-green text-white hover:bg-brand-green-dark transition-colors disabled:opacity-50"
+                            className="w-full py-3.5 text-base font-semibold rounded-xl bg-brand-green-dark text-white hover:bg-emerald-700 transition-colors disabled:opacity-50"
                         >
                             {processing ? 'Memproses...' : 'Masuk'}
                         </button>
                     </form>
 
-                    <p className="text-sm text-center text-slate-400 mt-8">
+                    <p className="text-sm text-center text-slate-300 mt-8">
                         Butuh bantuan? Hubungi tim IT internal.
                     </p>
                 </div>

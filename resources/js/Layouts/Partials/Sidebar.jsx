@@ -159,7 +159,7 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
             <nav className="flex-1 px-3 py-5 space-y-6 overflow-y-auto scrollbar-hide">
                 {visibleGroups.map((group) => (
                     <div key={group.label}>
-                        <p className={`px-3 mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400 ${tertutup ? 'hidden' : ''}`}>
+                        <p className={`px-3 mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-500 ${tertutup ? 'hidden' : ''}`}>
                             {group.label}
                         </p>
                         <div className="space-y-1">
