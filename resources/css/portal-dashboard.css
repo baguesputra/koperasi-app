@@ -993,28 +993,121 @@ a.pd-status__link:hover {
 
 .pd-lock__tip {
     position: absolute;
-    bottom: calc(100% + var(--space-xs));
+    bottom: calc(100% + 9px);
     left: 50%;
     transform: translateX(-50%);
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 8px;
     width: max-content;
-    max-width: min(20rem, calc(100vw - 2rem));
+    max-width: min(21rem, calc(100vw - 2rem));
     z-index: var(--z-tooltip);
-    padding: 6px 10px;
-    border-radius: 8px;
-    background: var(--color-ink);
-    color: var(--color-paper-2);
-    box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.25);
-    font-size: var(--text-xs);
-    font-weight: 400;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #0f172a;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    box-shadow:
+        0 14px 30px -6px rgba(15, 23, 42, 0.16),
+        0 4px 10px -2px rgba(15, 23, 42, 0.06);
+    font-size: 0.76rem;
+    font-weight: 500;
     line-height: 1.45;
     text-align: left;
     pointer-events: none;
-    transition: opacity var(--dur-micro) var(--ease-out);
+    margin-bottom: 0;
+    transition:
+        opacity var(--dur-micro) var(--ease-out),
+        margin-bottom var(--dur-micro) var(--ease-out);
 }
 
-/* Without JavaScript the reason stays visible instead of hiding the page's only explanation. */
+/* Panah kecil (caret) menunjuk ke kartu menu di bawahnya */
+.pd-lock__tip::before {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 6px 6px 0 6px;
+    border-style: solid;
+    border-color: rgba(15, 23, 42, 0.14) transparent transparent transparent;
+}
+
+.pd-lock__tip::after {
+    content: "";
+    position: absolute;
+    top: calc(100% - 1px);
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 6px 6px 0 6px;
+    border-style: solid;
+    border-color: #ffffff transparent transparent transparent;
+}
+
+.pd-lock__tip-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    background: #f1f5f9;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    color: #475569;
+    margin-top: 1px;
+}
+
+.pd-lock__tip-text {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Penyesuaian posisi pada layar HP (grid 2 kolom) agar tidak terpotong tepi layar */
+@media (max-width: 55.99rem) {
+    .pd-actions > :nth-child(odd) .pd-lock__tip {
+        left: 0;
+        right: auto;
+        transform: none;
+    }
+    .pd-actions > :nth-child(odd) .pd-lock__tip::before,
+    .pd-actions > :nth-child(odd) .pd-lock__tip::after {
+        left: 28px;
+        right: auto;
+        transform: none;
+    }
+
+    .pd-actions > :nth-child(even) .pd-lock__tip {
+        left: auto;
+        right: 0;
+        transform: none;
+    }
+    .pd-actions > :nth-child(even) .pd-lock__tip::before,
+    .pd-actions > :nth-child(even) .pd-lock__tip::after {
+        left: auto;
+        right: 28px;
+        transform: none;
+    }
+}
+
+@media (min-width: 56rem) {
+    .pd-lock__tip {
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+    }
+    .pd-lock__tip::before,
+    .pd-lock__tip::after {
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+    }
+}
+
+/* State visibilitas tooltip saat hover/focus/tap */
 html.js .pd-lock__tip {
     opacity: 0;
+    margin-bottom: -4px;
 }
 
 html.js .pd-lock:hover .pd-lock__tip,
@@ -1022,6 +1115,7 @@ html.js .pd-lock:focus-within .pd-lock__tip,
 html.js .pd-lock:active .pd-lock__tip,
 html.js .pd-lock__tip.is-open {
     opacity: 1;
+    margin-bottom: 0;
 }
 
 /* ---- Figures, rows, chips ---------------------------------------- */

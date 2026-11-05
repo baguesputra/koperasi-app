@@ -143,7 +143,10 @@ function PetunjukTerkunci({ pesan, children }) {
             {children}
             {pesan && buka && (
                 <span role="tooltip" className="pd-lock__tip is-open">
-                    {pesan}
+                    <span className="pd-lock__tip-icon" aria-hidden="true">
+                        <Lock size={12} strokeWidth={2.4} />
+                    </span>
+                    <span className="pd-lock__tip-text">{pesan}</span>
                 </span>
             )}
         </div>
