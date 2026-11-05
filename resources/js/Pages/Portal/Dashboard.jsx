@@ -18,6 +18,8 @@ import {
     TrendingUp,
     ChevronRight,
     X,
+    Lock,
+    ShieldCheck,
 } from 'lucide-react';
 import { formatRupiah } from '@/Utils/formatCurrency';
 import Nominal, { usePrivasiNominal } from '@/Components/ui/Nominal';
@@ -135,6 +137,7 @@ function PetunjukTerkunci({ pesan, children }) {
             onMouseLeave={() => setBuka(false)}
             onFocus={() => setBuka(true)}
             onBlur={() => setBuka(false)}
+            onClick={() => setBuka((v) => !v)}
             aria-label={pesan || undefined}
         >
             {children}
@@ -434,6 +437,26 @@ export default function Dashboard({
         return 'Selamat Malam';
     }, []);
 
+    const tanggalHariIni = useMemo(() => {
+        try {
+            return new Intl.DateTimeFormat('id-ID', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+            }).format(new Date());
+        } catch {
+            return '';
+        }
+    }, []);
+
+    const railFillTone =
+        persenLimit >= 95
+            ? 'pd-band__rail-fill--danger'
+            : persenLimit >= 75
+            ? 'pd-band__rail-fill--warn'
+            : '';
+
     return (
         <AnggotaLayout>
             <Head title="Portal Anggota" />
@@ -492,13 +515,21 @@ export default function Dashboard({
                 {/* =================================================
                     GREETING
                 ================================================== */}
-                <div>
-                    <h1>
-                        {salamWaktu}, {anggota.nama}
-                    </h1>
-                    <p className="pd-head__line">
-                        Pantau saldo simpanan dan kelola fasilitas pinjaman Anda di satu tempat.
-                    </p>
+                <div className="pd-head">
+                    <div>
+                        <h1>
+                            {salamWaktu}, {anggota.nama}
+                        </h1>
+                        <p className="pd-head__line">
+                            Pantau saldo simpanan dan kelola fasilitas pinjaman Anda di satu tempat.
+                        </p>
+                    </div>
+                    {tanggalHariIni ? (
+                        <span className="pd-head__date">
+                            <CalendarDays size={13} aria-hidden="true" />
+                            {tanggalHariIni}
+                        </span>
+                    ) : null}
                 </div>
 
                 {/* =================================================
@@ -604,7 +635,7 @@ export default function Dashboard({
                                     Terpakai <Nominal nilai={limitTerpakai} tampil={nominalTampil} /> dari{' '}
                                     <Nominal nilai={limitMaksimal} tampil={nominalTampil} />
                                 </span>
-                                <span className="font-semibold">{persenLimit}%</span>
+                                <span className="pd-band__rail-pct">{persenLimit}%</span>
                             </div>
                             <div
                                 className="pd-band__rail-bar"
@@ -612,7 +643,7 @@ export default function Dashboard({
                                 aria-label={`Limit terpakai ${persenLimit} persen`}
                             >
                                 <div
-                                    className="pd-band__rail-fill"
+                                    className={`pd-band__rail-fill ${railFillTone}`.trim()}
                                     style={{ width: `${persenLimit}%` }}
                                 />
                             </div>
@@ -652,6 +683,7 @@ export default function Dashboard({
                                     </span>
                                 </span>
                                 <span className="pd-action__flag">
+                                    {!pengajuanBerjalan && <Lock size={10} aria-hidden="true" />}
                                     {pengajuanBerjalan
                                         ? 'Diproses'
                                         : limitTersedia <= 0
@@ -693,6 +725,9 @@ export default function Dashboard({
                                     </span>
                                 </span>
                                 <span className="pd-action__flag">
+                                    {!(pengajuanBerjalan || pengajuanLimitBerjalan) && (
+                                        <Lock size={10} aria-hidden="true" />
+                                    )}
                                     {pengajuanBerjalan || pengajuanLimitBerjalan
                                         ? 'Diproses'
                                         : 'Terkunci'}
@@ -734,6 +769,9 @@ export default function Dashboard({
                                     </span>
                                 </span>
                                 <span className="pd-action__flag">
+                                    {!(pengajuanBerjalan || pengajuanPercepatanMenunggu.length > 0) && (
+                                        <Lock size={10} aria-hidden="true" />
+                                    )}
                                     {pengajuanBerjalan || pengajuanPercepatanMenunggu.length > 0
                                         ? 'Diproses'
                                         : pinjamanAktifCount === 0
@@ -756,6 +794,7 @@ export default function Dashboard({
                             <span className="pd-action__label">Panduan</span>
                             <span className="pd-action__state">Aturan koperasi</span>
                         </span>
+                        <span className="pd-action__flag">Buka</span>
                     </button>
                 </nav>
 
@@ -956,12 +995,19 @@ export default function Dashboard({
                                     </Link>
                                 </div>
 
-                                <p className="pd-figure">
-                                    <Nominal nilai={pengajuanBerjalan.nominal} tampil={nominalTampil} />
-                                </p>
+                                <div className="pd-figure-row">
+                                    <p className="pd-figure">
+                                        <Nominal nilai={pengajuanBerjalan.nominal} tampil={nominalTampil} />
+                                    </p>
+                                    {pengajuanBerjalan.tenor_bulan ? (
+                                        <span className="pd-chip pd-chip--neutral">
+                                            Tenor {pengajuanBerjalan.tenor_bulan} bulan
+                                        </span>
+                                    ) : null}
+                                </div>
 
                                 <ol className="pd-steps">
-                                    {langkah.map((l) => {
+                                    {langkah.map((l, idx) => {
                                         const status = l.selesai
                                             ? l.selesaiText
                                             : l.kini
@@ -980,8 +1026,15 @@ export default function Dashboard({
                                                 }`}
                                             >
                                                 <span className="pd-step__label">
-                                                    {l.selesai && <CheckCircle2 size={13} aria-hidden="true" />}
-                                                    {l.kini && <Clock size={13} aria-hidden="true" />}
+                                                    {l.selesai ? (
+                                                        <CheckCircle2 size={14} aria-hidden="true" />
+                                                    ) : l.kini ? (
+                                                        <Clock size={14} aria-hidden="true" />
+                                                    ) : (
+                                                        <span className="pd-step__num" aria-hidden="true">
+                                                            {idx + 1}
+                                                        </span>
+                                                    )}
                                                     {l.nama}
                                                 </span>
                                                 <span className="pd-step__state">{status}</span>
@@ -1069,6 +1122,25 @@ export default function Dashboard({
                                     </div>
                                 </dl>
 
+                                {pinjamanAktifCount > 1 && (
+                                    <ul className="pd-subloans" aria-label="Rincian pinjaman berjalan">
+                                        {pinjamanAktifList.map((p, idx) => (
+                                            <li key={p.id} className="pd-subloan">
+                                                <span className="pd-subloan__meta">
+                                                    Pinjaman #{idx + 1} &middot; Sisa {p.sisa_angsuran}/
+                                                    {p.total_angsuran} bln
+                                                </span>
+                                                <span className="pd-subloan__val">
+                                                    <Nominal
+                                                        nilai={p.sisa_total_bayar}
+                                                        tampil={nominalTampil}
+                                                    />
+                                                </span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+
                                 {angsuranBerikutnya && (
                                     <Link href={route('portal.riwayat')} className="pd-due pd-focus">
                                         <span className="pd-due__icon">
@@ -1077,7 +1149,7 @@ export default function Dashboard({
                                         <span className="pd-due__text">
                                             <span className="pd-due__label">Angsuran berikutnya</span>
                                             <span className="pd-due__value">
-                                                Ke-{angsuranBerikutnya.cicilan_ke}, {' '}
+                                                Ke-{angsuranBerikutnya.cicilan_ke},{' '}
                                                 {angsuranBerikutnya.tanggal_jatuh_tempo}
                                             </span>
                                             <span className="pd-due__note">
@@ -1107,11 +1179,30 @@ export default function Dashboard({
                             </section>
                         ) : (
                             !pengajuanBerjalan && (
-                                <p className="pd-quiet">
-                                    Belum ada pinjaman aktif. Limit{' '}
-                                    <Nominal nilai={limitMaksimal} tampil={nominalTampil} /> siap
-                                    diajukan lewat menu di atas.
-                                </p>
+                                <div className="pd-calm">
+                                    <div className="pd-calm__left">
+                                        <span className="pd-calm__icon" aria-hidden="true">
+                                            <ShieldCheck size={18} />
+                                        </span>
+                                        <div>
+                                            <p className="pd-calm__title">Belum ada pinjaman aktif</p>
+                                            <p className="pd-calm__desc">
+                                                Limit{' '}
+                                                <Nominal nilai={limitMaksimal} tampil={nominalTampil} />{' '}
+                                                siap diajukan lewat menu di atas.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {bolehAjukanPinjaman && (
+                                        <Link
+                                            href={route('portal.pinjaman.create')}
+                                            className="pd-link pd-focus"
+                                        >
+                                            Ajukan sekarang
+                                            <ArrowRight size={13} aria-hidden="true" />
+                                        </Link>
+                                    )}
+                                </div>
                             )
                         )}
 
@@ -1142,9 +1233,9 @@ export default function Dashboard({
                                                 }`}
                                             >
                                                 {item.tipe === 'simpanan' ? (
-                                                    <ArrowDownCircle size={14} aria-hidden="true" />
+                                                    <ArrowDownCircle size={15} aria-hidden="true" />
                                                 ) : (
-                                                    <CheckCircle2 size={14} aria-hidden="true" />
+                                                    <CheckCircle2 size={15} aria-hidden="true" />
                                                 )}
                                             </span>
                                             <span className="pd-act__text">
@@ -1153,7 +1244,12 @@ export default function Dashboard({
                                                     {item.tanggal_format}
                                                 </span>
                                             </span>
-                                            <span className="pd-act__amount">
+                                            <span
+                                                className={`pd-act__amount ${
+                                                    item.tipe === 'simpanan' ? 'pd-act__amount--in' : ''
+                                                }`}
+                                            >
+                                                {item.tipe === 'simpanan' ? '+' : ''}
                                                 <Nominal
                                                     nilai={item.nominal}
                                                     tampil={nominalTampil}
@@ -1228,22 +1324,39 @@ export default function Dashboard({
                             </div>
 
                             <ol className="pd-ladder">
-                                {tanggaTenor.map((r, i) => (
-                                    <li key={i} className="pd-rung">
-                                        <span className="pd-rung__nominal">
-                                            {formatRupiah(r.nominal_min)}
-                                            {r.nominal_max > r.nominal_min ? (
-                                                <>
-                                                    {' '}
-                                                    &ndash; {formatRupiah(r.nominal_max)}
-                                                </>
-                                            ) : null}
-                                        </span>
-                                        <span className="pd-rung__tenor">
-                                            Maks. {r.tenor} bulan
-                                        </span>
-                                    </li>
-                                ))}
+                                {tanggaTenor.map((r, i) => {
+                                    const isCurrentLimit =
+                                        limitMaksimal > 0 &&
+                                        limitMaksimal >= r.nominal_min &&
+                                        limitMaksimal <= r.nominal_max;
+
+                                    return (
+                                        <li
+                                            key={i}
+                                            className={`pd-rung ${
+                                                isCurrentLimit ? 'pd-rung--active' : ''
+                                            }`.trim()}
+                                        >
+                                            <span className="pd-rung__nominal">
+                                                <span>
+                                                    {formatRupiah(r.nominal_min)}
+                                                    {r.nominal_max > r.nominal_min ? (
+                                                        <>
+                                                            {' '}
+                                                            &ndash; {formatRupiah(r.nominal_max)}
+                                                        </>
+                                                    ) : null}
+                                                </span>
+                                                {isCurrentLimit && (
+                                                    <span className="pd-rung__badge">Limit Anda</span>
+                                                )}
+                                            </span>
+                                            <span className="pd-rung__tenor">
+                                                Maks. {r.tenor} bulan
+                                            </span>
+                                        </li>
+                                    );
+                                })}
                             </ol>
 
                             <p className="pd-card__foot">

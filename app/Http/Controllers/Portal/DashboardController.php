@@ -197,6 +197,8 @@ class DashboardController extends Controller
                 'nominal' => (float) $pengajuanBerjalan->nominal,
                 'nominal_diminta' => (float) ($pengajuanBerjalan->nominal_diminta ?? $pengajuanBerjalan->nominal),
                 'nominal_disetujui_bendahara' => $pengajuanBerjalan->nominal_disetujui_bendahara !== null ? (float) $pengajuanBerjalan->nominal_disetujui_bendahara : null,
+                'tenor_bulan' => (int) $pengajuanBerjalan->tenor_bulan,
+                'tanggal_pengajuan' => $pengajuanBerjalan->tanggal_pengajuan?->format('d M Y'),
                 'status' => $pengajuanBerjalan->status,
             ] : null,
             'pengajuanLimitBerjalan' => $pengajuanLimitBerjalan ? [

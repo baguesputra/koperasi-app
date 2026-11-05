@@ -11,15 +11,12 @@
     position: relative;
     isolation: isolate;
     min-height: 100vh;
-    background-color: var(--color-ground, #eff2f6);
+    background-color: var(--color-ground, #f8fafc);
 }
 
-/* The ground is fixed, so scrolling moves the page and never the light.
- * Two blooms pinned to the corners over a cool grey canvas, the way the
- * reference holds its light at the edges and keeps the middle quiet.
- * Each bloom carries one faint edge-only texture: a dense flowing ribbon mesh
- * sweeping down the right edge, a curved weave sweeping up from the left.
- * Both stay pinned to the corners so the middle of the page stays quiet. */
+/* Architectural Alabaster Ground:
+ * Zero SVG line noise. Two whisper-soft ambient light washes at the top corners
+ * keep the canvas fresh, bright, and minimalist while white cards float cleanly above. */
 .shell::before {
     content: "";
     position: fixed;
@@ -27,21 +24,18 @@
     z-index: -1;
     pointer-events: none;
     background:
-        url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 500 900' fill='none'><defs><linearGradient id='rg' x1='1' y1='0' x2='0' y2='1'><stop offset='0%' stop-color='%2310b981' stop-opacity='0.36'/><stop offset='60%' stop-color='%2334d399' stop-opacity='0.20'/><stop offset='100%' stop-color='%2314b8a6' stop-opacity='0.03'/></linearGradient></defs><g stroke='url(%23rg)' fill='none'><path d='M500 40C400 130 310 270 260 450C220 590 225 720 240 860' stroke-width='1.4'/><path d='M500 100C415 190 335 320 290 490C255 620 260 740 275 880' stroke-width='1.2'/><path d='M500 160C430 245 360 370 320 530C290 650 295 760 310 900' stroke-width='1.0'/><path d='M500 220C445 300 385 420 350 570C325 680 330 780 345 920' stroke-width='0.9'/><path d='M500 280C460 350 410 470 380 610C360 710 365 800 380 940' stroke-width='0.8'/><path d='M470 0C380 90 280 230 220 420C170 570 175 710 190 850' stroke-width='0.7' stroke-opacity='0.6'/><path d='M440 0C360 80 250 210 185 400C135 550 140 690 155 830' stroke-width='0.6' stroke-opacity='0.4'/></g></svg>") right top / 38vmin 85vmin no-repeat,
-        url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 500 500' fill='none'><defs><linearGradient id='lg' x1='0' y1='1' x2='1' y2='0'><stop offset='0%' stop-color='%2314b8a6' stop-opacity='0.32'/><stop offset='60%' stop-color='%2334d399' stop-opacity='0.16'/><stop offset='100%' stop-color='%2310b981' stop-opacity='0.02'/></linearGradient></defs><g stroke='url(%23lg)' fill='none'><path d='M0 460C110 400 210 310 270 200C315 110 320 40 320 0' stroke-width='1.4'/><path d='M0 400C95 345 185 265 240 160C280 80 285 20 285 0' stroke-width='1.2'/><path d='M0 340C80 290 160 220 210 120C245 50 250 0 250 0' stroke-width='1.0'/><path d='M0 280C65 235 135 175 180 80C210 20 215 0 215 0' stroke-width='0.8'/><path d='M40 500C140 430 230 330 285 210C325 120 330 40 330 0' stroke-width='0.7' stroke-opacity='0.5'/></g></svg>") left bottom / 40vmin 42vmin no-repeat,
         radial-gradient(
-            ellipse 42% 64% at 100% 5%,
-            color-mix(in oklab, var(--color-glow-a) 40%, transparent) 0%,
-            color-mix(in oklab, var(--color-glow-a) 18%, transparent) 45%,
+            ellipse 55% 42% at 88% 0%,
+            color-mix(in oklab, var(--color-glow-a) 14%, transparent) 0%,
+            color-mix(in oklab, var(--color-glow-a) 5%, transparent) 50%,
             transparent 85%
         ),
         radial-gradient(
-            ellipse 32% 48% at 0% 98%,
-            color-mix(in oklab, var(--color-glow-b) 36%, transparent) 0%,
-            color-mix(in oklab, var(--color-glow-b) 16%, transparent) 46%,
-            transparent 85%
+            ellipse 50% 38% at 12% 0%,
+            color-mix(in oklab, var(--color-glow-b) 10%, transparent) 0%,
+            transparent 75%
         ),
-        var(--color-ground);
+        linear-gradient(180deg, #f8fafc 0%, #f4f7fa 100%);
 }
 
 .shell-nav {

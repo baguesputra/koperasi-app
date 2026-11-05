@@ -33,28 +33,41 @@ html {
 
 .pd {
     display: grid;
-    gap: var(--space-lg);
+    gap: 1.25rem;
     color: var(--color-ink);
 }
 
 @media (min-width: 40rem) {
     .pd {
-        gap: var(--space-xl);
+        gap: 1.65rem;
+    }
+}
+
+.pd-head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2xs);
+}
+
+@media (min-width: 48rem) {
+    .pd-head {
+        flex-direction: row;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: var(--space-md);
     }
 }
 
 .pd h1 {
     margin: 0;
     font-family: var(--font-display);
-    font-size: var(--text-display);
+    font-size: clamp(1.35rem, 2.2vw, 1.68rem);
     font-weight: 700;
-    line-height: 1.15;
+    line-height: 1.2;
     letter-spacing: var(--tracking-display);
     text-wrap: balance;
 }
 
-/* The greeting carries a name; at phone width a balanced break splits the
- * greeting from it, which reads as two sentences. */
 @media (max-width: 30rem) {
     .pd h1 {
         text-wrap: wrap;
@@ -64,7 +77,7 @@ html {
 .pd h2 {
     margin: 0;
     font-family: var(--font-display);
-    font-size: var(--text-section);
+    font-size: 1.05rem;
     font-weight: 700;
     line-height: 1.3;
     letter-spacing: -0.01em;
@@ -72,28 +85,53 @@ html {
 
 .pd-head__line {
     max-width: 58ch;
-    margin: var(--space-2xs) 0 0;
+    margin: 2px 0 0;
     color: var(--color-muted);
     font-size: var(--text-sm);
     line-height: 1.5;
 }
 
+.pd-head__date {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    align-self: flex-start;
+    padding: 5px 11px;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-pill);
+    background: rgba(255, 255, 255, 0.78);
+    color: var(--color-muted);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+@media (min-width: 48rem) {
+    .pd-head__date {
+        align-self: center;
+    }
+}
+
 .pd-cols {
     display: grid;
-    gap: var(--space-lg);
+    gap: 1.25rem;
 }
 
 .pd-col {
     display: grid;
-    gap: var(--space-lg);
+    gap: 1.25rem;
     align-content: start;
 }
 
 @media (min-width: 64rem) {
     .pd-cols {
-        grid-template-columns: minmax(0, 1.85fr) minmax(0, 1fr);
-        gap: var(--space-xl);
+        grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+        gap: 1.5rem;
         align-items: start;
+    }
+
+    .pd-col {
+        gap: 1.5rem;
     }
 }
 
@@ -103,15 +141,17 @@ html {
     display: grid;
     gap: var(--space-sm);
     padding: var(--space-md);
-    border: 1px solid var(--color-rule);
-    border-radius: var(--radius-card);
-    background: var(--color-paper-2);
-    box-shadow: var(--shadow-card);
+    border: 1px solid rgba(15, 23, 42, 0.075);
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow:
+        0 1px 2px rgba(15, 23, 42, 0.025),
+        0 6px 20px -6px rgba(15, 23, 42, 0.045);
 }
 
 @media (min-width: 40rem) {
     .pd-card {
-        padding: var(--space-lg);
+        padding: 1.35rem 1.5rem;
         gap: var(--space-md);
     }
 }
@@ -144,82 +184,96 @@ html {
     line-height: 1.5;
 }
 
-/* ---- The member band (signature) --------------------------------- */
-
-/* ---- The member band (Digital Member Card - Signature) ----------- */
+/* ---- The member band (Digital Member Card - Executive Matte) ----- */
 
 .pd-band {
     position: relative;
     display: grid;
     gap: var(--space-md);
-    padding: var(--space-md);
-    border-radius: var(--radius-band);
+    padding: 1.25rem;
+    border-radius: 18px;
     overflow: clip;
     background:
         radial-gradient(
-            85% 120% at 50% 30%,
-            oklch(28.0% 0.055 185) 0%,
-            oklch(22.0% 0.045 195) 50%,
-            oklch(17.0% 0.035 210) 100%
+            62% 95% at 92% 8%,
+            rgba(16, 185, 129, 0.20) 0%,
+            rgba(20, 184, 166, 0.06) 52%,
+            transparent 100%
+        ),
+        linear-gradient(
+            135deg,
+            #0b1322 0%,
+            #0e1b2d 44%,
+            #0d2727 80%,
+            #10332e 100%
         );
-    border: 1px solid color-mix(in oklab, var(--color-night-ink) 12%, transparent);
+    border: 1px solid rgba(255, 255, 255, 0.10);
     box-shadow:
-        0 14px 34px -8px color-mix(in oklab, var(--color-night) 40%, transparent),
-        0 4px 12px -2px color-mix(in oklab, var(--color-night) 20%, transparent);
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.16),
+        0 18px 38px -12px rgba(11, 19, 34, 0.28),
+        0 4px 12px -2px rgba(11, 19, 34, 0.14);
     color: var(--color-night-ink);
 }
 
-/* Subtle, smooth wave watermark — minimalist, smooth, non-busy (no circuit/solder dots) */
+/* Subtle executive guilloché contour waves — faded out behind left profile,
+ * flowing gracefully along the right & bottom edges for a tactile bank-card feel. */
 .pd-band::before {
     content: "";
     position: absolute;
     inset: 0;
     pointer-events: none;
     background:
-        url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 700 350' fill='none'><g stroke='%234ade80' stroke-width='0.75' opacity='0.10'><path d='M350 0C440 60 550 110 700 95'/><path d='M320 0C420 70 540 125 700 115'/><path d='M290 0C400 80 530 140 700 135'/><path d='M260 0C380 90 520 155 700 155'/><path d='M230 0C360 100 510 170 700 175'/><path d='M0 250C140 210 270 220 400 270C480 300 580 325 700 330'/><path d='M0 275C150 230 280 240 410 285C490 310 590 332 700 340'/><path d='M0 300C160 250 290 260 420 300C500 320 600 340 700 350'/></g></svg>") center / cover no-repeat,
+        url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 360' fill='none'><defs><linearGradient id='gw' x1='0' y1='0' x2='1' y2='0'><stop offset='0%' stop-color='%2334d399' stop-opacity='0'/><stop offset='30%' stop-color='%2334d399' stop-opacity='0.02'/><stop offset='68%' stop-color='%2334d399' stop-opacity='0.11'/><stop offset='100%' stop-color='%236ee7b7' stop-opacity='0.18'/></linearGradient><linearGradient id='gb' x1='0' y1='1' x2='1' y2='0'><stop offset='0%' stop-color='%2338bdf8' stop-opacity='0.05'/><stop offset='45%' stop-color='%2310b981' stop-opacity='0.08'/><stop offset='100%' stop-color='%236ee7b7' stop-opacity='0.15'/></linearGradient></defs><g stroke='url(%23gw)' stroke-width='0.85'><path d='M340 -10C430 65 560 115 810 85'/><path d='M310 -10C410 78 550 132 810 106'/><path d='M280 -10C390 92 540 150 810 128'/><path d='M250 -10C370 106 530 168 810 150'/><path d='M220 -10C350 120 520 186 810 172'/><path d='M190 -10C330 134 510 204 810 194'/></g><g stroke='url(%23gb)' stroke-width='0.8'><path d='M80 370C220 295 390 275 560 315C650 335 735 348 810 340'/><path d='M110 375C245 308 405 290 570 326C658 344 740 355 810 348'/><path d='M140 380C270 322 420 305 580 337C665 353 745 362 810 356'/></g><g stroke='%236ee7b7' stroke-width='0.6' stroke-opacity='0.08'><circle cx='760' cy='24' r='90'/><circle cx='760' cy='24' r='130'/><circle cx='760' cy='24' r='170'/></g></svg>") center / cover no-repeat,
+        linear-gradient(
+            118deg,
+            rgba(255, 255, 255, 0.045) 0%,
+            rgba(255, 255, 255, 0.01) 36%,
+            transparent 62%
+        ),
         radial-gradient(
-            circle at 85% 15%,
-            color-mix(in oklab, var(--color-accent-bright) 10%, transparent) 0%,
-            transparent 60%
+            circle at 12% 110%,
+            rgba(56, 189, 248, 0.07) 0%,
+            transparent 55%
         );
 }
 
 @media (min-width: 40rem) {
     .pd-band {
-        padding: var(--space-lg);
-        gap: var(--space-lg);
+        padding: 1.5rem 1.75rem;
+        gap: 1.25rem;
     }
 }
 
 /* Header bar inside the card: Status Pill on left, Privacy Toggle on right */
 .pd-band__header {
+    position: relative;
+    z-index: 1;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: var(--space-sm);
-    padding-bottom: var(--space-xs);
 }
 
 .pd-band__status-pill {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 3px 9px;
+    gap: 6px;
+    padding: 3.5px 10px;
     border-radius: var(--radius-pill);
-    font-size: var(--text-xs);
+    font-size: 0.7rem;
     font-weight: 600;
-    letter-spacing: 0.04em;
-    background: color-mix(in oklab, var(--color-accent) 22%, transparent);
-    border: 1px solid color-mix(in oklab, var(--color-accent-bright) 35%, transparent);
-    color: var(--color-accent-bright);
+    letter-spacing: 0.05em;
+    background: rgba(16, 185, 129, 0.14);
+    border: 1px solid rgba(52, 211, 153, 0.28);
+    color: #6ee7b7;
 }
 
 .pd-band__status-dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: var(--color-accent-bright);
-    box-shadow: 0 0 6px var(--color-accent-bright);
+    background: #34d399;
+    box-shadow: 0 0 6px rgba(52, 211, 153, 0.8);
 }
 
 .pd-band__status-pill--off {
@@ -234,15 +288,17 @@ html {
 }
 
 .pd-band__body {
+    position: relative;
+    z-index: 1;
     display: grid;
-    gap: var(--space-lg);
+    gap: var(--space-md);
 }
 
-@media (min-width: 48rem) {
+@media (min-width: 52rem) {
     .pd-band__body {
-        grid-template-columns: minmax(0, 1.35fr) minmax(0, 1.15fr);
+        grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.3fr);
         align-items: center;
-        gap: var(--space-xl);
+        gap: var(--space-lg);
     }
 }
 
@@ -257,7 +313,7 @@ html {
 .pd-band__profile-meta {
     min-width: 0;
     display: grid;
-    gap: 4px;
+    gap: 3px;
     text-align: left;
 }
 
@@ -269,25 +325,25 @@ html {
     flex: none;
 }
 
-/* Avatar Container: bundar sempurna, overflow hidden mutlak agar tidak ada kebocoran kotak */
+/* Avatar Container: proportional, crisp double-ring without heavy neon blur */
 .pd-band__avatar-container {
     position: relative;
-    width: 96px;
-    height: 96px;
+    width: 76px;
+    height: 76px;
     border-radius: 50%;
     overflow: hidden;
-    border: 2.5px solid color-mix(in oklab, var(--color-accent-bright) 70%, transparent);
+    border: 2px solid rgba(110, 231, 183, 0.65);
     box-shadow:
-        0 0 0 2px color-mix(in oklab, var(--color-accent-bright) 30%, transparent),
-        0 0 20px color-mix(in oklab, var(--color-accent) 45%, transparent);
-    background: rgba(16, 185, 129, 0.20);
+        0 0 0 4px rgba(16, 185, 129, 0.14),
+        0 8px 18px rgba(0, 0, 0, 0.28);
+    background: rgba(16, 185, 129, 0.18);
     flex-shrink: 0;
 }
 
 @media (min-width: 48rem) {
     .pd-band__avatar-container {
-        width: 114px;
-        height: 114px;
+        width: 88px;
+        height: 88px;
     }
 }
 
@@ -304,15 +360,15 @@ html {
     justify-content: center;
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    background: linear-gradient(135deg, #10b981 0%, #047857 100%);
     color: #ffffff;
-    font-size: 2.2rem;
+    font-size: 1.85rem;
     font-weight: 700;
 }
 
 @media (min-width: 48rem) {
     .pd-band__avatar--fallback {
-        font-size: 2.6rem;
+        font-size: 2.15rem;
     }
 }
 
@@ -326,52 +382,46 @@ html {
     background: transparent;
 }
 
-.pd-band__profile-meta {
-    min-width: 0;
-    display: grid;
-    gap: 4px;
-}
-
 .pd-band__name {
     margin: 0;
-    font-size: 1.35rem;
+    font-size: 1.25rem;
     font-weight: 700;
-    line-height: 1.2;
+    line-height: 1.22;
+    letter-spacing: -0.01em;
     color: #ffffff;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.35);
 }
 
 @media (min-width: 48rem) {
     .pd-band__name {
-        font-size: 1.65rem;
+        font-size: 1.42rem;
     }
 }
 
 .pd-band__nip {
     margin: 0;
-    color: color-mix(in oklab, var(--color-accent-bright) 95%, transparent);
-    font-size: 1.05rem;
+    color: #6ee7b7;
+    font-size: 0.92rem;
     font-weight: 600;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.03em;
     font-variant-numeric: tabular-nums;
 }
 
 @media (min-width: 48rem) {
     .pd-band__nip {
-        font-size: 1.15rem;
+        font-size: 0.98rem;
     }
 }
 
 .pd-band__joined {
     margin: 0;
-    color: var(--color-night-muted);
-    font-size: 0.92rem;
+    color: rgba(226, 232, 240, 0.72);
+    font-size: 0.82rem;
     font-weight: 500;
 }
 
 @media (min-width: 48rem) {
     .pd-band__joined {
-        font-size: 0.98rem;
+        font-size: 0.86rem;
     }
 }
 
@@ -379,13 +429,13 @@ html {
     position: relative;
     display: inline-flex;
     align-items: center;
-    gap: var(--space-2xs);
+    gap: 6px;
     min-height: 30px;
-    padding: 0 var(--space-xs);
-    border: 1px solid color-mix(in oklab, var(--color-night-ink) 20%, transparent);
+    padding: 0 11px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
     border-radius: var(--radius-pill);
-    background: rgba(255, 255, 255, 0.08);
-    color: var(--color-night-ink);
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(248, 250, 252, 0.92);
     font: 500 var(--text-xs)/1 var(--font-body);
     cursor: pointer;
     transition:
@@ -410,57 +460,73 @@ html {
 }
 
 .pd-band__toggle:hover {
-    background: color-mix(in oklab, var(--color-night-ink) 16%, transparent);
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.26);
 }
 
+/* Frosted Matte Panel for Financial Figures */
 .pd-band__figures {
     display: grid;
-    gap: var(--space-md);
-    background: color-mix(in oklab, var(--color-night) 30%, transparent);
-    padding: var(--space-sm) var(--space-md);
-    border-radius: var(--radius-well);
-    border: 1px solid color-mix(in oklab, var(--color-night-ink) 8%, transparent);
+    gap: var(--space-sm);
+    background: linear-gradient(
+        145deg,
+        rgba(255, 255, 255, 0.065) 0%,
+        rgba(255, 255, 255, 0.025) 100%
+    );
+    padding: 0.9rem 1.1rem;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
 }
 
-@media (min-width: 32rem) {
+@media (min-width: 34rem) {
     .pd-band__figures {
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
         gap: var(--space-md);
         align-items: center;
+        padding: 1rem 1.25rem;
     }
 
     .pd-band__figure--end {
         padding-left: var(--space-md);
-        border-left: 1px solid color-mix(in oklab, var(--color-night-ink) 12%, transparent);
+        border-left: 1px solid rgba(255, 255, 255, 0.10);
+    }
+}
+
+@media (max-width: 33.99rem) {
+    .pd-band__figure--end {
+        padding-top: var(--space-xs);
+        border-top: 1px solid rgba(255, 255, 255, 0.09);
     }
 }
 
 .pd-band__label {
     margin: 0;
-    color: var(--color-night-muted);
-    font-size: var(--text-xs);
+    color: rgba(226, 232, 240, 0.72);
+    font-size: 0.74rem;
     font-weight: 500;
+    letter-spacing: 0.01em;
     line-height: 1.3;
 }
 
 .pd-band__value {
-    margin: var(--space-3xs) 0 0;
-    font-size: var(--text-figure);
+    margin: 4px 0 0;
+    font-size: clamp(1.32rem, 2.1vw, 1.65rem);
     font-weight: 700;
-    line-height: 1.1;
+    line-height: 1.15;
     letter-spacing: -0.02em;
     font-variant-numeric: tabular-nums;
-    overflow-wrap: anywhere;
+    white-space: nowrap;
 }
 
 .pd-band__value--accent {
-    color: var(--color-accent-bright);
+    color: #6ee7b7;
 }
 
 .pd-band__note {
-    margin: var(--space-2xs) 0 0;
-    color: var(--color-night-muted);
-    font-size: var(--text-xs);
+    margin: 4px 0 0;
+    color: rgba(226, 232, 240, 0.65);
+    font-size: 0.73rem;
     line-height: 1.4;
 }
 
@@ -468,14 +534,16 @@ html {
     display: inline-flex;
     align-items: center;
     gap: var(--space-2xs);
-    color: var(--color-warn);
+    color: #fcd34d;
 }
 
 .pd-band__rail {
+    position: relative;
+    z-index: 1;
     display: grid;
-    gap: var(--space-xs);
-    padding-top: var(--space-sm);
-    border-top: 1px solid color-mix(in oklab, var(--color-night-ink) 10%, transparent);
+    gap: 6px;
+    padding-top: 0.85rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.09);
 }
 
 .pd-band__rail-top {
@@ -483,17 +551,26 @@ html {
     align-items: center;
     justify-content: space-between;
     gap: var(--space-sm);
-    color: var(--color-night-muted);
+    color: rgba(226, 232, 240, 0.78);
     font-size: var(--text-xs);
     font-variant-numeric: tabular-nums;
 }
 
+.pd-band__rail-pct {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    color: #f8fafc;
+}
+
 .pd-band__rail-bar {
     position: relative;
-    height: 7px;
+    height: 6px;
     border-radius: var(--radius-pill);
-    background: rgba(0, 0, 0, 0.35);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(15, 23, 42, 0.55);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.07);
     overflow: hidden;
 }
 
@@ -501,8 +578,15 @@ html {
     height: 100%;
     border-radius: inherit;
     background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
-    box-shadow: 0 0 10px rgba(52, 211, 153, 0.5);
     transition: width var(--dur-long) var(--ease-out);
+}
+
+.pd-band__rail-fill--warn {
+    background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
+}
+
+.pd-band__rail-fill--danger {
+    background: linear-gradient(90deg, #f43f5e 0%, #fb7185 100%);
 }
 
 .pd-railcap {
@@ -721,28 +805,35 @@ a.pd-status__link:hover {
 
 .pd-actions {
     display: grid;
-    gap: var(--space-xs);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
 }
 
-@media (min-width: 40rem) {
+@media (max-width: 21.5rem) {
+    .pd-actions {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (min-width: 56rem) {
     .pd-actions {
         grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: var(--space-sm);
     }
 }
 
-/* Toolbar buttons keep their labels on one line; the row is the control (49a). */
-
 .pd-action {
     display: flex;
     align-items: center;
-    gap: var(--space-xs);
-    min-height: 58px;
-    padding: var(--space-xs) var(--space-sm);
-    border: 1px solid var(--color-rule);
-    border-radius: var(--radius-well);
+    gap: 0.65rem;
+    min-height: 62px;
+    padding: 0.65rem 0.85rem;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 12px;
     background: #ffffff;
-    box-shadow: 0 1px 3px color-mix(in oklab, var(--color-ink) 4%, transparent);
+    box-shadow:
+        0 1px 2px rgba(15, 23, 42, 0.025),
+        0 4px 12px -4px rgba(15, 23, 42, 0.035);
     color: var(--color-ink);
     text-decoration: none;
     text-align: left;
@@ -753,14 +844,41 @@ a.pd-status__link:hover {
         transform var(--dur-short) var(--ease-out);
 }
 
+@media (max-width: 39.99rem) {
+    .pd-action {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        grid-template-areas:
+            "icon flag"
+            "text text";
+        align-items: center;
+        min-height: 86px;
+        padding: 0.75rem 0.8rem;
+        gap: 0.55rem;
+    }
+
+    .pd-action__icon {
+        grid-area: icon;
+    }
+
+    .pd-action__flag {
+        grid-area: flag;
+        justify-self: end;
+    }
+
+    .pd-action__text {
+        grid-area: text;
+    }
+}
+
 .pd-action:hover {
-    border-color: color-mix(in oklab, var(--color-accent) 30%, var(--color-rule));
-    box-shadow: 0 4px 12px color-mix(in oklab, var(--color-ink) 6%, transparent);
-    transform: translateY(-1px);
+    border-color: color-mix(in oklab, var(--color-accent) 35%, var(--color-rule));
+    box-shadow: 0 6px 16px -4px rgba(15, 23, 42, 0.07);
+    transform: translateY(-1.5px);
 }
 
 .pd-action:active {
-    background: var(--color-paper-2);
+    background: var(--color-paper);
     transform: translateY(0);
 }
 
@@ -768,8 +886,8 @@ a.pd-status__link:hover {
 .pd-action[aria-disabled="true"]:hover,
 .pd-action[aria-disabled="true"]:active {
     border-style: dashed;
-    border-color: var(--color-rule);
-    background: rgba(255, 255, 255, 0.6);
+    border-color: var(--color-rule-2);
+    background: rgba(255, 255, 255, 0.65);
     box-shadow: none;
     color: var(--color-muted);
     cursor: not-allowed;
@@ -781,9 +899,9 @@ a.pd-status__link:hover {
     align-items: center;
     justify-content: center;
     flex: none;
-    width: 34px;
-    height: 34px;
-    border-radius: var(--radius-chip);
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
     background: #ecfdf5;
     color: #059669;
 }
@@ -811,14 +929,15 @@ a.pd-status__link:hover {
 
 .pd-action__text {
     display: grid;
-    gap: var(--space-3xs);
+    gap: 2px;
     flex: 1;
     min-width: 0;
+    width: 100%;
 }
 
 .pd-action__label {
     font-size: var(--text-sm);
-    font-weight: 500;
+    font-weight: 600;
     line-height: 1.25;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -827,7 +946,7 @@ a.pd-status__link:hover {
 
 .pd-action__state {
     color: var(--color-muted);
-    font-size: var(--text-xs);
+    font-size: 0.73rem;
     line-height: 1.35;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -835,15 +954,28 @@ a.pd-status__link:hover {
 }
 
 .pd-action__flag {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
     flex: none;
     white-space: nowrap;
+    padding: 2px 7px;
+    border-radius: var(--radius-pill);
+    background: var(--color-accent-soft);
     color: var(--color-accent-dark);
-    font-size: var(--text-xs);
+    font-size: 0.68rem;
+    font-weight: 600;
     line-height: 1.3;
     text-align: right;
 }
 
+.pd-action--guide .pd-action__flag {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
 .pd-action[aria-disabled="true"] .pd-action__flag {
+    background: var(--color-paper-3);
     color: var(--color-muted);
 }
 
@@ -865,12 +997,13 @@ a.pd-status__link:hover {
     left: 50%;
     transform: translateX(-50%);
     width: max-content;
-    max-width: min(22rem, calc(100vw - 2.5rem));
+    max-width: min(20rem, calc(100vw - 2rem));
     z-index: var(--z-tooltip);
-    padding: var(--space-2xs) var(--space-xs);
-    border-radius: var(--radius-chip);
+    padding: 6px 10px;
+    border-radius: 8px;
     background: var(--color-ink);
     color: var(--color-paper-2);
+    box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.25);
     font-size: var(--text-xs);
     font-weight: 400;
     line-height: 1.45;
@@ -886,11 +1019,20 @@ html.js .pd-lock__tip {
 
 html.js .pd-lock:hover .pd-lock__tip,
 html.js .pd-lock:focus-within .pd-lock__tip,
-html.js .pd-lock:active .pd-lock__tip {
+html.js .pd-lock:active .pd-lock__tip,
+html.js .pd-lock__tip.is-open {
     opacity: 1;
 }
 
 /* ---- Figures, rows, chips ---------------------------------------- */
+
+.pd-figure-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+}
 
 .pd-figure {
     margin: 0;
@@ -911,7 +1053,7 @@ html.js .pd-lock:active .pd-lock__tip {
     align-items: baseline;
     justify-content: space-between;
     gap: var(--space-md);
-    padding: var(--space-xs) 0;
+    padding: 0.55rem 0;
     font-size: var(--text-sm);
 }
 
@@ -937,13 +1079,18 @@ html.js .pd-lock:active .pd-lock__tip {
     align-items: center;
     gap: var(--space-2xs);
     flex: none;
-    padding: var(--space-3xs) var(--space-xs);
-    border-radius: var(--radius-chip);
+    padding: 3px 9px;
+    border-radius: var(--radius-pill);
     background: var(--color-accent-soft);
     color: var(--color-accent-dark);
     font-size: var(--text-xs);
-    font-weight: 500;
+    font-weight: 600;
     font-variant-numeric: tabular-nums;
+}
+
+.pd-chip--neutral {
+    background: var(--color-paper-3);
+    color: var(--color-ink-2);
 }
 
 .pd-link {
@@ -953,7 +1100,7 @@ html.js .pd-lock:active .pd-lock__tip {
     flex: none;
     color: var(--color-accent-dark);
     font-size: var(--text-xs);
-    font-weight: 500;
+    font-weight: 600;
     text-decoration: none;
     border-radius: var(--radius-chip);
     transition: color var(--dur-short) var(--ease-out);
@@ -972,57 +1119,130 @@ html.js .pd-lock:active .pd-lock__tip {
     text-align: center;
 }
 
+/* ---- Calm empty loan card ---------------------------------------- */
+
+.pd-calm {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+    padding: 1rem 1.25rem;
+    border: 1px solid rgba(15, 23, 42, 0.075);
+    border-radius: 14px;
+    background: linear-gradient(180deg, #ffffff 0%, #f9fbfb 100%);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.025);
+}
+
+.pd-calm__left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    min-width: 0;
+    flex: 1;
+}
+
+.pd-calm__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--color-accent-soft);
+    color: var(--color-accent-dark);
+}
+
+.pd-calm__title {
+    margin: 0;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--color-ink);
+}
+
+.pd-calm__desc {
+    margin: 2px 0 0;
+    font-size: var(--text-xs);
+    color: var(--color-muted);
+    line-height: 1.45;
+}
+
 /* ---- Application tracker ---------------------------------------- */
 
 .pd-steps {
     display: grid;
+    gap: var(--space-xs);
     margin: 0;
     padding: 0;
     list-style: none;
 }
 
-/* Narrow: each stage is one row — who it waits on, then the state. */
 .pd-step {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: baseline;
-    column-gap: var(--space-sm);
-    padding: var(--space-xs) 0;
-    border-top: 2px solid var(--color-rule);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    padding: 0.65rem 0.85rem;
+    border: 1px solid var(--color-rule);
+    border-radius: 10px;
+    background: var(--color-paper);
 }
 
-/* Wide enough: the three stages read left to right as a pipeline. */
-@media (min-width: 30rem) {
+@media (min-width: 34rem) {
     .pd-steps {
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: var(--space-md);
+        gap: var(--space-sm);
     }
 
     .pd-step {
-        grid-template-columns: minmax(0, 1fr);
-        padding: var(--space-xs) 0 0;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: flex-start;
+        gap: 4px;
+        padding: 0.75rem 0.9rem;
     }
 }
 
 .pd-step--done {
-    border-top-color: var(--color-accent);
+    border-color: color-mix(in oklab, var(--color-accent) 32%, var(--color-rule));
+    background: #f4fbf7;
 }
 
 .pd-step--now {
-    border-top-color: var(--color-warn);
+    border-color: color-mix(in oklab, var(--color-warn) 45%, var(--color-rule));
+    background: #fffbeb;
 }
 
 .pd-step__label {
     display: flex;
     align-items: center;
-    gap: var(--space-2xs);
+    gap: 6px;
     font-size: var(--text-sm);
-    font-weight: 500;
+    font-weight: 600;
     line-height: 1.3;
+    color: var(--color-ink);
+}
+
+.pd-step--done .pd-step__label {
+    color: var(--color-accent-dark);
 }
 
 .pd-step--now .pd-step__label {
     color: var(--color-warn-ink);
+}
+
+.pd-step__num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--color-paper-4);
+    color: var(--color-muted);
+    font-size: 0.68rem;
+    font-weight: 700;
 }
 
 .pd-step__state {
@@ -1031,23 +1251,58 @@ html.js .pd-lock:active .pd-lock__tip {
     line-height: 1.35;
 }
 
+/* ---- Multi-loan breakdown ---------------------------------------- */
+
+.pd-subloans {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    padding: var(--space-xs) 0 0;
+    list-style: none;
+    border-top: 1px dashed var(--color-rule);
+}
+
+.pd-subloan {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: var(--color-paper);
+    font-size: var(--text-xs);
+}
+
+.pd-subloan__meta {
+    color: var(--color-muted);
+}
+
+.pd-subloan__val {
+    font-weight: 600;
+    color: var(--color-ink);
+    font-variant-numeric: tabular-nums;
+}
+
 /* ---- Due row ----------------------------------------------------- */
 
 .pd-due {
     display: flex;
     align-items: center;
     gap: var(--space-sm);
-    padding: var(--space-sm);
-    border: 1px solid var(--color-rule);
-    border-radius: var(--radius-well);
-    background: var(--color-paper);
+    padding: 0.75rem 0.9rem;
+    border: 1px solid color-mix(in oklab, var(--color-accent) 22%, var(--color-rule));
+    border-radius: 10px;
+    background: #f6fcf9;
     color: var(--color-ink);
     text-decoration: none;
-    transition: border-color var(--dur-short) var(--ease-out);
+    transition:
+        border-color var(--dur-short) var(--ease-out),
+        background-color var(--dur-short) var(--ease-out);
 }
 
 .pd-due:hover {
-    border-color: var(--color-rule-2);
+    border-color: color-mix(in oklab, var(--color-accent) 42%, var(--color-rule));
+    background: #eefaf4;
 }
 
 .pd-due__icon {
@@ -1055,41 +1310,41 @@ html.js .pd-lock:active .pd-lock__tip {
     align-items: center;
     justify-content: center;
     flex: none;
-    width: 30px;
-    height: 30px;
-    border-radius: var(--radius-chip);
-    background: var(--color-accent-soft);
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: #d1fae5;
     color: var(--color-accent-dark);
 }
 
 .pd-due__text {
     display: grid;
-    gap: var(--space-3xs);
+    gap: 2px;
     flex: 1;
     min-width: 0;
 }
 
 .pd-due__label {
     color: var(--color-muted);
-    font-size: var(--text-xs);
+    font-size: 0.72rem;
     line-height: 1.3;
 }
 
 .pd-due__value {
     font-size: var(--text-sm);
-    font-weight: 500;
+    font-weight: 600;
     line-height: 1.35;
 }
 
 .pd-due__note {
     color: var(--color-muted);
-    font-size: var(--text-xs);
+    font-size: 0.72rem;
     line-height: 1.35;
 }
 
 .pd-due__amount {
     display: grid;
-    gap: var(--space-3xs);
+    gap: 2px;
     flex: none;
     text-align: right;
     font-weight: 700;
@@ -1098,11 +1353,9 @@ html.js .pd-lock:active .pd-lock__tip {
 
 .pd-due__go {
     flex: none;
-    color: var(--color-muted);
+    color: var(--color-accent-dark);
 }
 
-/* A phone cannot hold the date, the amount and the arrow on one line: the
- * amount takes the second line and the arrow steps out of the way. */
 @media (max-width: 26rem) {
     .pd-due {
         flex-wrap: wrap;
@@ -1138,7 +1391,7 @@ html.js .pd-lock:active .pd-lock__tip {
     display: flex;
     align-items: center;
     gap: var(--space-sm);
-    padding: var(--space-xs) 0;
+    padding: 0.6rem 0;
     font-size: var(--text-sm);
 }
 
@@ -1151,9 +1404,9 @@ html.js .pd-lock:active .pd-lock__tip {
     align-items: center;
     justify-content: center;
     flex: none;
-    width: 26px;
-    height: 26px;
-    border-radius: var(--radius-chip);
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
     background: var(--color-paper-3);
     color: var(--color-ink-2);
 }
@@ -1165,13 +1418,13 @@ html.js .pd-lock:active .pd-lock__tip {
 
 .pd-act__text {
     display: grid;
-    gap: var(--space-3xs);
+    gap: 2px;
     flex: 1;
     min-width: 0;
 }
 
 .pd-act__label {
-    font-weight: 500;
+    font-weight: 600;
     line-height: 1.35;
     overflow-wrap: break-word;
 }
@@ -1189,57 +1442,15 @@ html.js .pd-lock:active .pd-lock__tip {
     text-align: right;
 }
 
-/* ---- Composition bar + legend ------------------------------------ */
-
-.pd-split {
-    display: flex;
-    height: 8px;
-    border-radius: var(--radius-pill);
-    background: var(--color-paper-4);
-    overflow: hidden;
+.pd-act__amount--in {
+    color: var(--color-accent-dark);
 }
 
-.pd-split__wajib {
-    background: var(--color-accent);
-}
-
-.pd-split__pokok {
-    background: var(--color-ink);
-}
-
-.pd-legend {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2xs) var(--space-md);
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    color: var(--color-muted);
-    font-size: var(--text-xs);
-}
-
-.pd-legend li {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-2xs);
-}
-
-.pd-legend__dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 2px;
-    background: var(--color-accent);
-}
-
-.pd-legend__dot--ink {
-    background: var(--color-ink);
-}
-
-/* ---- Tenor ladder ------------------------------------------------ *
- * Each rung's length is the ceiling it grants: the rule visibly climbs to 12. */
+/* ---- Tenor ladder ------------------------------------------------ */
 
 .pd-ladder {
     display: grid;
+    gap: 4px;
     margin: 0;
     padding: 0;
     list-style: none;
@@ -1250,19 +1461,42 @@ html.js .pd-lock:active .pd-lock__tip {
     align-items: center;
     justify-content: space-between;
     gap: var(--space-xs);
-    padding: var(--space-xs) 0;
-    border-top: 1px solid var(--color-rule);
+    padding: 0.5rem 0.65rem;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: var(--color-paper);
     font-size: var(--text-xs);
 }
 
-.pd-rung:first-child {
-    border-top: 0;
+.pd-rung--active {
+    border-color: color-mix(in oklab, var(--color-accent) 32%, var(--color-rule));
+    background: #f2fbf6;
 }
 
 .pd-rung__nominal {
-    color: var(--color-muted);
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    color: var(--color-ink-2);
     font-variant-numeric: tabular-nums;
     line-height: 1.4;
+}
+
+.pd-rung--active .pd-rung__nominal {
+    color: var(--color-ink);
+    font-weight: 600;
+}
+
+.pd-rung__badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 6px;
+    border-radius: var(--radius-pill);
+    background: var(--color-accent-soft);
+    color: var(--color-accent-dark);
+    font-size: 0.65rem;
+    font-weight: 700;
 }
 
 .pd-rung__tenor {
@@ -1271,6 +1505,11 @@ html.js .pd-lock:active .pd-lock__tip {
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
     text-align: right;
+}
+
+.pd-rung--active .pd-rung__tenor {
+    color: var(--color-accent-dark);
+    font-weight: 700;
 }
 
 /* ---- Disclosure -------------------------------------------------- */
