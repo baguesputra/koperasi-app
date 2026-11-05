@@ -4,11 +4,9 @@
  * axes: light/grotesk-sans/cool · posture: Restrained · contrast: pass · v2.0.0 */
 /* Hallmark · pre-emit critique: P5 H4 E5 S5 R3 V4 · weakest: R, four surfaces competed for the eye at once; the ground now carries the light, so nothing else may glow */
 /* Hallmark · finish-review: subagent · 8 findings · 6 resolved 1 partial 1 answered — the tariff disclosure keeps its real figures, they are the cooperative's published rates, not the member's own money */
-@import url("./tokens.css");
-
 html,
 body {
-    overflow-x: clip;
+    overflow-x: hidden;
 }
 
 /* Browser surfaces take the palette (F16). */

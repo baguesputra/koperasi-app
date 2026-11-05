@@ -1,3 +1,4 @@
+@import url("./tokens.css");
 @import url("./portal-dashboard.css");
 @import url("./shell.css");
 
@@ -8,7 +9,8 @@
 html,
 body,
 #app {
-    background-color: var(--color-paper);
+    background-color: var(--color-paper, #f8fafc);
+    color-scheme: light;
     min-height: 100vh;
 }
 
@@ -107,13 +109,6 @@ body {
 }
 #nprogress .spinner {
     display: none !important;
-}
-
-/* Transisi Halaman Halus (View Transitions API) tanpa Blank Putih */
-::view-transition-old(root),
-::view-transition-new(root) {
-    animation-duration: 160ms;
-    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Mode Privasi Global Masking */

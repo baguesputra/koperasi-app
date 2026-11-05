@@ -34,11 +34,9 @@ export function useFeatureTour(name, userId, steps) {
         const eventName = `start-feature-tour:${name}`;
         const onRequest = () => start();
         window.addEventListener(eventName, onRequest);
-        const timer = localStorage.getItem(key) ? null : window.setTimeout(start, 700);
 
         return () => {
             window.removeEventListener(eventName, onRequest);
-            if (timer) window.clearTimeout(timer);
             tourRef.current?.destroy();
         };
     }, [name, key, start]);

@@ -30,10 +30,22 @@
         <link rel="manifest" href="/manifest.webmanifest">
         <link rel="apple-touch-icon" href="/images/logo-192.png">
 
+        <style>
+            html, body, #app {
+                background-color: #f8fafc;
+                color-scheme: light;
+                min-height: 100vh;
+            }
+            svg:not([width]) {
+                width: 1.25rem;
+                height: 1.25rem;
+            }
+        </style>
+
         <!-- Scripts -->
         @routes
         @viteReactRefresh
-        @vite(['resources/js/app.jsx', "resources/js/Pages/{$page['component']}.jsx"])
+        @vite(['resources/css/app.css', 'resources/js/app.jsx', "resources/js/Pages/{$page['component']}.jsx"])
         @inertiaHead
     </head>
     <body class="font-sans antialiased bg-slate-50 text-slate-800">

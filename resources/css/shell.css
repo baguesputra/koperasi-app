@@ -11,6 +11,7 @@
     position: relative;
     isolation: isolate;
     min-height: 100vh;
+    background-color: var(--color-ground, #eff2f6);
 }
 
 /* The ground is fixed, so scrolling moves the page and never the light.
