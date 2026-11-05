@@ -1,52 +1,69 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
-    Wallet, Repeat, Gauge, HelpCircle,
-    ArrowRight, ChevronDown, AlertCircle, CheckCircle2, Info, Check, X,
+    Plus,
+    Repeat,
+    TrendingUp,
+    HelpCircle,
+    ArrowRight,
+    ChevronDown,
+    AlertCircle,
+    CheckCircle2,
+    Info,
+    Check,
+    X,
+    Search,
+    Compass,
+    BookOpen,
+    ShieldCheck,
 } from 'lucide-react';
 
 const focusRing =
-    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2';
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2';
 
 function MiniButton({ label, tone = 'primary', icon: Icon }) {
     const tones = {
-        primary: 'bg-brand-green text-white border-brand-green',
-        outline: 'border-2 border-brand-green text-brand-green-dark bg-brand-green-light',
-        ghost: 'bg-white/10 border border-slate-500/40 text-slate-700',
-        navy: 'bg-brand-navy text-white border-brand-navy',
+        primary: 'bg-emerald-600 text-white border-emerald-600 shadow-xs',
+        outline: 'border border-emerald-600/40 text-emerald-800 bg-emerald-50/80',
+        ghost: 'bg-slate-50 border border-slate-200 text-slate-700',
+        navy: 'bg-slate-900 text-white border-slate-900',
     };
     return (
-        <span className="inline-flex max-w-full items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold shadow-sm bg-[repeating-linear-gradient(45deg,transparent,transparent_4px,rgba(0,0,0,0.02)_4px,rgba(0,0,0,0.02)_8px)]">
-            <span className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border ${tones[tone]}`}>
-                {Icon && <Icon size={13} />}
+        <div className="inline-flex max-w-full items-center p-1.5 rounded-xl bg-slate-50 border border-slate-200/80">
+            <span
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border ${tones[tone]}`}
+            >
+                {Icon && <Icon size={13} strokeWidth={2.2} />}
                 {label}
             </span>
-        </span>
+        </div>
     );
 }
 
 function MiniInput({ prefix, placeholder }) {
     return (
-        <span className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs bg-white border border-slate-300 shadow-sm">
+        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs bg-white border border-slate-200 shadow-2xs">
             {prefix && <span className="text-slate-400 font-semibold">{prefix}</span>}
-            <span className="text-slate-300 italic">{placeholder}</span>
-            <Check size={14} className="text-brand-green" />
+            <span className="text-slate-500 font-medium tabular-nums">{placeholder}</span>
+            <span className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full bg-emerald-50 text-emerald-600">
+                <Check size={11} strokeWidth={2.5} />
+            </span>
         </span>
     );
 }
 
 function MiniPills({ items, active = 0 }) {
     return (
-        <span className="inline-flex items-center gap-1.5">
+        <span className="inline-flex flex-wrap items-center gap-1.5">
             {items.map((it, i) => (
                 <span
                     key={i}
-                    className={`inline-block min-w-[30px] text-center px-2 py-1 rounded-lg text-xs font-bold border-2 ${
+                    className={`inline-flex items-center justify-center min-w-[32px] px-2 py-1 rounded-lg text-xs font-semibold border ${
                         i === active
-                            ? 'border-brand-green bg-brand-green-light text-brand-green-dark'
-                            : 'border-slate-200 text-slate-500'
+                            ? 'border-emerald-600 bg-emerald-50 text-emerald-800'
+                            : 'border-slate-200 bg-white text-slate-500'
                     }`}
                 >
-                    {it}
+                    {it} bln
                 </span>
             ))}
         </span>
@@ -55,13 +72,22 @@ function MiniPills({ items, active = 0 }) {
 
 function MiniTimeline({ steps }) {
     return (
-        <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 shadow-sm">
+        <span className="inline-flex flex-wrap items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200/90">
             {steps.map((s, i) => (
-                <span key={i} className="flex items-center gap-1.5">
-                    <span className="inline-block px-2 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-600">
+                <span key={i} className="inline-flex items-center gap-1.5">
+                    <span
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold ${
+                            i === steps.length - 1
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80'
+                                : 'bg-white text-slate-700 border border-slate-200/80'
+                        }`}
+                    >
+                        <span className="text-[10px] text-slate-400 font-bold">{i + 1}.</span>
                         {s}
                     </span>
-                    {i < steps.length - 1 && <ArrowRight size={11} className="text-slate-400" />}
+                    {i < steps.length - 1 && (
+                        <ArrowRight size={11} className="text-slate-400 shrink-0" />
+                    )}
                 </span>
             ))}
         </span>
@@ -70,37 +96,44 @@ function MiniTimeline({ steps }) {
 
 function MiniList({ items }) {
     return (
-        <span className="inline-block min-w-[220px] align-top px-3 py-2 rounded-xl bg-white border border-slate-200 shadow-sm">
+        <div className="inline-block w-full sm:w-auto sm:min-w-[250px] px-3.5 py-2 rounded-xl bg-slate-50/80 border border-slate-200/90">
             {items.map((it, i) => (
-                <div key={i} className="flex items-center justify-between gap-3 text-xs py-1.5 border-b border-slate-100 last:border-0">
+                <div
+                    key={i}
+                    className="flex items-center justify-between gap-4 text-xs py-1.5 border-b border-slate-200/60 last:border-0"
+                >
                     <span className="text-slate-500">{it.label}</span>
-                    <span className="font-bold text-slate-700 text-right">{it.value}</span>
+                    <span className="font-semibold text-slate-800 tabular-nums text-right">
+                        {it.value}
+                    </span>
                 </div>
             ))}
-        </span>
+        </div>
     );
 }
 
 function Langkah({ nomor, judul, deskripsi, mockup, last = false }) {
     return (
-        <li className="relative flex gap-4">
+        <li className="relative flex gap-3.5">
             <div className="flex flex-col items-center shrink-0">
-                <span className="w-9 h-9 rounded-full bg-brand-green text-white flex items-center justify-center text-sm font-bold relative z-10">
+                <span className="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow-2xs relative z-10">
                     {nomor}
                 </span>
 
                 {!last && (
                     <span
                         aria-hidden="true"
-                        className="w-0 flex-1 my-1.5 border-l-2 border-dashed border-brand-green/30"
+                        className="w-px flex-1 my-1 bg-slate-200"
                     />
                 )}
             </div>
 
-            <div className={`flex-1 min-w-0 pt-1.5 ${last ? '' : 'pb-6'}`}>
-                <p className="text-sm font-bold text-slate-800">{judul}</p>
-                <p className="text-sm text-slate-600 mt-1 leading-relaxed">{deskripsi}</p>
-                {mockup && <div className="mt-3">{mockup}</div>}
+            <div className={`flex-1 min-w-0 pt-0.5 ${last ? 'pb-1' : 'pb-5'}`}>
+                <p className="text-sm font-semibold text-slate-900 leading-snug">{judul}</p>
+                <p className="text-xs sm:text-[13px] text-slate-600 mt-1 leading-relaxed">
+                    {deskripsi}
+                </p>
+                {mockup && <div className="mt-2.5">{mockup}</div>}
             </div>
         </li>
     );
@@ -108,14 +141,21 @@ function Langkah({ nomor, judul, deskripsi, mockup, last = false }) {
 
 function Catatan({ items }) {
     return (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
-            <AlertCircle size={18} className="text-amber-600 shrink-0 mt-0.5" />
-            <div className="min-w-0">
-                <p className="text-sm font-bold text-amber-800 mb-1.5">Catatan Penting</p>
+        <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-3.5 sm:p-4 flex items-start gap-3">
+            <span className="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
+                <AlertCircle size={15} strokeWidth={2.2} />
+            </span>
+            <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold uppercase tracking-wider text-amber-900 mb-1.5">
+                    Ketentuan Penting
+                </p>
                 <ul className="space-y-1.5">
                     {items.map((it, i) => (
-                        <li key={i} className="text-sm text-amber-900 leading-relaxed flex gap-2">
-                            <span className="text-amber-600 shrink-0">•</span>
+                        <li
+                            key={i}
+                            className="text-xs sm:text-[13px] text-amber-950/90 leading-relaxed flex gap-2"
+                        >
+                            <span className="text-amber-600 font-bold shrink-0">&bull;</span>
                             <span>{it}</span>
                         </li>
                     ))}
@@ -129,154 +169,157 @@ const TATA_CARA = [
     {
         key: 'pinjaman',
         label: 'Ajukan Pinjaman',
-        icon: Wallet,
-        intro: 'Pinjaman baru diajukan dari Beranda ke halaman formulir. Sistem memandu langkah demi langkah.',
+        shortDesc: '9 langkah pengajuan',
+        icon: Plus,
+        tone: 'emerald',
+        intro: 'Pinjaman diajukan langsung dari menu Aksi Cepat di Beranda. Sistem menghitung simulasi angsuran secara otomatis sesuai ketentuan tenor koperasi.',
         langkah: [
             {
-                judul: 'Buka formulir pengajuan',
-                deskripsi: 'Di Beranda, bagian bawah kartu biru tua, klik tombol hijau "Ajukan Pinjaman". Belum punya pinjaman aktif? Tombol yang sama ada di kartu "Belum ada pinjaman aktif".',
-                mockup: <MiniButton label="Ajukan Pinjaman" icon={Wallet} />,
+                judul: 'Pilih menu "Ajukan pinjaman" di Beranda',
+                deskripsi:
+                    'Di bawah Kartu Anggota Digital, klik kartu menu "Ajukan pinjaman" (bertanda Tersedia) atau tombol pintasan pada kartu pinjaman.',
+                mockup: <MiniButton label="Ajukan pinjaman" icon={Plus} />,
             },
             {
-                judul: 'Isi nominal',
-                deskripsi: 'Ketik nominal yang ingin dipinjam. Setelah Anda berhenti mengetik, sistem memeriksanya terhadap limit tersedia. Centang hijau berarti nominal lolos.',
-                mockup: <MiniInput prefix="Rp" placeholder="0" />,
+                judul: 'Masukkan nominal pinjaman',
+                deskripsi:
+                    'Ketik nominal atau pilih chip nominal cepat. Sistem langsung memvalidasi terhadap Limit Tersedia Anda.',
+                mockup: <MiniInput prefix="Rp" placeholder="1.500.000" />,
             },
             {
-                judul: 'Pilih lama cicilan',
-                deskripsi: 'Tombol angka 1\u201312 bulan muncul sesuai ketentuan nominal Anda. Klik satu angka.',
-                mockup: <MiniPills items={[1, 2, 3, 4, 5, 6]} active={2} />,
+                judul: 'Pilih tenor cicilan',
+                deskripsi:
+                    'Pilih durasi cicilan (bulan) yang tersedia sesuai batas maksimal nominal pinjaman Anda.',
+                mockup: <MiniPills items={[1, 2, 3, 6]} active={3} />,
             },
             {
-                judul: 'Periksa simulasi cicilan',
-                deskripsi: 'Formulir menampilkan nominal, tenor, cicilan tiap bulan, dan total pembayaran. Pastikan angkanya sesuai kemampuan Anda sebelum lanjut.',
-                mockup: <MiniList items={[
-                    { label: 'Nominal', value: 'Rp 1.000.000' },
-                    { label: 'Tenor', value: '6 bulan' },
-                    { label: 'Total dibayar', value: 'Rp 1.050.000' },
-                ]} />,
+                judul: 'Tinjau simulasi rincian angsuran',
+                deskripsi:
+                    'Periksa rincian pokok, jasa/bunga menurun, estimasi cicilan bulanan, dan total pembayaran hingga lunas.',
+                mockup: (
+                    <MiniList
+                        items={[
+                            { label: 'Nominal pinjaman', value: 'Rp 1.500.000' },
+                            { label: 'Tenor cicilan', value: '6 bulan' },
+                            { label: 'Estimasi / bulan', value: 'Rp 265.000' },
+                        ]}
+                    />
+                ),
             },
             {
-                judul: 'Tulis keperluan',
-                deskripsi: 'Isi kolom "Keperluan Peminjaman", minimal 5 karakter. Contoh: Biaya pendidikan anak.',
+                judul: 'Isi keperluan & rekening pencairan',
+                deskripsi:
+                    'Tuliskan tujuan peminjaman (minimal 5 karakter) dan pastikan nomor rekening bank pencairan sudah sesuai.',
                 mockup: null,
             },
             {
-                judul: 'Pilih rekening pencairan',
-                deskripsi: 'Gunakan rekening tersimpan, atau pilih rekening baru dan isi datanya. Rekening baru otomatis tersimpan untuk pengajuan berikutnya.',
-                mockup: null,
+                judul: 'Setujui Syarat & Ketentuan serta konfirmasi PIN',
+                deskripsi:
+                    'Baca dokumen Syarat & Ketentuan, centang persetujuan, lalu masukkan 6 digit PIN Keamanan akun Anda untuk otorisasi pengajuan.',
+                mockup: (
+                    <MiniButton
+                        label="Otorisasi PIN & Kirim Pengajuan"
+                        tone="outline"
+                        icon={ShieldCheck}
+                    />
+                ),
             },
             {
-                judul: 'Baca dan setujui Syarat & Ketentuan',
-                deskripsi: 'Klik "Ajukan Sekarang". Modal Syarat & Ketentuan terbuka. Baca poin-poinnya, lalu centang pernyataan persetujuan di bagian bawah.',
-                mockup: <MiniButton label="Saya telah membaca…" tone="outline" icon={CheckCircle2} />,
-            },
-            {
-                judul: 'Kirim pengajuan',
-                deskripsi: 'Klik "Konfirmasi & Kirim Pengajuan". Setelah terkirim, Anda dibawa kembali ke Beranda beserta kuitansi konfirmasi berisi rincian pengajuan. Pengajuan yang sudah terkirim tidak bisa dibatalkan; statusnya hanya bisa disetujui atau ditolak.',
-                mockup: <MiniButton label="Konfirmasi & Kirim Pengajuan" icon={ArrowRight} />,
-            },
-            {
-                judul: 'Pantau statusnya',
-                deskripsi: 'Konfirmasi pengajuan diteruskan melalui WhatsApp Koperasi. Kartu pinjaman di Beranda menampilkan tahap yang sedang berjalan; jika disetujui, pemberitahuan disampaikan melalui WhatsApp.',
+                judul: 'Pantau alur persetujuan 3 tahap di Beranda',
+                deskripsi:
+                    'Status pengajuan tampil langsung di Beranda (Admin → Bendahara → Ketua Koperasi) dan notifikasi pencairan dikirimkan melalui WhatsApp.',
                 mockup: <MiniTimeline steps={['Admin', 'Bendahara', 'Ketua', 'Dana Cair']} />,
             },
         ],
         catatan: [
-            'Sedang menjalankan pinjaman lain? Pengajuan baru dibuka setelah tersisa maksimal 2 angsuran; limit penuh pulih setelah pinjaman sebelumnya lunas.',
-            'Anggota baru di bawah 1 tahun: pengajuan baru diproses setelah pinjaman sebelumnya lunas.',
-            'Estimasi tinjauan 1\u20133 hari kerja per tahap, tergantung antrean.',
-        ],
-    },
-    {
-        key: 'tenor',
-        label: 'Ubah Tenor',
-        icon: Repeat,
-        intro: 'Pinjaman aktif bisa dipendekkan, diperpanjang, atau dilunasi sekaligus. Hak ini bisa dipakai satu kali per pinjaman.',
-        langkah: [
-            {
-                judul: 'Buka formulir perubahan',
-                deskripsi: 'Di Beranda, tepat di bawah tombol Ajukan Pinjaman pada kartu biru tua, klik "Ubah Tenor / Lunas Dipercepat". Link ini muncul saat hak perubahan Anda masih tersedia.',
-                mockup: <MiniButton label="Ubah Tenor / Lunas Dipercepat" tone="ghost" icon={Repeat} />,
-            },
-            {
-                judul: 'Pilih jenis perubahan',
-                deskripsi: 'Tiga kartu pilihan, klik salah satu sesuai kebutuhan Anda.',
-                mockup: <MiniList items={[
-                    { label: 'Percepat Pelunasan', value: 'tenor pendek' },
-                    { label: 'Perpanjang Tenor', value: 'cicilan meringan' },
-                    { label: 'Lunas Sekarang', value: 'bunga 1 bln saja' },
-                ]} />,
-            },
-            {
-                judul: 'Pilih tenor baru',
-                deskripsi: 'Untuk Percepat, pilih angka lebih kecil dari tenor sekarang. Untuk Perpanjang, lebih besar. Lunas Sekarang tidak membutuhkan langkah ini.',
-                mockup: <MiniPills items={[7, 8, 9, 10, 11, 12]} active={1} />,
-            },
-            {
-                judul: 'Periksa hitungan ulang',
-                deskripsi: 'Simulasi jadwal baru muncul otomatis setelah pilihan Anda lengkap. Bandingkan dengan cicilan sekarang sebelum lanjut.',
-                mockup: <MiniList items={[
-                    { label: 'Sisa pokok', value: 'Rp 700.000' },
-                    { label: 'Cicilan/bln', value: 'Rp 175.000' },
-                    { label: 'Total bayar', value: 'Rp 875.000' },
-                ]} />,
-            },
-            {
-                judul: 'Tulis alasan',
-                deskripsi: 'Isi kolom "Alasan Pengajuan", minimal 10 karakter. Contoh: Meringankan cicilan karena anak mulai sekolah.',
-                mockup: null,
-            },
-            {
-                judul: 'Kirim dan tunggu keputusan',
-                deskripsi: 'Klik "Kirim Pengajuan". Anda dibawa kembali ke Beranda beserta kuitansi konfirmasi, dan konfirmasi dikirim melalui WhatsApp Koperasi. Bendahara meninjau lalu Ketua memutuskan, termasuk bulan mulai berlakunya perubahan.',
-                mockup: <MiniTimeline steps={['Bendahara', 'Ketua']} />,
-            },
-        ],
-        catatan: [
-            'Hak perubahan hanya bisa dipakai satu kali per pinjaman. Hak yang sama tersedia lagi pada pinjaman berikutnya.',
-            'Masih ada pengajuan perubahan yang sedang diproses? Tunggu keputusannya sebelum mengajukan lagi.',
-            'Lunas Sekarang hanya dikenakan bunga 1 bulan dari sisa pokok.',
+            'Jika masih memiliki pinjaman berjalan, pengajuan baru dibuka saat sisa angsuran maksimal 2 bulan (selama sisa limit mencukupi).',
+            'Anggota dengan masa keanggotaan di bawah 1 tahun wajib melunasi pinjaman sebelumnya terlebih dahulu.',
+            'Pengajuan yang sudah dikirim tidak dapat dibatalkan sendiri; keputusan berada pada alur verifikasi pengurus.',
         ],
     },
     {
         key: 'limit',
         label: 'Tambah Limit',
-        icon: Gauge,
-        intro: 'Limit kategori belum cukup? Ajukan penambahan limit, diverifikasi Bendahara lalu diputuskan final oleh Ketua Koperasi.',
+        shortDesc: 'Kenaikan batas limit',
+        icon: TrendingUp,
+        tone: 'rose',
+        intro: 'Apabila batas limit pinjaman Anda saat ini belum mencukupi kebutuhan, Anda dapat mengajukan penambahan limit untuk ditinjau Bendahara dan Ketua Koperasi.',
         langkah: [
             {
-                judul: 'Temukan tombolnya di Beranda',
-                deskripsi: 'Tombol "Ajukan Penambahan Limit" ada di kartu biru tua, di samping tombol Ajukan Pinjaman. Ia muncul saat Anda boleh mengajukan pinjaman, tidak ada pengajuan limit berjalan, dan limit tersedia masih ada.',
-                mockup: <MiniButton label="Ajukan Penambahan Limit" tone="outline" icon={Gauge} />,
+                judul: 'Pilih menu "Tambah limit" di Beranda',
+                deskripsi:
+                    'Klik kartu "Tambah limit" pada baris Menu Aksi Cepat di bawah Kartu Anggota Digital.',
+                mockup: <MiniButton label="Tambah limit" tone="outline" icon={TrendingUp} />,
             },
             {
-                judul: 'Isi nominal limit',
-                deskripsi: 'Halaman menampilkan limit Anda saat ini sebagai pembanding. Ketik besar limit yang diminta pada kolom "Limit yang Diminta".',
-                mockup: <MiniInput prefix="Rp" placeholder="cth: 5.000.000" />,
+                judul: 'Isi nominal limit baru yang diminta',
+                deskripsi:
+                    'Halaman menampilkan limit aktif Anda saat ini sebagai pembanding. Masukkan nominal limit baru yang Anda ajukan.',
+                mockup: <MiniInput prefix="Rp" placeholder="5.000.000" />,
             },
             {
-                judul: 'Tulis alasannya',
-                deskripsi: 'Jelaskan kebutuhan Anda minimal 10 karakter. Contoh: Cadangan dana biaya kesehatan keluarga.',
+                judul: 'Tuliskan alasan pengajuan kenaikan limit',
+                deskripsi:
+                    'Jelaskan alasan atau kebutuhan penambahan limit (minimal 10 karakter) sebagai bahan pertimbangan pengurus.',
                 mockup: null,
             },
             {
-                judul: 'Kirim pengajuan',
-                deskripsi: 'Klik "Kirim Pengajuan". Anda dibawa kembali ke Beranda beserta kuitansi konfirmasi, dan konfirmasi dikirim melalui WhatsApp Koperasi. Bendahara memverifikasi dahulu (boleh menyesuaikan nominal), lalu Ketua menetapkan nominal final (boleh beda dari usulan Bendahara).',
-                mockup: <MiniButton label="Kirim Pengajuan" icon={ArrowRight} />,
-            },
-            {
-                judul: 'Cek hasilnya',
-                deskripsi: 'Selama diproses, kartu "Limit Tersedia" di Beranda bertanda "sedang diproses". Hasil akhir tampil di riwayat halaman Ajukan Tambah Limit. Disetujui? Limit baru langsung aktif untuk pinjaman berikutnya.',
-                mockup: <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-brand-green-light text-brand-green-dark border border-brand-green/20">
-                    <CheckCircle2 size={13} /> Disetujui
-                </span>,
+                judul: 'Kirim & pantau hasil verifikasi 2 tahap',
+                deskripsi:
+                    'Bendahara memverifikasi dan memberikan usulan nominal, lalu Ketua Koperasi menetapkan limit final. Setelah disetujui, limit baru langsung aktif.',
+                mockup: <MiniTimeline steps={['Bendahara', 'Ketua Koperasi', 'Limit Aktif']} />,
             },
         ],
         catatan: [
-            'Satu waktu hanya boleh ada satu pengajuan limit aktif.',
-            'Keputusan final wewenang Ketua Koperasi; Bendahara boleh menolak final atau meneruskan dengan nominal usulan. Keduanya mempertimbangkan kemampuan keuangan koperasi dan riwayat pembayaran Anda.',
-            'Limit baru berlaku untuk pinjaman berikutnya dan tidak mengubah pinjaman yang sedang berjalan.',
+            'Dalam satu waktu hanya dapat memiliki 1 pengajuan penambahan limit yang sedang berjalan.',
+            'Penambahan limit tidak dapat diajukan apabila Anda sedang memiliki pengajuan pinjaman yang masih diproses.',
+            'Nominal limit yang disetujui dapat disesuaikan oleh Bendahara maupun Ketua Koperasi berdasarkan evaluasi kelayakan.',
+        ],
+    },
+    {
+        key: 'tenor',
+        label: 'Ubah Tenor',
+        shortDesc: 'Percepat / perpanjang',
+        icon: Repeat,
+        tone: 'teal',
+        intro: 'Pinjaman aktif dapat diajukan percepatan cicilan, perpanjangan tenor, atau pelunasan sekaligus. Fasilitas ini berlaku 1 kali untuk setiap pinjaman aktif.',
+        langkah: [
+            {
+                judul: 'Pilih menu "Ubah tenor" di Beranda',
+                deskripsi:
+                    'Klik kartu "Ubah tenor" pada Menu Aksi Cepat. Menu ini aktif otomatis saat Anda memiliki pinjaman berjalan yang belum pernah diubah tenornya.',
+                mockup: <MiniButton label="Ubah tenor" tone="ghost" icon={Repeat} />,
+            },
+            {
+                judul: 'Pilih jenis perubahan yang diinginkan',
+                deskripsi:
+                    'Pilih salah satu dari tiga opsi penyesuaian jadwal angsuran sesuai kondisi keuangan Anda.',
+                mockup: (
+                    <MiniList
+                        items={[
+                            { label: 'Percepat Cicilan', value: 'Kurangi bulan sisa' },
+                            { label: 'Perpanjang Tenor', value: 'Ringankan cicilan/bln' },
+                            { label: 'Pelunasan Dipercepat', value: 'Sisa pokok + bunga 1 bln' },
+                        ]}
+                    />
+                ),
+            },
+            {
+                judul: 'Tentukan tenor baru & tinjau simulasi ulang',
+                deskripsi:
+                    'Untuk percepat atau perpanjang, pilih jumlah bulan baru dan periksa perbandingan cicilan bulanan sebelum dan sesudah perubahan.',
+                mockup: <MiniPills items={[4, 6, 8, 10]} active={1} />,
+            },
+            {
+                judul: 'Isi alasan perubahan & kirim pengajuan',
+                deskripsi:
+                    'Tuliskan alasan pengajuan (minimal 10 karakter) lalu kirim. Perubahan jadwal akan berlaku setelah disetujui Bendahara dan Ketua Koperasi.',
+                mockup: <MiniTimeline steps={['Admin / Bendahara', 'Ketua', 'Jadwal Baru']} />,
+            },
+        ],
+        catatan: [
+            'Hak perubahan tenor / pelunasan dipercepat hanya berlaku 1 kali per pinjaman aktif.',
+            'Untuk opsi Pelunasan Dipercepat (Lunas Total), Anda cukup melunasi sisa pokok ditambah bunga 1 bulan berjalan.',
         ],
     },
 ];
@@ -284,96 +327,108 @@ const TATA_CARA = [
 const FAQ = [
     {
         kategori: 'Pengajuan Pinjaman',
+        short: 'Pinjaman',
         items: [
             {
                 q: 'Berapa lama proses persetujuan pengajuan pinjaman saya?',
-                a: 'Ada 3 tahap. Tahap 1 (Admin): 1\u20133 hari kerja. Tahap 2 (Bendahara): 1\u20133 hari kerja. Tahap 3 (Ketua Koperasi): 1\u20133 hari kerja. Total estimasi 3\u20139 hari kerja, tergantung antrean pengajuan yang masuk.',
+                a: 'Pengajuan melalui 3 tahap berjenjang: Admin (verifikasi kelengkapan), Bendahara (pemeriksaan limit & kas), dan Ketua Koperasi (persetujuan & pencairan). Rata-rata memerlukan waktu 1–3 hari kerja per tahap tergantung antrean.',
             },
             {
-                q: 'Kenapa pengajuan saya ditolak?',
-                a: 'Penyebab yang umum: (1) Nominal melebihi limit tersedia, (2) Ada angsuran sebelumnya yang belum dibayar (untuk anggota baru di bawah 1 tahun), (3) Data pengajuan tidak lengkap. Alasan spesifik dari pengurus tampil di halaman Riwayat pada pinjaman yang bersangkutan.',
+                q: 'Kenapa pengajuan pinjaman saya ditolak?',
+                a: 'Penyebab umum meliputi: nominal melebihi limit tersedia, persyaratan masa keanggotaan atau sisa angsuran belum terpenuhi, atau penyesuaian ketersediaan kas operasional. Alasan penolakan dari pengurus dapat dilihat langsung pada pemberitahuan di Beranda dan halaman Riwayat.',
             },
             {
-                q: 'Berapa limit pinjaman maksimum yang bisa saya pinjam?',
-                a: 'Limit dihitung otomatis dari kategori keanggotaan Anda. Cek angkanya di kartu "Limit Tersedia" pada Beranda. Jika kurang, ajukan penambahan limit ke Ketua Koperasi.',
+                q: 'Berapa limit pinjaman maksimum yang bisa saya ajukan?',
+                a: 'Batas limit mengikuti profil keanggotaan Anda dan tertera pada bagian "Limit Tersedia" di Kartu Anggota Digital. Anda juga dapat melihat tabel batas tenor maksimal pada kartu "Ketentuan pinjaman" (baris yang bertanda "Limit Anda").',
             },
             {
                 q: 'Apakah saya boleh memiliki lebih dari satu pinjaman aktif sekaligus?',
-                a: 'Bisa, selama masih dalam batas limit dan hak pengajuan lebih awal (reloan) masih tersedia. Setelah hak reloan terpakai, lunasi pinjaman sebelumnya dulu sebelum mengajukan lagi.',
+                a: 'Bisa, apabila masa keanggotaan sudah memenuhi syarat reloan, sisa angsuran pinjaman berjalan tersisa maksimal 2 bulan, dan Anda masih memiliki sisa limit yang mencukupi.',
             },
             {
                 q: 'Apakah pengajuan bisa dibatalkan setelah dikirim?',
-                a: 'Tidak. Setelah terkirim, status hanya bisa disetujui atau ditolak oleh pengurus. Pastikan data sudah benar sebelum mengklik "Konfirmasi & Kirim Pengajuan".',
+                a: 'Tidak bisa. Pengajuan yang sudah diotorisasi dengan PIN dan terkirim akan langsung masuk ke antrean pemeriksaan pengurus.',
             },
             {
-                q: 'Bagaimana jika saya resign dari perusahaan sementara pinjaman masih berjalan?',
-                a: 'Lunasi seluruh sisa pinjaman terlebih dahulu; ini salah satu syarat diprosesnya pengunduran diri. Hubungi Bendahara untuk proses pelunasannya.',
+                q: 'Bagaimana jika saya resign sementara pinjaman masih berjalan?',
+                a: 'Sisa kewajiban pinjaman akan diperhitungkan dengan saldo simpanan Anda. Apabila masih terdapat kekurangan pelunasan (shortfall), penyelesaian dilakukan melalui Bendahara sebelum proses bebas tanggungan selesai.',
             },
         ],
     },
     {
-        kategori: 'Perubahan Tenor',
+        kategori: 'Perubahan Tenor & Pelunasan',
+        short: 'Tenor',
         items: [
             {
                 q: 'Berapa kali saya bisa mengajukan perubahan tenor?',
-                a: 'Satu kali per pinjaman. Setelah dipakai, hak ini hangus untuk pinjaman tersebut dan tersedia lagi pada pinjaman berikutnya setelah yang sekarang lunas.',
+                a: 'Satu kali untuk setiap pinjaman aktif. Setelah digunakan, fasilitas perubahan tenor untuk pinjaman tersebut terkunci dan baru tersedia kembali pada pinjaman baru berikutnya.',
             },
             {
-                q: 'Apa bedanya "Percepat Pelunasan" dengan "Lunas Sekarang"?',
-                a: 'Percepat: cicilan tetap berjalan per bulan, tapi tenor dipendekkan sehingga cicilan per bulan lebih besar. Lunas Sekarang: seluruh sisa pokok dibayar sekali dalam 1 pembayaran, bunga hanya 1 bulan. Total bunga Lunas Sekarang biasanya lebih murah.',
+                q: 'Apa bedanya "Percepat" dengan "Pelunasan Dipercepat"?',
+                a: 'Percepat: memperpendek sisa bulan angsuran sehingga cicilan bulanan berikutnya menjadi lebih besar. Pelunasan Dipercepat (Lunas Total): melunasi seluruh sisa pokok sekaligus dalam satu kali pembayaran ditambah bunga 1 bulan saja.',
             },
             {
-                q: 'Apakah perubahan tenor langsung berlaku setelah disetujui?',
-                a: 'Tergantung keputusan Ketua Koperasi: bisa mulai bulan ini atau bulan depan. Jadwal yang sudah digantikan tampil di halaman Riwayat setelah persetujuan final.',
-            },
-            {
-                q: 'Kenapa link "Ubah Tenor" tidak muncul di Beranda saya?',
-                a: 'Link itu hanya muncul jika semua ini benar: Anda punya pinjaman aktif, tidak ada pengajuan pinjaman atau perubahan tenor yang sedang diproses, dan hak perubahan pada pinjaman aktif Anda belum terpakai.',
+                q: 'Kenapa menu "Ubah tenor" saya bertanda Nonaktif / Terkunci?',
+                a: 'Menu Ubah Tenor hanya aktif jika Anda memiliki pinjaman yang sedang berjalan, tidak sedang dalam proses pengajuan pinjaman/tenor lain, dan hak perubahan pada pinjaman tersebut belum pernah dipakai. Ketuk kartu yang terkunci untuk melihat alasan spesifiknya.',
             },
         ],
     },
     {
         kategori: 'Pengajuan Tambah Limit',
+        short: 'Limit',
         items: [
             {
-                q: 'Berapa kali saya bisa mengajukan tambah limit?',
-                a: 'Tidak ada batas jumlah pengajuan, tapi satu waktu hanya boleh ada satu pengajuan aktif. Selesaikan pengajuan sebelumnya (disetujui atau ditolak) sebelum mengajukan lagi.',
+                q: 'Kapan saya bisa mengajukan kenaikan limit?',
+                a: 'Setiap saat selama Anda sudah memenuhi syarat eligibilitas pinjaman, tidak sedang memiliki pengajuan pinjaman yang diproses, dan tidak ada pengajuan kenaikan limit lain yang masih diverifikasi.',
             },
             {
-                q: 'Apakah limit baru langsung berlaku setelah disetujui?',
-                a: 'Ya, nominal final dari Ketua langsung berlaku untuk pinjaman berikutnya. Limit baru tidak mengubah pinjaman yang sedang berjalan.',
+                q: 'Kenapa nominal limit yang disetujui berbeda dari yang saya minta?',
+                a: 'Bendahara melakukan evaluasi awal dan mengajukan usulan nominal, kemudian Ketua Koperasi menetapkan nominal akhir sesuai kebijakan plafon koperasi serta riwayat keanggotaan Anda.',
             },
             {
-                q: 'Kenapa nominal yang disetujui beda dari yang saya minta?',
-                a: 'Bendahara memverifikasi lalu mengusulkan nominal, Ketua menetapkan nominal final. Keduanya boleh menyesuaikan di bawah atau di atas permintaan Anda sesuai penilaian. Jejak tiga nominal (diminta, bendahara, final) tampil di riwayat.',
-            },
-            {
-                q: 'Kenapa pengajuan tambah limit saya ditolak?',
-                a: 'Bendahara boleh menolak final, atau Ketua menolak setelah verifikasi Bendahara. Alasannya tampil di riwayat halaman Ajukan Tambah Limit. Yang umum: pertimbangan kemampuan keuangan koperasi, riwayat pembayaran Anda, atau limit dinilai sudah cukup.',
+                q: 'Apakah limit baru langsung aktif setelah disetujui?',
+                a: 'Ya, begitu disetujui oleh Ketua Koperasi, angka Limit Tersedia di Kartu Anggota Anda langsung bertambah dan siap digunakan untuk pengajuan pinjaman berikutnya.',
             },
         ],
     },
 ];
 
-function FAQItem({ q, a }) {
-    const [open, setOpen] = useState(false);
+function FAQItem({ q, a, defaultOpen = false }) {
+    const [open, setOpen] = useState(defaultOpen);
     return (
-        <div className={`border rounded-xl transition-colors ${open ? 'border-brand-green/30 bg-brand-green-light/40' : 'border-slate-200 bg-white'}`}>
+        <div
+            className={`border rounded-xl transition-all duration-150 ${
+                open
+                    ? 'border-emerald-600/30 bg-emerald-50/35 shadow-2xs'
+                    : 'border-slate-200/90 bg-white hover:border-slate-300'
+            }`}
+        >
             <button
                 type="button"
                 onClick={() => setOpen(!open)}
                 aria-expanded={open}
-                className={`w-full flex items-center justify-between gap-3 p-3.5 text-left rounded-xl ${focusRing}`}
+                className={`w-full flex items-start justify-between gap-3 p-3.5 text-left rounded-xl ${focusRing}`}
             >
-                <span className="text-sm font-semibold text-slate-800">{q}</span>
-                <ChevronDown
-                    size={18}
-                    className={`text-slate-400 shrink-0 transition-transform motion-reduce:transition-none ${open ? 'rotate-180 text-brand-green' : ''}`}
-                />
+                <span className="text-xs sm:text-sm font-semibold text-slate-800 leading-snug">
+                    {q}
+                </span>
+                <span
+                    className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-transform duration-200 ${
+                        open
+                            ? 'rotate-180 bg-emerald-100 text-emerald-700'
+                            : 'bg-slate-100 text-slate-500'
+                    }`}
+                >
+                    <ChevronDown size={14} strokeWidth={2.4} />
+                </span>
             </button>
             {open && (
                 <div className="px-3.5 pb-3.5 pt-0">
-                    <p className="text-sm text-slate-600 leading-relaxed">{a}</p>
+                    <div className="pt-2 border-t border-emerald-600/10">
+                        <p className="text-xs sm:text-[13px] text-slate-600 leading-relaxed">
+                            {a}
+                        </p>
+                    </div>
                 </div>
             )}
         </div>
@@ -382,76 +437,202 @@ function FAQItem({ q, a }) {
 
 function TabPanduan() {
     const [tab, setTab] = useState('pinjaman');
-    const section = TATA_CARA.find((t) => t.key === tab);
+    const section = TATA_CARA.find((t) => t.key === tab) || TATA_CARA[0];
+
+    const iconToneClasses = {
+        emerald: {
+            activeCard: 'border-emerald-600 bg-emerald-50/50 text-emerald-950 shadow-2xs',
+            iconWrap: 'bg-emerald-100 text-emerald-700',
+        },
+        rose: {
+            activeCard: 'border-rose-500 bg-rose-50/40 text-rose-950 shadow-2xs',
+            iconWrap: 'bg-rose-100 text-rose-600',
+        },
+        teal: {
+            activeCard: 'border-teal-600 bg-teal-50/45 text-teal-950 shadow-2xs',
+            iconWrap: 'bg-teal-100 text-teal-700',
+        },
+    };
 
     return (
-        <div>
-            <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl mb-5 overflow-x-auto">
+        <div className="space-y-5">
+            {/* Topic Selector Cards */}
+            <div className="grid grid-cols-3 gap-2 sm:gap-2.5" role="tablist" aria-label="Pilih topik tata cara">
                 {TATA_CARA.map((t) => {
                     const Icon = t.icon;
                     const aktif = tab === t.key;
+                    const style = iconToneClasses[t.tone] || iconToneClasses.emerald;
                     return (
                         <button
                             key={t.key}
                             type="button"
+                            role="tab"
+                            aria-selected={aktif}
                             onClick={() => setTab(t.key)}
-                            aria-pressed={aktif}
-                            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors ${focusRing} ${
-                                aktif ? 'bg-white text-brand-green-dark shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                            className={`flex flex-col sm:flex-row items-start sm:items-center gap-2 p-2.5 sm:px-3 sm:py-2.5 rounded-xl border text-left transition-all ${focusRing} ${
+                                aktif
+                                    ? style.activeCard
+                                    : 'border-slate-200/90 bg-white text-slate-600 hover:bg-slate-50/80 hover:border-slate-300'
                             }`}
                         >
-                            <Icon size={14} />
-                            {t.label}
+                            <span
+                                className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                                    aktif ? style.iconWrap : 'bg-slate-100 text-slate-500'
+                                }`}
+                            >
+                                <Icon size={15} strokeWidth={2.3} />
+                            </span>
+                            <span className="min-w-0">
+                                <span className="block text-xs sm:text-[13px] font-bold leading-tight truncate">
+                                    {t.label}
+                                </span>
+                                <span className="hidden sm:block text-[11px] text-slate-500 mt-0.5 truncate">
+                                    {t.shortDesc}
+                                </span>
+                            </span>
                         </button>
                     );
                 })}
             </div>
 
-            <div className="space-y-5">
-                <div className="flex items-start gap-3 bg-brand-navy/5 border border-brand-navy/10 rounded-xl p-3.5">
-                    <Info size={18} className="text-brand-navy shrink-0 mt-0.5" />
-                    <p className="text-sm text-slate-700 leading-relaxed">{section.intro}</p>
-                </div>
-
-                <ol className="space-y-0">
-                    {section.langkah.map((l, i) => (
-                        <Langkah
-                            key={i}
-                            nomor={i + 1}
-                            judul={l.judul}
-                            deskripsi={l.deskripsi}
-                            mockup={l.mockup}
-                            last={i === section.langkah.length - 1}
-                        />
-                    ))}
-                </ol>
-
-                <Catatan items={section.catatan} />
+            {/* Topic Intro Banner */}
+            <div className="flex items-start gap-3 bg-slate-50 border border-slate-200/80 rounded-xl p-3.5">
+                <span className="w-7 h-7 rounded-lg bg-white border border-slate-200/80 text-slate-700 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                    <Info size={15} strokeWidth={2.2} />
+                </span>
+                <p className="text-xs sm:text-[13px] text-slate-600 leading-relaxed">
+                    {section.intro}
+                </p>
             </div>
+
+            {/* Steps Timeline */}
+            <ol className="pl-0.5">
+                {section.langkah.map((l, i) => (
+                    <Langkah
+                        key={`${section.key}-${i}`}
+                        nomor={i + 1}
+                        judul={l.judul}
+                        deskripsi={l.deskripsi}
+                        mockup={l.mockup}
+                        last={i === section.langkah.length - 1}
+                    />
+                ))}
+            </ol>
+
+            <Catatan items={section.catatan} />
         </div>
     );
 }
 
 function TabFAQ() {
+    const [cari, setCari] = useState('');
+    const [kategoriAktif, setKategoriAktif] = useState('semua');
+
+    const daftarFilter = useMemo(() => {
+        const qLower = cari.trim().toLowerCase();
+        return FAQ.filter(
+            (kat) => kategoriAktif === 'semua' || kat.short === kategoriAktif
+        )
+            .map((kat) => ({
+                ...kat,
+                items: kat.items.filter(
+                    (it) =>
+                        !qLower ||
+                        it.q.toLowerCase().includes(qLower) ||
+                        it.a.toLowerCase().includes(qLower)
+                ),
+            }))
+            .filter((kat) => kat.items.length > 0);
+    }, [cari, kategoriAktif]);
+
     return (
-        <div className="space-y-5">
-            <div className="flex items-start gap-3 bg-brand-green-light border border-brand-green/20 rounded-xl p-3.5">
-                <HelpCircle size={18} className="text-brand-green-dark shrink-0 mt-0.5" />
-                <p className="text-sm text-slate-700 leading-relaxed">
-                    Pertanyaan yang sering diajukan anggota. Klik pertanyaan untuk membuka jawabannya.
-                </p>
+        <div className="space-y-4">
+            {/* Search & Category Filter */}
+            <div className="space-y-2.5">
+                <div className="relative">
+                    <Search
+                        size={15}
+                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                    />
+                    <input
+                        type="text"
+                        value={cari}
+                        onChange={(e) => setCari(e.target.value)}
+                        placeholder="Cari pertanyaan (misal: limit, tenor, resign)..."
+                        aria-label="Cari pertanyaan FAQ"
+                        className="w-full pl-9 pr-8 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15 focus:outline-none transition-all"
+                    />
+                    {cari && (
+                        <button
+                            type="button"
+                            onClick={() => setCari('')}
+                            aria-label="Hapus pencarian"
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-md"
+                        >
+                            <X size={14} />
+                        </button>
+                    )}
+                </div>
+
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
+                    {[
+                        { key: 'semua', label: 'Semua Topik' },
+                        ...FAQ.map((f) => ({ key: f.short, label: f.short })),
+                    ].map((pil) => {
+                        const aktif = kategoriAktif === pil.key;
+                        return (
+                            <button
+                                key={pil.key}
+                                type="button"
+                                onClick={() => setKategoriAktif(pil.key)}
+                                className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${focusRing} ${
+                                    aktif
+                                        ? 'bg-slate-900 text-white'
+                                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70'
+                                }`}
+                            >
+                                {pil.label}
+                            </button>
+                        );
+                    })}
+                </div>
             </div>
 
-            {FAQ.map((kat) => (
-                <div key={kat.kategori}>
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2.5">{kat.kategori}</p>
-                    <div className="space-y-2">
-                        {kat.items.map((it, i) => (
-                            <FAQItem key={i} q={it.q} a={it.a} />
-                        ))}
-                    </div>
+            {daftarFilter.length === 0 ? (
+                <div className="py-10 text-center bg-slate-50/70 rounded-xl border border-dashed border-slate-200">
+                    <p className="text-sm font-semibold text-slate-700">
+                        Pertanyaan tidak ditemukan
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                        Coba gunakan kata kunci lain atau tampilkan semua topik.
+                    </p>
                 </div>
-            ))}
+            ) : (
+                <div className="space-y-5">
+                    {daftarFilter.map((kat) => (
+                        <div key={kat.kategori}>
+                            <div className="flex items-center justify-between gap-2 mb-2">
+                                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                                    {kat.kategori}
+                                </p>
+                                <span className="text-[11px] font-medium text-slate-400">
+                                    {kat.items.length} pertanyaan
+                                </span>
+                            </div>
+                            <div className="space-y-2">
+                                {kat.items.map((it, i) => (
+                                    <FAQItem
+                                        key={`${kat.kategori}-${i}`}
+                                        q={it.q}
+                                        a={it.a}
+                                        defaultOpen={Boolean(cari.trim())}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
@@ -459,90 +640,150 @@ function TabFAQ() {
 export default function Panduan({ onClose }) {
     const [mainTab, setMainTab] = useState('panduan');
 
+    useEffect(() => {
+        const prevOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = prevOverflow;
+        };
+    }, []);
+
     const ulangiTour = () => {
         onClose();
-        window.setTimeout(() => window.dispatchEvent(new CustomEvent('start-dashboard-tour')), 150);
+        window.setTimeout(
+            () => window.dispatchEvent(new CustomEvent('start-dashboard-tour')),
+            150
+        );
     };
+
+    const totalFaq = useMemo(
+        () => FAQ.reduce((sum, k) => sum + k.items.length, 0),
+        []
+    );
 
     return (
         <div
-            className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200"
+            className="fixed inset-0 z-[400] bg-slate-950/55 backdrop-blur-[3px] flex items-end sm:items-center justify-center sm:p-4 animate-in fade-in duration-150"
             onClick={onClose}
             role="dialog"
             aria-modal="true"
             aria-labelledby="panduan-title"
         >
-            <div className="min-h-full flex items-end sm:items-center justify-center sm:p-4">
-                <div className="bg-white rounded-t-3xl sm:rounded-2xl w-full max-w-3xl mt-8 mb-0 sm:my-8 shadow-2xl max-h-[92dvh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-                    <div className="sm:hidden pt-2 pb-1 flex justify-center shrink-0" aria-hidden="true">
-                        <span className="w-10 h-1 rounded-full bg-slate-300" />
-                    </div>
-                    <div className="sticky top-0 bg-white border-b border-slate-100 px-4 sm:px-6 py-4 sm:py-5 flex items-start justify-between gap-4 rounded-t-3xl sm:rounded-t-2xl z-10">
-                        <div className="flex items-start gap-3 min-w-0">
-                            <div className="w-10 h-10 rounded-xl bg-brand-green-light flex items-center justify-center shrink-0">
-                                <HelpCircle size={20} className="text-brand-green" />
+            <div
+                className="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-2xl shadow-2xl border border-slate-200/80 max-h-[90dvh] sm:max-h-[86dvh] flex flex-col overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+            >
+                {/* Mobile Drag Handle */}
+                <div
+                    className="sm:hidden pt-2.5 pb-1 flex justify-center shrink-0 bg-white"
+                    aria-hidden="true"
+                >
+                    <span className="w-9 h-1 rounded-full bg-slate-300" />
+                </div>
+
+                {/* Modal Header */}
+                <div className="px-4 sm:px-6 pt-3 sm:pt-5 pb-3.5 border-b border-slate-100 bg-white shrink-0">
+                    <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200/60 flex items-center justify-center shrink-0 text-emerald-700">
+                                <BookOpen size={19} strokeWidth={2.2} />
                             </div>
                             <div className="min-w-0">
-                                <h2 id="panduan-title" className="text-lg font-bold text-slate-800">Tata Cara &amp; FAQ</h2>
-                                <p className="text-xs text-slate-500 mt-0.5">Langkah mengajukan pinjaman, mengubah tenor, dan menambah limit.</p>
+                                <h2
+                                    id="panduan-title"
+                                    className="text-base sm:text-lg font-bold text-slate-900 leading-tight"
+                                >
+                                    Tata Cara &amp; FAQ
+                                </h2>
+                                <p className="text-xs text-slate-500 mt-0.5 truncate">
+                                    Panduan layanan pinjaman, kenaikan limit, dan perubahan tenor
+                                </p>
                             </div>
                         </div>
+
                         <button
                             type="button"
                             onClick={onClose}
-                            className={`p-2 -m-2 text-slate-400 hover:text-slate-600 transition-colors shrink-0 rounded-lg ${focusRing}`}
+                            className={`w-8 h-8 inline-flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors shrink-0 rounded-lg ${focusRing}`}
                             aria-label="Tutup panduan"
                         >
-                            <X size={20} />
+                            <X size={18} />
                         </button>
                     </div>
 
-                    <div className="px-4 sm:px-6 pt-3 sm:pt-4">
-                        <div className="flex items-center gap-1 border-b border-slate-200">
-                            <button
-                                type="button"
-                                onClick={() => setMainTab('panduan')}
-                                aria-pressed={mainTab === 'panduan'}
-                                className={`px-4 py-2.5 text-sm font-bold border-b-2 -mb-px transition-colors rounded-t ${focusRing} ${
-                                    mainTab === 'panduan'
-                                        ? 'border-brand-green text-brand-green-dark'
-                                        : 'border-transparent text-slate-500 hover:text-slate-700'
-                                }`}
-                            >
-                                Tata Cara
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setMainTab('faq')}
-                                aria-pressed={mainTab === 'faq'}
-                                className={`px-4 py-2.5 text-sm font-bold border-b-2 -mb-px transition-colors flex items-center gap-1.5 rounded-t ${focusRing} ${
-                                    mainTab === 'faq'
-                                        ? 'border-brand-green text-brand-green-dark'
-                                        : 'border-transparent text-slate-500 hover:text-slate-700'
-                                }`}
-                            >
-                                <HelpCircle size={14} />
-                                FAQ
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="px-4 sm:px-6 py-4 sm:py-5 max-h-[65vh] overflow-y-auto overscroll-contain">
-                        {mainTab === 'panduan' ? <TabPanduan /> : <TabFAQ />}
-                    </div>
-
-                    <div className="sticky bottom-0 bg-white border-t border-slate-100 px-4 sm:px-6 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-4 rounded-b-none sm:rounded-b-2xl">
+                    {/* Segmented Main Switcher (Tata Cara vs FAQ) */}
+                    <div className="mt-3.5 grid grid-cols-2 gap-1 p-1 bg-slate-100/90 rounded-xl border border-slate-200/60">
                         <button
                             type="button"
-                            onClick={onClose}
-                            className={`w-full min-h-[48px] text-base font-bold rounded-xl border-2 border-slate-200 text-slate-700 hover:bg-slate-50 active:bg-slate-100 transition-colors ${focusRing}`}
+                            onClick={() => setMainTab('panduan')}
+                            aria-pressed={mainTab === 'panduan'}
+                            className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs sm:text-sm font-semibold transition-all ${focusRing} ${
+                                mainTab === 'panduan'
+                                    ? 'bg-white text-slate-900 shadow-2xs'
+                                    : 'text-slate-600 hover:text-slate-900'
+                            }`}
                         >
-                            Tutup
+                            <BookOpen size={14} className={mainTab === 'panduan' ? 'text-emerald-600' : 'text-slate-400'} />
+                            <span>Tata Cara</span>
+                            <span
+                                className={`px-1.5 py-0.2 rounded-full text-[11px] font-bold ${
+                                    mainTab === 'panduan'
+                                        ? 'bg-emerald-50 text-emerald-700'
+                                        : 'bg-slate-200/70 text-slate-500'
+                                }`}
+                            >
+                                3
+                            </span>
                         </button>
-                         <button type="button" onClick={ulangiTour} className={`w-full min-h-[48px] text-base font-bold rounded-xl bg-brand-green text-white hover:bg-brand-green-dark transition-colors ${focusRing}`}>
-                             Ulangi Tour Dashboard
-                         </button>
+
+                        <button
+                            type="button"
+                            onClick={() => setMainTab('faq')}
+                            aria-pressed={mainTab === 'faq'}
+                            className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs sm:text-sm font-semibold transition-all ${focusRing} ${
+                                mainTab === 'faq'
+                                    ? 'bg-white text-slate-900 shadow-2xs'
+                                    : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                        >
+                            <HelpCircle size={14} className={mainTab === 'faq' ? 'text-emerald-600' : 'text-slate-400'} />
+                            <span>Tanya Jawab (FAQ)</span>
+                            <span
+                                className={`px-1.5 py-0.2 rounded-full text-[11px] font-bold ${
+                                    mainTab === 'faq'
+                                        ? 'bg-emerald-50 text-emerald-700'
+                                        : 'bg-slate-200/70 text-slate-500'
+                                }`}
+                            >
+                                {totalFaq}
+                            </span>
+                        </button>
                     </div>
+                </div>
+
+                {/* Scrollable Body */}
+                <div className="px-4 sm:px-6 py-4 sm:py-5 flex-1 overflow-y-auto overscroll-contain">
+                    {mainTab === 'panduan' ? <TabPanduan /> : <TabFAQ />}
+                </div>
+
+                {/* Compact Side-by-Side Footer */}
+                <div className="bg-slate-50/80 border-t border-slate-200/80 px-4 sm:px-6 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-3 flex items-center justify-between gap-3 shrink-0">
+                    <button
+                        type="button"
+                        onClick={ulangiTour}
+                        className={`inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 text-xs sm:text-sm font-semibold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors ${focusRing}`}
+                    >
+                        <Compass size={15} className="text-emerald-600 shrink-0" />
+                        <span>Ulangi Tour Dashboard</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className={`inline-flex items-center justify-center px-5 py-2.5 text-xs sm:text-sm font-semibold rounded-xl bg-slate-900 text-white hover:bg-slate-800 active:bg-slate-950 transition-colors ${focusRing}`}
+                    >
+                        Tutup
+                    </button>
                 </div>
             </div>
         </div>
