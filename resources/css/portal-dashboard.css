@@ -6,7 +6,7 @@
 /* Hallmark · finish-review: subagent · 8 findings · 6 resolved 1 partial 1 answered — the tariff disclosure keeps its real figures, they are the cooperative's published rates, not the member's own money */
 html,
 body {
-    overflow-x: hidden;
+    overflow-x: clip;
 }
 
 /* Browser surfaces take the palette (F16). */
