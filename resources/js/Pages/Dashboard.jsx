@@ -13,8 +13,8 @@ import PageHeader from '@/Components/ui/PageHeader';
 import DashboardClock from '@/Components/ui/DashboardClock';
 import PrivacyWrapper from '@/Components/ui/PrivacyWrapper';
 import { usePrivacy } from '@/Contexts/PrivacyContext';
-import { formatRupiah, formatRupiahSingkat } from '@/Utils/formatCurrency';
-import { statusStyle } from '@/Utils/status';
+import { formatRupiah } from '@/Utils/formatCurrency';
+import { statusLabel, statusStyle } from '@/Utils/status';
 
 const DashboardTrenChart = lazy(() => import('@/Pages/Dashboard/Partials/DashboardTrenChart'));
 const DashboardKasChart = lazy(() => import('@/Pages/Dashboard/Partials/DashboardKasChart'));
@@ -24,14 +24,14 @@ const focusRing =
 
 function ChartSkeleton({ className = '' }) {
     return (
-        <Card className={className}>
-            <div className="flex items-center justify-between mb-4">
+        <Card className={`border-slate-200/80 shadow-2xs sm:p-6 ${className}`}>
+            <div className="flex items-center justify-between mb-5">
                 <div>
-                    <div className="h-4 w-44 bg-slate-200 rounded animate-pulse mb-1.5" />
+                    <div className="h-4 w-44 bg-slate-200/80 rounded animate-pulse mb-1.5" />
                     <div className="h-3 w-28 bg-slate-100 rounded animate-pulse" />
                 </div>
             </div>
-            <div className="h-[280px] w-full bg-slate-50/50 rounded-xl flex items-end justify-between gap-2 p-6">
+            <div className="h-[260px] w-full bg-slate-50/60 rounded-xl flex items-end justify-between gap-2 p-6">
                 <div className="w-full bg-slate-200/50 h-1/4 rounded-t animate-pulse" />
                 <div className="w-full bg-slate-200/50 h-1/2 rounded-t animate-pulse" />
                 <div className="w-full bg-slate-200/50 h-3/4 rounded-t animate-pulse" />
@@ -43,7 +43,7 @@ function ChartSkeleton({ className = '' }) {
     );
 }
 
-export default function Dashboard({ stats, actionable, grafikTren, grafikKas, aktivitasTerbaru, rincianAntrean }) {
+export default function Dashboard({ stats, actionable, grafikTren, grafikKas, aktivitasTerbaru }) {
     const { auth } = usePage().props;
     const { isPrivacyActive } = usePrivacy();
     const userPermissions = auth.user?.permissions ?? [];
@@ -54,12 +54,12 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
 
     const labelBulan = new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(new Date());
     const widgets = [
-        { label: 'Kas Operasional Gabungan', value: formatRupiah(stats.kas_operasional ?? stats.total_keseluruhan), icon: Wallet, tone: 'navy', caption: 'Bank + kas kecil' },
+        { label: 'Kas Operasional Gabungan', value: formatRupiah(stats.kas_operasional ?? stats.total_keseluruhan), icon: Wallet, tone: 'navy', caption: 'Saldo bank + kas kecil' },
         { label: 'Saldo Bank', value: formatRupiah(stats.saldo_bank ?? 0), icon: Landmark, tone: 'navy', caption: 'Rekening bank operasional' },
         { label: 'Kas Kecil', value: formatRupiah(stats.saldo_kas_kecil ?? 0), icon: Wallet, tone: 'amber', caption: 'Uang tunai operasional' },
-        { label: 'Total Simpanan (Aktif)', value: formatRupiah(stats.total_simpanan_outstanding), icon: PiggyBank, tone: 'green', caption: 'Pokok + wajib' },
-        { label: 'Pinjaman Outstanding', value: formatRupiah(stats.pinjaman_outstanding), icon: HandCoins, tone: 'amber', caption: 'Status aktif' },
-        { label: 'Pendapatan Bunga Bulan Ini', value: formatRupiah(stats.pendapatan_bunga_bulan_ini), icon: TrendingUp, tone: 'green', caption: labelBulan },
+        { label: 'Total Simpanan (Aktif)', value: formatRupiah(stats.total_simpanan_outstanding), icon: PiggyBank, tone: 'green', caption: 'Pokok + wajib anggota aktif' },
+        { label: 'Pinjaman Outstanding', value: formatRupiah(stats.pinjaman_outstanding), icon: HandCoins, tone: 'amber', caption: 'Pinjaman berstatus aktif' },
+        { label: 'Pendapatan Bunga', value: formatRupiah(stats.pendapatan_bunga_bulan_ini), icon: TrendingUp, tone: 'green', caption: `Periode ${labelBulan}` },
     ];
 
     const grupAksi = [
@@ -79,17 +79,17 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
             ],
         },
         {
-            label: 'Limit', icon: Gauge,
+            label: 'Kenaikan Limit', icon: Gauge,
             aksi: [
                 { label: 'Verifikasi', value: actionable.pengajuan_limit_bendahara, href: route('bendahara.pengajuan-limit.index'), permission: 'limit.tinjau-bendahara' },
                 { label: 'Persetujuan', value: actionable.pengajuan_limit, href: route('ketua.pengajuan-limit.index'), permission: 'limit.approve-ketua' },
             ],
         },
         {
-            label: 'Anggota', icon: Users,
+            label: 'Keanggotaan', icon: Users,
             aksi: [
                 { label: 'Aktivasi', value: actionable.aktivasi_anggota, href: route('ketua.aktivasi.index'), permission: 'aktivasi.approve-ketua' },
-                { label: 'Simpanan', value: actionable.anggota_belum_simpanan, href: route('bendahara.simpanan.index'), permission: 'simpanan.konfirmasi' },
+                { label: 'Simpanan Wajib', value: actionable.anggota_belum_simpanan, href: route('bendahara.simpanan.index'), permission: 'simpanan.konfirmasi' },
             ],
         },
     ]
@@ -100,6 +100,7 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
 
     const grupMenunggu = grupAksi.filter((g) => g.total > 0);
     const jumlahMenunggu = grupMenunggu.length;
+    const totalItemMenunggu = grupMenunggu.reduce((sum, g) => sum + g.total, 0);
     const semuaBeres = jumlahMenunggu === 0;
 
     function waktuRelatif(iso) {
@@ -113,16 +114,181 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
         return '';
     }
 
+    function formatKeteranganAktivitas(teks) {
+        if (!teks) return '';
+        return teks.replace(/Mengajukan pinjaman\s+(?!Rp)/i, 'Mengajukan pinjaman Rp ');
+    }
+
     return (
         <AppLayout>
             <Head title="Dashboard" />
 
-            <PageHeader title="Dashboard" subtitle={`Ringkasan aktivitas koperasi • periode ${labelBulan}`}>
+            <PageHeader title="Dashboard" subtitle={`Ringkasan posisi keuangan & operasional koperasi • ${labelBulan}`}>
                 <DashboardClock />
             </PageHeader>
 
-            {/* Tren + Stat Widget */}
-            <div className="mb-6">
+            {/* 1. Ringkasan Posisi Keuangan (Hero Card di Kiri + 6 KPI Cards di Kanan) */}
+            <section aria-label="Ringkasan posisi keuangan" className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-6">
+                {/* Hero Card: Saldo Total */}
+                <div className="lg:col-span-4 relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0B1527] via-[#0F1E36] to-[#0A2E1A] border border-slate-800/80 p-5 sm:p-6 text-white flex flex-col justify-between shadow-xs before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/25 before:to-transparent">
+                    <div>
+                        <div className="flex items-center justify-between gap-2">
+                            <div className="w-9 h-9 rounded-xl bg-white/10 border border-white/10 text-emerald-400 flex items-center justify-center shrink-0">
+                                <Landmark size={18} />
+                            </div>
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wide bg-emerald-500/10 text-emerald-300 border border-emerald-400/20">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                Dana Koperasi
+                            </span>
+                        </div>
+
+                        <p className="text-xs font-medium text-slate-300/90 mt-4">Saldo Total</p>
+                        <p className="text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums mt-1 leading-tight truncate">
+                            <PrivacyWrapper>{formatRupiah(stats.total_keseluruhan)}</PrivacyWrapper>
+                        </p>
+                        <p className="text-[11px] text-slate-300/75 mt-1 leading-normal">
+                            Kas operasional gabungan + simpanan anggota aktif
+                        </p>
+                    </div>
+
+                    <div className="mt-5 pt-3.5 border-t border-white/10 flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                            <p className="text-[11px] text-slate-300/75">Saldo Dana Sosial</p>
+                            <p className="text-sm font-bold text-emerald-300 tabular-nums mt-0.5 truncate">
+                                <PrivacyWrapper>{formatRupiah(stats.saldo_dana_sosial ?? 0)}</PrivacyWrapper>
+                            </p>
+                        </div>
+                        {bisaAkses('kas.lihat') && (
+                            <Link
+                                href={route('kas-koperasi.index')}
+                                className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-xs font-semibold text-white transition-colors shrink-0 ${focusRing}`}
+                            >
+                                Buku Kas
+                                <ChevronRight size={13} aria-hidden="true" />
+                            </Link>
+                        )}
+                    </div>
+                </div>
+
+                {/* 6 KPI Metric Widgets */}
+                <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3.5">
+                    {widgets.map((w) => (
+                        <StatWidget
+                            compact
+                            key={w.label}
+                            label={w.label}
+                            value={w.value}
+                            icon={w.icon}
+                            tone={w.tone}
+                            caption={w.caption}
+                        />
+                    ))}
+                </div>
+            </section>
+
+            {/* 2. Perlu Ditindaklanjuti (Actionable Queue) */}
+            {grupAksi.length > 0 && (
+                <section aria-label="Antrean perlu ditindaklanjuti" className="mb-6">
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                        <div className="flex items-center gap-2">
+                            <h2 className="text-sm font-bold text-slate-800 tracking-tight">Perlu Ditindaklanjuti</h2>
+                            {!semuaBeres && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100/80 text-amber-800 tabular-nums">
+                                    {totalItemMenunggu} antrean
+                                </span>
+                            )}
+                        </div>
+                        <p className="text-xs font-medium text-slate-400">
+                            {semuaBeres ? 'Semua beres' : `${jumlahMenunggu} domain menunggu aksi`}
+                        </p>
+                    </div>
+
+                    {semuaBeres ? (
+                        <div className="flex items-center gap-3 bg-white border border-slate-200/80 rounded-2xl px-4 py-3.5 shadow-2xs">
+                            <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-200/60 text-brand-green-dark flex items-center justify-center shrink-0">
+                                <CheckCircle2 size={16} aria-hidden="true" />
+                            </div>
+                            <p className="text-sm font-medium text-slate-700">
+                                Semua antrean sudah ditangani. Tidak ada pengajuan yang menunggu tindakan.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                            {grupAksi.map((grup) => {
+                                const Icon = grup.icon;
+                                const sibuk = grup.total > 0;
+                                return (
+                                    <div
+                                        key={grup.label}
+                                        className={`rounded-2xl border p-4 flex flex-col justify-between transition-colors ${
+                                            sibuk
+                                                ? 'bg-white border-slate-200/90 shadow-2xs'
+                                                : 'bg-slate-50/60 border-slate-200/50 opacity-75'
+                                        }`}
+                                    >
+                                        <div className="flex items-center justify-between gap-2 pb-3 mb-2.5 border-b border-slate-100">
+                                            <div className="flex items-center gap-2.5 min-w-0">
+                                                <div
+                                                    className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 ${
+                                                        sibuk
+                                                            ? 'bg-amber-50 border-amber-200/70 text-amber-700'
+                                                            : 'bg-slate-100 border-slate-200/60 text-slate-400'
+                                                    }`}
+                                                >
+                                                    <Icon size={16} aria-hidden="true" />
+                                                </div>
+                                                <p className="text-sm font-bold text-slate-800 truncate">{grup.label}</p>
+                                            </div>
+                                            <span
+                                                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold tabular-nums shrink-0 ${
+                                                    sibuk
+                                                        ? 'bg-amber-50 border border-amber-200/80 text-amber-800'
+                                                        : 'bg-slate-100 text-slate-400'
+                                                }`}
+                                            >
+                                                {sibuk && <span className="w-1.5 h-1.5 rounded-full bg-amber-500" aria-hidden="true" />}
+                                                {grup.total}
+                                            </span>
+                                        </div>
+
+                                        <div className="space-y-1.5">
+                                            {grup.tampil.map((a) => {
+                                                const aktif = a.value > 0;
+                                                return (
+                                                    <Link
+                                                        key={a.label}
+                                                        href={a.href}
+                                                        className={`flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+                                                            aktif
+                                                                ? 'bg-slate-50/90 hover:bg-amber-50/60 text-slate-700 hover:text-slate-900 border border-slate-200/70'
+                                                                : 'text-slate-400 hover:bg-slate-100/70 hover:text-slate-600'
+                                                        } ${focusRing}`}
+                                                    >
+                                                        <span className="truncate">{a.label}</span>
+                                                        <span className="inline-flex items-center gap-1 shrink-0">
+                                                            <span
+                                                                className={`tabular-nums px-1.5 py-0.2 rounded-md text-[11px] font-bold ${
+                                                                    aktif ? 'bg-amber-100/80 text-amber-800' : 'text-slate-400'
+                                                                }`}
+                                                            >
+                                                                {a.value}
+                                                            </span>
+                                                            <ChevronRight size={13} aria-hidden="true" className="text-slate-400" />
+                                                        </span>
+                                                    </Link>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </section>
+            )}
+
+            {/* 3. Grafik Tren Simpanan & Pinjaman */}
+            <section aria-label="Tren simpanan dan pinjaman" className="mb-5">
                 <Suspense fallback={<ChartSkeleton />}>
                     <DashboardTrenChart
                         grafikTren={grafikTren}
@@ -131,118 +297,75 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                         labelBulan={labelBulan}
                     />
                 </Suspense>
+            </section>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:col-span-2 lg:col-span-3">
-                        {widgets.map((w) => (
-                            <StatWidget compact key={w.label} label={w.label} value={w.value} icon={w.icon} tone={w.tone} caption={w.caption} />
-                        ))}
-                    </div>
-                    <div className="bg-brand-navy rounded-2xl p-5 text-white flex flex-col justify-between sm:col-span-2 lg:col-span-1 lg:min-h-full">
+            {/* 4. Mutasi Kas Koperasi & Aktivitas Terbaru */}
+            <section aria-label="Mutasi kas dan aktivitas terbaru" className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                {/* Mutasi Kas (Kiri, 2 Kolom) */}
+                <Suspense fallback={<ChartSkeleton className="lg:col-span-2" />}>
+                    <DashboardKasChart
+                        grafikKas={grafikKas}
+                        bisaAkses={bisaAkses}
+                        isPrivacyActive={isPrivacyActive}
+                    />
+                </Suspense>
+
+                {/* Aktivitas Terbaru (Kanan, 1 Kolom) */}
+                <Card className="lg:col-span-1 border-slate-200/80 shadow-2xs sm:p-6 flex flex-col">
+                    <div className="flex items-start justify-between gap-3 mb-4">
                         <div>
-                            <div className="w-10 h-10 rounded-xl bg-white/10 text-brand-green flex items-center justify-center mb-3">
-                                <Landmark size={20} />
-                            </div>
-                            <p className="text-sm text-slate-300">Saldo Total</p>
-                            <p className="text-3xl font-bold mt-1 leading-tight">
-                                <PrivacyWrapper>{formatRupiah(stats.total_keseluruhan)}</PrivacyWrapper>
-                            </p>
+                            <h2 className="text-base font-bold text-slate-800 tracking-tight">Aktivitas Terbaru</h2>
+                            <p className="text-xs text-slate-400 mt-0.5">Pengajuan &amp; pembayaran terkini</p>
                         </div>
-                        <p className="text-xs text-slate-300 mt-4 leading-snug">Kas operasional + simpanan anggota aktif</p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Perlu Ditindaklanjuti */}
-            <div className="mb-6">
-                <div className="flex items-center justify-between mb-3">
-                    <p className="text-base font-bold text-slate-700">Perlu Ditindaklanjuti</p>
-                    <p className="text-xs text-slate-400">
-                        {semuaBeres ? 'Semua beres' : `${jumlahMenunggu} domain menunggu aksi`}
-                    </p>
-                </div>
-                {semuaBeres ? (
-                    <div className="flex items-center gap-3 bg-brand-green-light/40 border border-brand-green/20 rounded-xl px-4 py-3.5">
-                        <CheckCircle2 size={18} aria-hidden="true" className="text-brand-green-dark shrink-0" />
-                        <p className="text-sm font-semibold text-brand-green-dark">Semua antrean sudah ditangani. Tidak ada aksi menunggu.</p>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {grupAksi.map((grup) => {
-                            const Icon = grup.icon;
-                            const sibuk = grup.total > 0;
-                            return (
-                                <div
-                                    key={grup.label}
-                                    className={`relative flex items-center gap-2.5 rounded-xl border px-3.5 py-3 ${sibuk ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-100 opacity-70'}`}
-                                >
-                                    {sibuk && (
-                                        <span className="absolute top-2 right-2 flex h-1.5 w-1.5" aria-hidden="true">
-                                            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-red-500" />
-                                        </span>
-                                    )}
-                                    <Icon size={18} aria-hidden="true" className={`shrink-0 ${sibuk ? 'text-amber-600' : 'text-slate-300'}`} />
-                                    <div className="min-w-0 flex-1">
-                                        <p className={`text-xl font-bold leading-none ${sibuk ? 'text-amber-700' : 'text-slate-400'}`}>
-                                            {grup.total}
-                                        </p>
-                                        <p className="text-xs font-medium leading-tight mt-1 text-slate-600">
-                                            {grup.label}
-                                        </p>
-                                        <div className="flex flex-wrap gap-1.5 mt-2">
-                                            {grup.tampil.map((a) => (
-                                                <Link
-                                                    key={a.label}
-                                                    href={a.href}
-                                                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white border text-xs font-bold transition-colors ${a.value > 0 ? 'border-amber-200 text-amber-700 hover:bg-amber-100' : 'border-slate-200 text-slate-400'} ${focusRing}`}
-                                                >
-                                                    {a.label} {a.value}
-                                                    <ChevronRight size={12} aria-hidden="true" />
-                                                </Link>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-                {/* Aktivitas Terbaru */}
-                <Card className="lg:col-span-1 sm:p-6">
-                    <div className="flex items-center justify-between gap-3 mb-4">
-                        <p className="text-base font-bold text-slate-700">Aktivitas Terbaru</p>
                         {bisaAkses('pinjaman.lihat') && aktivitasTerbaru.length > 0 && (
                             <Link
                                 href={route('pinjaman.index')}
-                                className={`inline-flex items-center gap-0.5 text-xs font-bold text-brand-green-dark hover:underline ${focusRing} rounded`}
+                                className={`inline-flex items-center gap-0.5 text-xs font-semibold text-brand-green-dark hover:text-brand-green transition-colors ${focusRing} rounded shrink-0`}
                             >
                                 Lihat semua
-                                <ChevronRight size={12} aria-hidden="true" />
+                                <ChevronRight size={13} aria-hidden="true" />
                             </Link>
                         )}
                     </div>
 
                     {aktivitasTerbaru.length === 0 ? (
-                        <p className="text-sm text-slate-400 text-center py-8">Belum ada aktivitas.</p>
+                        <div className="flex-1 flex items-center justify-center py-10">
+                            <p className="text-sm text-slate-400 text-center">Belum ada aktivitas tercatat.</p>
+                        </div>
                     ) : (
-                        <div className="space-y-3">
+                        <div className="divide-y divide-slate-100 -my-1">
                             {aktivitasTerbaru.map((item, i) => {
                                 const Icon = item.tipe === 'pinjaman' ? PinjamanIcon : CheckCircle2;
                                 const relatif = waktuRelatif(item.tanggal_iso);
+                                const labelStatus = statusLabel[item.status] ?? item.status;
                                 return (
-                                    <div key={i} className="flex items-start gap-3">
-                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${statusStyle[item.status]}`}>
-                                            <Icon size={14} />
+                                    <div key={i} className="flex items-start gap-3 py-3 first:pt-1 last:pb-1">
+                                        <div
+                                            className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                                                statusStyle[item.status] ?? 'bg-slate-100 text-slate-600'
+                                            }`}
+                                        >
+                                            <Icon size={15} />
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-semibold text-slate-700 truncate">{item.nama}</p>
-                                            <p className="text-xs text-slate-400 truncate">
-                                                <PrivacyWrapper maskType="blur">{item.keterangan}</PrivacyWrapper>
+                                            <div className="flex items-center justify-between gap-2">
+                                                <p className="text-sm font-semibold text-slate-800 truncate">{item.nama}</p>
+                                                <span
+                                                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0 ${
+                                                        statusStyle[item.status] ?? 'bg-slate-100 text-slate-600'
+                                                    }`}
+                                                >
+                                                    {labelStatus}
+                                                </span>
+                                            </div>
+                                            <p className="text-xs text-slate-500 truncate mt-0.5">
+                                                <PrivacyWrapper maskType="blur">
+                                                    {formatKeteranganAktivitas(item.keterangan)}
+                                                </PrivacyWrapper>
                                             </p>
-                                            <p className="text-xs text-slate-400 mt-0.5">{relatif ? `${relatif} • ${item.tanggal_format}` : item.tanggal_format}</p>
+                                            <p className="text-[11px] text-slate-400 mt-0.5 tabular-nums">
+                                                {relatif ? `${relatif} • ${item.tanggal_format}` : item.tanggal_format}
+                                            </p>
                                         </div>
                                     </div>
                                 );
@@ -250,16 +373,7 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                         </div>
                     )}
                 </Card>
-
-                {/* Mutasi Kas */}
-                <Suspense fallback={<ChartSkeleton className="lg:col-span-2 sm:p-6" />}>
-                    <DashboardKasChart
-                        grafikKas={grafikKas}
-                        bisaAkses={bisaAkses}
-                        isPrivacyActive={isPrivacyActive}
-                    />
-                </Suspense>
-            </div>
+            </section>
         </AppLayout>
     );
 }
