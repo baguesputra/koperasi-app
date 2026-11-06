@@ -271,8 +271,14 @@ export default function Dashboard({
     // =========================================================
     // BUSINESS ELIGIBILITY RULES
     // =========================================================
-    // 1. Ajukan Pinjaman: hanya bisa jika eligibel, tidak ada pengajuan berjalan, limit tersedia > 0, dan tidak ada resign shortfall.
-    const bolehAjukanPinjaman = Boolean(bisaAjukan && !pengajuanBerjalan && limitTersedia > 0 && !resignMenunggu);
+    // 1. Ajukan Pinjaman: hanya bisa jika eligibel, tidak ada pengajuan pinjaman/limit berjalan, limit tersedia > 0, dan tidak ada resign shortfall.
+    const bolehAjukanPinjaman = Boolean(
+        bisaAjukan &&
+        !pengajuanBerjalan &&
+        !pengajuanLimitBerjalan &&
+        limitTersedia > 0 &&
+        !resignMenunggu
+    );
 
     // 2. Tambah Limit: hanya bisa jika eligibel, tidak ada pengajuan pinjaman/limit berjalan, dan tidak ada resign shortfall.
     const bolehAjukanLimit = Boolean(bisaAjukan && !pengajuanBerjalan && !pengajuanLimitBerjalan && !resignMenunggu);
@@ -288,6 +294,8 @@ export default function Dashboard({
     // Alasan penolakan per menu, dipakai sebagai tooltip saat kartu nonaktif.
     const pesanTerkunciPinjaman = pengajuanBerjalan
         ? 'Pengajuan pinjaman Anda masih diproses.'
+        : pengajuanLimitBerjalan
+        ? 'Pengajuan kenaikan limit Anda masih diproses.'
         : limitTersedia <= 0
         ? 'Limit pinjaman Anda sudah terpakai penuh.'
         : resignMenunggu
@@ -680,14 +688,16 @@ export default function Dashboard({
                                     <span className="pd-action__state">
                                         {pengajuanBerjalan
                                             ? 'Dalam proses approval'
+                                            : pengajuanLimitBerjalan
+                                            ? 'Limit sedang diproses'
                                             : limitTersedia <= 0
                                             ? 'Limit pinjaman habis'
                                             : 'Belum memenuhi syarat'}
                                     </span>
                                 </span>
                                 <span className="pd-action__flag">
-                                    {!pengajuanBerjalan && <Lock size={10} aria-hidden="true" />}
-                                    {pengajuanBerjalan
+                                    {!(pengajuanBerjalan || pengajuanLimitBerjalan) && <Lock size={10} aria-hidden="true" />}
+                                    {pengajuanBerjalan || pengajuanLimitBerjalan
                                         ? 'Diproses'
                                         : limitTersedia <= 0
                                         ? 'Limit Rp0'

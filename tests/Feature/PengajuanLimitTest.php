@@ -182,4 +182,59 @@ class PengajuanLimitTest extends TestCase
         $this->assertSame('ditolak', $pengajuan->refresh()->status);
         $this->assertNull($anggota->refresh()->limit_custom);
     }
+
+    public function test_anggota_dengan_pengajuan_limit_diproses_tidak_bisa_akses_atau_mengirim_pengajuan_pinjaman(): void
+    {
+        $anggota = $this->buatAnggota();
+        PengajuanLimit::create([
+            'anggota_id' => $anggota->id,
+            'limit_saat_ini' => 5_000_000,
+            'limit_diminta' => 8_000_000,
+            'keterangan' => 'Menaikkan limit untuk kebutuhan modal.',
+            'status' => 'diajukan',
+            'tanggal_pengajuan' => now(),
+        ]);
+        $this->actingAs($anggota->user);
+
+        $this->get(route('portal.pinjaman.create'))->assertForbidden();
+        $this->post(route('portal.pinjaman.store'), [
+            'nominal' => 2_000_000,
+            'tenor_bulan' => 4,
+            'keperluan' => 'Kebutuhan mendesak keluarga.',
+            'rekening_mode' => 'baru',
+            'nama_bank' => 'BCA',
+            'no_rekening' => '1234567890',
+            'atas_nama' => $anggota->nama,
+            'persetujuan' => '1',
+        ])->assertSessionHasErrors(['pengajuan' => 'Pengajuan kenaikan limit sedang diproses.']);
+
+        $this->assertDatabaseMissing('pinjaman', ['anggota_id' => $anggota->id]);
+    }
+
+    public function test_anggota_dengan_pinjaman_diproses_tidak_bisa_mengajukan_pinjaman_lagi(): void
+    {
+        $anggota = $this->buatAnggota();
+        Pinjaman::create([
+            'anggota_id' => $anggota->id,
+            'pengaju_user_id' => $anggota->user_id,
+            'nominal' => 2_000_000,
+            'tenor_bulan' => 4,
+            'persentase_bunga' => 1,
+            'status' => 'diajukan',
+            'tanggal_pengajuan' => now(),
+        ]);
+        $this->actingAs($anggota->user);
+
+        $this->get(route('portal.pinjaman.create'))->assertForbidden();
+        $this->post(route('portal.pinjaman.store'), [
+            'nominal' => 2_000_000,
+            'tenor_bulan' => 4,
+            'keperluan' => 'Kebutuhan tambahan.',
+            'rekening_mode' => 'baru',
+            'nama_bank' => 'BCA',
+            'no_rekening' => '1234567890',
+            'atas_nama' => $anggota->nama,
+            'persetujuan' => '1',
+        ])->assertSessionHasErrors(['pengajuan' => 'Pengajuan pinjaman sedang diproses.']);
+    }
 }

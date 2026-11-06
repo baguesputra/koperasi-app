@@ -5,6 +5,7 @@ namespace App\Services\Pinjaman;
 use App\Helpers\TerbilangHelper;
 use App\Models\Anggota;
 use App\Models\AuditLog;
+use App\Models\PengajuanLimit;
 use App\Models\Pinjaman;
 use App\Models\RekeningAnggota;
 use App\Models\User;
@@ -32,6 +33,22 @@ class PengajuanPinjamanService
         }
 
         $anggota = $pengaju->anggota;
+
+        $adaPengajuanLimit = PengajuanLimit::where('anggota_id', $anggota->id)
+            ->whereIn('status', ['diajukan', 'approved_bendahara'])
+            ->exists();
+
+        if ($adaPengajuanLimit) {
+            throw new RuntimeException('Pengajuan kenaikan limit sedang diproses.');
+        }
+
+        $adaPinjamanBerjalan = Pinjaman::where('anggota_id', $anggota->id)
+            ->whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara'])
+            ->exists();
+
+        if ($adaPinjamanBerjalan) {
+            throw new RuntimeException('Pengajuan pinjaman sedang diproses.');
+        }
 
         $cekEligibilitas = $this->eligibilitas->cek($anggota);
 

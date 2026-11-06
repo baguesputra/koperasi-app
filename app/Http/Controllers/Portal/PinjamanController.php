@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Portal;
 
 use App\Http\Controllers\Controller;
+use App\Models\PengajuanLimit;
+use App\Models\Pinjaman;
 use App\Services\Pinjaman\EligibilitasPinjamanService;
 use App\Services\Pinjaman\PengajuanPinjamanService;
+use App\Services\Security\PinSecurityService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -20,6 +23,15 @@ class PinjamanController extends Controller
     public function create(): Response
     {
         $anggota = auth()->user()->anggota;
+
+        if ($this->hasLimitApplicationInProgress($anggota->id)) {
+            abort(403, 'Pengajuan kenaikan limit sedang diproses.');
+        }
+
+        if ($this->hasLoanApplicationInProgress($anggota->id)) {
+            abort(403, 'Pengajuan pinjaman sedang diproses.');
+        }
+
         $cek = $this->eligibilitas->cek($anggota);
 
         return Inertia::render('Portal/Pinjaman/Create', [
@@ -42,6 +54,21 @@ class PinjamanController extends Controller
         $request->validate(['nominal' => ['required', 'numeric', 'min:1']]);
 
         $anggota = auth()->user()->anggota;
+
+        if ($this->hasLimitApplicationInProgress($anggota->id)) {
+            return response()->json([
+                'valid' => false,
+                'pesan' => 'Pengajuan kenaikan limit sedang diproses.',
+            ], 422);
+        }
+
+        if ($this->hasLoanApplicationInProgress($anggota->id)) {
+            return response()->json([
+                'valid' => false,
+                'pesan' => 'Pengajuan pinjaman sedang diproses.',
+            ], 422);
+        }
+
         $nominal = (float) $request->nominal;
         $limitTersedia = $this->eligibilitas->limitTersedia($anggota);
 
@@ -110,7 +137,7 @@ class PinjamanController extends Controller
         ]);
 
         if ($user->hasPin()) {
-            $pinCheck = app(\App\Services\Security\PinSecurityService::class)->verify($user, (string) $request->pin, $request);
+            $pinCheck = app(PinSecurityService::class)->verify($user, (string) $request->pin, $request);
             if (! $pinCheck['valid']) {
                 if ($pinCheck['locked_out']) {
                     return redirect()->route('login')->withErrors([
@@ -125,6 +152,21 @@ class PinjamanController extends Controller
         }
 
         $anggota = auth()->user()->anggota;
+
+        if ($this->hasLimitApplicationInProgress($anggota->id)) {
+            return back()->withErrors([
+                'nominal' => 'Pengajuan kenaikan limit sedang diproses.',
+                'pengajuan' => 'Pengajuan kenaikan limit sedang diproses.',
+            ]);
+        }
+
+        if ($this->hasLoanApplicationInProgress($anggota->id)) {
+            return back()->withErrors([
+                'nominal' => 'Pengajuan pinjaman sedang diproses.',
+                'pengajuan' => 'Pengajuan pinjaman sedang diproses.',
+            ]);
+        }
+
         $nominal = (float) $request->nominal;
 
         $cekEligibilitas = $this->eligibilitas->cek($anggota);
@@ -201,5 +243,19 @@ class PinjamanController extends Controller
                 'nominal' => $nominal,
                 'tenor_bulan' => (int) $request->tenor_bulan,
             ]);
+    }
+
+    private function hasLimitApplicationInProgress(int $anggotaId): bool
+    {
+        return PengajuanLimit::where('anggota_id', $anggotaId)
+            ->whereIn('status', ['diajukan', 'approved_bendahara'])
+            ->exists();
+    }
+
+    private function hasLoanApplicationInProgress(int $anggotaId): bool
+    {
+        return Pinjaman::where('anggota_id', $anggotaId)
+            ->whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara'])
+            ->exists();
     }
 }
