@@ -26,7 +26,7 @@ class KasKoperasiController extends Controller
     public function index(Request $request): Response
     {
         $bulanFilter = (string) $request->input('bulan', now()->format('Y-m'));
-        $kanalFilter = (string) $request->input('kanal', '');
+        $kanalFilter = (string) $request->input('kanal', $request->input('akun', ''));
         $tipeFilter = (string) $request->input('tipe', '');
         $tanggalFilter = (string) $request->input('tanggal', '');
         $dariTanggal = (string) $request->input('dari_tanggal', '');
@@ -104,6 +104,7 @@ class KasKoperasiController extends Controller
             ->withQueryString()
             ->through(fn ($j) => [
                 'id' => $j->id,
+                'no_bukti' => $j->no_bukti,
                 'tipe' => $j->tipe,
                 'kategori' => $j->kategori,
                 'sumber_topup' => $j->sumber_topup,
@@ -111,6 +112,7 @@ class KasKoperasiController extends Controller
                 'tipe_pengeluaran_label' => $j->pengeluaran ? (Pengeluaran::TIPE_LABEL[$j->pengeluaran->tipe] ?? $j->pengeluaran->tipe) : null,
                 'kantong' => $j->kantong,
                 'kanal' => JurnalKasService::kanalFisik($j->kantong, $j->kategori),
+                'akun' => JurnalKasService::kanalFisik($j->kantong, $j->kategori),
                 'jumlah' => (float) $j->jumlah,
                 'saldo_setelah' => (float) $j->saldo_setelah,
                 'keterangan' => $j->keterangan,
@@ -229,6 +231,7 @@ class KasKoperasiController extends Controller
             'bulanFilter' => $bulanFilter,
             'filters' => [
                 'kanal' => $kanalFilter,
+                'akun' => $kanalFilter,
                 'cari' => $cari,
                 'tipe' => $tipeFilter,
                 'tanggal' => $tanggalFilter,
@@ -238,11 +241,15 @@ class KasKoperasiController extends Controller
             ],
             'tipePengeluaranList' => Pengeluaran::TIPE_LABEL,
             'akunPengeluaranList' => Pengeluaran::AKUN_LABEL,
+            'kantongOptions' => JurnalKasService::KANTONG_LABEL,
+            'kategoriOptions' => \App\Laporan\LaporanRegistry::KATEGORI_LABEL,
             'ringkasanPeriode' => [
                 'total_masuk' => $totalMasuk,
                 'total_keluar' => $totalKeluar,
                 'saldo_awal' => $saldoAwal,
                 'saldo_akhir' => $saldoAkhir,
+                'saldo_awal_kanal' => $saldoAwalKanal,
+                'saldo_akhir_kanal' => $saldoAkhirKanal,
                 'saldo_valid' => ! $adaFilterTransaksi,
             ],
             'ringkasanKanal' => $ringkasanKanal,

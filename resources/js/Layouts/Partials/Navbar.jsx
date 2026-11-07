@@ -15,7 +15,6 @@ const menuGroups = [
         { label: 'Angsuran', routeName: 'bendahara.angsuran.index', roles: ['super_admin', 'bendahara'] },
         { label: 'Konfirmasi Simpanan', routeName: 'bendahara.simpanan.index', roles: ['super_admin', 'bendahara'] },
         { label: 'Kas Koperasi', routeName: 'kas-koperasi.index', roles: ['super_admin', 'admin', 'bendahara', 'ketua_koperasi', 'pengawas'] },
-        { label: 'Jurnal Kas', routeName: 'jurnal-kas.index', roles: ['super_admin', 'admin', 'bendahara', 'ketua_koperasi', 'pengawas'] },
         { label: 'Laporan', routeName: null, roles: ['super_admin', 'admin', 'bendahara', 'ketua_koperasi', 'pengawas'] },
         { label: 'Pengaturan', routeName: 'pengaturan.index', roles: ['super_admin', 'admin'] },
     ],

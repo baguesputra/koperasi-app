@@ -45,7 +45,6 @@ const menuGroups = [
         label: 'Keuangan',
         items: [
             { label: 'Kas Koperasi', routeName: 'kas-koperasi.index', icon: Wallet, permission: 'kas.lihat' },
-            { label: 'Jurnal Kas', routeName: 'jurnal-kas.index', icon: BookOpenText, permission: 'jurnal.lihat' },
             { label: 'Pembagian SHU', routeName: 'shu.index', icon: Percent, permission: 'shu.lihat' },
             { label: 'Laporan', routeName: 'laporan.index', icon: FileBarChart, permission: 'laporan.lihat' },
         ],
