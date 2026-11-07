@@ -3,6 +3,8 @@
 namespace App\Services\Pinjaman;
 
 use App\Models\Anggota;
+use App\Models\PengajuanLimit;
+use App\Models\Pinjaman;
 use App\Models\SettingLimitPinjaman;
 use App\Models\TabelTenor;
 
@@ -194,6 +196,142 @@ class EligibilitasPinjamanService
         }
 
         return $maks > 0 ? $maks : 10_000_000.0;
+    }
+
+    /**
+     * Cek eligibilitas anggota untuk mengajukan kenaikan limit pinjaman.
+     * Menggabungkan aturan:
+     * 1. Status anggota aktif.
+     * 2. Tidak sedang memiliki pengajuan pinjaman dalam proses verifikasi.
+     * 3. Tidak sedang memiliki pengajuan limit yang belum diproses/diverifikasi.
+     * 4. Limit saat ini belum menyentuh plafon maksimal kebijakan koperasi (10 jt).
+     * 5. Jika ada pinjaman aktif, sisa angsuran harus <= 2 angsuran atau telah lunas.
+     * 6. Jika pernah mendapat persetujuan kenaikan limit sebelumnya, wajib memanfaatkan
+     *    limit tersebut untuk pinjaman terlebih dahulu sebelum mengajukan kenaikan lagi.
+     *
+     * @return array{
+     *     boleh: bool,
+     *     alasan: ?string,
+     *     status_badge: string,
+     *     state_label: string,
+     *     limit_saat_ini: float,
+     *     plafon_koperasi: float
+     * }
+     */
+    public function cekEligibilitasTambahLimit(Anggota $anggota): array
+    {
+        $limitSaatIni = $this->limitMaksimal($anggota);
+        $plafonMaksimalKoperasi = $this->plafonTertinggiKoperasi();
+
+        // 1. Status anggota
+        if ($anggota->status !== 'aktif') {
+            $alasan = $anggota->status === 'resign_menunggu'
+                ? 'Penyelesaian resign Anda sedang menunggu pelunasan.'
+                : "Anggota berstatus '{$anggota->status}', tidak dapat mengajukan kenaikan limit.";
+
+            return [
+                'boleh' => false,
+                'alasan' => $alasan,
+                'status_badge' => 'terkunci',
+                'state_label' => 'Belum memenuhi',
+                'limit_saat_ini' => $limitSaatIni,
+                'plafon_koperasi' => $plafonMaksimalKoperasi,
+            ];
+        }
+
+        // 2. Ada pengajuan pinjaman sedang diproses
+        $adaPinjamanDiproses = $anggota->pinjaman()
+            ->whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara'])
+            ->exists();
+
+        if ($adaPinjamanDiproses) {
+            return [
+                'boleh' => false,
+                'alasan' => 'Pengajuan pinjaman sedang diproses.',
+                'status_badge' => 'diproses',
+                'state_label' => 'Pengajuan diproses',
+                'limit_saat_ini' => $limitSaatIni,
+                'plafon_koperasi' => $plafonMaksimalKoperasi,
+            ];
+        }
+
+        // 3. Ada pengajuan limit sedang diverifikasi
+        $adaLimitDiproses = PengajuanLimit::where('anggota_id', $anggota->id)
+            ->whereIn('status', ['diajukan', 'approved_bendahara'])
+            ->exists();
+
+        if ($adaLimitDiproses) {
+            return [
+                'boleh' => false,
+                'alasan' => 'Anda masih memiliki pengajuan limit yang belum diproses.',
+                'status_badge' => 'diproses',
+                'state_label' => 'Sedang diverifikasi',
+                'limit_saat_ini' => $limitSaatIni,
+                'plafon_koperasi' => $plafonMaksimalKoperasi,
+            ];
+        }
+
+        // 4. Plafon maksimal kebijakan koperasi tercapai
+        if ($limitSaatIni >= $plafonMaksimalKoperasi) {
+            return [
+                'boleh' => false,
+                'alasan' => 'Limit Anda telah mencapai batas maksimal kebijakan koperasi (Rp '.number_format($plafonMaksimalKoperasi, 0, ',', '.').').',
+                'status_badge' => 'maksimal',
+                'state_label' => 'Plafon maksimal',
+                'limit_saat_ini' => $limitSaatIni,
+                'plafon_koperasi' => $plafonMaksimalKoperasi,
+            ];
+        }
+
+        // 5. Pinjaman aktif berjalan (sisa angsuran > 2)
+        $agg = $anggota->pinjamanAktifDenganAgregat();
+        if ($agg !== null) {
+            $sisaAngsuran = (int) $agg['sisa_total'];
+            if ($sisaAngsuran > 2) {
+                return [
+                    'boleh' => false,
+                    'alasan' => 'Pinjaman sebelumnya belum lunas. Kenaikan limit baru dapat diajukan setelah pinjaman berjalan tersisa maksimal 2 angsuran atau telah lunas.',
+                    'status_badge' => 'terkunci',
+                    'state_label' => 'Angsuran berjalan',
+                    'limit_saat_ini' => $limitSaatIni,
+                    'plafon_koperasi' => $plafonMaksimalKoperasi,
+                ];
+            }
+        }
+
+        // 6. Opsi 1: Pemanfaatan limit setelah kenaikan disetujui
+        $limitTerakhirDisetujui = PengajuanLimit::where('anggota_id', $anggota->id)
+            ->where('status', 'disetujui')
+            ->latest('updated_at')
+            ->first();
+
+        if ($limitTerakhirDisetujui) {
+            $waktuSetuju = $limitTerakhirDisetujui->updated_at ?? $limitTerakhirDisetujui->created_at;
+            $adaPinjamanSetelahLimit = $anggota->pinjaman()
+                ->where('created_at', '>=', $waktuSetuju ? $waktuSetuju->copy()->subSeconds(2) : now())
+                ->whereIn('status', ['aktif', 'lunas'])
+                ->exists();
+
+            if (! $adaPinjamanSetelahLimit) {
+                return [
+                    'boleh' => false,
+                    'alasan' => 'Anda telah mendapatkan kenaikan limit menjadi Rp '.number_format($limitSaatIni, 0, ',', '.').'. Manfaatkan limit ini untuk pinjaman terlebih dahulu sebelum mengajukan kenaikan berikutnya.',
+                    'status_badge' => 'terkunci',
+                    'state_label' => 'Belum digunakan',
+                    'limit_saat_ini' => $limitSaatIni,
+                    'plafon_koperasi' => $plafonMaksimalKoperasi,
+                ];
+            }
+        }
+
+        return [
+            'boleh' => true,
+            'alasan' => null,
+            'status_badge' => 'tersedia',
+            'state_label' => 'Ajukan kenaikan limit',
+            'limit_saat_ini' => $limitSaatIni,
+            'plafon_koperasi' => $plafonMaksimalKoperasi,
+        ];
     }
 
     /**

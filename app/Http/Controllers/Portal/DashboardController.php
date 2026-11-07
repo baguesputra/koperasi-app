@@ -32,6 +32,7 @@ class DashboardController extends Controller
 
         $pinjamanAktif = $anggota->pinjamanAktif();
         $cekEligibilitas = $this->eligibilitas->cek($anggota);
+        $cekTambahLimit = $this->eligibilitas->cekEligibilitasTambahLimit($anggota);
         $limitMaksimal = $this->eligibilitas->limitMaksimal($anggota);
 
         // Pengajuan yang sedang berjalan (belum aktif/lunas/ditolak)
@@ -216,6 +217,11 @@ class DashboardController extends Controller
             'angsuranBerikutnya' => $angsuranBerikutnya,
             'bisaAjukan' => $cekEligibilitas['boleh'],
             'alasanTidakBisa' => $cekEligibilitas['alasan'],
+            'bolehAjukanLimit' => $cekTambahLimit['boleh'],
+            'pesanTerkunciLimit' => $cekTambahLimit['alasan'],
+            'statusLimitBadge' => $cekTambahLimit['status_badge'],
+            'stateLimitLabel' => $cekTambahLimit['state_label'],
+            'plafonKebijakan' => (float) $cekTambahLimit['plafon_koperasi'],
             'riwayatGabungan' => $riwayatGabungan,
             'tabelTenor' => $tabelTenor,
             'settingSimpanan' => $settingSimpanan,

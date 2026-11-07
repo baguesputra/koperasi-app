@@ -1,6 +1,6 @@
 import AnggotaLayout from '@/Layouts/AnggotaLayout';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
-import { ArrowLeft, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { ArrowLeft, Clock, CheckCircle2, XCircle, Lock } from 'lucide-react';
 import { withIdempotencyKey } from '@/Utils/idempotency';
 import { useFeatureTour } from '@/Utils/featureTour';
 
@@ -21,7 +21,14 @@ const statusStyle = {
 const statusIcon = { diajukan: Clock, approved_bendahara: Clock, disetujui: CheckCircle2, ditolak: XCircle };
 const statusLabel = { diajukan: 'Menunggu Bendahara', approved_bendahara: 'Menunggu Ketua', disetujui: 'Disetujui', ditolak: 'Ditolak' };
 
-export default function Create({ limitSaatIni, plafonKebijakan, riwayat }) {
+export default function Create({
+    limitSaatIni,
+    plafonKebijakan,
+    bolehAjukan = true,
+    alasanTerkunci = null,
+    statusBadge = 'tersedia',
+    riwayat,
+}) {
     const { auth } = usePage().props;
     useFeatureTour('tambah-limit', auth?.user?.id, [
         { element: '[data-tour="limit-current"]', popover: { title: 'Limit Saat Ini', description: 'Lihat limit pinjaman yang aktif sekarang.' } },
@@ -34,11 +41,12 @@ export default function Create({ limitSaatIni, plafonKebijakan, riwayat }) {
     });
 
     const adaPengajuanMenunggu = riwayat.some((r) => ['diajukan', 'approved_bendahara'].includes(r.status));
+    const tidakBisaMengajukan = !bolehAjukan || adaPengajuanMenunggu || limitSaatIni >= plafonKebijakan;
     const melebihiKebijakan = Boolean(plafonKebijakan && Number(data.limit_diminta) > plafonKebijakan);
 
     function submit(e) {
         e.preventDefault();
-        if (melebihiKebijakan) {
+        if (tidakBisaMengajukan || melebihiKebijakan) {
             return;
         }
         post(route('portal.pengajuan-limit.store'), withIdempotencyKey({ onSuccess: () => reset() }));
@@ -69,18 +77,44 @@ export default function Create({ limitSaatIni, plafonKebijakan, riwayat }) {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                 <div className="bg-white rounded-2xl border border-slate-100 p-6">
-                    {adaPengajuanMenunggu ? (
-                        <div className="flex items-start gap-3 bg-amber-50 border border-amber-100 rounded-xl p-4">
-                            <Clock className="text-amber-600 shrink-0 mt-0.5" size={20} />
-                            <div>
-                                <p className="text-sm text-amber-800">
-                                    Anda masih memiliki pengajuan limit yang belum diproses. Tunggu keputusannya sebelum mengajukan lagi.
-                                </p>
-                                <p className="text-sm text-amber-700 mt-1.5">
-                                    Keputusan akan tampil di Beranda (kartu Limit Tersedia) dan di riwayat di bawah.
-                                </p>
+                    {tidakBisaMengajukan ? (
+                        statusBadge === 'maksimal' || limitSaatIni >= plafonKebijakan ? (
+                            <div className="flex items-start gap-3 bg-slate-50 border border-slate-200 rounded-xl p-4">
+                                <Lock className="text-slate-600 shrink-0 mt-0.5" size={20} />
+                                <div>
+                                    <p className="text-sm font-semibold text-slate-800">
+                                        Plafon Maksimal Koperasi Tercapai
+                                    </p>
+                                    <p className="text-sm text-slate-600 mt-1">
+                                        {alasanTerkunci || `Limit pinjaman Anda telah mencapai batas tertinggi kebijakan koperasi (${formatRupiah(plafonKebijakan)}). Kenaikan limit baru tidak dapat diajukan.`}
+                                    </p>
+                                </div>
                             </div>
-                        </div>
+                        ) : adaPengajuanMenunggu ? (
+                            <div className="flex items-start gap-3 bg-amber-50 border border-amber-100 rounded-xl p-4">
+                                <Clock className="text-amber-600 shrink-0 mt-0.5" size={20} />
+                                <div>
+                                    <p className="text-sm text-amber-800">
+                                        Anda masih memiliki pengajuan limit yang belum diproses. Tunggu keputusannya sebelum mengajukan lagi.
+                                    </p>
+                                    <p className="text-sm text-amber-700 mt-1.5">
+                                        Keputusan akan tampil di Beranda (kartu Limit Tersedia) dan di riwayat di samping.
+                                    </p>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
+                                <Lock className="text-amber-700 shrink-0 mt-0.5" size={20} />
+                                <div>
+                                    <p className="text-sm font-semibold text-amber-900">
+                                        Pengajuan Tambah Limit Belum Tersedia
+                                    </p>
+                                    <p className="text-sm text-amber-800 mt-1">
+                                        {alasanTerkunci}
+                                    </p>
+                                </div>
+                            </div>
+                        )
                     ) : (
                         <form onSubmit={submit}>
                             <div className="mb-5">

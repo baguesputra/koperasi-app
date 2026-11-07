@@ -15,29 +15,18 @@ class PengajuanLimitService
 
     public function ajukan(Anggota $anggota, float $limitDiminta, string $keterangan): PengajuanLimit
     {
-        $adaPengajuanMenunggu = PengajuanLimit::where('anggota_id', $anggota->id)
-            ->whereIn('status', ['diajukan', 'approved_bendahara'])
-            ->exists();
-
-        if ($adaPengajuanMenunggu) {
-            throw new RuntimeException('Anda masih memiliki pengajuan limit yang belum diproses.');
+        $cek = $this->eligibilitas->cekEligibilitasTambahLimit($anggota);
+        if (! $cek['boleh']) {
+            throw new RuntimeException($cek['alasan']);
         }
 
-        $adaPinjamanBerjalan = $anggota->pinjaman()
-            ->whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara'])
-            ->exists();
-
-        if ($adaPinjamanBerjalan) {
-            throw new RuntimeException('Pengajuan pinjaman sedang diproses.');
-        }
-
-        $limitSaatIni = $this->eligibilitas->limitMaksimal($anggota);
+        $limitSaatIni = $cek['limit_saat_ini'];
 
         if ($limitDiminta <= $limitSaatIni) {
             throw new RuntimeException('Limit yang diajukan harus lebih besar dari limit Anda saat ini: Rp '.number_format($limitSaatIni, 0, ',', '.'));
         }
 
-        $plafonMaksimalKoperasi = $this->eligibilitas->plafonTertinggiKoperasi();
+        $plafonMaksimalKoperasi = $cek['plafon_koperasi'];
         if ($limitDiminta > $plafonMaksimalKoperasi) {
             throw new RuntimeException('Nominal yang diajukan melebihi batas kebijakan koperasi.');
         }

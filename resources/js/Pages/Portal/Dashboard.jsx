@@ -230,6 +230,11 @@ export default function Dashboard({
     angsuranBerikutnya,
     bisaAjukan,
     alasanTidakBisa,
+    bolehAjukanLimit: propBolehAjukanLimit,
+    pesanTerkunciLimit: propPesanTerkunciLimit,
+    statusLimitBadge: propStatusLimitBadge,
+    stateLimitLabel: propStateLimitLabel,
+    plafonKebijakan,
     riwayatGabungan,
     tabelTenor,
     settingSimpanan,
@@ -280,8 +285,17 @@ export default function Dashboard({
         !resignMenunggu
     );
 
-    // 2. Tambah Limit: hanya bisa jika eligibel, tidak ada pengajuan pinjaman/limit berjalan, dan tidak ada resign shortfall.
-    const bolehAjukanLimit = Boolean(bisaAjukan && !pengajuanBerjalan && !pengajuanLimitBerjalan && !resignMenunggu);
+    // 2. Tambah Limit: dikontrol penuh oleh domain rule EligibilitasPinjamanService
+    const bolehAjukanLimit = propBolehAjukanLimit !== undefined
+        ? propBolehAjukanLimit
+        : Boolean(bisaAjukan && !pengajuanBerjalan && !pengajuanLimitBerjalan && !resignMenunggu);
+
+    const statusLimitBadge = propStatusLimitBadge || (pengajuanBerjalan || pengajuanLimitBerjalan ? 'diproses' : 'terkunci');
+    const stateLimitLabel = propStateLimitLabel || (pengajuanBerjalan
+        ? 'Pengajuan diproses'
+        : pengajuanLimitBerjalan
+        ? 'Sedang diverifikasi'
+        : 'Belum memenuhi');
 
     // 3. Ubah Tenor: hanya jika ada pinjaman aktif, tidak ada pengajuan berjalan, tidak ada percepatan menunggu, dan ada pinjaman yang belum pakai percepatan.
     const bolehUbahTenor = Boolean(
@@ -302,13 +316,13 @@ export default function Dashboard({
         ? 'Penyelesaian resign Anda sedang menunggu pelunasan.'
         : alasanTidakBisa || 'Belum memenuhi ketentuan koperasi.';
 
-    const pesanTerkunciLimit = pengajuanBerjalan
+    const pesanTerkunciLimit = propPesanTerkunciLimit || (pengajuanBerjalan
         ? 'Pengajuan kenaikan limit tidak dapat dibuat karena pengajuan pinjaman Anda masih diproses.'
         : pengajuanLimitBerjalan
         ? 'Pengajuan kenaikan limit Anda masih diverifikasi.'
         : resignMenunggu
         ? 'Penyelesaian resign Anda sedang menunggu pelunasan.'
-        : alasanTidakBisa || 'Belum memenuhi ketentuan pengajuan limit.';
+        : alasanTidakBisa || 'Belum memenuhi ketentuan pengajuan limit.');
 
     const pesanTerkunciTenor = pengajuanBerjalan
         ? 'Perubahan tenor tidak dapat diajukan karena pengajuan pinjaman Anda masih diproses.'
@@ -717,7 +731,7 @@ export default function Dashboard({
                             </span>
                             <span className="pd-action__text">
                                 <span className="pd-action__label">Tambah limit</span>
-                                <span className="pd-action__state">Ajukan kenaikan limit</span>
+                                <span className="pd-action__state">{stateLimitLabel || 'Ajukan kenaikan limit'}</span>
                             </span>
                             <span className="pd-action__flag">Tersedia</span>
                         </Link>
@@ -729,21 +743,22 @@ export default function Dashboard({
                                 </span>
                                 <span className="pd-action__text">
                                     <span className="pd-action__label">Tambah limit</span>
-                                    <span className="pd-action__state">
-                                        {pengajuanBerjalan
-                                            ? 'Pengajuan diproses'
-                                            : pengajuanLimitBerjalan
-                                            ? 'Sedang diverifikasi'
-                                            : 'Belum memenuhi'}
-                                    </span>
+                                    <span className="pd-action__state">{stateLimitLabel || 'Belum memenuhi'}</span>
                                 </span>
                                 <span className="pd-action__flag">
-                                    {!(pengajuanBerjalan || pengajuanLimitBerjalan) && (
-                                        <Lock size={10} aria-hidden="true" />
+                                    {statusLimitBadge === 'maksimal' ? (
+                                        <>
+                                            <Lock size={10} aria-hidden="true" />
+                                            <span>Maksimal</span>
+                                        </>
+                                    ) : statusLimitBadge === 'diproses' ? (
+                                        'Diproses'
+                                    ) : (
+                                        <>
+                                            <Lock size={10} aria-hidden="true" />
+                                            <span>Terkunci</span>
+                                        </>
                                     )}
-                                    {pengajuanBerjalan || pengajuanLimitBerjalan
-                                        ? 'Diproses'
-                                        : 'Terkunci'}
                                 </span>
                             </div>
                         </PetunjukTerkunci>

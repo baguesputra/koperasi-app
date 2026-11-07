@@ -27,6 +27,8 @@ class PengajuanLimitController extends Controller
             abort(403, 'Pengajuan pinjaman sedang diproses.');
         }
 
+        $cek = $this->eligibilitas->cekEligibilitasTambahLimit($anggota);
+
         $riwayat = PengajuanLimit::where('anggota_id', $anggota->id)
             ->latest('tanggal_pengajuan')
             ->get()
@@ -43,8 +45,11 @@ class PengajuanLimitController extends Controller
             ]);
 
         return Inertia::render('Portal/PengajuanLimit/Create', [
-            'limitSaatIni' => $this->eligibilitas->limitMaksimal($anggota),
-            'plafonKebijakan' => $this->eligibilitas->plafonTertinggiKoperasi(),
+            'limitSaatIni' => (float) $cek['limit_saat_ini'],
+            'plafonKebijakan' => (float) $cek['plafon_koperasi'],
+            'bolehAjukan' => $cek['boleh'],
+            'alasanTerkunci' => $cek['alasan'],
+            'statusBadge' => $cek['status_badge'],
             'riwayat' => $riwayat,
         ]);
     }
@@ -67,6 +72,11 @@ class PengajuanLimitController extends Controller
 
         if ($this->hasLoanApplicationInProgress($anggota->id)) {
             return back()->withErrors(['limit_diminta' => 'Pengajuan pinjaman sedang diproses.']);
+        }
+
+        $cek = $this->eligibilitas->cekEligibilitasTambahLimit($anggota);
+        if (! $cek['boleh']) {
+            return back()->withErrors(['limit_diminta' => $cek['alasan']]);
         }
 
         try {

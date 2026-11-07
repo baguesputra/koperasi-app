@@ -46,10 +46,16 @@ class PengajuanLimitController extends Controller
             ->orderByDesc('id')
             ->get();
 
+        $cek = $this->eligibilitas->cekEligibilitasTambahLimit($anggota);
+
         return response()->json([
             'data' => PengajuanLimitResource::collection($rows)->resolve(),
-            'limit_saat_ini' => (float) $this->eligibilitas->limitMaksimal($anggota),
-            'plafon_kebijakan' => (float) $this->eligibilitas->plafonTertinggiKoperasi(),
+            'limit_saat_ini' => (float) $cek['limit_saat_ini'],
+            'plafon_kebijakan' => (float) $cek['plafon_koperasi'],
+            'boleh_tambah_limit' => $cek['boleh'],
+            'alasan_terkunci_limit' => $cek['alasan'],
+            'status_limit_badge' => $cek['status_badge'],
+            'state_limit_label' => $cek['state_label'],
         ]);
     }
 
@@ -92,8 +98,8 @@ class PengajuanLimitController extends Controller
             );
         } catch (RuntimeException $e) {
             return response()->json([
-                'message' => 'Masih ada pengajuan limit yang sedang diproses.',
-                'errors' => ['limit_diminta' => ['Selesaikan pengajuan sebelumnya terlebih dahulu.']],
+                'message' => $e->getMessage(),
+                'errors' => ['limit_diminta' => [$e->getMessage()]],
             ], 422);
         }
 
