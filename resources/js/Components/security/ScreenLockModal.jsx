@@ -125,8 +125,8 @@ export default function ScreenLockModal() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isScreenLocked, isLockedOut, pin]);
 
-    // Jika tidak terkunci atau tidak ada sesi login, jangan tampilkan modal
-    if (!isScreenLocked || !user) {
+    // Jika tidak terkunci, tidak ada sesi login, atau user belum memiliki PIN, jangan tampilkan modal
+    if (!isScreenLocked || !user || !user.has_pin) {
         return null;
     }
 
