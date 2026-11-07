@@ -2,7 +2,8 @@ import AppLayout from '@/Layouts/AppLayout';
 import { Head, usePage, useForm, router, Link } from '@inertiajs/react';
 import {
     Wallet, ArrowDownCircle, ArrowUpCircle, ChevronLeft, ChevronRight,
-    Landmark, Building2, CalendarDays, Search, X, ArrowRightLeft, Check, BookOpenText
+    Landmark, Building2, CalendarDays, Search, X, ArrowRightLeft, Check, BookOpenText,
+    SlidersHorizontal, ChevronDown, Calendar
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Card from '@/Components/ui/Card';
@@ -91,6 +92,42 @@ export default function Index({
     const hariIni = new Date().toISOString().slice(0, 10);
 
     const kanalAktif = filters.kanal ?? filters.akun ?? '';
+    const tipeFilter = filters.tipe ?? '';
+    const kategoriFilter = filters.kategori ?? '';
+    const isRentangAktif = Boolean(filters.dari_tanggal || filters.sampai_tanggal);
+
+    const [showPeriodePopover, setShowPeriodePopover] = useState(false);
+    const [showKategoriPopover, setShowKategoriPopover] = useState(false);
+    const [kategoriCari, setKategoriCari] = useState('');
+    const [tabPeriode, setTabPeriode] = useState(isRentangAktif ? 'rentang' : 'bulan');
+    const [tempBulan, setTempBulan] = useState(bulanFilter);
+    const [tempDari, setTempDari] = useState(filters.dari_tanggal ?? '');
+    const [tempSampai, setTempSampai] = useState(filters.sampai_tanggal ?? '');
+
+    const periodeRef = useRef(null);
+    const kategoriRef = useRef(null);
+
+    useEffect(() => {
+        function handleClickOutside(e) {
+            if (periodeRef.current && !periodeRef.current.contains(e.target)) {
+                setShowPeriodePopover(false);
+            }
+            if (kategoriRef.current && !kategoriRef.current.contains(e.target)) {
+                setShowKategoriPopover(false);
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    useEffect(() => {
+        setTempBulan(bulanFilter);
+        setTempDari(filters.dari_tanggal ?? '');
+        setTempSampai(filters.sampai_tanggal ?? '');
+        if (filters.dari_tanggal || filters.sampai_tanggal) {
+            setTabPeriode('rentang');
+        }
+    }, [bulanFilter, filters.dari_tanggal, filters.sampai_tanggal]);
 
     // Forms
     const pemasukanForm = useForm({
@@ -117,12 +154,27 @@ export default function Index({
 
     function terapkan(overrides = {}) {
         const params = {
-            bulan: bulanFilter,
+            bulan: (filters.dari_tanggal || filters.sampai_tanggal) && !overrides.bulan ? undefined : bulanFilter,
             kanal: kanalAktif,
+            tipe: tipeFilter,
+            kategori: kategoriFilter,
+            dari_tanggal: filters.dari_tanggal,
+            sampai_tanggal: filters.sampai_tanggal,
             cari,
             page: 1,
             ...overrides,
         };
+
+        if (overrides.bulan) {
+            params.dari_tanggal = undefined;
+            params.sampai_tanggal = undefined;
+            params.tanggal = undefined;
+        }
+
+        if (overrides.dari_tanggal || overrides.sampai_tanggal) {
+            params.bulan = undefined;
+            params.tanggal = undefined;
+        }
 
         Object.keys(params).forEach((k) => {
             if (params[k] === null || params[k] === undefined || params[k] === '') {
@@ -142,19 +194,43 @@ export default function Index({
     }
 
     function geserBulan(delta) {
-        const [tahun, bulanAngka] = bulanFilter.split('-').map(Number);
+        const [tahun, bulanAngka] = (bulanFilter || kunciBulanIni).split('-').map(Number);
         const d = new Date(tahun, bulanAngka - 1 + delta, 1);
         const blnBaru = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        terapkan({ bulan: blnBaru });
+        terapkan({ bulan: blnBaru, dari_tanggal: '', sampai_tanggal: '', tanggal: '' });
     }
 
     function resetFilter() {
         setCari('');
         router.get(
             route('kas-koperasi.index'),
-            { bulan: bulanFilter },
+            { bulan: kunciBulanIni },
             { preserveState: true, replace: true }
         );
+    }
+
+    function terapkanRentang() {
+        if (!tempDari && !tempSampai) return;
+        let d = tempDari || tempSampai;
+        let s = tempSampai || tempDari;
+        if (d > s) [d, s] = [s, d];
+        terapkan({ dari_tanggal: d, sampai_tanggal: s, bulan: '', tanggal: '' });
+        setShowPeriodePopover(false);
+    }
+
+    function terapkanBulanPilihan() {
+        if (!tempBulan) return;
+        terapkan({ bulan: tempBulan, dari_tanggal: '', sampai_tanggal: '', tanggal: '' });
+        setShowPeriodePopover(false);
+    }
+
+    function setPresetRentang(hari) {
+        const d = new Date();
+        const sampai = d.toISOString().slice(0, 10);
+        d.setDate(d.getDate() - (hari - 1));
+        const dari = d.toISOString().slice(0, 10);
+        setTempDari(dari);
+        setTempSampai(sampai);
     }
 
     useEffect(() => {
@@ -181,6 +257,34 @@ export default function Index({
     const bulanIni = new Date();
     const kunciBulanIni = `${bulanIni.getFullYear()}-${String(bulanIni.getMonth() + 1).padStart(2, '0')}`;
 
+    const labelPeriode = useMemo(() => {
+        if (filters.dari_tanggal || filters.sampai_tanggal) {
+            const dari = filters.dari_tanggal || filters.sampai_tanggal;
+            const sampai = filters.sampai_tanggal || filters.dari_tanggal;
+            const [y1, m1, d1] = dari.split('-');
+            const [y2, m2, d2] = sampai.split('-');
+            const dt1 = new Date(Number(y1), Number(m1) - 1, Number(d1));
+            const dt2 = new Date(Number(y2), Number(m2) - 1, Number(d2));
+            if (dari === sampai) {
+                return dt1.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+            }
+            if (y1 === y2 && m1 === m2) {
+                return `${d1} – ${dt2.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+            }
+            return `${dt1.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} – ${dt2.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+        }
+        return labelBulan;
+    }, [filters.dari_tanggal, filters.sampai_tanggal, labelBulan]);
+
+    const opsiKategoriTersaring = useMemo(() => {
+        const semua = Object.entries(kategoriOptions && Object.keys(kategoriOptions).length > 0 ? kategoriOptions : kategoriLabel);
+        if (!kategoriCari.trim()) return semua;
+        const q = kategoriCari.toLowerCase();
+        return semua.filter(([k, label]) =>
+            label.toLowerCase().includes(q) || k.toLowerCase().includes(q)
+        );
+    }, [kategoriOptions, kategoriCari]);
+
     const labelAkunSaldo = kanalAktif === 'bank'
         ? ' Bank'
         : kanalAktif === 'kas_kecil'
@@ -188,7 +292,14 @@ export default function Index({
         : '';
 
     const daftarRiwayat = Array.isArray(riwayat) ? riwayat : (riwayat?.data ?? []);
-    const filterAktif = Boolean(kanalAktif || filters.cari || filters.kategori || filters.kantong);
+    const filterAktif = Boolean(
+        kanalAktif ||
+        filters.cari ||
+        tipeFilter ||
+        kategoriFilter ||
+        isRentangAktif ||
+        (bulanFilter && bulanFilter !== kunciBulanIni)
+    );
     const saldoValid = ringkasanPeriode?.saldo_valid !== false;
 
     // Saldo awal & akhir per akun / gabungan
@@ -526,103 +637,366 @@ export default function Index({
                 })()}
             </div>
 
-            {/* Filter Card & Periode Stepper */}
+            {/* Filter Card: Ultra-Minimalist Single-Bar Layout */}
             <Card padding="sm" className="shadow-xs border-slate-200/80 mb-4">
-                <div className="flex items-center justify-between gap-3 flex-wrap">
-                    <div className="flex items-center gap-2.5 flex-wrap flex-1 min-w-[280px]">
-                        {/* Stepper Bulan */}
-                        <div className="flex items-center rounded-xl border border-slate-300 bg-white overflow-hidden shadow-2xs">
+                <div className="flex items-center justify-between gap-2.5 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap flex-1 min-w-[280px]">
+                        {/* 1. Periode Capsule with Popover */}
+                        <div className="relative" ref={periodeRef}>
+                            <div className="flex items-center rounded-xl border border-slate-300 bg-white overflow-hidden shadow-2xs">
+                                {!isRentangAktif && (
+                                    <button
+                                        type="button"
+                                        onClick={() => geserBulan(-1)}
+                                        aria-label="Bulan sebelumnya"
+                                        className={`px-2 py-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors ${fokusRing}`}
+                                    >
+                                        <ChevronLeft size={15} />
+                                    </button>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPeriodePopover(!showPeriodePopover)}
+                                    className={`px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-1.5 ${fokusRing}`}
+                                >
+                                    <CalendarDays size={13} className="text-slate-400" />
+                                    <span>{labelPeriode}</span>
+                                    <ChevronDown size={11} className="text-slate-400" />
+                                </button>
+                                {isRentangAktif ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => terapkan({ dari_tanggal: '', sampai_tanggal: '', bulan: kunciBulanIni })}
+                                        aria-label="Reset rentang tanggal"
+                                        title="Kembali ke bulan ini"
+                                        className={`px-2 py-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 border-l border-slate-200 transition-colors ${fokusRing}`}
+                                    >
+                                        <X size={13} />
+                                    </button>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={() => geserBulan(1)}
+                                        aria-label="Bulan berikutnya"
+                                        className={`px-2 py-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors ${fokusRing}`}
+                                    >
+                                        <ChevronRight size={15} />
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Periode Popover Flyout */}
+                            {showPeriodePopover && (
+                                <div className="absolute left-0 top-full mt-2 z-50 w-72 sm:w-80 p-3 bg-white rounded-2xl shadow-xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+                                    <div className="flex items-center p-0.5 mb-3 rounded-lg bg-slate-100 border border-slate-200 text-xs">
+                                        <button
+                                            type="button"
+                                            onClick={() => setTabPeriode('bulan')}
+                                            className={`flex-1 py-1 rounded-md font-semibold transition-all ${
+                                                tabPeriode === 'bulan' ? 'bg-white text-slate-800 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+                                            }`}
+                                        >
+                                            Per Bulan
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setTabPeriode('rentang')}
+                                            className={`flex-1 py-1 rounded-md font-semibold transition-all ${
+                                                tabPeriode === 'rentang' ? 'bg-white text-slate-800 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+                                            }`}
+                                        >
+                                            Rentang Tanggal
+                                        </button>
+                                    </div>
+
+                                    {tabPeriode === 'bulan' ? (
+                                        <div className="space-y-3">
+                                            <div>
+                                                <label className="block text-[11px] font-semibold text-slate-500 mb-1">
+                                                    Pilih Bulan
+                                                </label>
+                                                <input
+                                                    type="month"
+                                                    value={tempBulan}
+                                                    onChange={(e) => setTempBulan(e.target.value)}
+                                                    className="w-full px-2.5 py-1.5 text-xs font-semibold rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-green/30"
+                                                />
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setTempBulan(kunciBulanIni)}
+                                                    className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+                                                >
+                                                    Bulan Ini
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const d = new Date();
+                                                        d.setMonth(d.getMonth() - 1);
+                                                        setTempBulan(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+                                                    }}
+                                                    className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+                                                >
+                                                    Bulan Lalu
+                                                </button>
+                                            </div>
+                                            <div className="pt-2 border-t border-slate-100 flex justify-end gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowPeriodePopover(false)}
+                                                    className="px-3 py-1 text-xs font-semibold text-slate-500 hover:text-slate-700"
+                                                >
+                                                    Batal
+                                                </button>
+                                                <Button size="xs" onClick={terapkanBulanPilihan}>
+                                                    Terapkan
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">
+                                                        Dari Tanggal
+                                                    </label>
+                                                    <input
+                                                        type="date"
+                                                        value={tempDari}
+                                                        onChange={(e) => setTempDari(e.target.value)}
+                                                        className="w-full px-2 py-1.5 text-xs font-medium rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-green/30"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">
+                                                        Sampai Tanggal
+                                                    </label>
+                                                    <input
+                                                        type="date"
+                                                        value={tempSampai}
+                                                        onChange={(e) => setTempSampai(e.target.value)}
+                                                        className="w-full px-2 py-1.5 text-xs font-medium rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-green/30"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1.5">
+                                                    Pintasan Cepat
+                                                </p>
+                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setPresetRentang(1)}
+                                                        className="px-2 py-0.5 text-xs font-medium rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+                                                    >
+                                                        Hari Ini
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setPresetRentang(7)}
+                                                        className="px-2 py-0.5 text-xs font-medium rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+                                                    >
+                                                        7 Hari
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setPresetRentang(30)}
+                                                        className="px-2 py-0.5 text-xs font-medium rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+                                                    >
+                                                        30 Hari
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="pt-2 border-t border-slate-100 flex justify-end gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowPeriodePopover(false)}
+                                                    className="px-3 py-1 text-xs font-semibold text-slate-500 hover:text-slate-700"
+                                                >
+                                                    Batal
+                                                </button>
+                                                <Button size="xs" onClick={terapkanRentang}>
+                                                    Terapkan Rentang
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* 2. Segmented Pill: Tipe Transaksi */}
+                        <div className="inline-flex items-center p-0.5 rounded-xl bg-slate-100 border border-slate-200/80 text-xs shrink-0">
                             <button
                                 type="button"
-                                onClick={() => geserBulan(-1)}
-                                aria-label="Bulan sebelumnya"
-                                className={`px-2 py-2 text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors ${fokusRing}`}
+                                onClick={() => terapkan({ tipe: '' })}
+                                className={`px-2.5 py-1 rounded-lg font-semibold transition-all ${
+                                    !tipeFilter ? 'bg-white text-slate-800 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+                                }`}
                             >
-                                <ChevronLeft size={16} />
+                                Semua
                             </button>
-                            <input
-                                type="month"
-                                value={bulanFilter}
-                                onChange={(e) => e.target.value && terapkan({ bulan: e.target.value })}
-                                aria-label="Pilih bulan"
-                                className="px-2 py-1.5 text-sm font-semibold text-slate-700 border-x border-slate-200 bg-transparent focus:outline-none"
-                            />
                             <button
                                 type="button"
-                                onClick={() => geserBulan(1)}
-                                aria-label="Bulan berikutnya"
-                                className={`px-2 py-2 text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors ${fokusRing}`}
+                                onClick={() => terapkan({ tipe: 'masuk' })}
+                                className={`px-2.5 py-1 rounded-lg font-semibold transition-all ${
+                                    tipeFilter === 'masuk' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-slate-500 hover:text-emerald-700'
+                                }`}
                             >
-                                <ChevronRight size={16} />
+                                + Masuk
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => terapkan({ tipe: 'keluar' })}
+                                className={`px-2.5 py-1 rounded-lg font-semibold transition-all ${
+                                    tipeFilter === 'keluar' ? 'bg-white text-rose-700 shadow-2xs' : 'text-slate-500 hover:text-rose-700'
+                                }`}
+                            >
+                                − Keluar
                             </button>
                         </div>
 
-                        {/* Search Field */}
-                        <div className="relative flex-1 min-w-[200px] max-w-md">
-                            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                            <TextField
-                                size="sm"
+                        {/* 3. Dropdown Popover: Kategori Transaksi */}
+                        <div className="relative shrink-0" ref={kategoriRef}>
+                            <button
+                                type="button"
+                                onClick={() => setShowKategoriPopover(!showKategoriPopover)}
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all ${fokusRing} ${
+                                    kategoriFilter
+                                        ? 'bg-brand-green-light/70 text-brand-green-dark border-brand-green/30'
+                                        : 'bg-white text-slate-600 border-slate-200/90 hover:bg-slate-50'
+                                }`}
+                            >
+                                <SlidersHorizontal size={13} className={kategoriFilter ? 'text-brand-green' : 'text-slate-400'} />
+                                <span className="max-w-[120px] truncate">
+                                    {kategoriFilter ? (kategoriOptions[kategoriFilter] ?? kategoriLabel[kategoriFilter] ?? kategoriFilter) : 'Kategori'}
+                                </span>
+                                <ChevronDown size={11} className={kategoriFilter ? 'text-brand-green' : 'text-slate-400'} />
+                            </button>
+
+                            {/* Kategori Popover Flyout */}
+                            {showKategoriPopover && (
+                                <div className="absolute left-0 top-full mt-2 z-50 w-64 p-2 bg-white rounded-2xl shadow-xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+                                    <div className="relative mb-2">
+                                        <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                                        <input
+                                            type="text"
+                                            value={kategoriCari}
+                                            onChange={(e) => setKategoriCari(e.target.value)}
+                                            placeholder="Cari kategori..."
+                                            className="w-full pl-7 pr-2 py-1 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-green/30"
+                                        />
+                                    </div>
+                                    <div className="max-h-56 overflow-y-auto space-y-0.5 pr-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                terapkan({ kategori: '' });
+                                                setShowKategoriPopover(false);
+                                            }}
+                                            className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between transition-colors ${
+                                                !kategoriFilter ? 'bg-slate-100 font-semibold text-slate-900' : 'text-slate-600 hover:bg-slate-50'
+                                            }`}
+                                        >
+                                            <span>Semua Kategori</span>
+                                            {!kategoriFilter && <Check size={12} className="text-slate-700" />}
+                                        </button>
+                                        {opsiKategoriTersaring.map(([k, label]) => {
+                                            const aktif = kategoriFilter === k;
+                                            return (
+                                                <button
+                                                    key={k}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        terapkan({ kategori: k });
+                                                        setShowKategoriPopover(false);
+                                                    }}
+                                                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between transition-colors ${
+                                                        aktif ? 'bg-emerald-50 font-semibold text-emerald-800' : 'text-slate-600 hover:bg-slate-50'
+                                                    }`}
+                                                >
+                                                    <span className="truncate">{label}</span>
+                                                    {aktif && <Check size={12} className="text-emerald-600 shrink-0" />}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* 4. Search Field */}
+                        <div className="relative flex-1 min-w-[170px] max-w-xs">
+                            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                            <input
+                                type="text"
                                 value={cari}
                                 onChange={(e) => setCari(e.target.value)}
-                                placeholder="Cari uraian atau no. bukti..."
+                                placeholder="Cari uraian / no. bukti..."
                                 aria-label="Cari transaksi"
-                                className="pl-9 pr-8 text-sm"
+                                className="w-full h-8 pl-8 pr-7 text-xs rounded-xl border border-slate-200/90 bg-white placeholder:text-slate-400 text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-green/30 focus:border-brand-green transition-all"
                             />
                             {cari && (
                                 <button
                                     type="button"
                                     onClick={() => setCari('')}
                                     aria-label="Hapus pencarian"
-                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                                 >
-                                    <X size={15} />
+                                    <X size={13} />
                                 </button>
                             )}
                         </div>
                     </div>
 
+                    {/* Right side: Mini summary & dynamic Reset */}
                     <div className="flex items-center gap-2 shrink-0">
-                        {bulanFilter !== kunciBulanIni && (
-                            <button
-                                type="button"
-                                onClick={() => terapkan({ bulan: kunciBulanIni })}
-                                className="text-xs font-bold text-brand-green-dark bg-brand-green-light rounded-full px-2.5 py-1.5 hover:bg-brand-green/20 transition-colors whitespace-nowrap"
-                            >
-                                Bulan ini
-                            </button>
-                        )}
                         {filterAktif && (
                             <button
                                 type="button"
                                 onClick={resetFilter}
-                                className="text-xs font-bold text-slate-500 hover:text-slate-700 rounded-full px-2.5 py-1.5 hover:bg-slate-100 transition-colors whitespace-nowrap"
+                                className="text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100/80 rounded-full px-2.5 py-1 transition-colors whitespace-nowrap flex items-center gap-1"
                             >
+                                <X size={12} />
                                 Reset
                             </button>
                         )}
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold whitespace-nowrap bg-emerald-50 text-emerald-700 border border-emerald-200/60 tabular-nums">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap bg-emerald-50 text-emerald-700 border border-emerald-200/60 tabular-nums">
                             +{formatRupiahSingkat(ringkasanPeriode?.total_masuk ?? 0)}
                         </span>
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold whitespace-nowrap bg-rose-50 text-rose-700 border border-rose-200/60 tabular-nums">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap bg-rose-50 text-rose-700 border border-rose-200/60 tabular-nums">
                             -{formatRupiahSingkat(ringkasanPeriode?.total_keluar ?? 0)}
                         </span>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2 min-w-0 px-1 pt-2.5 mt-2 border-t border-slate-100 flex-wrap">
-                    <CalendarDays size={14} className="text-slate-400 shrink-0" />
-                    <p className="text-xs text-slate-500 truncate">
-                        Buku kas <span className="font-bold text-slate-700">{labelBulan}</span>
-                        {kanalAktif ? (
-                            <span className="ml-1 text-slate-400">
-                                (Akun: <span className="font-semibold text-slate-600">{kanalAktif === 'bank' ? 'Bank' : 'Kas Kecil'}</span>)
-                            </span>
-                        ) : null}
-                    </p>
+                {/* Subline: Status Filter Ringkas */}
+                <div className="flex items-center gap-2 min-w-0 px-1 pt-2 mt-2 border-t border-slate-100 flex-wrap text-xs text-slate-500">
+                    <CalendarDays size={13} className="text-slate-400 shrink-0" />
+                    <span>
+                        Buku kas <strong className="text-slate-700 font-semibold">{labelPeriode}</strong>
+                    </span>
+                    {kanalAktif && (
+                        <span>
+                            • Akun: <strong className="text-slate-700 font-semibold">{kanalAktif === 'bank' ? 'Bank' : 'Kas Kecil'}</strong>
+                        </span>
+                    )}
+                    {tipeFilter && (
+                        <span>
+                            • Tipe: <strong className="text-slate-700 font-semibold">{tipeFilter === 'masuk' ? 'Uang Masuk (+)' : 'Uang Keluar (−)'}</strong>
+                        </span>
+                    )}
+                    {kategoriFilter && (
+                        <span>
+                            • Kategori: <strong className="text-slate-700 font-semibold">{kategoriOptions[kategoriFilter] ?? kategoriLabel[kategoriFilter] ?? kategoriFilter}</strong>
+                        </span>
+                    )}
                     {!saldoValid && (
-                        <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+                        <span className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.2">
                             Kolom saldo disembunyikan — filter aktif membatasi baris transaksi
-                        </p>
+                        </span>
                     )}
                 </div>
             </Card>

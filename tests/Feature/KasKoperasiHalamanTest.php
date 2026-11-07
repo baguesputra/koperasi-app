@@ -201,6 +201,63 @@ class KasKoperasiHalamanTest extends TestCase
         $this->assertSame('katakunciunik', $props['filters']['cari']);
     }
 
+    public function test_filter_cari_mencocokkan_no_bukti(): void
+    {
+        $user = $this->masuk('ADM-000001');
+        JurnalKas::create([
+            'tipe' => 'masuk',
+            'kategori' => 'topup_bulanan',
+            'kantong' => 'bank',
+            'jumlah' => 150_000,
+            'saldo_setelah' => 0,
+            'keterangan' => 'Mutasi biasa tanpa kata kunci',
+            'sub_judul' => null,
+            'no_bukti' => 'BKM-TEST-9988',
+            'tanggal' => now(),
+            'created_by' => $user->id,
+        ]);
+
+        $props = $this->get(route('kas-koperasi.index', ['cari' => 'TEST-9988']))
+            ->assertOk()
+            ->viewData('page')['props'];
+
+        $this->assertCount(1, $props['riwayat']['data']);
+        $this->assertSame('BKM-TEST-9988', $props['riwayat']['data'][0]['no_bukti']);
+    }
+
+    public function test_filter_kategori_mengisolasi_jenis_mutasi(): void
+    {
+        $user = $this->masuk('ADM-000001');
+        JurnalKas::create([
+            'tipe' => 'keluar',
+            'kategori' => 'pencairan_pinjaman',
+            'kantong' => 'pinjaman',
+            'jumlah' => 500_000,
+            'saldo_setelah' => 0,
+            'keterangan' => 'Uji kategori pinjaman',
+            'tanggal' => now(),
+            'created_by' => $user->id,
+        ]);
+        JurnalKas::create([
+            'tipe' => 'masuk',
+            'kategori' => 'topup_bulanan',
+            'kantong' => 'bank',
+            'jumlah' => 300_000,
+            'saldo_setelah' => 0,
+            'keterangan' => 'Uji kategori topup',
+            'tanggal' => now(),
+            'created_by' => $user->id,
+        ]);
+
+        $props = $this->get(route('kas-koperasi.index', ['kategori' => 'pencairan_pinjaman', 'cari' => 'Uji kategori']))
+            ->assertOk()
+            ->viewData('page')['props'];
+
+        $this->assertCount(1, $props['riwayat']['data']);
+        $this->assertSame('pencairan_pinjaman', $props['riwayat']['data'][0]['kategori']);
+        $this->assertSame('pencairan_pinjaman', $props['filters']['kategori']);
+    }
+
     public function test_ringkasan_kanal_terkirim_per_kas(): void
     {
         $user = $this->masuk('ADM-000001');

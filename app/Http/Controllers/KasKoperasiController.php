@@ -33,6 +33,7 @@ class KasKoperasiController extends Controller
         $sampaiTanggal = (string) $request->input('sampai_tanggal', '');
         $cari = trim((string) $request->input('cari', ''));
         $tipePengeluaranFilter = (string) $request->input('tipe_pengeluaran', '');
+        $kategoriFilter = (string) $request->input('kategori', '');
 
         $periodeAwal = null;
         $periodeAkhir = null;
@@ -74,7 +75,8 @@ class KasKoperasiController extends Controller
         if ($cari !== '') {
             $query->where(function ($q) use ($cari) {
                 $q->where('keterangan', 'like', "%{$cari}%")
-                    ->orWhere('sub_judul', 'like', "%{$cari}%");
+                    ->orWhere('sub_judul', 'like', "%{$cari}%")
+                    ->orWhere('no_bukti', 'like', "%{$cari}%");
             });
         }
 
@@ -86,6 +88,10 @@ class KasKoperasiController extends Controller
             $query->where('tipe', $tipeFilter);
         }
 
+        if ($kategoriFilter !== '' && isset(\App\Laporan\LaporanRegistry::KATEGORI_LABEL[$kategoriFilter])) {
+            $query->where('kategori', $kategoriFilter);
+        }
+
         if ($tipePengeluaranFilter && in_array($tipePengeluaranFilter, Pengeluaran::TIPE, true)) {
             $pengeluaranIds = Pengeluaran::where('tipe', $tipePengeluaranFilter)->pluck('id');
             $query->whereIn('kategori', ['pengeluaran_koperasi', 'pengeluaran_dana_sosial'])
@@ -94,6 +100,7 @@ class KasKoperasiController extends Controller
 
         $adaFilterTransaksi = $cari !== ''
             || in_array($tipeFilter, ['masuk', 'keluar'], true)
+            || ($kategoriFilter !== '')
             || ($tipePengeluaranFilter !== '' && in_array($tipePengeluaranFilter, Pengeluaran::TIPE, true));
 
         $riwayat = (clone $query)
@@ -234,6 +241,7 @@ class KasKoperasiController extends Controller
                 'akun' => $kanalFilter,
                 'cari' => $cari,
                 'tipe' => $tipeFilter,
+                'kategori' => $kategoriFilter,
                 'tanggal' => $tanggalFilter,
                 'dari_tanggal' => $dariTanggal,
                 'sampai_tanggal' => $sampaiTanggal,
