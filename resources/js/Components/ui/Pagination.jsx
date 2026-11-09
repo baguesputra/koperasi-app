@@ -19,13 +19,13 @@ export default function Pagination({ links, routeName, params = {}, preserveScro
     };
 
     return (
-        <div className="flex items-center justify-center gap-1.5 mt-5">
+        <div className="flex items-center justify-center gap-1 sm:gap-1.5 mt-4 sm:mt-5">
             {links.map((link, i) => (
                 <button
                     key={i}
                     disabled={!link.url}
                     onClick={() => link.url && router.get(link.url, {}, { preserveState: true, preserveScroll })}
-                    className={`px-3.5 py-2 text-sm font-semibold rounded-lg transition-colors ${
+                    className={`min-h-[36px] min-w-[36px] sm:min-h-[32px] sm:min-w-[32px] px-2.5 py-1.5 sm:px-3 sm:py-1 text-xs sm:text-sm font-semibold rounded-lg transition-colors inline-flex items-center justify-center ${
                         link.active
                             ? 'bg-brand-green text-white'
                             : link.url

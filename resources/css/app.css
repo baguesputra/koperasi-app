@@ -15,7 +15,7 @@ body,
 }
 
 body {
-    font-size: 16px; /* base lebih besar dari default browser (biasanya 14-16px), sesuai prinsip elderly-friendly */
+    font-size: 14px; /* compact desktop baseline (14px), responsif dan proporsional */
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
 }

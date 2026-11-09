@@ -106,7 +106,7 @@ className={`hidden lg:block sticky top-0 h-screen shrink-0 p-3 transition-[width
                     <span className="w-[38px]" aria-hidden="true" />
                 </div>
 
-                <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-[1400px] w-full mx-auto">
+                <main className="flex-1 p-3 sm:p-4 lg:p-6 max-w-[1440px] w-full mx-auto">
                     <FlashToast />
                     {children}
                 </main>

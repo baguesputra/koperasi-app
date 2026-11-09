@@ -33,11 +33,11 @@ function KeputusanDrawer({ pengajuan, ketentuanFinansial, onClose }) {
     }
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-3.5">
             {/* Header Profil Pemohon */}
-            <div className="bg-gradient-to-br from-[#0B1527] via-[#0F1E36] to-[#0A2E1A] rounded-2xl p-5 text-white shadow-sm border border-slate-800">
-                <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-3.5">
+            <div className="bg-gradient-to-br from-[#0B1527] via-[#0F1E36] to-[#0A2E1A] rounded-xl p-4 sm:p-4.5 text-white shadow-sm border border-slate-800">
+                <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3">
                         <FotoAnggota
                             nama={pengajuan.anggota.nama}
                             fotoUrl={pengajuan.anggota.foto_url}
@@ -46,7 +46,7 @@ function KeputusanDrawer({ pengajuan, ketentuanFinansial, onClose }) {
                         />
                         <div>
                             <div className="flex items-center gap-2 flex-wrap">
-                                <h3 className="text-xl font-bold text-white tracking-tight">
+                                <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight">
                                     {pengajuan.anggota.nama}
                                 </h3>
                                 {isReaktivasi ? (
@@ -74,10 +74,10 @@ function KeputusanDrawer({ pengajuan, ketentuanFinansial, onClose }) {
             </div>
 
             {/* Kepegawaian & Masa Kerja (GATE HRIS) */}
-            <div className="bg-slate-50/80 rounded-2xl p-4 border border-slate-200/90 shadow-2xs">
-                <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2 text-slate-800 font-bold text-sm">
-                        <Briefcase size={16} className="text-brand-green" />
+            <div className="bg-slate-50/80 rounded-xl p-3.5 sm:p-4 border border-slate-200/90 shadow-2xs">
+                <div className="flex items-center justify-between mb-2.5">
+                    <div className="flex items-center gap-1.5 text-slate-800 font-bold text-xs sm:text-sm">
+                        <Briefcase size={15} className="text-brand-green" />
                         <h4>Kepegawaian &amp; Masa Kerja</h4>
                     </div>
                     {pengajuan.anggota.gate_synced_at && (
@@ -87,8 +87,8 @@ function KeputusanDrawer({ pengajuan, ketentuanFinansial, onClose }) {
                     )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 text-sm">
-                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/70">
+                <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs sm:text-sm">
+                    <div className="bg-white p-2.5 rounded-lg border border-slate-200/70">
                         <p className="text-[11px] text-slate-500 font-medium">Masa Kerja Perusahaan</p>
                         <p className="font-bold text-slate-900 mt-0.5">
                             {pengajuan.anggota.masa_kerja ?? '-'}
@@ -99,7 +99,7 @@ function KeputusanDrawer({ pengajuan, ketentuanFinansial, onClose }) {
                             </p>
                         )}
                     </div>
-                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/70">
+                    <div className="bg-white p-2.5 rounded-lg border border-slate-200/70">
                         <p className="text-[11px] text-slate-500 font-medium">Cabang &amp; Unit Bisnis</p>
                         <p className="font-bold text-slate-900 mt-0.5 truncate">
                             {pengajuan.anggota.cabang ?? '-'}
@@ -108,13 +108,13 @@ function KeputusanDrawer({ pengajuan, ketentuanFinansial, onClose }) {
                             {pengajuan.anggota.unit_bisnis ?? '-'}
                         </p>
                     </div>
-                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/70">
+                    <div className="bg-white p-2.5 rounded-lg border border-slate-200/70">
                         <p className="text-[11px] text-slate-500 font-medium">Jabatan</p>
                         <p className="font-semibold text-slate-800 mt-0.5 truncate">
                             {pengajuan.anggota.jabatan ?? '-'}
                         </p>
                     </div>
-                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/70">
+                    <div className="bg-white p-2.5 rounded-lg border border-slate-200/70">
                         <p className="text-[11px] text-slate-500 font-medium">Departemen / Divisi</p>
                         <p className="font-semibold text-slate-800 mt-0.5 truncate">
                             {pengajuan.anggota.department ?? '-'}
@@ -129,9 +129,9 @@ function KeputusanDrawer({ pengajuan, ketentuanFinansial, onClose }) {
             </div>
 
             {/* Identitas & Kontak */}
-            <div className="bg-slate-50/80 rounded-2xl p-4 border border-slate-200/90 shadow-2xs">
-                <div className="flex items-center gap-2 text-slate-800 font-bold text-sm mb-3">
-                    <UserCheck size={16} className="text-brand-green" />
+            <div className="bg-slate-50/80 rounded-xl p-3.5 sm:p-4 border border-slate-200/90 shadow-2xs">
+                <div className="flex items-center gap-1.5 text-slate-800 font-bold text-xs sm:text-sm mb-2.5">
+                    <UserCheck size={15} className="text-brand-green" />
                     <h4>Identitas &amp; Kontak</h4>
                 </div>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 text-sm">
@@ -170,33 +170,33 @@ function KeputusanDrawer({ pengajuan, ketentuanFinansial, onClose }) {
 
             {/* Ketentuan Finansial Pasca-Aktivasi */}
             {ketentuanFinansial && (
-                <div className="bg-emerald-50/60 rounded-2xl p-4 border border-emerald-200/80 shadow-2xs">
-                    <div className="flex items-center gap-2 text-emerald-900 font-bold text-sm mb-3">
-                        <CreditCard size={16} className="text-emerald-700" />
+                <div className="bg-emerald-50/60 rounded-xl p-3.5 sm:p-4 border border-emerald-200/80 shadow-2xs">
+                    <div className="flex items-center gap-1.5 text-emerald-900 font-bold text-xs sm:text-sm mb-2.5">
+                        <CreditCard size={15} className="text-emerald-700" />
                         <h4>Ketentuan Finansial Pasca-Aktivasi</h4>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
-                        <div className="bg-white/90 p-3 rounded-xl border border-emerald-200/70">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                        <div className="bg-white/90 p-2.5 sm:p-3 rounded-lg border border-emerald-200/70">
                             <p className="text-[11px] text-slate-500 font-medium">Simpanan Pokok</p>
-                            <p className="text-base font-extrabold text-emerald-800 mt-0.5">
+                            <p className="text-sm sm:text-base font-extrabold text-emerald-800 mt-0.5">
                                 {formatRupiah(ketentuanFinansial.simpanan_pokok ?? 50000)}
                             </p>
                             <p className="text-[10px] text-slate-400 mt-0.5">
                                 Dicatat otomatis ke buku kas
                             </p>
                         </div>
-                        <div className="bg-white/90 p-3 rounded-xl border border-emerald-200/70">
+                        <div className="bg-white/90 p-2.5 sm:p-3 rounded-lg border border-emerald-200/70">
                             <p className="text-[11px] text-slate-500 font-medium">Iuran Bulanan</p>
-                            <p className="text-base font-extrabold text-slate-800 mt-0.5">
+                            <p className="text-sm sm:text-base font-extrabold text-slate-800 mt-0.5">
                                 {formatRupiah((ketentuanFinansial.simpanan_wajib ?? 45000) + (ketentuanFinansial.dana_sosial ?? 5000))}<span className="text-xs font-normal text-slate-400">/bln</span>
                             </p>
                             <p className="text-[10px] text-slate-400 mt-0.5">
                                 Wajib + Dana Sosial
                             </p>
                         </div>
-                        <div className="bg-white/90 p-3 rounded-xl border border-emerald-200/70">
+                        <div className="bg-white/90 p-2.5 sm:p-3 rounded-lg border border-emerald-200/70">
                             <p className="text-[11px] text-slate-500 font-medium">Plafon Pinjaman Awal</p>
-                            <p className="text-base font-extrabold text-brand-navy mt-0.5">
+                            <p className="text-sm sm:text-base font-extrabold text-brand-navy mt-0.5">
                                 {formatRupiah(ketentuanFinansial.limit_awal ?? 1000000)}
                             </p>
                             <p className="text-[10px] text-slate-400 mt-0.5">
@@ -209,7 +209,7 @@ function KeputusanDrawer({ pengajuan, ketentuanFinansial, onClose }) {
 
             {/* Riwayat Resign Sebelumnya (Jika Re-Aktivasi) */}
             {isReaktivasi && (
-                <div className="bg-amber-50/80 rounded-2xl p-4 border border-amber-200/90 text-xs text-amber-900 shadow-2xs">
+                <div className="bg-amber-50/80 rounded-xl p-3.5 sm:p-4 border border-amber-200/90 text-xs text-amber-900 shadow-2xs">
                     <div className="flex items-center gap-1.5 font-bold mb-1.5 text-amber-950">
                         <AlertCircle size={15} className="text-amber-600" />
                         <span>Riwayat Keanggotaan Sebelumnya</span>
@@ -226,10 +226,10 @@ function KeputusanDrawer({ pengajuan, ketentuanFinansial, onClose }) {
             )}
 
             {/* Pernyataan & Kepatuhan Pemohon */}
-            <div className="bg-slate-50/80 rounded-2xl p-4 border border-slate-200/90 shadow-2xs text-xs">
-                <div className="flex items-center justify-between mb-2.5">
-                    <div className="flex items-center gap-2 text-slate-800 font-bold text-sm">
-                        <ShieldCheck size={16} className="text-brand-green" />
+            <div className="bg-slate-50/80 rounded-xl p-3.5 sm:p-4 border border-slate-200/90 shadow-2xs text-xs">
+                <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-1.5 text-slate-800 font-bold text-xs sm:text-sm">
+                        <ShieldCheck size={15} className="text-brand-green" />
                         <h4>Pernyataan Digital Pemohon</h4>
                     </div>
                     <span className="text-[10px] font-semibold text-slate-500 bg-slate-200/80 px-2 py-0.5 rounded-full">

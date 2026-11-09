@@ -1,9 +1,9 @@
 export default function Card({ children, className = '', padding = 'normal', tone = 'white' }) {
     const paddings = {
         none: '',
-        sm: 'p-4',
-        normal: 'p-5',
-        lg: 'p-6 sm:p-8',
+        sm: 'p-3 sm:p-3.5',
+        normal: 'p-4 sm:p-5',
+        lg: 'p-5 sm:p-6',
     };
 
     const tones = {
@@ -14,7 +14,7 @@ export default function Card({ children, className = '', padding = 'normal', ton
     };
 
     return (
-        <div className={`rounded-2xl border shadow-sm ${paddings[padding]} ${tones[tone]} ${className}`}>
+        <div className={`rounded-2xl sm:rounded-xl border shadow-sm ${paddings[padding]} ${tones[tone]} ${className}`}>
             {children}
         </div>
     );

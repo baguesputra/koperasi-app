@@ -63,17 +63,17 @@ export default function Drawer({
                         leaveTo={isFullscreenMobile ? 'translate-y-full' : 'translate-x-full'}
                     >
                         <DialogPanel className={panelClass}>
-                            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
-                                <h2 className="text-lg font-bold text-slate-800">{title}</h2>
+                            <div className="flex items-center justify-between px-4 py-3 sm:px-5 sm:py-3.5 border-b border-slate-100 shrink-0">
+                                <h2 className="text-base sm:text-lg font-bold text-slate-800 tracking-tight">{title}</h2>
                                 <button
                                     onClick={onClose}
-                                    className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                                    className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
                                     title="Tutup"
                                 >
-                                    <X size={20} />
+                                    <X size={18} />
                                 </button>
                             </div>
-                            <div className="flex-1 overflow-y-auto px-5 py-4">
+                            <div className="flex-1 overflow-y-auto px-4 py-3.5 sm:px-5 sm:py-4">
                                 {children}
                             </div>
                         </DialogPanel>

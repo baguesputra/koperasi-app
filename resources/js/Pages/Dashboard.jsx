@@ -128,40 +128,40 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
             </PageHeader>
 
             {/* 1. Ringkasan Posisi Keuangan (Hero Card di Kiri + 6 KPI Cards di Kanan) */}
-            <section aria-label="Ringkasan posisi keuangan" className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-6">
+            <section aria-label="Ringkasan posisi keuangan" className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-3.5 mb-5">
                 {/* Hero Card: Saldo Total */}
-                <div className="lg:col-span-4 relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0B1527] via-[#0F1E36] to-[#0A2E1A] border border-slate-800/80 p-5 sm:p-6 text-white flex flex-col justify-between shadow-xs before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/25 before:to-transparent">
+                <div className="lg:col-span-4 relative overflow-hidden rounded-xl bg-gradient-to-br from-[#0B1527] via-[#0F1E36] to-[#0A2E1A] border border-slate-800/80 p-4 sm:p-5 text-white flex flex-col justify-between shadow-xs before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/25 before:to-transparent">
                     <div>
                         <div className="flex items-center justify-between gap-2">
-                            <div className="w-9 h-9 rounded-xl bg-white/10 border border-white/10 text-emerald-400 flex items-center justify-center shrink-0">
-                                <Landmark size={18} />
+                            <div className="w-8 h-8 rounded-lg bg-white/10 border border-white/10 text-emerald-400 flex items-center justify-center shrink-0">
+                                <Landmark size={16} />
                             </div>
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wide bg-emerald-500/10 text-emerald-300 border border-emerald-400/20">
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold tracking-wide bg-emerald-500/10 text-emerald-300 border border-emerald-400/20">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                                 Dana Koperasi
                             </span>
                         </div>
 
-                        <p className="text-xs font-medium text-slate-300/90 mt-4">Saldo Total</p>
-                        <p className="text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums mt-1 leading-tight truncate">
+                        <p className="text-xs font-medium text-slate-300/90 mt-3.5">Saldo Total</p>
+                        <p className="text-xl sm:text-2xl font-extrabold tracking-tight tabular-nums mt-0.5 leading-tight truncate">
                             <PrivacyWrapper>{formatRupiah(stats.total_keseluruhan)}</PrivacyWrapper>
                         </p>
-                        <p className="text-[11px] text-slate-300/75 mt-1 leading-normal">
+                        <p className="text-[11px] text-slate-300/75 mt-0.5 leading-normal">
                             Kas operasional gabungan + simpanan anggota aktif
                         </p>
                     </div>
 
-                    <div className="mt-5 pt-3.5 border-t border-white/10 flex items-center justify-between gap-3">
+                    <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between gap-3">
                         <div className="min-w-0">
                             <p className="text-[11px] text-slate-300/75">Saldo Dana Sosial</p>
-                            <p className="text-sm font-bold text-emerald-300 tabular-nums mt-0.5 truncate">
+                            <p className="text-xs sm:text-sm font-bold text-emerald-300 tabular-nums mt-0.5 truncate">
                                 <PrivacyWrapper>{formatRupiah(stats.saldo_dana_sosial ?? 0)}</PrivacyWrapper>
                             </p>
                         </div>
                         {bisaAkses('kas.lihat') && (
                             <Link
                                 href={route('kas-koperasi.index')}
-                                className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-xs font-semibold text-white transition-colors shrink-0 ${focusRing}`}
+                                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-xs font-semibold text-white transition-colors shrink-0 ${focusRing}`}
                             >
                                 Buku Kas
                                 <ChevronRight size={13} aria-hidden="true" />
@@ -171,7 +171,7 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                 </div>
 
                 {/* 6 KPI Metric Widgets */}
-                <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3.5">
+                <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5 sm:gap-3">
                     {widgets.map((w) => (
                         <StatWidget
                             compact
@@ -204,7 +204,7 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                     </div>
 
                     {semuaBeres ? (
-                        <div className="flex items-center gap-3 bg-white border border-slate-200/80 rounded-2xl px-4 py-3.5 shadow-2xs">
+                        <div className="flex items-center gap-3 bg-white border border-slate-200/80 rounded-xl px-3.5 py-3 shadow-2xs">
                             <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-200/60 text-brand-green-dark flex items-center justify-center shrink-0">
                                 <CheckCircle2 size={16} aria-hidden="true" />
                             </div>
@@ -213,14 +213,14 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                             </p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
                             {grupAksi.map((grup) => {
                                 const Icon = grup.icon;
                                 const sibuk = grup.total > 0;
                                 return (
                                     <div
                                         key={grup.label}
-                                        className={`rounded-2xl border p-4 flex flex-col justify-between transition-colors ${
+                                        className={`rounded-xl border p-3.5 sm:p-4 flex flex-col justify-between transition-colors ${
                                             sibuk
                                                 ? 'bg-white border-slate-200/90 shadow-2xs'
                                                 : 'bg-slate-50/60 border-slate-200/50 opacity-75'

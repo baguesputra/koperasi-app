@@ -21,9 +21,9 @@ export default function StatusBadge({ status }) {
     const Icon = config.icon;
 
     return (
-        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold ${config.color}`}>
-            <Icon size={16} />
-            {config.label}
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 sm:py-0.5 rounded-full text-xs font-semibold ${config.color}`}>
+            <Icon size={13} className="shrink-0" />
+            <span>{config.label}</span>
         </span>
     );
 }

@@ -1,6 +1,6 @@
 const selectSizes = {
-    sm: 'px-4 py-2.5 text-base rounded-xl',
-    md: 'px-4 py-3 text-base rounded-xl',
+    sm: 'px-3 py-2 text-base sm:py-1.5 sm:px-3 sm:text-xs rounded-xl sm:rounded-lg',
+    md: 'px-3.5 py-2.5 text-base sm:py-2 sm:px-3 sm:text-sm rounded-xl sm:rounded-lg',
 };
 
 export default function Select({ size = 'md', className = '', children, ...props }) {
