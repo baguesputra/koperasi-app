@@ -111,19 +111,19 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
         .filter((group) => group.items.length > 0);
 
     return (
-        <aside className={`${tertutup ? 'w-14' : 'w-56'} h-full bg-white border border-slate-200/80 rounded-2xl flex flex-col transition-all duration-300 overflow-hidden ${expanding ? 'relative z-50 shadow-2xl' : 'shadow-[0_4px_20px_-2px_rgba(15,23,42,0.08),0_2px_6px_-1px_rgba(15,23,42,0.04)]'}`}>
-            <div className={`h-13 sm:h-[50px] flex items-center shrink-0 overflow-hidden ${tertutup ? 'justify-center px-1.5' : 'justify-between px-3'}`}>
+        <aside className={`${tertutup ? 'w-16' : 'w-56'} h-full bg-white border border-slate-200/80 rounded-2xl flex flex-col transition-all duration-300 overflow-hidden ${expanding ? 'relative z-50 shadow-2xl' : 'shadow-[0_4px_20px_-2px_rgba(15,23,42,0.08),0_2px_6px_-1px_rgba(15,23,42,0.04)]'}`}>
+            <div className={`h-13 sm:h-[50px] flex items-center shrink-0 ${tertutup ? 'justify-center px-2' : 'justify-between px-3'}`}>
                 {tertutup ? (
                     <button
                         type="button"
                         onClick={togglePrivacy}
                         title={isPrivacyActive ? 'Mode Privasi: Aktif (Klik untuk nonaktifkan • Ctrl+Shift+P)' : 'Mode Privasi: Nonaktif (Klik untuk aktifkan • Ctrl+Shift+P)'}
                         aria-label="Mode Privasi"
-                        className="relative group p-1.5 rounded-lg hover:bg-slate-50 transition-colors"
+                        className="relative p-1.5 rounded-xl hover:bg-slate-50 transition-colors inline-flex items-center justify-center"
                     >
                         <img src="/images/logo-ui.webp" alt="Koperasi App" width="28" height="28" className="w-7 h-7 shrink-0" />
                         <span
-                            className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white transition-all ${
+                            className={`absolute top-0.5 right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white transition-all ${
                                 isPrivacyActive ? 'bg-brand-green ring-2 ring-brand-green/30' : 'bg-slate-300'
                             }`}
                         />
