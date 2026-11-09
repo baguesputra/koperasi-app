@@ -111,8 +111,8 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
         .filter((group) => group.items.length > 0);
 
     return (
-        <aside className={`${tertutup ? 'w-16' : 'w-56'} h-full bg-white border border-slate-200/80 rounded-2xl flex flex-col transition-all duration-300 overflow-hidden ${expanding ? 'relative z-50 shadow-2xl' : 'shadow-[0_4px_20px_-2px_rgba(15,23,42,0.08),0_2px_6px_-1px_rgba(15,23,42,0.04)]'}`}>
-            <div className={`h-13 sm:h-[50px] flex items-center shrink-0 ${tertutup ? 'justify-center px-2' : 'justify-between px-3'}`}>
+        <aside className={`${tertutup ? 'w-16' : 'w-60'} h-full bg-white border border-slate-200/80 rounded-2xl flex flex-col transition-all duration-300 overflow-hidden ${expanding ? 'relative z-50 shadow-2xl' : 'shadow-[0_4px_20px_-2px_rgba(15,23,42,0.08),0_2px_6px_-1px_rgba(15,23,42,0.04)]'}`}>
+            <div className={`h-13 sm:h-[50px] flex items-center shrink-0 ${tertutup ? 'justify-center px-2' : 'justify-between px-3.5'}`}>
                 {tertutup ? (
                     <button
                         type="button"
@@ -130,9 +130,9 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
                     </button>
                 ) : (
                     <>
-                        <div className="flex items-center gap-2 min-w-0">
+                        <div className="flex items-center gap-2.5 min-w-0">
                             <img src="/images/logo-ui.webp" alt="Koperasi App" width="28" height="28" className="w-7 h-7 shrink-0" />
-                            <span className="text-sm font-bold text-slate-800 truncate max-w-[125px]">
+                            <span className="text-sm font-bold text-slate-800 truncate max-w-[135px]">
                                 Koperasi App
                             </span>
                         </div>
@@ -147,7 +147,7 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
                             <PrivacyIcon
                                 key={isPrivacyActive ? 'active' : 'inactive'}
                                 active={isPrivacyActive}
-                                size={17}
+                                size={18}
                                 className={isPrivacyActive ? 'animate-privacy-on' : 'opacity-65 hover:opacity-100'}
                             />
                         </button>
@@ -155,10 +155,10 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
                 )}
             </div>
 
-            <nav className="flex-1 px-2.5 py-2.5 space-y-3.5 overflow-y-auto scrollbar-hide">
+            <nav className="flex-1 px-3 py-3 space-y-4 overflow-y-auto scrollbar-hide">
                 {visibleGroups.map((group) => (
                     <div key={group.label}>
-                        <p className={`px-2 mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 ${tertutup ? 'hidden' : ''}`}>
+                        <p className={`px-2 mb-1 text-[11px] font-bold uppercase tracking-wider text-slate-400 ${tertutup ? 'hidden' : ''}`}>
                             {group.label}
                         </p>
                         <div className="space-y-0.5">
@@ -173,9 +173,9 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
                                         <div
                                             key={item.label + group.label}
                                             title={tertutup ? item.label : 'Segera'}
-                                            className={`flex items-center ${tertutup ? 'gap-0 justify-center' : 'gap-2.5'} px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-300 cursor-not-allowed`}
+                                            className={`flex items-center ${tertutup ? 'gap-0 justify-center' : 'gap-3'} px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-300 cursor-not-allowed`}
                                         >
-                                            <Icon size={16} strokeWidth={2} />
+                                            <Icon size={18} strokeWidth={2} />
                                             <span className={`flex-1 truncate transition-all duration-300 whitespace-nowrap overflow-hidden ${tertutup ? 'opacity-0 max-w-0' : 'opacity-100 max-w-[170px]'}`}>{item.label}</span>
                                         </div>
                                     );
@@ -187,19 +187,19 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
                                         href={href}
                                         ref={isActive ? tautanAktif : undefined}
                                         title={tertutup ? item.label : undefined}
-                                        className={`flex items-center ${tertutup ? 'gap-0 justify-center' : 'gap-2.5'} px-2.5 py-1.5 rounded-lg text-[13px] font-semibold transition-colors ${
+                                        className={`flex items-center ${tertutup ? 'gap-0 justify-center' : 'gap-3'} px-2.5 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
                                             isActive
                                                 ? 'bg-brand-navy text-white shadow-2xs'
                                                 : 'text-slate-600 hover:bg-slate-50'
                                         }`}
                                     >
                                         <span className="relative shrink-0">
-                                            <Icon size={16} strokeWidth={2} className={isActive ? 'text-brand-green' : ''} />
+                                            <Icon size={18} strokeWidth={2} className={isActive ? 'text-brand-green' : ''} />
                                             {badge > 0 && (
                                                 tertutup ? (
-                                                    <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500" />
+                                                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-red-500" />
                                                 ) : (
-                                                    <span className="absolute -top-1.5 -right-1.5 min-w-[15px] h-3.5 px-1 rounded-full bg-red-500 text-white flex items-center justify-center text-[9px] font-bold">
+                                                    <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white flex items-center justify-center text-[10px] font-bold">
                                                         {badge}
                                                     </span>
                                                 )
@@ -224,7 +224,7 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
                     <Link
                         href={route('profile.edit')}
                         title="Profil Saya"
-                        className={`w-7 h-7 rounded-full bg-brand-green text-white flex items-center justify-center text-xs font-bold hover:opacity-90 transition-opacity ${fokusRing}`}
+                        className={`w-8 h-8 rounded-full bg-brand-green text-white flex items-center justify-center text-xs font-bold hover:opacity-90 transition-opacity ${fokusRing}`}
                     >
                         {initial}
                     </Link>
@@ -232,19 +232,19 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
             ) : (
                 <div
                     key="kaki-buka"
-                    className="border-t border-slate-100 px-2.5 py-2 shrink-0 flex items-center gap-1 animate-sidebar-fade"
+                    className="border-t border-slate-100 px-3 py-2 shrink-0 flex items-center gap-1 animate-sidebar-fade"
                 >
                     <Link
                         href={route('profile.edit')}
                         title="Profil Saya"
                         className={`flex items-center gap-2 min-w-0 flex-1 rounded-lg p-1 -m-0.5 hover:bg-slate-50 transition-colors ${fokusRing}`}
                     >
-                        <span className="w-7 h-7 rounded-full bg-brand-green text-white flex items-center justify-center text-xs font-bold shrink-0">
+                        <span className="w-8 h-8 rounded-full bg-brand-green text-white flex items-center justify-center text-xs font-bold shrink-0">
                             {initial}
                         </span>
                         <span className="min-w-0 leading-tight">
-                            <span className="block text-xs font-semibold text-slate-800 truncate">{auth.user?.name}</span>
-                            <span className="block text-[11px] text-slate-400 capitalize truncate">
+                            <span className="block text-sm font-semibold text-slate-800 truncate">{auth.user?.name}</span>
+                            <span className="block text-xs text-slate-400 capitalize truncate">
                                 {auth.user?.roles?.[0] === 'super_admin' ? 'Super Admin' : (auth.user?.roles?.[0]?.replace('_', ' ') ?? '-')}
                             </span>
                         </span>
@@ -255,7 +255,7 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
                             title="Pengaturan"
                             className={`p-1.5 rounded-lg text-slate-400 hover:text-brand-navy hover:bg-slate-50 transition-colors shrink-0 ${fokusRing}`}
                         >
-                            <Settings size={16} />
+                            <Settings size={17} />
                         </Link>
                     )}
                     <form method="POST" action={route('logout')} className="shrink-0">
@@ -265,22 +265,22 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
                             title="Keluar"
                             className={`p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors ${fokusRing}`}
                         >
-                            <LogOut size={16} />
+                            <LogOut size={17} />
                         </button>
                     </form>
                 </div>
             )}
 
             {!tertutup ? (
-                <div className="px-3 py-2 border-t border-slate-100 text-[11px] text-slate-400 shrink-0 flex items-center justify-between">
-                    <span className="truncate max-w-[130px]">Koperasi App</span>
+                <div className="px-3.5 py-2.5 border-t border-slate-100 text-xs text-slate-400 shrink-0 flex items-center justify-between">
+                    <span className="truncate max-w-[135px]">Koperasi App</span>
                     <button
                         type="button"
                         onClick={onToggle}
                         title={expanding ? 'Semuhkan sidebar (konten ikut menyesuaikan)' : 'Ciutkan sidebar'}
                         className="text-slate-400 hover:text-brand-navy transition-colors shrink-0 p-1"
                     >
-                        <ChevronLeft size={16} />
+                        <ChevronLeft size={17} />
                     </button>
                 </div>
             ) : (
@@ -288,9 +288,9 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
                     type="button"
                     onClick={onToggle}
                     title="Buka sidebar"
-                    className="mx-auto mb-2 flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-brand-navy hover:bg-slate-50 transition-colors shrink-0"
+                    className="mx-auto mb-2 flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-brand-navy hover:bg-slate-50 transition-colors shrink-0"
                 >
-                    <ChevronRight size={16} />
+                    <ChevronRight size={17} />
                 </button>
             )}
         </aside>
