@@ -115,4 +115,33 @@ class PengajuanAktivasiTest extends TestCase
 
         $this->ajukan($anggota);
     }
+
+    public function test_halaman_ketua_aktivasi_mengirimkan_data_kepegawaian_dan_finansial_lengkap(): void
+    {
+        $anggota = $this->buatNonaktif('TOP-910008');
+        $anggota->update([
+            'no_karyawan' => 'TOP-910008',
+            'no_ktp' => '3271234567890001',
+            'tanggal_mulai_kerja' => now()->subYears(2)->subMonths(3),
+        ]);
+        $this->ajukan($anggota);
+
+        $this->masuk('KET-000001');
+        $res = $this->get(route('ketua.aktivasi.index'))->assertOk();
+        $props = $res->viewData('page')['props'];
+
+        $this->assertArrayHasKey('ketentuanFinansial', $props);
+        $this->assertArrayHasKey('simpanan_pokok', $props['ketentuanFinansial']);
+        $this->assertArrayHasKey('simpanan_wajib', $props['ketentuanFinansial']);
+        $this->assertArrayHasKey('limit_awal', $props['ketentuanFinansial']);
+
+        $this->assertNotEmpty($props['menunggu']);
+        $item = collect($props['menunggu'])->firstWhere('anggota.no_karyawan', 'TOP-910008');
+        $this->assertNotNull($item);
+        $this->assertSame('3271234567890001', $item['anggota']['no_ktp']);
+        $this->assertStringContainsString('tahun', $item['anggota']['masa_kerja']);
+        $this->assertFalse($item['anggota']['is_reaktivasi']);
+        $this->assertTrue($item['data_benar']);
+        $this->assertTrue($item['setuju_syarat']);
+    }
 }
