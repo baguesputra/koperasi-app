@@ -111,7 +111,7 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
         .filter((group) => group.items.length > 0);
 
     return (
-        <aside className={`${tertutup ? 'w-14' : 'w-56'} h-full bg-white border border-slate-200/90 rounded-xl flex flex-col transition-all duration-300 overflow-hidden ${expanding ? 'relative z-50 shadow-xl' : 'shadow-xs'}`}>
+        <aside className={`${tertutup ? 'w-14' : 'w-56'} h-full bg-white border border-slate-200/80 rounded-2xl flex flex-col transition-all duration-300 overflow-hidden ${expanding ? 'relative z-50 shadow-2xl' : 'shadow-[0_4px_20px_-2px_rgba(15,23,42,0.08),0_2px_6px_-1px_rgba(15,23,42,0.04)]'}`}>
             <div className={`h-13 sm:h-[50px] flex items-center shrink-0 overflow-hidden ${tertutup ? 'justify-center px-1.5' : 'justify-between px-3'}`}>
                 {tertutup ? (
                     <button
