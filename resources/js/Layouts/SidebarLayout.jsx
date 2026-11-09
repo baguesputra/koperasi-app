@@ -54,8 +54,8 @@ export default function SidebarLayout({ children }) {
 <div
                  onMouseEnter={sidebarMasuk}
                  onMouseLeave={sidebarKeluar}
-className={`hidden lg:block sticky top-0 h-screen shrink-0 p-3 transition-[width] duration-300 ${
-                      collapsed ? 'w-[88px]' : 'w-[280px]'
+                 className={`hidden lg:block sticky top-0 h-screen shrink-0 p-2 sm:p-2.5 transition-[width] duration-300 ${
+                      collapsed ? 'w-[72px]' : 'w-[240px]'
                   } ${elevating ? 'z-50' : ''}`}
              >
                 <Sidebar collapsed={collapsed} expanding={expanding} onToggle={toggleSidebar} />
@@ -83,7 +83,7 @@ className={`hidden lg:block sticky top-0 h-screen shrink-0 p-3 transition-[width
                         leaveFrom="translate-x-0"
                         leaveTo="-translate-x-full"
                     >
-                        <aside className="relative w-64 h-full bg-white border-r border-slate-200 shadow-xl flex flex-col overflow-hidden">
+                        <aside className="relative w-60 h-full bg-white border-r border-slate-200 shadow-xl flex flex-col overflow-hidden">
                             <Sidebar collapsed={false} expanding={false} onToggle={toggleSidebar} />
                         </aside>
                     </Transition.Child>
