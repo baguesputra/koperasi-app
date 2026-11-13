@@ -574,6 +574,7 @@ class ShuService
         $this->syncPembayaranKomponen($periode);
 
         $komponens = $periode->pembayaranKomponen()
+            ->with('periode')
             ->where('status_bayar', 'belum')
             ->where('nominal', '>', 0)
             ->orderBy('id')

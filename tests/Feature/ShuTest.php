@@ -241,6 +241,10 @@ class ShuTest extends TestCase
         $a = $this->buatAnggota('Anggota Auto', 'ANG-SHU-F');
         $this->setor($a, 'pokok', 50_000, "{$tahun}-02-15", $user->id);
 
+        // shu.store mewajibkan permission shu.kelola; role admin hanya shu.lihat
+        // (pemisahan RBAC 21 Okt), jadi request dikirim sebagai bendahara.
+        $this->actingAs(User::where('no_karyawan', 'BEN-000001')->firstOrFail());
+
         $res = $this->post(route('shu.store'), ['tahun_buku' => $tahun]);
 
         $periode = ShuPeriode::where('tahun_buku', $tahun)->firstOrFail();
