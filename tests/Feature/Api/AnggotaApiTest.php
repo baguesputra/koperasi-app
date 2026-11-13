@@ -283,24 +283,19 @@ class AnggotaApiTest extends TestCase
 
         $res = $this->get('/api/documentation')->assertOk();
 
-        // Semua endpoint harus terdokumentasi di halaman.
-        foreach (['/api/v1/login', '/api/v1/logout', '/api/v1/user', '/api/v1/sso/token', '/api/v1/anggota/pinjaman-aktif', '/api/v1/anggota/riwayat-pinjaman', '/api/v1/anggota/limit', '/api/v1/anggota/simpanan'] as $path) {
-            $res->assertSee($path, false);
-        }
-
-        // Branding koperasi, tanpa jejak pihak ketiga.
-        $res->assertSee('Dokumentasi API v1', false)
-            ->assertSee('/images/logo.png', false)
+        // Halaman dirender via Inertia React (ApiDocs/Index) tanpa Scramble/Scalar pihak ketiga.
+        $res->assertInertia(fn ($page) => $page
+            ->component('ApiDocs/Index')
+            ->has('authMode'))
             ->assertDontSee('scalar', false)
-            ->assertDontSee('cdn.jsdelivr', false)
-            ->assertDontSee('fonts.', false);
+            ->assertDontSee('cdn.jsdelivr', false);
 
-        // Sidebar navigasi + pencarian + data cURL per endpoint.
-        $res->assertSee('Daftar endpoint', false)
-            ->assertSee('Cari endpoint', false)
-            ->assertSee('Konsol coba', false)
-            ->assertSee('data-method="GET"', false)
-            ->assertSee('data-method="POST"', false);
+        // Spesifikasi JS lokal mendokumentasikan endpoint inti anggota & pengurus.
+        $spec = file_get_contents(resource_path('js/Pages/ApiDocs/apiSpec.js'));
+        $this->assertNotFalse($spec);
+        foreach (['/login', '/logout', '/user', '/api/v1/sso/token', '/anggota/pinjaman-aktif', '/anggota/riwayat-pinjaman', '/anggota/limit', '/anggota/simpanan'] as $path) {
+            $this->assertStringContainsString("'{$path}'", $spec);
+        }
 
         // Spec JSON Scramble sudah dibuang total.
         $this->get('/docs/api.json')->assertNotFound();

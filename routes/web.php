@@ -56,9 +56,11 @@ Route::post('/api/v1/sso/token', [ApiAnggotaController::class, 'ssoToken'])
     ->middleware(['auth', 'throttle:api'])
     ->name('api.sso.token');
 
-// Dokumentasi API (halaman tulis-tangan, tanpa generator).
+// Dokumentasi API interaktif berbasis Inertia + React (53 endpoint aktif).
 // Dilindungi middleware auth agar skema internal tidak terekspos ke publik internet.
-Route::get('/api/documentation', fn () => response()->view('api.dokumentasi'))
+Route::get('/api/documentation', fn () => Inertia::render('ApiDocs/Index', [
+    'authMode' => config('auth.mode', 'local'),
+]))
     ->middleware('auth')
     ->name('api.documentation');
 
