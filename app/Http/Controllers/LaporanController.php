@@ -113,22 +113,30 @@ class LaporanController extends Controller
 
         switch ($tipe) {
             case 'bulan':
-                $b = $request->input('bulan', $default->get(0));
+                // M-10: validasi format; input aneh (mis. ?bulan=abc) jatuh ke default, bukan 500.
+                $b = $this->periodeValid($request->input('bulan'), 'Y-m', $default->get(0) ?? now()->format('Y-m'));
                 $filter = ['bulan' => $b];
                 $request->merge(['dari' => $b, 'sampai' => $b]);
                 $periodeLabel = Carbon::parse($b.'-01')->translatedFormat('F Y');
                 break;
 
             case 'tahun':
-                $y = (int) ($request->input('tahun') ?? $default->get(0, now()->format('Y')));
+                $yInput = $request->input('tahun');
+                $y = (is_numeric($yInput) && (int) $yInput >= 2000 && (int) $yInput <= 2100)
+                    ? (int) $yInput
+                    : (int) ($default->get(0) ?? now()->format('Y'));
                 $filter = ['tahun' => $y];
-                $request->merge(['dari' => "{$y}-01", 'sampai' => "{$y}-12"]);
+                // M-10: tulis balik nilai tervalidasi agar closure data membaca tahun yang aman.
+                $request->merge(['tahun' => $y, 'dari' => "{$y}-01", 'sampai' => "{$y}-12"]);
                 $periodeLabel = "Tahun {$y}";
                 break;
 
             case 'tanggal':
-                $d = $request->input('tanggal', $default->get(0, now()->format('Y-m-d')));
+                // M-10: validasi format tanggal (Y-m-d).
+                $d = $this->periodeValid($request->input('tanggal'), 'Y-m-d', $default->get(0) ?? now()->format('Y-m-d'));
                 $filter = ['tanggal' => $d];
+                // M-10: tulis balik nilai tervalidasi agar closure data membaca tanggal yang aman.
+                $request->merge(['tanggal' => $d]);
                 $periodeLabel = Carbon::parse($d)->translatedFormat('d F Y');
                 break;
 
@@ -137,8 +145,9 @@ class LaporanController extends Controller
                 $sampai = $default->get(1, $default->get(0));
                 $filter = [];
                 if ($tipe === 'rentang') {
-                    $dari = $request->input('dari', $dari);
-                    $sampai = $request->input('sampai', $sampai);
+                    // M-10: validasi format rentang (Y-m) agar tidak 500 saat input invalid.
+                    $dari = $this->periodeValid($request->input('dari'), 'Y-m', $dari);
+                    $sampai = $this->periodeValid($request->input('sampai'), 'Y-m', $sampai);
                     $filter = ['dari' => $dari, 'sampai' => $sampai];
                     $labelDari = $dari ? Carbon::parse($dari.'-01')->translatedFormat('M Y') : null;
                     $labelSampai = $sampai ? Carbon::parse($sampai.'-01')->translatedFormat('M Y') : null;
@@ -158,6 +167,21 @@ class LaporanController extends Controller
         }
 
         return [$filter, $periodeLabel];
+    }
+
+    /**
+     * M-10: Validasi nilai periode sebelum diparse Carbon.
+     * Mengembalikan nilai apa adanya bila sesuai format, selain itu fallback ke default.
+     */
+    private function periodeValid($value, string $format, $fallback)
+    {
+        if (! is_string($value) || $value === '') {
+            return $fallback;
+        }
+
+        $parsed = \DateTime::createFromFormat('!'.$format, $value);
+
+        return ($parsed && $parsed->format($format) === $value) ? $value : $fallback;
     }
 
     /** Opsi select filter tambahan. */

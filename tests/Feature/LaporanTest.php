@@ -370,4 +370,35 @@ class LaporanTest extends TestCase
             $this->get(route('laporan.export', ['jenis' => $jenis, 'dari' => now()->format('Y-m'), 'sampai' => now()->format('Y-m')]))->assertOk();
         }
     }
+
+    /**
+     * M-10: input filter tanggal/periode yang tidak valid tidak boleh menyebabkan 500.
+     * Nilai aneh harus jatuh ke default dan tetap merender halaman (200).
+     */
+    public function test_filter_periode_invalid_tidak_menyebabkan_500(): void
+    {
+        $this->loginSebagai('ADM-000001');
+
+        // tipe 'bulan' — ?bulan=abc sebelumnya Carbon::parse() meledak → 500.
+        $this->get(route('laporan.show', ['jenis' => 'iuran-pinjaman-rekap', 'bulan' => 'abc']))
+            ->assertOk();
+
+        // tipe 'tanggal' — ?tanggal=bukan-tanggal.
+        $this->get(route('laporan.show', ['jenis' => 'neraca', 'tanggal' => 'bukan-tanggal']))
+            ->assertOk();
+
+        // tipe 'rentang' — dari/sampai bukan format Y-m.
+        $this->get(route('laporan.show', ['jenis' => 'arus-kas', 'dari' => 'xx', 'sampai' => 'yy']))
+            ->assertOk();
+
+        // tipe 'tahun' — non-numerik & di luar rentang wajar.
+        $this->get(route('laporan.show', ['jenis' => 'pendapatan-bunga', 'tahun' => 'abc']))
+            ->assertOk();
+        $this->get(route('laporan.show', ['jenis' => 'pendapatan-bunga', 'tahun' => '99999']))
+            ->assertOk();
+
+        // PDF & export juga harus tahan input invalid.
+        $this->get(route('laporan.pdf', ['jenis' => 'neraca', 'tanggal' => 'bukan-tanggal']))->assertOk();
+        $this->get(route('laporan.export', ['jenis' => 'arus-kas', 'dari' => 'xx', 'sampai' => 'yy']))->assertOk();
+    }
 }
