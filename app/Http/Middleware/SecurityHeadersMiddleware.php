@@ -38,10 +38,16 @@ class SecurityHeadersMiddleware
             ? ' http://localhost:5173 http://127.0.0.1:5173 ws://localhost:5173 ws://127.0.0.1:5173'
             : '';
 
+        // M-8: 'unsafe-eval' hanya dibutuhkan dev server Vite (HMR). Build produksi React+Vite
+        // tidak memakai eval, jadi di produksi dihilangkan agar CSP memblokir payload XSS berbasis eval.
+        // 'unsafe-inline' tetap dipertahankan (Ziggy @routes + inline script Blade masih butuh);
+        // pengetatan 'unsafe-inline' dilakukan terpisah via nonce (Fase B).
+        $evalDev = app()->environment('local', 'testing') ? " 'unsafe-eval'" : '';
+
         // Content Security Policy (CSP): Mitigasi XSS, data injection, dan untrusted execution
         $csp = [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com{$localDev}",
+            "script-src 'self' 'unsafe-inline'{$evalDev} https://static.cloudflareinsights.com{$localDev}",
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com{$localDev}",
             "font-src 'self' https://fonts.gstatic.com data:{$localDev}",
             "img-src 'self' data: blob: {$gateOrigin} https://*.govindogroup.com https://app.govindogroup.com{$localDev}",

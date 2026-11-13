@@ -40,6 +40,36 @@ class SecurityHeadersTest extends TestCase
         $this->assertStringContainsString('https://app.govindogroup.com', $csp);
     }
 
+    /** M-8 (Fase A): di lingkungan local/testing, 'unsafe-eval' tetap diizinkan agar Vite HMR jalan. */
+    public function test_csp_menyertakan_unsafe_eval_di_lingkungan_testing(): void
+    {
+        $this->assertTrue(app()->environment('testing'));
+
+        $csp = $this->get('/login')->headers->get('Content-Security-Policy');
+
+        $this->assertStringContainsString("'unsafe-eval'", $csp);
+        // 'unsafe-inline' tetap ada (dibutuhkan Ziggy/inline script).
+        $this->assertStringContainsString("'unsafe-inline'", $csp);
+    }
+
+    /** M-8 (Fase A): di produksi, 'unsafe-eval' dihapus dari script-src; 'unsafe-inline' dipertahankan. */
+    public function test_csp_tidak_menyertakan_unsafe_eval_di_produksi(): void
+    {
+        $originalEnv = app()['env'];
+        app()['env'] = 'production';
+
+        try {
+            $csp = $this->get('/login')->headers->get('Content-Security-Policy');
+        } finally {
+            app()['env'] = $originalEnv;
+        }
+
+        $this->assertNotNull($csp);
+        $this->assertStringNotContainsString("'unsafe-eval'", $csp);
+        // 'unsafe-inline' dan style-src tetap tidak tersentuh.
+        $this->assertStringContainsString("'unsafe-inline'", $csp);
+    }
+
     public function test_html_includes_anti_indexing_meta_tags(): void
     {
         $response = $this->get('/login');
