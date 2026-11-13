@@ -183,7 +183,22 @@ class Pinjaman extends Model
 
     public function verificationUrl(): string
     {
-        return URL::signedRoute('verifikasi.bukti', ['pinjaman' => $this->id]);
+        return URL::temporarySignedRoute('verifikasi.bukti', $this->verificationExpiry(), ['pinjaman' => $this->id]);
+    }
+
+    /**
+     * M-6: Masa berlaku URL verifikasi mengikuti umur pinjaman (bukan angka arbitrer).
+     * Anchor = tanggal_pencairan (fallback tanggal_pengajuan) + tenor_bulan + tenggang 3 bulan
+     * agar bukti cetak tetap dapat diverifikasi selama pinjaman berjalan plus masa arsip singkat.
+     */
+    private function verificationExpiry(): Carbon
+    {
+        $anchor = $this->tanggal_pencairan ?? $this->tanggal_pengajuan ?? now();
+
+        return $anchor->copy()
+            ->addMonthsNoOverflow((int) ($this->tenor_bulan ?? 0))
+            ->addMonthsNoOverflow(3)
+            ->endOfDay();
     }
 
     public function isVerificationRevoked(): bool
