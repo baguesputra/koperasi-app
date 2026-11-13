@@ -277,3 +277,15 @@ Opsional
 - [x] dokumentasi api
 - [ ] dokumentasi database ( erd )
 
+
+# Perbaikan Test Suite — Koperasi App
+**Tanggal:** 13 November 2026
+- [x] Audit "test tak terpakai": 0 skip, 0 method non-konvensi, 0 test tanpa assertion, 0 helper mati (bukan masalah unused; suite memang merah)
+- [x] Perbaiki 40 test merah (27 fail + 13 error) menjadi **418/418 HIJAU, 0 fail/error**
+- [x] Migrasi baru `users.gate_id` (schema drift: kolom dipakai model+service tapi belum ada migrasinya) — aditif/nullable
+- [x] Fix bug produksi 500 "Tambah Anggota" (`email` tak boleh di-mass-assign ke `Anggota`)
+- [x] Sinkronkan aktor test ke RBAC terkini (kas.topup→bendahara, limit/chip→ketua, wa→super_admin, konfirmasi angsuran→bendahara)
+- [x] Perbaiki ekspektasi rapuh: pesan 422 pengajuan limit, `harus_ganti_password` (SSO-only=false), tanggal filter Kas (hindari tabrakan seed relatif now()), `no_karyawan` di ProfileTest
+- [x] Dokumen hasil: `docs/ANALISIS-TESTING-DAN-RENCANA-PERBAIKAN.md`
+- [ ] Rekomendasi: tambah CI `composer test` + `npm run build`; dedupe test SSO; hapus `ExampleTest` scaffold
+

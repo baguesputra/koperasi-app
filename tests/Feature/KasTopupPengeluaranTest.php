@@ -22,7 +22,7 @@ class KasTopupPengeluaranTest extends TestCase
 
     public function test_topup_menaikkan_saldo_dan_mencatat_jurnal(): void
     {
-        $this->masuk('ADM-000001'); // admin punya kas.topup
+        $this->masuk('BEN-000001'); // bendahara punya kas.topup
         $bankSebelum = (float) KasKoperasi::first()->saldo_bank;
 
         $this->post(route('kas-koperasi.topup'), [
@@ -40,7 +40,7 @@ class KasTopupPengeluaranTest extends TestCase
 
     public function test_topup_wajib_pilih_sumber(): void
     {
-        $this->masuk('ADM-000001');
+        $this->masuk('BEN-000001');
 
         $this->post(route('kas-koperasi.topup'), [
             'jumlah' => 1_000_000,
@@ -54,7 +54,7 @@ class KasTopupPengeluaranTest extends TestCase
 
     public function test_topup_bunga_bank_masuk_bank(): void
     {
-        $this->masuk('ADM-000001');
+        $this->masuk('BEN-000001');
         $bankSebelum = (float) KasKoperasi::first()->saldo_bank;
 
         $this->post(route('kas-koperasi.topup'), [
@@ -72,7 +72,7 @@ class KasTopupPengeluaranTest extends TestCase
 
     public function test_topup_selalu_masuk_bank_tanpa_pilih_kantong(): void
     {
-        $this->masuk('ADM-000001');
+        $this->masuk('BEN-000001');
         $bankSebelum = (float) KasKoperasi::first()->saldo_bank;
 
         // Konsep Kas Tunggal: parameter kantong diabaikan, topup selalu ke Bank.
@@ -92,7 +92,7 @@ class KasTopupPengeluaranTest extends TestCase
 
     public function test_topup_lain_lain_wajib_isi_keterangan(): void
     {
-        $this->masuk('ADM-000001');
+        $this->masuk('BEN-000001');
 
         // Dicentang tapi tanpa keterangan → ditolak
         $this->post(route('kas-koperasi.topup'), [
@@ -355,7 +355,7 @@ class KasTopupPengeluaranTest extends TestCase
 
     public function test_sisih_kas_kecil_memindahkan_dari_bank(): void
     {
-        $this->masuk('ADM-000001');
+        $this->masuk('BEN-000001');
         $sebelum = KasKoperasi::first()->only(['saldo_bank', 'saldo_kas_kecil']);
 
         $this->post(route('kas-koperasi.sisih-kas-kecil'), [
@@ -376,7 +376,7 @@ class KasTopupPengeluaranTest extends TestCase
 
     public function test_sisih_kas_kecil_ditolak_bila_saldo_bank_kurang(): void
     {
-        $this->masuk('ADM-000001');
+        $this->masuk('BEN-000001');
         $kas = KasKoperasi::first();
         $bank = (float) $kas->saldo_bank;
 

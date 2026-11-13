@@ -61,7 +61,8 @@ class SinkronGateTest extends TestCase
         $this->assertSame('6371012304950001', $anggota->no_ktp);
         $this->assertNull($anggota->department);
         $this->assertTrue($anggota->user->hasRole('anggota'));
-        $this->assertTrue($anggota->user->harus_ganti_password);
+        // Provisioning SSO-only: tidak ada password lokal untuk diganti.
+        $this->assertFalse((bool) $anggota->user->harus_ganti_password);
         $this->assertTrue(Simpanan::where('anggota_id', $anggota->id)->where('jenis', 'pokok')->exists());
     }
 

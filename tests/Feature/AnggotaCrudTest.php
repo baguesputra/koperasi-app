@@ -47,8 +47,8 @@ class AnggotaCrudTest extends TestCase
         // Simpanan pokok otomatis saat registrasi (nominal seed: 50.000)
         $this->assertTrue(Simpanan::where('anggota_id', $anggota->id)->where('jenis', 'pokok')->exists());
 
-        // Akun login dibuat & wajib ganti password
-        $this->assertTrue((bool) $anggota->user->harus_ganti_password);
+        // Akun login SSO-only: tidak ada password lokal untuk diganti.
+        $this->assertFalse((bool) $anggota->user->harus_ganti_password);
     }
 
     public function test_store_validasi_gagal_tanpa_cabang(): void

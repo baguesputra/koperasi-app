@@ -176,7 +176,7 @@ class MobilePengajuanTest extends TestCase
                 'keterangan' => 'Pengajuan kedua tetap panjang.',
             ])
             ->assertUnprocessable()
-            ->assertJsonPath('message', 'Masih ada pengajuan limit yang sedang diproses.');
+            ->assertJsonPath('message', 'Anda masih memiliki pengajuan limit yang belum diproses.');
 
         $this->assertSame(1, PengajuanLimit::where('anggota_id', $anggota->id)->count());
     }

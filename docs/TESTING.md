@@ -1,6 +1,8 @@
 # Panduan Testing
 
-Aplikasi ini menggunakan **PHPUnit 12** (via `php artisan test`) dengan 18 file test, **110 kasus / 411 assertion**, menghindari dependency eksternal (tidak butuh Docker, MySQL, queue, atau WhatsApp gateway).
+Aplikasi ini menggunakan **PHPUnit 12** (via `php artisan test`) dengan 65 file test, **418 kasus / 2557 assertion**, menghindari dependency eksternal (tidak butuh Docker, MySQL, queue, atau WhatsApp gateway). Status: **seluruh suite HIJAU** (418/418).
+
+> Catatan (Nov 2026): suite sempat merah (27 gagal + 13 error) dan kini diperbaiki. Rincian analisa & patch ada di `docs/ANALISIS-TESTING-DAN-RENCANA-PERBAIKAN.md`.
 
 ---
 

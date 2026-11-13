@@ -532,10 +532,13 @@ class KasKoperasiHalamanTest extends TestCase
     {
         $user = $this->masuk('ADM-000001');
 
-        $tglSebelum = '2024-05-01';
-        $tglDiRentang1 = '2024-05-10';
-        $tglDiRentang2 = '2024-05-15';
-        $tglSetelah = '2024-05-25';
+        // Tanggal jauh di masa lalu (2022) agar TIDAK bertabrakan dengan jurnal
+        // yang di-seed relatif terhadap now() (mis. simpanan pokok now()->subYears(2)...),
+        // yang sebelumnya bisa jatuh di rentang ini dan merusak agregat.
+        $tglSebelum = '2022-05-01';
+        $tglDiRentang1 = '2022-05-10';
+        $tglDiRentang2 = '2022-05-15';
+        $tglSetelah = '2022-05-25';
 
         JurnalKas::create([
             'tipe' => 'masuk',
@@ -579,8 +582,8 @@ class KasKoperasiHalamanTest extends TestCase
         ]);
 
         $props = $this->get(route('kas-koperasi.index', [
-            'dari_tanggal' => '2024-05-10',
-            'sampai_tanggal' => '2024-05-20',
+            'dari_tanggal' => '2022-05-10',
+            'sampai_tanggal' => '2022-05-20',
         ]))
             ->assertOk()
             ->viewData('page')['props'];
@@ -592,8 +595,8 @@ class KasKoperasiHalamanTest extends TestCase
         $this->assertNotContains('Mutasi sebelum rentang', $keteranganList);
         $this->assertNotContains('Mutasi setelah rentang', $keteranganList);
 
-        $this->assertSame('2024-05-10', $props['filters']['dari_tanggal']);
-        $this->assertSame('2024-05-20', $props['filters']['sampai_tanggal']);
+        $this->assertSame('2022-05-10', $props['filters']['dari_tanggal']);
+        $this->assertSame('2022-05-20', $props['filters']['sampai_tanggal']);
         $this->assertEqualsWithDelta(200_000, $props['ringkasanPeriode']['total_masuk'], 0.01);
         $this->assertEqualsWithDelta(50_000, $props['ringkasanPeriode']['total_keluar'], 0.01);
     }
@@ -603,13 +606,13 @@ class KasKoperasiHalamanTest extends TestCase
         $this->masuk('ADM-000001');
 
         $props = $this->get(route('kas-koperasi.index', [
-            'dari_tanggal' => '2024-05-20',
-            'sampai_tanggal' => '2024-05-10',
+            'dari_tanggal' => '2022-05-20',
+            'sampai_tanggal' => '2022-05-10',
         ]))
             ->assertOk()
             ->viewData('page')['props'];
 
-        $this->assertSame('2024-05-10', $props['filters']['dari_tanggal']);
-        $this->assertSame('2024-05-20', $props['filters']['sampai_tanggal']);
+        $this->assertSame('2022-05-10', $props['filters']['dari_tanggal']);
+        $this->assertSame('2022-05-20', $props['filters']['sampai_tanggal']);
     }
 }

@@ -20,7 +20,8 @@ class SettingChipNominalTest extends TestCase
 
     private function sebagaiAdmin(): void
     {
-        $this->masuk('ADM-000001');
+        // Pengaturan chip = kebijakan → ditangani ketua_koperasi (RBAC split).
+        $this->masuk('KET-000001');
         $this->withSession(['auth.password_confirmed_at' => time()]);
     }
 

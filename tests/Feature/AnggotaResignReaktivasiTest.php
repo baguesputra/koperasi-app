@@ -144,6 +144,8 @@ class AnggotaResignReaktivasiTest extends TestCase
         $this->assertSame('aktif', $anggota->user->refresh()->status);
 
         // Lunasi cicilan akhir via konfirmasi → final resign + user nonaktif
+        // Konfirmasi angsuran = tugas bendahara (permission angsuran.konfirmasi).
+        $this->masuk('BEN-000001');
         $cicilanAkhir = \App\Models\Angsuran::findOrFail($settlement['cicilan_akhir_id']);
         $this->post(route('bendahara.angsuran.konfirmasi'), [
             'angsuran_ids' => ['n-'.$cicilanAkhir->id],

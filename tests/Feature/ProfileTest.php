@@ -12,7 +12,7 @@ class ProfileTest extends TestCase
 
     public function test_halaman_profil_tampil_read_only(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['no_karyawan' => 'PROF-000001']);
 
         $this->actingAs($user)
             ->get('/profile')

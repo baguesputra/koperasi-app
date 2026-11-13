@@ -16,7 +16,8 @@ class PengaturanWaTest extends TestCase
     {
         parent::setUp();
         $this->seed();
-        $this->masuk('ADM-000001');
+        // pengaturan.wa hanya dimiliki super_admin (RBAC split).
+        $this->masuk('SPADM-000001');
         $this->withSession(['auth.password_confirmed_at' => time()]);
     }
 

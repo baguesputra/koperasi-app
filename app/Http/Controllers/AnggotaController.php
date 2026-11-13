@@ -116,8 +116,13 @@ class AnggotaController extends Controller
             ]);
             $user->assignRole('anggota');
 
+            // `email` hanya milik akun User; tabel anggota tidak punya kolom ini,
+            // jadi keluarkan dari payload sebelum mass-assign ke Anggota (cegah 500).
+            $dataAnggota = $request->validated();
+            unset($dataAnggota['email']);
+
             $anggota = Anggota::create([
-                ...$request->validated(),
+                ...$dataAnggota,
                 'user_id' => $user->id,
                 'no_anggota' => Anggota::generateNoAnggota(),
                 'status' => 'aktif',
