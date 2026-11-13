@@ -174,7 +174,7 @@ class ShuController extends Controller
             'daftarAnggota' => \Illuminate\Support\Facades\Cache::remember(
                 'daftar_anggota_aktif_shu',
                 300,
-                fn () => Anggota::where('status', 'aktif')->orderBy('nama')->get(['id', 'nama', 'no_karyawan', 'cabang'])
+                fn () => Anggota::where('status', 'aktif')->orderBy('nama')->get(['id', 'nama', 'no_karyawan', 'cabang'])->toArray()
             ),
             'sums' => [
                 'wajib' => (float) ($sums->wajib ?? 0),

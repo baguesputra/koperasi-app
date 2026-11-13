@@ -10,12 +10,14 @@ import { withIdempotencyKey } from '@/Utils/idempotency';
 import { ringkasLive } from '@/Utils/shuLive';
 import RingkasanShu from './Partials/RingkasanShu';
 import KomponenEditor from './Partials/KomponenEditor';
+import PengurusPengawas from './Partials/PengurusPengawas';
 import DistribusiTable from './Partials/DistribusiTable';
 import BayarTab from './Partials/BayarTab';
 
 const TABS = [
     { kunci: 'ringkasan', label: 'Ringkasan' },
     { kunci: 'komponen', label: 'Komponen SHU' },
+    { kunci: 'pengurus', label: 'SHU Pengurus & Pengawas' },
     { kunci: 'distribusi', label: 'Distribusi SHU Anggota' },
     { kunci: 'bayar', label: 'Bayar' },
 ];
@@ -29,6 +31,8 @@ const BADGE = {
 export default function Show({ periode, ringkasan, detail, sums = {}, daftarAnggota = [], filters = {}, komponen_bayar = [] }) {
     const { auth } = usePage().props;
     const bisaKelola = auth.user?.permissions?.includes('shu.kelola');
+    // Normalisasi: kadang datang sebagai objek/Collection, pastikan array.
+    const daftarAnggotaArr = Array.isArray(daftarAnggota) ? daftarAnggota : Object.values(daftarAnggota ?? {});
     const tabAwal = typeof window !== 'undefined'
         ? new URLSearchParams(window.location.search).get('tab')
         : null;
@@ -65,6 +69,25 @@ export default function Show({ periode, ringkasan, detail, sums = {}, daftarAngg
 
     const [bayarAkun, setBayarAkun] = useState('bank');
     const [bayarTanggal, setBayarTanggal] = useState(new Date().toISOString().slice(0, 10));
+
+    // Rincian pengurus/pengawas di-lift ke sini agar input tidak hilang saat
+    // berpindah tab, dan satu tombol menyimpan keduanya sekaligus.
+    const [pengurus, setPengurus] = useState(periode.pengurus_rincian ?? []);
+    const [pengawas, setPengawas] = useState(periode.pengawas_rincian ?? []);
+    const [menyimpanRincian, setMenyimpanRincian] = useState(false);
+
+    function simpanRincian() {
+        if (periode.status !== 'draft' || !bisaKelola) return;
+        setMenyimpanRincian(true);
+        router.post(
+            route('shu.rincian-pengelola', periode.id),
+            { pengurus, pengawas },
+            {
+                preserveScroll: true,
+                onFinish: () => setMenyimpanRincian(false),
+            }
+        );
+    }
 
     function kembalikan() {
         if (!confirm(`Kembalikan SHU ${periode.tahun_buku} ke draft untuk revisi?`)) return;
@@ -180,8 +203,22 @@ export default function Show({ periode, ringkasan, detail, sums = {}, daftarAngg
                         preview={preview}
                         ringkasan={ringkasan}
                         sudahDihitung={ringkasan.anggota > 0}
-                        daftarAnggota={daftarAnggota}
                         readOnly={periode.status !== 'draft' || !bisaKelola}
+                    />
+                )}
+
+                {tab === 'pengurus' && (
+                    <PengurusPengawas
+                        periode={periode}
+                        pengurus={pengurus}
+                        setPengurus={setPengurus}
+                        pengawas={pengawas}
+                        setPengawas={setPengawas}
+                        preview={preview}
+                        daftarAnggota={daftarAnggotaArr}
+                        readOnly={periode.status !== 'draft' || !bisaKelola}
+                        onSimpan={simpanRincian}
+                        menyimpan={menyimpanRincian}
                     />
                 )}
 

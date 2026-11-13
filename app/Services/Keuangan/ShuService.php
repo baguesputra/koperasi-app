@@ -119,6 +119,9 @@ class ShuService
             ->join('anggota', 'anggota.id', '=', 'simpanan.anggota_id')
             ->where('anggota.status', 'aktif')
             ->whereIn('simpanan.jenis', ['pokok', 'wajib'])
+            // Cutoff: hanya simpanan s/d akhir tahun buku. Setoran tahun berikutnya
+            // (mis. Jan–Apr 2027 saat SHU 2026 dibagi) tidak ikut ke komponen modal.
+            ->where('simpanan.tanggal_input', '<=', sprintf('%04d-12-31 23:59:59', $tahun))
             ->groupBy('simpanan.anggota_id')
             ->selectRaw("simpanan.anggota_id as anggota_id,
                 SUM(CASE WHEN simpanan.jenis = 'pokok' THEN simpanan.jumlah ELSE 0 END) as pokok,

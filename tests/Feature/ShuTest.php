@@ -588,4 +588,26 @@ class ShuTest extends TestCase
                 ->has('ringkasan')
             );
     }
+
+    public function test_modal_tidak_ambil_simpanan_setelah_akhir_tahun_buku(): void
+    {
+        $user = $this->admin();
+        $tahun = (int) now()->subYear()->format('Y');
+
+        // Simpanan di dalam tahun buku.
+        $a = $this->buatAnggota('Anggota Cutoff', 'ANG-SHU-CUT');
+        $this->setor($a, 'pokok', 50_000, "{$tahun}-01-15", $user->id);
+        $this->setor($a, 'wajib', 1_000_000, "{$tahun}-12-31", $user->id);
+        // Setoran tahun berikutnya (mis. Jan–Apr saat SHU dibagi) TIDAK boleh ikut.
+        $this->setor($a, 'wajib', 500_000, ($tahun + 1).'-03-15', $user->id);
+
+        $service = app(ShuService::class);
+        $periode = $service->buatPeriode($tahun, null, 10_000_000, $user->id);
+        $ringkasan = $service->hitung($periode, $user->id);
+
+        // Modal hanya 50.000 + 1.000.000 = 1.050.000 (setoran 500.000 di luar tahun dikecualikan).
+        $this->assertEquals(1_050_000.0, $ringkasan['total_modal']);
+        $detail = ShuDetail::where('shu_periode_id', $periode->id)->where('anggota_id', $a->id)->firstOrFail();
+        $this->assertEquals(1_050_000.0, (float) $detail->modal);
+    }
 }
