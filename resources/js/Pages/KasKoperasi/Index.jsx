@@ -400,66 +400,73 @@ export default function Index({
         );
     }
 
+    function subInfoBaris(r) {
+        const bagian = [];
+        const kategori = r.kategori && r.kategori !== 'saldo_awal'
+            ? (kategoriLabel[r.kategori] ?? r.kategori)
+            : null;
+        if (kategori) bagian.push(kategori);
+
+        const detail = r.tipe_pengeluaran_label
+            || (r.sumber_topup ? sumberTopupLabel[r.sumber_topup] : null)
+            || r.sub_judul;
+        if (detail && detail.toLowerCase() !== kategori?.toLowerCase()) {
+            bagian.push(detail);
+        }
+
+        return bagian.join(' • ');
+    }
+
     function barisKeterangan(r) {
-        const kategori = kategoriLabel[r.kategori] ?? r.kategori;
+        const subInfo = subInfoBaris(r);
+        const adaBerkas = Boolean(r.rute_asal && auth.user?.permissions?.includes(r.rute_asal.izin));
+        const adaBarisKedua = Boolean(subInfo || r.dibatalkan_pada || r.koreksi_dari_id || adaBerkas);
+
         return (
             <div>
-                <p className={`font-medium leading-snug ${r.dibatalkan_pada ? 'line-through text-slate-400' : 'text-slate-800'}`}>
-                    {r.keterangan}
+                <p className={`font-medium leading-snug ${r.dibatalkan_pada ? 'line-through text-slate-400' : 'text-slate-800 group-hover:text-brand-navy transition-colors'}`}>
+                    <span>{r.keterangan}</span>
+                    <ChevronRight
+                        size={14}
+                        className="ml-1 inline-block align-text-bottom text-slate-300 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all"
+                        aria-hidden="true"
+                    />
                 </p>
-                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                    {r.sub_judul && (
-                        <span className="text-[11px] text-slate-500 font-normal">
-                            {r.sub_judul}
-                        </span>
-                    )}
-                    {r.kategori && r.kategori !== 'saldo_awal' && (
-                        <span className="text-[10px] uppercase font-bold tracking-wider text-slate-600 bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200">
-                            {kategori}
-                        </span>
-                    )}
-                    {r.tipe_pengeluaran_label && (
-                        <span className="text-[10px] font-semibold text-rose-700 bg-rose-50 px-1.5 py-0.2 rounded border border-rose-200">
-                            {r.tipe_pengeluaran_label}
-                        </span>
-                    )}
-                    {r.dibatalkan_pada && (
-                        <span
-                            className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-1.5 py-0.2 rounded border border-slate-300"
-                            title={r.alasan_batal ? `Dibatalkan ${r.dibatalkan_pada}: ${r.alasan_batal}` : `Dibatalkan ${r.dibatalkan_pada}`}
-                        >
-                            Dibatalkan
-                        </span>
-                    )}
-                    {r.koreksi_dari_id && (
-                        <span
-                            className="text-[10px] font-semibold text-amber-800 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200"
-                            title={r.koreksi_dari_no_bukti ? `Membalik bukti ${r.koreksi_dari_no_bukti}` : undefined}
-                        >
-                            Jurnal Pembalik
-                        </span>
-                    )}
-                    {r.rute_asal && auth.user?.permissions?.includes(r.rute_asal.izin) && (
-                        <Link
-                            href={route(r.rute_asal.nama, r.rute_asal.id)}
-                            className="inline-flex items-center gap-0.5 text-xs font-semibold text-brand-green-dark hover:text-brand-green hover:underline"
-                        >
-                            Lihat berkas
-                            <ChevronRight size={11} aria-hidden="true" />
-                        </Link>
-                    )}
-                    {bisaTopup && r.bisa_dibatalkan && (
-                        <button
-                            type="button"
-                            onClick={() => bukaModalBatal(r)}
-                            className={`inline-flex items-center gap-1 text-[11px] font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200/80 transition-colors ${fokusRing}`}
-                            title="Batalkan transaksi ini dengan jurnal pembalik (storno)"
-                        >
-                            <RotateCcw size={11} aria-hidden="true" />
-                            Batalkan
-                        </button>
-                    )}
-                </div>
+                {adaBarisKedua && (
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                        {subInfo && (
+                            <span className="text-[11px] text-slate-500 font-normal">
+                                {subInfo}
+                            </span>
+                        )}
+                        {r.dibatalkan_pada && (
+                            <span
+                                className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-1.5 py-0.2 rounded border border-slate-300"
+                                title={r.alasan_batal ? `Dibatalkan ${r.dibatalkan_pada}: ${r.alasan_batal}` : `Dibatalkan ${r.dibatalkan_pada}`}
+                            >
+                                Dibatalkan
+                            </span>
+                        )}
+                        {r.koreksi_dari_id && (
+                            <span
+                                className="text-[10px] font-semibold text-amber-800 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200"
+                                title={r.koreksi_dari_no_bukti ? `Membalik bukti ${r.koreksi_dari_no_bukti}` : undefined}
+                            >
+                                Jurnal Pembalik
+                            </span>
+                        )}
+                        {adaBerkas && (
+                            <Link
+                                href={route(r.rute_asal.nama, r.rute_asal.id)}
+                                onClick={(e) => e.stopPropagation()}
+                                className="inline-flex items-center gap-0.5 text-xs font-semibold text-brand-green-dark hover:text-brand-green hover:underline"
+                            >
+                                Lihat berkas
+                                <ChevronRight size={11} aria-hidden="true" />
+                            </Link>
+                        )}
+                    </div>
+                )}
             </div>
         );
     }
@@ -1107,7 +1114,19 @@ export default function Index({
 
                                     {/* Baris Transaksi Riwayat */}
                                     {daftarRiwayat.map((r) => (
-                                        <tr key={r.id} className="border-b border-slate-50 hover:bg-slate-50/80 transition-colors align-top">
+                                        <tr
+                                            key={r.id}
+                                            onClick={() => bukaModalBatal(r)}
+                                            onKeyDown={(e) => {
+                                                if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+                                                    e.preventDefault();
+                                                    bukaModalBatal(r);
+                                                }
+                                            }}
+                                            tabIndex={0}
+                                            title={bisaTopup && r.bisa_dibatalkan ? 'Klik baris untuk rincian atau batalkan transaksi' : 'Klik baris untuk rincian transaksi'}
+                                            className="group border-b border-slate-50 hover:bg-brand-green-light/30 transition-colors align-top cursor-pointer focus-visible:outline-none focus-visible:bg-brand-green-light/40"
+                                        >
                                             <td className="py-2.5 pr-2 text-xs text-slate-500 whitespace-nowrap tabular-nums">
                                                 {r.tanggal}
                                             </td>
@@ -1189,7 +1208,18 @@ export default function Index({
                             </li>
 
                             {daftarRiwayat.map((r) => (
-                                <li key={r.id} className="py-3">
+                                <li
+                                    key={r.id}
+                                    onClick={() => bukaModalBatal(r)}
+                                    onKeyDown={(e) => {
+                                        if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+                                            e.preventDefault();
+                                            bukaModalBatal(r);
+                                        }
+                                    }}
+                                    tabIndex={0}
+                                    className="group py-3 cursor-pointer active:bg-slate-50 focus-visible:outline-none focus-visible:bg-brand-green-light/30"
+                                >
                                     <div className="flex items-start justify-between gap-2 mb-1">
                                         <div className="flex items-center gap-1.5 text-xs text-slate-500">
                                             <span className="tabular-nums">{r.tanggal}</span>
@@ -1508,83 +1538,140 @@ export default function Index({
                 </Drawer>
             )}
 
-            {/* Drawer Pembatalan Transaksi (Jurnal Pembalik / Storno) */}
-            {bisaTopup && (
-                <Drawer
-                    show={Boolean(jurnalBatal)}
-                    onClose={() => setJurnalBatal(null)}
-                    title="Batalkan Transaksi (Jurnal Pembalik)"
-                    description="Sistem akan menerbitkan jurnal pembalik (storno) untuk mengembalikan saldo kas tanpa menghapus jejak nomor bukti."
-                >
-                    {jurnalBatal && (
-                        <form onSubmit={submitBatal} className="space-y-4">
-                            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
-                                <div className="flex items-center justify-between gap-2">
-                                    <span className="text-slate-500">No. Bukti</span>
-                                    <span className="font-mono font-semibold text-slate-800">{jurnalBatal.no_bukti ?? `#${jurnalBatal.id}`}</span>
-                                </div>
-                                <div className="flex items-center justify-between gap-2">
-                                    <span className="text-slate-500">Tanggal</span>
-                                    <span className="font-medium text-slate-800">{jurnalBatal.tanggal}</span>
-                                </div>
-                                <div className="flex items-center justify-between gap-2">
-                                    <span className="text-slate-500">Akun / Kategori</span>
-                                    <span className="font-medium text-slate-800">
-                                        {kanalMeta[jurnalBatal.kanal ?? jurnalBatal.akun]?.label ?? 'Bank'} • {kategoriLabel[jurnalBatal.kategori] ?? jurnalBatal.kategori}
-                                    </span>
-                                </div>
-                                <div className="flex items-center justify-between gap-2">
-                                    <span className="text-slate-500">Nominal</span>
-                                    <span className={`font-bold tabular-nums privacy-blur ${jurnalBatal.tipe === 'masuk' ? 'text-emerald-700' : 'text-rose-600'}`}>
-                                        {jurnalBatal.tipe === 'masuk' ? '+' : '−'} {formatRupiah(jurnalBatal.jumlah)}
-                                    </span>
-                                </div>
-                                <div className="pt-2 border-t border-slate-200">
-                                    <span className="block text-slate-500 mb-0.5">Keterangan Awal</span>
-                                    <p className="font-medium text-slate-800">{jurnalBatal.keterangan}</p>
-                                </div>
+            {/* Drawer Rincian & Pembatalan Transaksi (Jurnal Pembalik / Storno) */}
+            <Drawer
+                show={Boolean(jurnalBatal)}
+                onClose={() => setJurnalBatal(null)}
+                title={bisaTopup && jurnalBatal?.bisa_dibatalkan ? 'Rincian & Pembatalan Transaksi' : 'Rincian Transaksi Kas'}
+                description={
+                    bisaTopup && jurnalBatal?.bisa_dibatalkan
+                        ? 'Tinjau rincian transaksi atau terbitkan jurnal pembalik (storno) bila terjadi kesalahan input.'
+                        : 'Detail mutasi dan jejak bukti kas koperasi.'
+                }
+            >
+                {jurnalBatal && (
+                    <div className="space-y-4">
+                        <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
+                            <div className="flex items-center justify-between gap-2">
+                                <span className="text-slate-500">No. Bukti</span>
+                                <span className="font-mono font-semibold text-slate-800">{jurnalBatal.no_bukti ?? `#${jurnalBatal.id}`}</span>
                             </div>
-
-                            {['sisih_kas_kecil', 'terima_sisih_kas_kecil'].includes(jurnalBatal.kategori) && (
-                                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800">
-                                    Pembatalan <strong>Sisih Kas Kecil</strong> otomatis membalik kedua jurnal berpasangan (mengembalikan saldo dari Kas Kecil ke Bank).
+                            <div className="flex items-center justify-between gap-2">
+                                <span className="text-slate-500">Tanggal</span>
+                                <span className="font-medium text-slate-800">{jurnalBatal.tanggal} ({jurnalBatal.hari})</span>
+                            </div>
+                            <div className="flex items-center justify-between gap-2">
+                                <span className="text-slate-500">Akun</span>
+                                <span className="font-medium text-slate-800">{kanalMeta[jurnalBatal.kanal ?? jurnalBatal.akun]?.label ?? 'Bank'}</span>
+                            </div>
+                            <div className="flex items-center justify-between gap-2">
+                                <span className="text-slate-500">Kategori</span>
+                                <span className="font-medium text-slate-800">{subInfoBaris(jurnalBatal) || (kategoriLabel[jurnalBatal.kategori] ?? jurnalBatal.kategori)}</span>
+                            </div>
+                            <div className="flex items-center justify-between gap-2">
+                                <span className="text-slate-500">Nominal</span>
+                                <span className={`font-bold tabular-nums privacy-blur ${jurnalBatal.tipe === 'masuk' ? 'text-emerald-700' : 'text-rose-600'}`}>
+                                    {jurnalBatal.tipe === 'masuk' ? '+' : '−'} {formatRupiah(jurnalBatal.jumlah)}
+                                </span>
+                            </div>
+                            <div className="pt-2 border-t border-slate-200">
+                                <span className="block text-slate-500 mb-0.5">Keterangan</span>
+                                <p className={`font-medium ${jurnalBatal.dibatalkan_pada ? 'line-through text-slate-400' : 'text-slate-800'}`}>
+                                    {jurnalBatal.keterangan}
+                                </p>
+                            </div>
+                            {jurnalBatal.dibatalkan_pada && (
+                                <div className="pt-2 border-t border-slate-200">
+                                    <span className="inline-block text-[10px] font-semibold text-slate-600 bg-slate-200/70 px-1.5 py-0.5 rounded mb-1">
+                                        Dibatalkan pada {jurnalBatal.dibatalkan_pada}
+                                    </span>
+                                    {jurnalBatal.alasan_batal && (
+                                        <p className="text-slate-600">Alasan: {jurnalBatal.alasan_batal}</p>
+                                    )}
                                 </div>
                             )}
+                            {jurnalBatal.koreksi_dari_id && (
+                                <div className="pt-2 border-t border-slate-200">
+                                    <span className="inline-block text-[10px] font-semibold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded">
+                                        Jurnal Pembalik (Storno) {jurnalBatal.koreksi_dari_no_bukti ? `untuk ${jurnalBatal.koreksi_dari_no_bukti}` : ''}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
 
-                            <FormField
-                                label="Alasan Pembatalan / Koreksi"
-                                error={batalForm.errors.alasan}
-                                required
-                                hint="Contoh: Salah pilih akun Kas Kecil, seharusnya dari Kas Bank"
-                            >
-                                <TextField
-                                    size="sm"
-                                    as="textarea"
-                                    rows={3}
-                                    value={batalForm.data.alasan}
-                                    onChange={(e) => batalForm.setData('alasan', e.target.value)}
-                                    placeholder="Jelaskan alasan pembatalan transaksi ini..."
-                                    required
-                                />
-                            </FormField>
-
-                            <div className="pt-2 flex justify-end gap-2 border-t border-slate-100">
-                                <Button type="button" variant="secondary" size="sm" onClick={() => setJurnalBatal(null)}>
-                                    Tutup
-                                </Button>
-                                <Button
-                                    type="submit"
-                                    size="sm"
-                                    disabled={batalForm.processing}
-                                    className="bg-rose-600 hover:bg-rose-700"
+                        {jurnalBatal.rute_asal && auth.user?.permissions?.includes(jurnalBatal.rute_asal.izin) && (
+                            <div className="flex justify-start">
+                                <Link
+                                    href={route(jurnalBatal.rute_asal.nama, jurnalBatal.rute_asal.id)}
+                                    className="inline-flex items-center gap-1 text-xs font-semibold text-brand-green-dark hover:text-brand-green hover:underline"
                                 >
-                                    {batalForm.processing ? 'Memproses...' : 'Terbitkan Jurnal Pembalik'}
-                                </Button>
+                                    Lihat Berkas Asal
+                                    <ChevronRight size={13} aria-hidden="true" />
+                                </Link>
                             </div>
-                        </form>
-                    )}
-                </Drawer>
-            )}
+                        )}
+
+                        {bisaTopup && jurnalBatal.bisa_dibatalkan ? (
+                            <form onSubmit={submitBatal} className="space-y-4 pt-2 border-t border-slate-100">
+                                {['sisih_kas_kecil', 'terima_sisih_kas_kecil'].includes(jurnalBatal.kategori) && (
+                                    <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800">
+                                        Pembatalan <strong>Sisih Kas Kecil</strong> otomatis membalik kedua jurnal berpasangan (mengembalikan saldo dari Kas Kecil ke Bank).
+                                    </div>
+                                )}
+
+                                <FormField
+                                    label="Alasan Pembatalan / Koreksi"
+                                    error={batalForm.errors.alasan}
+                                    required
+                                    hint="Contoh: Salah pilih akun Kas Kecil, seharusnya dari Kas Bank"
+                                >
+                                    <TextField
+                                        size="sm"
+                                        as="textarea"
+                                        rows={3}
+                                        value={batalForm.data.alasan}
+                                        onChange={(e) => batalForm.setData('alasan', e.target.value)}
+                                        placeholder="Jelaskan alasan pembatalan transaksi ini..."
+                                        required
+                                    />
+                                </FormField>
+
+                                <div className="pt-2 flex justify-end gap-2 border-t border-slate-100">
+                                    <Button type="button" variant="secondary" size="sm" onClick={() => setJurnalBatal(null)}>
+                                        Tutup
+                                    </Button>
+                                    <Button
+                                        type="submit"
+                                        size="sm"
+                                        disabled={batalForm.processing}
+                                        className="bg-rose-600 hover:bg-rose-700"
+                                    >
+                                        <RotateCcw size={14} aria-hidden="true" />
+                                        {batalForm.processing ? 'Memproses...' : 'Terbitkan Jurnal Pembalik'}
+                                    </Button>
+                                </div>
+                            </form>
+                        ) : (
+                            <>
+                                {bisaTopup && (
+                                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600">
+                                        {jurnalBatal.dibatalkan_pada
+                                            ? 'Transaksi ini sudah dibatalkan sehingga tidak dapat dibatalkan ulang.'
+                                            : jurnalBatal.koreksi_dari_id
+                                            ? 'Baris ini adalah jurnal pembalik (storno) dan tidak dapat dibatalkan lagi.'
+                                            : 'Transaksi otomatis dari modul Simpanan, Pinjaman, atau SHU hanya dapat dikelola dari modul asalnya.'}
+                                    </div>
+                                )}
+                                <div className="pt-2 flex justify-end border-t border-slate-100">
+                                    <Button type="button" variant="secondary" size="sm" onClick={() => setJurnalBatal(null)}>
+                                        Tutup
+                                    </Button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )}
+            </Drawer>
         </AppLayout>
     );
 }
