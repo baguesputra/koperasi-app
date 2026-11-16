@@ -19,7 +19,7 @@ class PengeluaranController extends Controller
         $bulan = $request->string('bulan');
         $tipe = $request->string('tipe');
 
-        $query = Pengeluaran::with('inputOleh');
+        $query = Pengeluaran::with('inputOleh')->whereNull('dibatalkan_pada');
 
         if ($tipe->isNotEmpty() && in_array($tipe->value(), Pengeluaran::TIPE, true)) {
             $query->where('tipe', $tipe->value());
@@ -63,7 +63,9 @@ class PengeluaranController extends Controller
         $awalAktif = Carbon::createFromFormat('Y-m', $bulanAktif)->startOfMonth()->startOfDay()->toDateTimeString();
         $akhirAktif = Carbon::createFromFormat('Y-m', $bulanAktif)->endOfMonth()->endOfDay()->toDateTimeString();
 
-        $totalBulan = (float) Pengeluaran::whereBetween('tanggal', [$awalAktif, $akhirAktif])->sum('jumlah');
+        $totalBulan = (float) Pengeluaran::whereNull('dibatalkan_pada')
+            ->whereBetween('tanggal', [$awalAktif, $akhirAktif])
+            ->sum('jumlah');
 
         return Inertia::render('Pengeluaran/Index', [
             'pengeluaran' => $pengeluaran,

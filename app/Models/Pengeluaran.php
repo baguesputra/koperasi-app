@@ -30,11 +30,12 @@ class Pengeluaran extends Model
         'kas_kecil' => 'Kas Kecil',
     ];
 
-    protected $fillable = ['jenis', 'tipe', 'akun', 'jumlah', 'keterangan', 'tanggal', 'input_by'];
+    protected $fillable = ['jenis', 'tipe', 'akun', 'jumlah', 'keterangan', 'tanggal', 'input_by', 'dibatalkan_pada'];
 
     protected $casts = [
         'jumlah' => 'decimal:2',
         'tanggal' => 'date',
+        'dibatalkan_pada' => 'datetime',
     ];
 
     public function inputOleh(): BelongsTo

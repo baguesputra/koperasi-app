@@ -80,6 +80,8 @@ class LaporanRegistry
                     // Kantong tinggal label klasifikasi, bukan rekening.
                     $agregat = DB::table('jurnal_kas')
                         ->whereBetween('tanggal', [$dari, $sampai])
+                        ->whereNull('dibatalkan_pada')
+                        ->whereNull('koreksi_dari_id')
                         ->when(
                             $kantongFilter && isset(JurnalKasService::KANTONG_SALDO[$kantongFilter]),
                             fn ($q) => $q->where('kantong', $kantongFilter)
@@ -654,6 +656,7 @@ class LaporanRegistry
                 'data' => function (Request $r) {
                     [$dari, $sampai] = self::rentang($r);
                     $rows = Pengeluaran::with('inputOleh')
+                        ->whereNull('dibatalkan_pada')
                         ->whereBetween('tanggal', [$dari, $sampai->copy()->endOfMonth()])
                         ->orderBy('tanggal')
                         ->get()
@@ -687,6 +690,8 @@ class LaporanRegistry
                     [$dari, $sampai] = self::rentang($r);
                     $rows = DB::table('jurnal_kas')
                         ->whereBetween('tanggal', [$dari, $sampai])
+                        ->whereNull('dibatalkan_pada')
+                        ->whereNull('koreksi_dari_id')
                         ->where(function ($q) {
                             $q->where('kantong', 'dana_sosial')
                                 ->orWhere(function ($qq) {
@@ -712,6 +717,8 @@ class LaporanRegistry
                     // Pengeluaran dana sosial bisa tercatat di kantong dana_sosial (lama) atau kas_kecil (fisik baru).
                     $keluarAgg = DB::table('jurnal_kas')
                         ->where('tipe', 'keluar')
+                        ->whereNull('dibatalkan_pada')
+                        ->whereNull('koreksi_dari_id')
                         ->whereIn('kategori', ['pengeluaran_dana_sosial', 'talangan_sosial_ke_pinjaman'])
                         ->whereBetween('tanggal', [$dari, $sampai])
                         ->selectRaw('kategori, SUM(jumlah) as total')
@@ -722,6 +729,8 @@ class LaporanRegistry
                     $pinjaman = (float) ($keluarAgg['talangan_sosial_ke_pinjaman'] ?? 0);
                     $kembali = (float) DB::table('jurnal_kas')
                         ->where('kantong', 'dana_sosial')->where('tipe', 'masuk')
+                        ->whereNull('dibatalkan_pada')
+                        ->whereNull('koreksi_dari_id')
                         ->where('kategori', 'kembali_talangan_ke_sosial')
                         ->whereBetween('tanggal', [$dari, $sampai])
                         ->sum('jumlah');
@@ -1017,6 +1026,8 @@ class LaporanRegistry
             ->where('tipe', 'masuk')
             ->where('kategori', 'topup_bulanan')
             ->where('sumber_topup', 'bunga_bank')
+            ->whereNull('dibatalkan_pada')
+            ->whereNull('koreksi_dari_id')
             ->whereBetween('tanggal', [$awal, $akhir])
             ->get(['tanggal', 'jumlah']);
         foreach ($jurnal as $j) {
@@ -1027,6 +1038,7 @@ class LaporanRegistry
         $keluar = DB::table('pengeluaran')
             ->where('jenis', 'koperasi')
             ->where('tipe', '!=', 'santunan')
+            ->whereNull('dibatalkan_pada')
             ->whereBetween('tanggal', [$awal, $akhir])
             ->get(['tanggal', 'tipe', 'jumlah']);
         foreach ($keluar as $p) {
@@ -1059,12 +1071,16 @@ class LaporanRegistry
             ->where('tipe', 'masuk')
             ->where('kategori', 'topup_bulanan')
             ->where('sumber_topup', 'bunga_bank')
+            ->whereNull('dibatalkan_pada')
+            ->whereNull('koreksi_dari_id')
             ->whereBetween('tanggal', [$awal, $akhir])
             ->sum('jumlah');
 
         $beban = (float) DB::table('jurnal_kas')
             ->where('tipe', 'keluar')
             ->where('kategori', 'pengeluaran_koperasi')
+            ->whereNull('dibatalkan_pada')
+            ->whereNull('koreksi_dari_id')
             ->whereBetween('tanggal', [$awal, $akhir])
             ->sum('jumlah');
 

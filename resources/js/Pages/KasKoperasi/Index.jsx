@@ -3,7 +3,7 @@ import { Head, usePage, useForm, router, Link } from '@inertiajs/react';
 import {
     Wallet, ArrowDownCircle, ArrowUpCircle, ChevronLeft, ChevronRight,
     Landmark, Building2, CalendarDays, Search, X, ArrowRightLeft, Check, BookOpenText,
-    SlidersHorizontal, ChevronDown, Calendar
+    SlidersHorizontal, ChevronDown, Calendar, RotateCcw
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Card from '@/Components/ui/Card';
@@ -86,6 +86,7 @@ export default function Index({
 
     const [showDrawer, setShowDrawer] = useState(false);
     const [tabDrawer, setTabDrawer] = useState('pemasukan');
+    const [jurnalBatal, setJurnalBatal] = useState(null);
     const [cari, setCari] = useState(filters.cari ?? '');
     const cariDebounced = useDebouncedValue(cari);
     const pertama = useRef(true);
@@ -150,6 +151,10 @@ export default function Index({
     const sisihForm = useForm({
         jumlah: '',
         keterangan: '',
+    });
+
+    const batalForm = useForm({
+        alasan: '',
     });
 
     function terapkan(overrides = {}) {
@@ -363,6 +368,27 @@ export default function Index({
         );
     }
 
+    function bukaModalBatal(r) {
+        batalForm.clearErrors();
+        batalForm.setData('alasan', '');
+        setJurnalBatal(r);
+    }
+
+    function submitBatal(e) {
+        e.preventDefault();
+        if (!jurnalBatal) return;
+        batalForm.post(
+            route('kas-koperasi.batalkan', jurnalBatal.id),
+            withIdempotencyKey({
+                preserveScroll: true,
+                onSuccess: () => {
+                    batalForm.reset('alasan');
+                    setJurnalBatal(null);
+                },
+            })
+        );
+    }
+
     function badgeKanal(kanal) {
         const meta = kanalMeta[kanal] ?? kanalMeta.bank;
         const Ikon = meta.ikon;
@@ -378,7 +404,7 @@ export default function Index({
         const kategori = kategoriLabel[r.kategori] ?? r.kategori;
         return (
             <div>
-                <p className="text-slate-800 font-medium leading-snug">
+                <p className={`font-medium leading-snug ${r.dibatalkan_pada ? 'line-through text-slate-400' : 'text-slate-800'}`}>
                     {r.keterangan}
                 </p>
                 <div className="flex items-center gap-2 mt-0.5 flex-wrap">
@@ -397,6 +423,22 @@ export default function Index({
                             {r.tipe_pengeluaran_label}
                         </span>
                     )}
+                    {r.dibatalkan_pada && (
+                        <span
+                            className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-1.5 py-0.2 rounded border border-slate-300"
+                            title={r.alasan_batal ? `Dibatalkan ${r.dibatalkan_pada}: ${r.alasan_batal}` : `Dibatalkan ${r.dibatalkan_pada}`}
+                        >
+                            Dibatalkan
+                        </span>
+                    )}
+                    {r.koreksi_dari_id && (
+                        <span
+                            className="text-[10px] font-semibold text-amber-800 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200"
+                            title={r.koreksi_dari_no_bukti ? `Membalik bukti ${r.koreksi_dari_no_bukti}` : undefined}
+                        >
+                            Jurnal Pembalik
+                        </span>
+                    )}
                     {r.rute_asal && auth.user?.permissions?.includes(r.rute_asal.izin) && (
                         <Link
                             href={route(r.rute_asal.nama, r.rute_asal.id)}
@@ -405,6 +447,17 @@ export default function Index({
                             Lihat berkas
                             <ChevronRight size={11} aria-hidden="true" />
                         </Link>
+                    )}
+                    {bisaTopup && r.bisa_dibatalkan && (
+                        <button
+                            type="button"
+                            onClick={() => bukaModalBatal(r)}
+                            className={`inline-flex items-center gap-1 text-[11px] font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200/80 transition-colors ${fokusRing}`}
+                            title="Batalkan transaksi ini dengan jurnal pembalik (storno)"
+                        >
+                            <RotateCcw size={11} aria-hidden="true" />
+                            Batalkan
+                        </button>
                     )}
                 </div>
             </div>
@@ -1448,6 +1501,84 @@ export default function Index({
                                 </Button>
                                 <Button type="submit" size="sm" disabled={sisihForm.processing}>
                                     {sisihForm.processing ? 'Menyimpan...' : 'Sisih Sekarang'}
+                                </Button>
+                            </div>
+                        </form>
+                    )}
+                </Drawer>
+            )}
+
+            {/* Drawer Pembatalan Transaksi (Jurnal Pembalik / Storno) */}
+            {bisaTopup && (
+                <Drawer
+                    show={Boolean(jurnalBatal)}
+                    onClose={() => setJurnalBatal(null)}
+                    title="Batalkan Transaksi (Jurnal Pembalik)"
+                    description="Sistem akan menerbitkan jurnal pembalik (storno) untuk mengembalikan saldo kas tanpa menghapus jejak nomor bukti."
+                >
+                    {jurnalBatal && (
+                        <form onSubmit={submitBatal} className="space-y-4">
+                            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
+                                <div className="flex items-center justify-between gap-2">
+                                    <span className="text-slate-500">No. Bukti</span>
+                                    <span className="font-mono font-semibold text-slate-800">{jurnalBatal.no_bukti ?? `#${jurnalBatal.id}`}</span>
+                                </div>
+                                <div className="flex items-center justify-between gap-2">
+                                    <span className="text-slate-500">Tanggal</span>
+                                    <span className="font-medium text-slate-800">{jurnalBatal.tanggal}</span>
+                                </div>
+                                <div className="flex items-center justify-between gap-2">
+                                    <span className="text-slate-500">Akun / Kategori</span>
+                                    <span className="font-medium text-slate-800">
+                                        {kanalMeta[jurnalBatal.kanal ?? jurnalBatal.akun]?.label ?? 'Bank'} • {kategoriLabel[jurnalBatal.kategori] ?? jurnalBatal.kategori}
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between gap-2">
+                                    <span className="text-slate-500">Nominal</span>
+                                    <span className={`font-bold tabular-nums privacy-blur ${jurnalBatal.tipe === 'masuk' ? 'text-emerald-700' : 'text-rose-600'}`}>
+                                        {jurnalBatal.tipe === 'masuk' ? '+' : '−'} {formatRupiah(jurnalBatal.jumlah)}
+                                    </span>
+                                </div>
+                                <div className="pt-2 border-t border-slate-200">
+                                    <span className="block text-slate-500 mb-0.5">Keterangan Awal</span>
+                                    <p className="font-medium text-slate-800">{jurnalBatal.keterangan}</p>
+                                </div>
+                            </div>
+
+                            {['sisih_kas_kecil', 'terima_sisih_kas_kecil'].includes(jurnalBatal.kategori) && (
+                                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800">
+                                    Pembatalan <strong>Sisih Kas Kecil</strong> otomatis membalik kedua jurnal berpasangan (mengembalikan saldo dari Kas Kecil ke Bank).
+                                </div>
+                            )}
+
+                            <FormField
+                                label="Alasan Pembatalan / Koreksi"
+                                error={batalForm.errors.alasan}
+                                required
+                                hint="Contoh: Salah pilih akun Kas Kecil, seharusnya dari Kas Bank"
+                            >
+                                <TextField
+                                    size="sm"
+                                    as="textarea"
+                                    rows={3}
+                                    value={batalForm.data.alasan}
+                                    onChange={(e) => batalForm.setData('alasan', e.target.value)}
+                                    placeholder="Jelaskan alasan pembatalan transaksi ini..."
+                                    required
+                                />
+                            </FormField>
+
+                            <div className="pt-2 flex justify-end gap-2 border-t border-slate-100">
+                                <Button type="button" variant="secondary" size="sm" onClick={() => setJurnalBatal(null)}>
+                                    Tutup
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    size="sm"
+                                    disabled={batalForm.processing}
+                                    className="bg-rose-600 hover:bg-rose-700"
+                                >
+                                    {batalForm.processing ? 'Memproses...' : 'Terbitkan Jurnal Pembalik'}
                                 </Button>
                             </div>
                         </form>

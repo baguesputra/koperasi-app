@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\JurnalKas;
 use App\Models\KasKoperasi;
 use App\Models\Pengeluaran;
+use App\Models\ShuPeriode;
 use App\Services\Keuangan\JurnalKasService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -103,8 +104,13 @@ class KasKoperasiController extends Controller
             || ($kategoriFilter !== '')
             || ($tipePengeluaranFilter !== '' && in_array($tipePengeluaranFilter, Pengeluaran::TIPE, true));
 
+        $tahunFinalShu = ShuPeriode::where('status', 'final')
+            ->pluck('tahun_buku')
+            ->map(fn ($t) => (int) $t)
+            ->all();
+
         $riwayat = (clone $query)
-            ->with(['pengeluaran:id,tipe,akun'])
+            ->with(['pengeluaran:id,tipe,akun', 'koreksiDari:id,no_bukti'])
             ->orderBy('tanggal')
             ->orderBy('id')
             ->paginate(20)
@@ -128,6 +134,14 @@ class KasKoperasiController extends Controller
                 'tanggalIso' => $j->tanggal->format('Y-m-d'),
                 'hari' => $j->tanggal->translatedFormat('l'),
                 'rute_asal' => $this->ruteAsal($j),
+                'dibatalkan_pada' => $j->dibatalkan_pada?->format('d M Y H:i'),
+                'alasan_batal' => $j->alasan_batal,
+                'koreksi_dari_id' => $j->koreksi_dari_id,
+                'koreksi_dari_no_bukti' => $j->koreksiDari?->no_bukti,
+                'bisa_dibatalkan' => $j->dibatalkan_pada === null
+                    && $j->koreksi_dari_id === null
+                    && in_array($j->kategori, JurnalKasService::KATEGORI_BISA_DIBATALKAN, true)
+                    && ! in_array((int) $j->tanggal->format('Y'), $tahunFinalShu, true),
             ]);
 
         // 1 query agregat GROUP BY (ganti 8x sum): kantong+kategori+tipe, kanal dihitung di PHP
@@ -366,5 +380,24 @@ class KasKoperasiController extends Controller
         }
 
         return back()->with('status', 'Kas kecil berhasil disisihkan.');
+    }
+
+    public function batalkan(Request $request, JurnalKas $jurnalKas)
+    {
+        $request->validate([
+            'alasan' => ['required', 'string', 'min:3', 'max:255'],
+        ]);
+
+        try {
+            $this->jurnalKas->batalkan(
+                jurnalAsal: $jurnalKas,
+                alasan: trim((string) $request->alasan),
+                userId: auth()->id(),
+            );
+        } catch (RuntimeException $e) {
+            return back()->withErrors(['alasan' => $e->getMessage()]);
+        }
+
+        return back()->with('status', 'Transaksi berhasil dibatalkan dengan jurnal pembalik (storno).');
     }
 }

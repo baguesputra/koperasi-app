@@ -136,6 +136,8 @@ class DashboardController extends Controller
             $kasPerBulan = JurnalKas::selectRaw("{$exprTahunBulan('tanggal')}, kategori, tipe, SUM(jumlah) as total")
                 ->where('tanggal', '>=', $awalPeriode)
                 ->whereIn('kategori', ['topup_bulanan', 'pembayaran_angsuran', 'pencairan_pinjaman'])
+                ->whereNull('dibatalkan_pada')
+                ->whereNull('koreksi_dari_id')
                 ->groupBy('tahun', 'bulan', 'kategori', 'tipe')
                 ->get()
                 ->groupBy(fn ($r) => sprintf('%04d-%02d', $r->tahun, $r->bulan));

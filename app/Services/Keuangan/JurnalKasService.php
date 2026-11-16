@@ -2,8 +2,11 @@
 
 namespace App\Services\Keuangan;
 
+use App\Models\AuditLog;
 use App\Models\JurnalKas;
 use App\Models\KasKoperasi;
+use App\Models\Pengeluaran;
+use App\Models\ShuPeriode;
 use App\Services\Dokumen\PenomoranDokumenService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -55,6 +58,17 @@ class JurnalKasService
     public const SUMBER_TOPUP_LABEL = [
         'modal' => 'Modal',
         'bunga_bank' => 'Bunga Bank',
+    ];
+
+    /**
+     * Kategori operasional Bendahara yang boleh dibatalkan lewat jurnal pembalik (storno).
+     */
+    public const KATEGORI_BISA_DIBATALKAN = [
+        'topup_bulanan',
+        'pengeluaran_koperasi',
+        'pengeluaran_dana_sosial',
+        'sisih_kas_kecil',
+        'terima_sisih_kas_kecil',
     ];
 
     /**
@@ -204,6 +218,205 @@ class JurnalKasService
                 'created_by' => $userId,
             ]);
         });
+    }
+
+    /**
+     * Batalkan transaksi kas operasional dengan menerbitkan jurnal pembalik (storno)
+     * secara atomik tanpa menghapus nomor bukti lama.
+     */
+    public function batalkan(JurnalKas $jurnalAsal, string $alasan, int $userId): JurnalKas
+    {
+        $alasan = trim($alasan);
+
+        return DB::transaction(function () use ($jurnalAsal, $alasan, $userId) {
+            $kas = KasKoperasi::lockForUpdate()->firstOrFail();
+            $asal = JurnalKas::lockForUpdate()->findOrFail($jurnalAsal->id);
+
+            $this->validasiBisaDibatalkan($asal);
+
+            $jumlah = (float) $asal->jumlah;
+
+            if (in_array($asal->kategori, ['sisih_kas_kecil', 'terima_sisih_kas_kecil'], true)) {
+                $pasangan = $this->cariPasanganSisih($asal);
+                if (! $pasangan) {
+                    throw new RuntimeException('Pasangan jurnal sisih kas kecil tidak ditemukan.');
+                }
+
+                if ((float) $kas->saldo_kas_kecil < $jumlah) {
+                    throw new RuntimeException(
+                        'Saldo Kas kecil tidak mencukupi untuk membatalkan sisih kas kecil. Saldo saat ini: Rp '.number_format((float) $kas->saldo_kas_kecil, 0, ',', '.')
+                    );
+                }
+
+                $kas->decrement('saldo_kas_kecil', $jumlah);
+                $kas->increment('saldo_bank', $jumlah);
+                $kas->refresh();
+
+                $barisKasKecil = $asal->kategori === 'terima_sisih_kas_kecil' ? $asal : $pasangan;
+                $barisBank = $asal->kategori === 'sisih_kas_kecil' ? $asal : $pasangan;
+
+                $pembalikKasKecil = $this->buatBarisPembalik($barisKasKecil, 'keluar', $alasan, $userId);
+                $pembalikBank = $this->buatBarisPembalik($barisBank, 'masuk', $alasan, $userId);
+
+                $this->tandaiDibatalkan($asal, $alasan, $userId);
+                $this->tandaiDibatalkan($pasangan, $alasan, $userId);
+
+                $pembalikUtama = $asal->id === $barisKasKecil->id ? $pembalikKasKecil : $pembalikBank;
+                $dataBaruEkstra = [
+                    'pasangan_id' => $pasangan->id,
+                    'jurnal_pembalik_kas_kecil_id' => $pembalikKasKecil->id,
+                    'jurnal_pembalik_bank_id' => $pembalikBank->id,
+                ];
+            } else {
+                $tipePembalik = $asal->tipe === 'masuk' ? 'keluar' : 'masuk';
+                $kolomFisik = $asal->kantong === 'kas_kecil' ? 'saldo_kas_kecil' : 'saldo_bank';
+
+                if ($tipePembalik === 'keluar' && (float) $kas->{$kolomFisik} < $jumlah) {
+                    $label = $kolomFisik === 'saldo_bank' ? 'Bank' : 'Kas kecil';
+                    throw new RuntimeException(
+                        "Saldo {$label} tidak mencukupi untuk membatalkan transaksi ini. Saldo saat ini: Rp ".number_format((float) $kas->{$kolomFisik}, 0, ',', '.')
+                    );
+                }
+
+                if ($tipePembalik === 'masuk') {
+                    $kas->increment($kolomFisik, $jumlah);
+                } else {
+                    $kas->decrement($kolomFisik, $jumlah);
+                }
+                $kas->refresh();
+
+                $pembalikUtama = $this->buatBarisPembalik($asal, $tipePembalik, $alasan, $userId);
+                $this->tandaiDibatalkan($asal, $alasan, $userId);
+
+                if (in_array($asal->kategori, ['pengeluaran_koperasi', 'pengeluaran_dana_sosial'], true) && $asal->referensi_id) {
+                    Pengeluaran::where('id', $asal->referensi_id)->update(['dibatalkan_pada' => now()]);
+                }
+
+                $dataBaruEkstra = [];
+            }
+
+            $noBuktiAsal = $asal->no_bukti ?? ('#'.$asal->id);
+
+            AuditLog::catat(
+                aksi: 'kas_dibatalkan',
+                keterangan: "Pembatalan transaksi kas ({$noBuktiAsal}): {$alasan}",
+                dataLama: [
+                    'jurnal_kas_id' => $asal->id,
+                    'no_bukti' => $asal->no_bukti,
+                    'kategori' => $asal->kategori,
+                    'kantong' => $asal->kantong,
+                    'tipe' => $asal->tipe,
+                    'jumlah' => $jumlah,
+                    'tanggal' => $asal->tanggal->toDateString(),
+                    'referensi_id' => $asal->referensi_id,
+                ],
+                dataBaru: array_merge([
+                    'jurnal_pembalik_id' => $pembalikUtama->id,
+                    'no_bukti_pembalik' => $pembalikUtama->no_bukti,
+                    'alasan_batal' => $alasan,
+                ], $dataBaruEkstra),
+                userId: $userId,
+            );
+
+            return $pembalikUtama;
+        });
+    }
+
+    private function validasiBisaDibatalkan(JurnalKas $asal): void
+    {
+        if ($asal->dibatalkan_pada !== null) {
+            throw new RuntimeException('Transaksi ini sudah pernah dibatalkan.');
+        }
+
+        if ($asal->koreksi_dari_id !== null) {
+            throw new RuntimeException('Jurnal pembalik (storno) tidak dapat dibatalkan lagi.');
+        }
+
+        if (! in_array($asal->kategori, self::KATEGORI_BISA_DIBATALKAN, true)) {
+            throw new RuntimeException('Kategori transaksi ini tidak dapat dibatalkan dari menu Kas Koperasi.');
+        }
+
+        $tahun = (int) $asal->tanggal->format('Y');
+        if (ShuPeriode::where('tahun_buku', $tahun)->where('status', 'final')->exists()) {
+            throw new RuntimeException("Transaksi tahun buku {$tahun} tidak dapat dibatalkan karena SHU periode tersebut sudah final.");
+        }
+    }
+
+    private function buatBarisPembalik(JurnalKas $barisAsal, string $tipePembalik, string $alasan, int $userId): JurnalKas
+    {
+        $kanal = self::kanalFisik($barisAsal->kantong, $barisAsal->kategori);
+        $tanggalAsal = $barisAsal->tanggal->toDateString();
+        $batasAkhirHari = $barisAsal->tanggal->copy()->endOfDay();
+        $jumlah = (float) $barisAsal->jumlah;
+        $delta = $tipePembalik === 'masuk' ? $jumlah : -$jumlah;
+
+        $saldoSebelum = (float) ($this->queryKanalFisik($kanal)
+            ->where('tanggal', '<=', $batasAkhirHari)
+            ->orderByDesc('tanggal')
+            ->orderByDesc('id')
+            ->value('saldo_setelah') ?? 0);
+
+        $this->queryKanalFisik($kanal)
+            ->where('tanggal', '>', $batasAkhirHari)
+            ->update(['saldo_setelah' => DB::raw("saldo_setelah + ({$delta})")]);
+
+        $refBukti = $barisAsal->no_bukti ?? ('#'.$barisAsal->id);
+
+        return JurnalKas::create([
+            'tipe' => $tipePembalik,
+            'kategori' => $barisAsal->kategori,
+            'sumber_topup' => $barisAsal->sumber_topup,
+            'kantong' => $barisAsal->kantong,
+            'no_bukti' => $this->noBuktiBerikutnya($tipePembalik, $barisAsal->kategori, $tanggalAsal),
+            'jumlah' => $jumlah,
+            'saldo_setelah' => $saldoSebelum + $delta,
+            'keterangan' => "[PEMBALIK {$refBukti}] {$alasan}",
+            'sub_judul' => 'Jurnal Pembalik (Storno)',
+            'referensi_id' => $barisAsal->referensi_id,
+            'tanggal' => $tanggalAsal,
+            'created_by' => $userId,
+            'koreksi_dari_id' => $barisAsal->id,
+        ]);
+    }
+
+    private function queryKanalFisik(string $kanal)
+    {
+        return JurnalKas::query()->when(
+            $kanal === 'kas_kecil',
+            fn ($q) => $q->where('kantong', 'kas_kecil'),
+            fn ($q) => $q->where('kantong', '!=', 'kas_kecil')
+        );
+    }
+
+    private function tandaiDibatalkan(JurnalKas $baris, string $alasan, int $userId): void
+    {
+        $baris->update([
+            'dibatalkan_pada' => now(),
+            'dibatalkan_oleh' => $userId,
+            'alasan_batal' => $alasan,
+        ]);
+    }
+
+    private function cariPasanganSisih(JurnalKas $asal): ?JurnalKas
+    {
+        $kategoriPasangan = $asal->kategori === 'sisih_kas_kecil'
+            ? 'terima_sisih_kas_kecil'
+            : 'sisih_kas_kecil';
+        $prioritasId = $asal->kategori === 'sisih_kas_kecil'
+            ? 'CASE WHEN id > ? THEN 0 ELSE 1 END'
+            : 'CASE WHEN id < ? THEN 0 ELSE 1 END';
+
+        return JurnalKas::lockForUpdate()
+            ->where('kategori', $kategoriPasangan)
+            ->where('jumlah', $asal->jumlah)
+            ->whereBetween('tanggal', [
+                $asal->tanggal->copy()->startOfDay(),
+                $asal->tanggal->copy()->endOfDay(),
+            ])
+            ->whereNull('dibatalkan_pada')
+            ->whereNull('koreksi_dari_id')
+            ->orderByRaw("{$prioritasId}, ABS(id - ?) ASC", [$asal->id, $asal->id])
+            ->first();
     }
 
     /**

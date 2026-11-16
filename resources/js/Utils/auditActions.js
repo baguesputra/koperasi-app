@@ -76,6 +76,7 @@ const AKSI_MAP = {
 
     // Keuangan
     pengeluaran_dicatat: { label: 'Catat Pengeluaran', outcome: 'kuning', kategori: 'pengeluaran' },
+    kas_dibatalkan: { label: 'Batalkan Transaksi Kas (Storno)', outcome: 'merah', kategori: 'pengeluaran' },
     penuhi_pagu_kas_kecil: { label: 'Penuhi Pagu Kas Kecil', outcome: 'hijau', kategori: 'pengeluaran' },
     pinjaman_talangan_kembali: { label: 'Pengembalian Talangan Pinjaman', outcome: 'hijau', kategori: 'pinjaman' },
 

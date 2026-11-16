@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Laporan\LaporanRegistry;
 use App\Models\JurnalKas;
 use App\Models\KasKoperasi;
 use App\Models\Pengeluaran;
@@ -384,5 +385,199 @@ class KasTopupPengeluaranTest extends TestCase
             'jumlah' => $bank + 1,
             'keterangan' => 'Melebihi saldo bank',
         ])->assertSessionHasErrors('jumlah');
+    }
+
+    public function test_batalkan_pengeluaran_membalik_saldo_dan_jaga_laporan(): void
+    {
+        $this->masuk('BEN-000001');
+        $tahun = (int) now()->format('Y');
+        $hariIni = now()->format('Y-m-d');
+        $kasAwal = KasKoperasi::first()->only(['saldo_bank', 'saldo_kas_kecil']);
+        $shuAwal = LaporanRegistry::totalShu($tahun);
+        $neracaAwal = LaporanRegistry::ambil('neraca')['data'](request()->merge(['tanggal' => $hariIni]));
+        $shuNeracaAwal = collect($neracaAwal['rows'])->firstWhere(fn ($r) => $r[0] === 'Selisih Hasil Usaha')[1];
+
+        $this->post(route('pengeluaran.store'), [
+            'jumlah' => 250_000,
+            'keterangan' => 'Beli ATK salah pilih akun',
+            'tipe' => 'perlengkapan',
+            'akun' => 'kas_kecil',
+            'tanggal' => now()->format('Y-m-d'),
+        ])->assertStatus(302);
+
+        $jurnalSalah = JurnalKas::where('keterangan', 'Beli ATK salah pilih akun')->firstOrFail();
+        $pengeluaranSalah = Pengeluaran::findOrFail($jurnalSalah->referensi_id);
+        $this->assertEquals((float) $kasAwal['saldo_kas_kecil'] - 250_000, (float) KasKoperasi::first()->saldo_kas_kecil);
+        $this->assertEquals($shuAwal - 250_000, LaporanRegistry::totalShu($tahun));
+
+        $this->post(route('kas-koperasi.batalkan', $jurnalSalah->id), [
+            'alasan' => 'Salah pilih Kas Kecil, seharusnya Bank',
+        ])->assertStatus(302)->assertSessionHasNoErrors();
+
+        $kasSetelahBatal = KasKoperasi::first();
+        $this->assertEquals((float) $kasAwal['saldo_kas_kecil'], (float) $kasSetelahBatal->saldo_kas_kecil);
+        $this->assertEquals((float) $kasAwal['saldo_bank'], (float) $kasSetelahBatal->saldo_bank);
+
+        $jurnalSalah->refresh();
+        $pengeluaranSalah->refresh();
+        $this->assertNotNull($jurnalSalah->dibatalkan_pada);
+        $this->assertNotNull($pengeluaranSalah->dibatalkan_pada);
+        $this->assertSame('Salah pilih Kas Kecil, seharusnya Bank', $jurnalSalah->alasan_batal);
+
+        $this->assertDatabaseHas('jurnal_kas', [
+            'koreksi_dari_id' => $jurnalSalah->id,
+            'tipe' => 'masuk',
+            'kategori' => 'pengeluaran_koperasi',
+            'kantong' => 'kas_kecil',
+            'jumlah' => 250_000,
+        ]);
+
+        // Input ulang ke akun yang benar (Bank) → Laba Rugi / SHU hanya terhitung 1x (Rp 250.000)
+        $this->post(route('pengeluaran.store'), [
+            'jumlah' => 250_000,
+            'keterangan' => 'Beli ATK dari Bank (benar)',
+            'tipe' => 'perlengkapan',
+            'akun' => 'bank',
+            'tanggal' => now()->format('Y-m-d'),
+        ])->assertStatus(302);
+
+        $kasAkhir = KasKoperasi::first();
+        $this->assertEquals((float) $kasAwal['saldo_kas_kecil'], (float) $kasAkhir->saldo_kas_kecil);
+        $this->assertEquals((float) $kasAwal['saldo_bank'] - 250_000, (float) $kasAkhir->saldo_bank);
+        $this->assertEquals($shuAwal - 250_000, LaporanRegistry::totalShu($tahun));
+
+        $neraca = LaporanRegistry::ambil('neraca')['data'](request()->merge(['tanggal' => $hariIni]));
+        $aktiva = collect($neraca['rows'])->firstWhere(fn ($r) => $r[0] === 'TOTAL AKTIVA')[1];
+        $shuNeraca = collect($neraca['rows'])->firstWhere(fn ($r) => $r[0] === 'Selisih Hasil Usaha')[1];
+        $this->assertEquals($shuNeracaAwal - 250_000, $shuNeraca);
+
+        $neracaAkhirTahun = LaporanRegistry::ambil('neraca')['data'](request()->merge(['tanggal' => sprintf('%04d-12-31', $tahun)]));
+        $shuNeracaAkhirTahun = collect($neracaAkhirTahun['rows'])->firstWhere(fn ($r) => $r[0] === 'Selisih Hasil Usaha')[1];
+        $this->assertEquals($shuAwal - 250_000, $shuNeracaAkhirTahun);
+        $this->assertGreaterThan(0, $aktiva);
+    }
+
+    public function test_batalkan_topup_bunga_bank_membalik_saldo_dan_shu(): void
+    {
+        $this->masuk('BEN-000001');
+        $tahun = (int) now()->format('Y');
+        $bankAwal = (float) KasKoperasi::first()->saldo_bank;
+        $shuAwal = LaporanRegistry::totalShu($tahun);
+
+        $this->post(route('kas-koperasi.topup'), [
+            'jumlah' => 300_000,
+            'sumber_topup' => 'bunga_bank',
+            'keterangan' => 'Salah input bunga bank',
+            'tanggal' => now()->format('Y-m-d'),
+        ])->assertStatus(302);
+
+        $jurnal = JurnalKas::where('keterangan', 'Salah input bunga bank')->firstOrFail();
+        $this->assertEquals($bankAwal + 300_000, (float) KasKoperasi::first()->saldo_bank);
+        $this->assertEquals($shuAwal + 300_000, LaporanRegistry::totalShu($tahun));
+
+        $this->post(route('kas-koperasi.batalkan', $jurnal->id), [
+            'alasan' => 'Koreksi salah catat bunga bank',
+        ])->assertStatus(302)->assertSessionHasNoErrors();
+
+        $this->assertEquals($bankAwal, (float) KasKoperasi::first()->saldo_bank);
+        $this->assertEquals($shuAwal, LaporanRegistry::totalShu($tahun));
+        $this->assertDatabaseHas('jurnal_kas', [
+            'koreksi_dari_id' => $jurnal->id,
+            'tipe' => 'keluar',
+            'kantong' => 'bank',
+            'jumlah' => 300_000,
+        ]);
+    }
+
+    public function test_batalkan_sisih_kas_kecil_membalik_kedua_baris_atomik(): void
+    {
+        $this->masuk('BEN-000001');
+        $kasAwal = KasKoperasi::first()->only(['saldo_bank', 'saldo_kas_kecil']);
+
+        $this->post(route('kas-koperasi.sisih-kas-kecil'), [
+            'jumlah' => 750_000,
+            'keterangan' => 'Sisih salah nominal',
+        ])->assertStatus(302);
+
+        $barisKeluarBank = JurnalKas::where('kategori', 'sisih_kas_kecil')
+            ->where('keterangan', 'Sisih salah nominal')
+            ->firstOrFail();
+        $barisMasukKasKecil = JurnalKas::where('kategori', 'terima_sisih_kas_kecil')
+            ->where('keterangan', 'Sisih salah nominal')
+            ->firstOrFail();
+
+        $this->post(route('kas-koperasi.batalkan', $barisKeluarBank->id), [
+            'alasan' => 'Nominal sisih salah',
+        ])->assertStatus(302)->assertSessionHasNoErrors();
+
+        $kasAkhir = KasKoperasi::first();
+        $this->assertEquals((float) $kasAwal['saldo_bank'], (float) $kasAkhir->saldo_bank);
+        $this->assertEquals((float) $kasAwal['saldo_kas_kecil'], (float) $kasAkhir->saldo_kas_kecil);
+
+        $this->assertNotNull($barisKeluarBank->fresh()->dibatalkan_pada);
+        $this->assertNotNull($barisMasukKasKecil->fresh()->dibatalkan_pada);
+        $this->assertDatabaseHas('jurnal_kas', [
+            'koreksi_dari_id' => $barisKeluarBank->id,
+            'tipe' => 'masuk',
+            'kantong' => 'bank',
+            'jumlah' => 750_000,
+        ]);
+        $this->assertDatabaseHas('jurnal_kas', [
+            'koreksi_dari_id' => $barisMasukKasKecil->id,
+            'tipe' => 'keluar',
+            'kantong' => 'kas_kecil',
+            'jumlah' => 750_000,
+        ]);
+    }
+
+    public function test_tolak_pembatalan_ganda_baris_pembalik_kategori_non_operasional_dan_tanpa_izin(): void
+    {
+        $this->masuk('BEN-000001');
+
+        $this->post(route('pengeluaran.store'), [
+            'jumlah' => 100_000,
+            'keterangan' => 'Uji tolak batal ganda',
+            'tipe' => 'lain_lain',
+            'akun' => 'kas_kecil',
+            'tanggal' => now()->format('Y-m-d'),
+        ])->assertStatus(302);
+
+        $asal = JurnalKas::where('keterangan', 'Uji tolak batal ganda')->firstOrFail();
+
+        $this->post(route('kas-koperasi.batalkan', $asal->id), [
+            'alasan' => 'Pembatalan pertama',
+        ])->assertStatus(302)->assertSessionHasNoErrors();
+
+        // Pembatalan kedua atas baris yang sama ditolak
+        $this->post(route('kas-koperasi.batalkan', $asal->id), [
+            'alasan' => 'Coba batal ulang',
+        ])->assertSessionHasErrors('alasan');
+
+        // Pembatalan atas baris storno ditolak
+        $pembalik = JurnalKas::where('koreksi_dari_id', $asal->id)->firstOrFail();
+        $this->post(route('kas-koperasi.batalkan', $pembalik->id), [
+            'alasan' => 'Coba batal pembalik',
+        ])->assertSessionHasErrors('alasan');
+
+        // Kategori non-operasional (pembayaran_angsuran) ditolak
+        $angsuranJurnal = JurnalKas::create([
+            'tipe' => 'masuk',
+            'kategori' => 'pembayaran_angsuran',
+            'kantong' => 'pinjaman',
+            'jumlah' => 200_000,
+            'saldo_setelah' => 0,
+            'keterangan' => 'Angsuran uji tolak batal',
+            'tanggal' => now(),
+            'created_by' => auth()->id(),
+        ]);
+        $this->post(route('kas-koperasi.batalkan', $angsuranJurnal->id), [
+            'alasan' => 'Coba batal angsuran',
+        ])->assertSessionHasErrors('alasan');
+
+        // Admin tanpa permission kas.topup ditolak 403
+        $this->masuk('ADM-000001');
+        $this->post(route('kas-koperasi.batalkan', $asal->id), [
+            'alasan' => 'Akses tidak sah',
+        ])->assertStatus(403);
     }
 }
