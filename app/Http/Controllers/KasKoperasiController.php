@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\JurnalKas;
 use App\Models\KasKoperasi;
 use App\Models\Pengeluaran;
-use App\Models\ShuPeriode;
 use App\Services\Keuangan\JurnalKasService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -104,11 +103,6 @@ class KasKoperasiController extends Controller
             || ($kategoriFilter !== '')
             || ($tipePengeluaranFilter !== '' && in_array($tipePengeluaranFilter, Pengeluaran::TIPE, true));
 
-        $tahunFinalShu = ShuPeriode::where('status', 'final')
-            ->pluck('tahun_buku')
-            ->map(fn ($t) => (int) $t)
-            ->all();
-
         $riwayat = (clone $query)
             ->with(['pengeluaran:id,tipe,akun', 'koreksiDari:id,no_bukti'])
             ->orderBy('tanggal')
@@ -140,8 +134,7 @@ class KasKoperasiController extends Controller
                 'koreksi_dari_no_bukti' => $j->koreksiDari?->no_bukti,
                 'bisa_dibatalkan' => $j->dibatalkan_pada === null
                     && $j->koreksi_dari_id === null
-                    && in_array($j->kategori, JurnalKasService::KATEGORI_BISA_DIBATALKAN, true)
-                    && ! in_array((int) $j->tanggal->format('Y'), $tahunFinalShu, true),
+                    && in_array($j->kategori, JurnalKasService::KATEGORI_BISA_DIBATALKAN, true),
             ]);
 
         // 1 query agregat GROUP BY (ganti 8x sum): kantong+kategori+tipe, kanal dihitung di PHP

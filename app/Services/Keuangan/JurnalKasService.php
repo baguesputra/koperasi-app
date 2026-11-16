@@ -6,7 +6,6 @@ use App\Models\AuditLog;
 use App\Models\JurnalKas;
 use App\Models\KasKoperasi;
 use App\Models\Pengeluaran;
-use App\Models\ShuPeriode;
 use App\Services\Dokumen\PenomoranDokumenService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -334,11 +333,6 @@ class JurnalKasService
 
         if (! in_array($asal->kategori, self::KATEGORI_BISA_DIBATALKAN, true)) {
             throw new RuntimeException('Kategori transaksi ini tidak dapat dibatalkan dari menu Kas Koperasi.');
-        }
-
-        $tahun = (int) $asal->tanggal->format('Y');
-        if (ShuPeriode::where('tahun_buku', $tahun)->where('status', 'final')->exists()) {
-            throw new RuntimeException("Transaksi tahun buku {$tahun} tidak dapat dibatalkan karena SHU periode tersebut sudah final.");
         }
     }
 
