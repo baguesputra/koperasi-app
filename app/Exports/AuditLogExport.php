@@ -8,9 +8,12 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\Export;
 use Maatwebsite\Excel\Concerns\Exportable;
+use Maatwebsite\Excel\Concerns\WithDefaultStyles;
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Style;
 
-class AuditLogExport implements Export, WithMultipleSheets
+class AuditLogExport implements Export, WithDefaultStyles, WithMultipleSheets
 {
     use Exportable;
 
@@ -19,7 +22,18 @@ class AuditLogExport implements Export, WithMultipleSheets
     public function __construct(
         Builder|Collection $data
     ) {
-        $this->logs = $data instanceof Builder ? $data->with('user')->latest()->get() : $data;
+        $this->logs = $data instanceof Builder ? $data->with('user:id,name,no_karyawan')->latest()->get() : $data;
+    }
+
+    public function defaultStyles(Style $defaultStyle): array
+    {
+        return [
+            'font' => ['size' => 9],
+            'alignment' => [
+                'vertical' => Alignment::VERTICAL_TOP,
+                'wrapText' => true,
+            ],
+        ];
     }
 
     /**
@@ -61,8 +75,7 @@ class AuditLogExport implements Export, WithMultipleSheets
             },
             'Autentikasi & Gate' => function (AuditLog $log) {
                 return str_starts_with($log->aksi, 'sso_')
-                    || str_starts_with($log->aksi, 'sinkron_')
-                    || str_starts_with($log->aksi, 'migrasi_');
+                    || str_starts_with($log->aksi, 'sinkron_');
             },
         ];
 

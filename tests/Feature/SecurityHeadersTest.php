@@ -36,6 +36,8 @@ class SecurityHeadersTest extends TestCase
         $this->assertNotNull($csp);
         $this->assertStringContainsString("form-action 'self'", $csp);
         $this->assertStringContainsString('gate.appdutamall.com', $csp);
+        $this->assertStringContainsString('https://*.appdutamall.com', $csp);
+        $this->assertStringContainsString('https://appdutamall.com', $csp);
         $this->assertStringContainsString('https://static.cloudflareinsights.com', $csp);
         $this->assertStringContainsString('https://app.govindogroup.com', $csp);
     }

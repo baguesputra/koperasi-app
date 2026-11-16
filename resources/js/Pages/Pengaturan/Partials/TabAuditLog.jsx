@@ -14,6 +14,7 @@ import {
     Users,
     Laptop,
     Filter,
+    Loader2,
 } from 'lucide-react';
 import Button from '@/Components/ui/Button';
 import { infoAksi, inisialNama, waktuRelatif } from '@/Utils/auditActions';
@@ -84,6 +85,8 @@ export default function TabAuditLog({
     const [dateFrom, setDateFrom] = useState(filterAudit?.date_from ?? '');
     const [dateTo, setDateTo] = useState(filterAudit?.date_to ?? '');
     const [expandedId, setExpandedId] = useState(null);
+    const [exporting, setExporting] = useState(false);
+    const [exportError, setExportError] = useState('');
 
     const cariDebounced = useDebouncedValue(search);
     const pertama = useRef(true);
@@ -135,7 +138,9 @@ export default function TabAuditLog({
         router.get(route('pengaturan.index'), { tab: 'audit' }, { preserveState: true, replace: true });
     }
 
-    function exportExcel() {
+    async function exportExcel() {
+        if (exporting) return;
+
         const params = new URLSearchParams();
         if (search) params.append('search', search);
         if (userId) params.append('user_id', userId);
@@ -144,7 +149,46 @@ export default function TabAuditLog({
         if (dateTo) params.append('date_to', dateTo);
 
         const url = route('pengaturan.audit.export') + (params.toString() ? `?${params.toString()}` : '');
-        window.open(url, '_blank');
+
+        setExporting(true);
+        setExportError('');
+
+        try {
+            const res = await fetch(url, { credentials: 'same-origin' });
+
+            // Jika sesi konfirmasi PIN / login habis, arahkan ke halaman konfirmasi
+            if (res.redirected) {
+                window.location.href = res.url;
+                return;
+            }
+
+            if (!res.ok) {
+                throw new Error(`Server mengembalikan status ${res.status}`);
+            }
+
+            const contentType = res.headers.get('content-type') || '';
+            if (contentType.includes('text/html')) {
+                throw new Error('Respons server tidak berupa file Excel');
+            }
+
+            const blob = await res.blob();
+            const disposition = res.headers.get('content-disposition') || '';
+            const match = disposition.match(/filename\*?=(?:UTF-8''|["']?)([^;"'\n]+)["']?/i);
+            const filename = match?.[1] ? decodeURIComponent(match[1].trim()) : 'Audit_Log_Koperasi.xlsx';
+
+            const blobUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(blobUrl);
+        } catch (err) {
+            setExportError('Gagal mengunduh Excel audit log. Silakan coba lagi atau persempit rentang tanggal filter.');
+        } finally {
+            setExporting(false);
+        }
     }
 
     function gantiHalaman(url) {
@@ -332,13 +376,24 @@ export default function TabAuditLog({
                         type="button"
                         variant="secondary"
                         size="sm"
+                        disabled={exporting}
                         onClick={exportExcel}
                         className="bg-emerald-700 hover:bg-emerald-800 text-white font-medium shadow-xs"
                     >
-                        <FileSpreadsheet size={15} className="mr-1.5" />
-                        Export Excel (Multi-Sheet)
+                        {exporting ? (
+                            <Loader2 size={15} className="mr-1.5 animate-spin" />
+                        ) : (
+                            <FileSpreadsheet size={15} className="mr-1.5" />
+                        )}
+                        {exporting ? 'Menyiapkan Excel...' : 'Export Excel (Multi-Sheet)'}
                     </Button>
                 </div>
+
+                {exportError && (
+                    <p role="alert" className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+                        {exportError}
+                    </p>
+                )}
             </div>
 
             {/* List Audit Log */}

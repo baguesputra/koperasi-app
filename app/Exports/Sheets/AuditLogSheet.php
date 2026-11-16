@@ -16,9 +16,14 @@ use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class AuditLogSheet implements Export, FromCollection, WithHeadings, WithMapping, WithTitle, WithStyles, WithColumnWidths
+class AuditLogSheet implements Export, FromCollection, WithColumnWidths, WithHeadings, WithMapping, WithStyles, WithTitle
 {
+    private const MAX_ROW_DETAIL_STYLES = 1000;
+
     private int $rowNumber = 0;
+
+    /** @var array<string, string> */
+    private array $kategoriCache = [];
 
     public function __construct(
         private string $title,
@@ -61,7 +66,7 @@ class AuditLogSheet implements Export, FromCollection, WithHeadings, WithMapping
 
         $aktorNama = $row->user ? $row->user->name : 'Sistem Otomatis';
         $noKaryawan = $row->user?->no_karyawan ?? '-';
-        $kategori = AuditLog::labelKategori($row->aksi);
+        $kategori = $this->kategoriCache[$row->aksi] ??= AuditLog::labelKategori($row->aksi);
 
         // Format perubahan diff menjadi teks terstruktur yang mudah dibaca di Excel
         $perubahan = [];
@@ -136,8 +141,8 @@ class AuditLogSheet implements Export, FromCollection, WithHeadings, WithMapping
 
         $sheet->getRowDimension(1)->setRowHeight(28);
 
-        // Data Row Style
-        if ($lastRow > 1) {
+        // Per-cell border & horizontal alignment di-apply hanya untuk sheet <= 1000 baris agar dataset besar tidak bottleneck di PhpSpreadsheet
+        if ($lastRow > 1 && $this->logs->count() <= self::MAX_ROW_DETAIL_STYLES) {
             $sheet->getStyle("A2:J{$lastRow}")->applyFromArray([
                 'font' => ['size' => 9],
                 'alignment' => [

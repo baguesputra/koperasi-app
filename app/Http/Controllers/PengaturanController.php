@@ -677,7 +677,7 @@ class PengaturanController extends Controller
     public function exportAudit(Request $request)
     {
         $filters = $request->only(['search', 'user_id', 'kategori', 'aksi', 'date_from', 'date_to']);
-        $query = AuditLog::with('user')->filter($filters)->latest();
+        $query = AuditLog::with('user:id,name,no_karyawan')->filter($filters)->latest();
 
         $namaFile = 'Audit_Log_Koperasi_' . now()->format('Ymd_His') . '.xlsx';
 

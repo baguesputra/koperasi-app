@@ -50,7 +50,7 @@ class SecurityHeadersMiddleware
             "script-src 'self' 'unsafe-inline'{$evalDev} https://static.cloudflareinsights.com{$localDev}",
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com{$localDev}",
             "font-src 'self' https://fonts.gstatic.com data:{$localDev}",
-            "img-src 'self' data: blob: {$gateOrigin} https://*.govindogroup.com https://app.govindogroup.com{$localDev}",
+            "img-src 'self' data: blob: {$gateOrigin} https://*.appdutamall.com https://appdutamall.com https://*.govindogroup.com https://app.govindogroup.com{$localDev}",
             "connect-src 'self' ws: wss: https: https://cloudflareinsights.com{$localDev}",
             "object-src 'none'",
             "base-uri 'self'",
