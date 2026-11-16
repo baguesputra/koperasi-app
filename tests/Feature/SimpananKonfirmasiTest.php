@@ -2,8 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Laporan\LaporanRegistry;
 use App\Models\Anggota;
+use App\Models\AuditLog;
 use App\Models\JurnalKas;
+use App\Models\KasKoperasi;
 use App\Models\Simpanan;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -100,5 +103,100 @@ class SimpananKonfirmasiTest extends TestCase
         $this->assertIsArray($daftarCabang);
         $this->assertTrue(array_is_list($daftarCabang));
         $this->assertContains('Banjarmasin', $daftarCabang);
+    }
+
+    public function test_rollback_konfirmasi_simpanan_membalik_saldo_hapus_simpanan_dan_jaga_neraca(): void
+    {
+        $a1 = $this->buatAnggota('TOP-910006');
+        $bulan = now()->format('Y-m');
+        $hariIni = now()->format('Y-m-d');
+
+        $this->masuk('BEN-000001');
+        $bankAwal = (float) KasKoperasi::first()->saldo_bank;
+        $neracaAwal = LaporanRegistry::ambil('neraca')['data'](request()->merge(['tanggal' => $hariIni]));
+        $nilaiAwal = fn (string $pos) => collect($neracaAwal['rows'])->firstWhere(fn ($r) => $r[0] === $pos)[1];
+        $wajibAwal = $nilaiAwal('Simpanan Wajib');
+        $sosialAwal = $nilaiAwal('Asuransi Sosial');
+
+        $this->post(route('bendahara.simpanan.konfirmasi'), [
+            'anggota_ids' => [$a1->id],
+            'bulan_periode' => $bulan,
+        ])->assertStatus(302);
+
+        $propsSetelahKonfirmasi = $this->get(route('bendahara.simpanan.index', ['bulan' => $bulan]))
+            ->assertOk()
+            ->viewData('page')['props'];
+        $this->assertNotContains($a1->id, array_column($propsSetelahKonfirmasi['belumSimpanan'], 'id'));
+        $this->assertContains($a1->id, array_column($propsSetelahKonfirmasi['sudahSimpanan'], 'id'));
+
+        $this->post(route('bendahara.simpanan.batalkan', $a1->id), [
+            'bulan_periode' => $bulan,
+            'alasan' => 'Salah contreng anggota',
+        ])->assertStatus(302)->assertSessionHasNoErrors();
+
+        $this->assertEquals($bankAwal, (float) KasKoperasi::first()->saldo_bank);
+        $this->assertSame(0, Simpanan::where('anggota_id', $a1->id)->where('bulan_periode', $bulan)->count());
+
+        $jurnalWajib = JurnalKas::where('kategori', 'simpanan_wajib_masuk')
+            ->where('referensi_id', $a1->id)
+            ->where('keterangan', "Simpanan wajib bulan {$bulan}")
+            ->whereNull('koreksi_dari_id')
+            ->firstOrFail();
+        $this->assertNotNull($jurnalWajib->dibatalkan_pada);
+        $this->assertDatabaseHas('jurnal_kas', [
+            'koreksi_dari_id' => $jurnalWajib->id,
+            'tipe' => 'keluar',
+            'kategori' => 'simpanan_wajib_masuk',
+        ]);
+
+        $jurnalSosial = JurnalKas::where('kategori', 'dana_sosial_bulanan')
+            ->where('referensi_id', $a1->id)
+            ->where('keterangan', "Dana sosial bulan {$bulan}")
+            ->whereNull('koreksi_dari_id')
+            ->firstOrFail();
+        $this->assertNotNull($jurnalSosial->dibatalkan_pada);
+        $this->assertDatabaseHas('jurnal_kas', [
+            'koreksi_dari_id' => $jurnalSosial->id,
+            'tipe' => 'keluar',
+            'kategori' => 'dana_sosial_bulanan',
+        ]);
+
+        $propsSetelahBatal = $this->get(route('bendahara.simpanan.index', ['bulan' => $bulan]))
+            ->assertOk()
+            ->viewData('page')['props'];
+        $this->assertContains($a1->id, array_column($propsSetelahBatal['belumSimpanan'], 'id'));
+        $this->assertNotContains($a1->id, array_column($propsSetelahBatal['sudahSimpanan'], 'id'));
+
+        $neracaAkhir = LaporanRegistry::ambil('neraca')['data'](request()->merge(['tanggal' => $hariIni]));
+        $nilaiAkhir = fn (string $pos) => collect($neracaAkhir['rows'])->firstWhere(fn ($r) => $r[0] === $pos)[1];
+        $this->assertEquals($wajibAwal, $nilaiAkhir('Simpanan Wajib'));
+        $this->assertEquals($sosialAwal, $nilaiAkhir('Asuransi Sosial'));
+        $this->assertEquals($bankAwal, $nilaiAkhir('Bank'));
+
+        $this->assertTrue(AuditLog::where('aksi', 'simpanan_konfirmasi_dibatalkan')->exists());
+    }
+
+    public function test_rollback_simpanan_menolak_anggota_nonaktif_dan_tanpa_izin(): void
+    {
+        $a1 = $this->buatAnggota('TOP-910007');
+        $bulan = now()->format('Y-m');
+
+        $this->masuk('BEN-000001');
+        $this->post(route('bendahara.simpanan.konfirmasi'), [
+            'anggota_ids' => [$a1->id],
+            'bulan_periode' => $bulan,
+        ])->assertStatus(302);
+
+        $a1->update(['status' => 'resign']);
+        $this->post(route('bendahara.simpanan.batalkan', $a1->id), [
+            'bulan_periode' => $bulan,
+            'alasan' => 'Coba rollback anggota resign',
+        ])->assertSessionHasErrors('alasan');
+
+        $this->masuk('ADM-000001');
+        $this->post(route('bendahara.simpanan.batalkan', $a1->id), [
+            'bulan_periode' => $bulan,
+            'alasan' => 'Akses tidak sah',
+        ])->assertStatus(403);
     }
 }

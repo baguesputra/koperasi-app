@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Laporan\LaporanRegistry;
+use App\Models\AuditLog;
 use App\Models\JurnalKas;
 use App\Models\KasKoperasi;
 use App\Models\PengajuanPercepatan;
@@ -105,5 +107,116 @@ class AngsuranKonfirmasiTest extends TestCase
         $adaTanda = collect($res->viewData('page')['props']['daftarAngsuran'] ?? [])
             ->contains(fn ($item) => $item['ada_pengajuan_percepatan'] === true && $item['no_anggota'] === $pinjaman->anggota->no_anggota);
         $this->assertTrue($adaTanda);
+    }
+
+    public function test_rollback_konfirmasi_angsuran_mengembalikan_status_pinjaman_saldo_dan_neraca(): void
+    {
+        $pinjaman = $this->buatPinjamanAktifDenganAngsuran();
+        $angsuran1 = $pinjaman->angsuran()->where('cicilan_ke', 1)->firstOrFail();
+        $angsuran2 = $pinjaman->angsuran()->where('cicilan_ke', 2)->firstOrFail();
+        $angsuran3 = $pinjaman->angsuran()->where('cicilan_ke', 3)->firstOrFail();
+
+        $this->masuk('BEN-000001');
+        $hariIni = now()->format('Y-m-d');
+
+        // Konfirmasi cicilan 1 & 2 terlebih dahulu, lalu catat baseline neraca sebelum cicilan 3
+        $this->post(route('bendahara.angsuran.konfirmasi'), [
+            'angsuran_ids' => ['n-'.$angsuran1->id, 'n-'.$angsuran2->id],
+        ])->assertStatus(302);
+
+        $bankSebelum3 = (float) KasKoperasi::first()->saldo_bank;
+        $neracaSebelum3 = LaporanRegistry::ambil('neraca')['data'](request()->merge(['tanggal' => $hariIni]));
+        $nilaiSebelum3 = fn (string $pos) => collect($neracaSebelum3['rows'])->firstWhere(fn ($r) => $r[0] === $pos)[1];
+        $piutangSebelum3 = $nilaiSebelum3('Piutang');
+        $shuSebelum3 = $nilaiSebelum3('Selisih Hasil Usaha');
+
+        // Konfirmasi cicilan ke-3 → pinjaman otomatis jadi lunas
+        $this->post(route('bendahara.angsuran.konfirmasi'), [
+            'angsuran_ids' => ['n-'.$angsuran3->id],
+        ])->assertStatus(302);
+        $this->assertSame('lunas', $pinjaman->refresh()->status);
+        $this->assertEquals($bankSebelum3 + 303_000, (float) KasKoperasi::first()->saldo_bank);
+
+        // Rollback cicilan ke-3
+        $this->post(route('bendahara.angsuran.batalkan', 'n-'.$angsuran3->id), [
+            'alasan' => 'Salah contreng pelunasan cicilan ke-3',
+        ])->assertStatus(302)->assertSessionHasNoErrors();
+
+        $angsuran3->refresh();
+        $this->assertSame('belum_bayar', $angsuran3->status);
+        $this->assertNull($angsuran3->tanggal_konfirmasi_bayar);
+        $this->assertNull($angsuran3->confirmed_by);
+        $this->assertSame('aktif', $pinjaman->refresh()->status);
+        $this->assertEquals($bankSebelum3, (float) KasKoperasi::first()->saldo_bank);
+
+        $jurnalAsal = JurnalKas::where('kategori', 'pembayaran_angsuran')
+            ->where('referensi_id', $angsuran3->id)
+            ->where('keterangan', 'like', 'Angsuran ke-3 - %')
+            ->whereNull('koreksi_dari_id')
+            ->firstOrFail();
+        $this->assertNotNull($jurnalAsal->dibatalkan_pada);
+        $this->assertDatabaseHas('jurnal_kas', [
+            'koreksi_dari_id' => $jurnalAsal->id,
+            'tipe' => 'keluar',
+            'kategori' => 'pembayaran_angsuran',
+            'jumlah' => 303_000,
+        ]);
+
+        // Cek tampilan tab di halaman konfirmasi angsuran (bulan jatuh tempo cicilan ke-3)
+        $bulan3 = $angsuran3->tanggal_jatuh_tempo->format('Y-m');
+        $props = $this->get(route('bendahara.angsuran.index', ['bulan' => $bulan3]))
+            ->assertOk()
+            ->viewData('page')['props'];
+        $this->assertContains('n-'.$angsuran3->id, array_column($props['daftarAngsuran'], 'id'));
+        $this->assertNotContains('n-'.$angsuran3->id, array_column($props['sudahDikonfirmasi'], 'id'));
+
+        $neracaSetelah = LaporanRegistry::ambil('neraca')['data'](request()->merge(['tanggal' => $hariIni]));
+        $nilaiSetelah = fn (string $pos) => collect($neracaSetelah['rows'])->firstWhere(fn ($r) => $r[0] === $pos)[1];
+        $this->assertEquals($piutangSebelum3, $nilaiSetelah('Piutang'));
+        $this->assertEquals($shuSebelum3, $nilaiSetelah('Selisih Hasil Usaha'));
+        $this->assertEquals($bankSebelum3, $nilaiSetelah('Bank'));
+
+        $this->assertTrue(AuditLog::where('aksi', 'angsuran_konfirmasi_dibatalkan')->exists());
+    }
+
+    public function test_rollback_angsuran_menolak_jika_tidak_urut_ada_pinjaman_baru_atau_tanpa_izin(): void
+    {
+        $pinjaman = $this->buatPinjamanAktifDenganAngsuran();
+        $angsuran1 = $pinjaman->angsuran()->where('cicilan_ke', 1)->firstOrFail();
+        $angsuran2 = $pinjaman->angsuran()->where('cicilan_ke', 2)->firstOrFail();
+
+        $this->masuk('BEN-000001');
+        $this->post(route('bendahara.angsuran.konfirmasi'), [
+            'angsuran_ids' => ['n-'.$angsuran1->id, 'n-'.$angsuran2->id],
+        ])->assertStatus(302);
+
+        // Tidak boleh rollback cicilan 1 selama cicilan 2 masih lunas
+        $this->post(route('bendahara.angsuran.batalkan', 'n-'.$angsuran1->id), [
+            'alasan' => 'Coba rollback cicilan 1',
+        ])->assertSessionHasErrors('alasan');
+        $this->assertSame('lunas', $angsuran1->refresh()->status);
+
+        // Bila ada pinjaman baru setelahnya, cicilan 2 juga ditolak rollback
+        Pinjaman::create([
+            'anggota_id' => $pinjaman->anggota_id,
+            'pengaju_user_id' => $pinjaman->pengaju_user_id,
+            'nominal' => 500_000,
+            'tenor_bulan' => 2,
+            'keperluan' => 'Pinjaman baru',
+            'persentase_bunga' => 1,
+            'status' => 'diajukan',
+            'tanggal_pengajuan' => now(),
+        ]);
+
+        $this->post(route('bendahara.angsuran.batalkan', 'n-'.$angsuran2->id), [
+            'alasan' => 'Coba rollback setelah ada pinjaman baru',
+        ])->assertSessionHasErrors('alasan');
+        $this->assertSame('lunas', $angsuran2->refresh()->status);
+
+        // Admin tanpa permission angsuran.konfirmasi ditolak 403
+        $this->masuk('ADM-000001');
+        $this->post(route('bendahara.angsuran.batalkan', 'n-'.$angsuran2->id), [
+            'alasan' => 'Akses tidak sah',
+        ])->assertStatus(403);
     }
 }

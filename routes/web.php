@@ -321,11 +321,13 @@ Route::middleware('auth')->prefix('bendahara')->name('bendahara.')->group(functi
         Route::get('/angsuran', [AngsuranController::class, 'index'])->name('angsuran.index');
         Route::post('/angsuran/konfirmasi', [AngsuranController::class, 'konfirmasi'])->name('angsuran.konfirmasi')->middleware('idempotent');
         Route::post('/angsuran/konfirmasi-percepatan', [AngsuranController::class, 'konfirmasiPercepatan'])->name('angsuran.konfirmasi-percepatan')->middleware('idempotent');
+        Route::post('/angsuran/{item}/batalkan', [AngsuranController::class, 'batalkan'])->name('angsuran.batalkan')->middleware('idempotent');
     });
 
     Route::middleware('permission:simpanan.konfirmasi')->group(function () {
         Route::get('/simpanan', [BendaharaSimpananController::class, 'index'])->name('simpanan.index');
         Route::post('/simpanan/konfirmasi', [BendaharaSimpananController::class, 'konfirmasi'])->name('simpanan.konfirmasi')->middleware('idempotent');
+        Route::post('/simpanan/{anggota}/batalkan', [BendaharaSimpananController::class, 'batalkan'])->name('simpanan.batalkan')->middleware('idempotent');
     });
 });
 

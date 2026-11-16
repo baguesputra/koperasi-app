@@ -59,7 +59,9 @@ const AKSI_MAP = {
 
     // Simpanan & angsuran
     simpanan_konfirmasi_massal: { label: 'Konfirmasi Simpanan Massal', outcome: 'hijau', kategori: 'simpanan' },
+    simpanan_konfirmasi_dibatalkan: { label: 'Rollback Konfirmasi Simpanan', outcome: 'merah', kategori: 'simpanan' },
     angsuran_konfirmasi_massal: { label: 'Konfirmasi Angsuran Massal', outcome: 'hijau', kategori: 'angsuran' },
+    angsuran_konfirmasi_dibatalkan: { label: 'Rollback Konfirmasi Angsuran', outcome: 'merah', kategori: 'angsuran' },
     angsuran_konfirmasi_percepatan: { label: 'Konfirmasi Angsuran (Perubahan Tenor)', outcome: 'hijau', kategori: 'angsuran' },
 
     // Aktivasi

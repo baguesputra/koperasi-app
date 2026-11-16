@@ -709,7 +709,10 @@ class LaporanRegistry
                         ])->all();
 
                     $sisaSampaiCutoff = (float) DB::table('jurnal_kas')
-                        ->where('kantong', 'dana_sosial')->where('tanggal', '<=', $sampai->copy()->endOfMonth())
+                        ->where('kantong', 'dana_sosial')
+                        ->whereNull('dibatalkan_pada')
+                        ->whereNull('koreksi_dari_id')
+                        ->where('tanggal', '<=', $sampai->copy()->endOfMonth())
                         ->selectRaw("SUM(CASE WHEN tipe='masuk' THEN jumlah ELSE -jumlah END) as sisa")
                         ->value('sisa');
 
@@ -976,6 +979,8 @@ class LaporanRegistry
     {
         return (float) (DB::table('jurnal_kas')
             ->where('kantong', 'dana_sosial')
+            ->whereNull('dibatalkan_pada')
+            ->whereNull('koreksi_dari_id')
             ->where('tanggal', '<=', $tanggal)
             ->selectRaw("SUM(CASE WHEN tipe = 'masuk' THEN jumlah ELSE -jumlah END) as total")
             ->value('total') ?? 0);

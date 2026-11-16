@@ -267,25 +267,7 @@ class JurnalKasService
                     'jurnal_pembalik_bank_id' => $pembalikBank->id,
                 ];
             } else {
-                $tipePembalik = $asal->tipe === 'masuk' ? 'keluar' : 'masuk';
-                $kolomFisik = $asal->kantong === 'kas_kecil' ? 'saldo_kas_kecil' : 'saldo_bank';
-
-                if ($tipePembalik === 'keluar' && (float) $kas->{$kolomFisik} < $jumlah) {
-                    $label = $kolomFisik === 'saldo_bank' ? 'Bank' : 'Kas kecil';
-                    throw new RuntimeException(
-                        "Saldo {$label} tidak mencukupi untuk membatalkan transaksi ini. Saldo saat ini: Rp ".number_format((float) $kas->{$kolomFisik}, 0, ',', '.')
-                    );
-                }
-
-                if ($tipePembalik === 'masuk') {
-                    $kas->increment($kolomFisik, $jumlah);
-                } else {
-                    $kas->decrement($kolomFisik, $jumlah);
-                }
-                $kas->refresh();
-
-                $pembalikUtama = $this->buatBarisPembalik($asal, $tipePembalik, $alasan, $userId);
-                $this->tandaiDibatalkan($asal, $alasan, $userId);
+                $pembalikUtama = $this->eksekusiPembalikTunggal($kas, $asal, $alasan, $userId);
 
                 if (in_array($asal->kategori, ['pengeluaran_koperasi', 'pengeluaran_dana_sosial'], true) && $asal->referensi_id) {
                     Pengeluaran::where('id', $asal->referensi_id)->update(['dibatalkan_pada' => now()]);
@@ -319,6 +301,52 @@ class JurnalKasService
 
             return $pembalikUtama;
         });
+    }
+
+    /**
+     * Membalik satu baris jurnal di dalam transaksi DB pemanggil (dipakai modul Simpanan / Angsuran).
+     */
+    public function batalkanBarisInternal(JurnalKas $asal, string $alasan, int $userId): JurnalKas
+    {
+        $alasan = trim($alasan);
+        $kas = KasKoperasi::lockForUpdate()->firstOrFail();
+        $baris = JurnalKas::lockForUpdate()->findOrFail($asal->id);
+
+        if ($baris->dibatalkan_pada !== null) {
+            throw new RuntimeException('Jurnal kas ini sudah pernah dibatalkan.');
+        }
+
+        if ($baris->koreksi_dari_id !== null) {
+            throw new RuntimeException('Jurnal pembalik (storno) tidak dapat dibatalkan lagi.');
+        }
+
+        return $this->eksekusiPembalikTunggal($kas, $baris, $alasan, $userId);
+    }
+
+    private function eksekusiPembalikTunggal(KasKoperasi $kas, JurnalKas $baris, string $alasan, int $userId): JurnalKas
+    {
+        $jumlah = (float) $baris->jumlah;
+        $tipePembalik = $baris->tipe === 'masuk' ? 'keluar' : 'masuk';
+        $kolomFisik = $baris->kantong === 'kas_kecil' ? 'saldo_kas_kecil' : 'saldo_bank';
+
+        if ($tipePembalik === 'keluar' && (float) $kas->{$kolomFisik} < $jumlah) {
+            $label = $kolomFisik === 'saldo_bank' ? 'Bank' : 'Kas kecil';
+            throw new RuntimeException(
+                "Saldo {$label} tidak mencukupi untuk membatalkan transaksi ini. Saldo saat ini: Rp ".number_format((float) $kas->{$kolomFisik}, 0, ',', '.')
+            );
+        }
+
+        if ($tipePembalik === 'masuk') {
+            $kas->increment($kolomFisik, $jumlah);
+        } else {
+            $kas->decrement($kolomFisik, $jumlah);
+        }
+        $kas->refresh();
+
+        $pembalik = $this->buatBarisPembalik($baris, $tipePembalik, $alasan, $userId);
+        $this->tandaiDibatalkan($baris, $alasan, $userId);
+
+        return $pembalik;
     }
 
     private function validasiBisaDibatalkan(JurnalKas $asal): void

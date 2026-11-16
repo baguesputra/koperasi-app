@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
+use RuntimeException;
 
 class SimpananController extends Controller
 {
@@ -36,6 +37,11 @@ class SimpananController extends Controller
             ? $semuaBelumSimpanan->where('cabang', $cabangAktif)->values()
             : $semuaBelumSimpanan;
 
+        $semuaSudahSimpanan = $this->konfirmasi->anggotaSudahSimpananWajib($bulan);
+        $sudahSimpanan = $cabangAktif->isNotEmpty()
+            ? $semuaSudahSimpanan->where('cabang', $cabangAktif)->values()
+            : $semuaSudahSimpanan;
+
         $nominalWajib = (float) Cache::remember('setting_simpanan_wajib', 600, fn () => SettingSimpanan::where('jenis', 'wajib')->value('nominal') ?? 0);
         $nominalDanaSosial = (float) Cache::remember('setting_simpanan_sosial', 600, fn () => SettingSimpanan::where('jenis', 'dana_sosial')->value('nominal') ?? 0);
         $nominalPerAnggota = $nominalWajib + $nominalDanaSosial;
@@ -54,6 +60,8 @@ class SimpananController extends Controller
         return Inertia::render('Bendahara/Simpanan/Index', [
             'bulan' => $bulan,
             'belumSimpanan' => $belumSimpanan,
+            'sudahSimpanan' => $sudahSimpanan,
+            'totalSudahSimpanan' => (float) $semuaSudahSimpanan->sum('nominal_total'),
             'cabangAktif' => $cabangAktif->value(),
             'daftarCabang' => $daftarCabang,
             'ringkasanCabang' => $ringkasanCabang,
@@ -77,5 +85,26 @@ class SimpananController extends Controller
         );
 
         return back()->with('status', "Simpanan wajib {$jumlah} anggota berhasil dikonfirmasi.");
+    }
+
+    public function batalkan(Request $request, Anggota $anggota)
+    {
+        $request->validate([
+            'bulan_periode' => ['required', 'string', 'regex:/^\d{4}-\d{2}$/'],
+            'alasan' => ['required', 'string', 'min:3', 'max:255'],
+        ]);
+
+        try {
+            $this->konfirmasi->batalkanKonfirmasi(
+                anggotaId: $anggota->id,
+                bulanPeriode: (string) $request->bulan_periode,
+                alasan: trim((string) $request->alasan),
+                userId: auth()->id(),
+            );
+        } catch (RuntimeException $e) {
+            return back()->withErrors(['alasan' => $e->getMessage()]);
+        }
+
+        return back()->with('status', "Konfirmasi simpanan {$anggota->nama} berhasil dibatalkan.");
     }
 }
