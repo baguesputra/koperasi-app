@@ -464,6 +464,15 @@ export default function Index({
                             <ArrowUpCircle size={15} aria-hidden="true" />
                             Pengeluaran
                         </Button>
+                        <Button
+                            size="sm"
+                            variant="secondary"
+                            className="sm:hidden"
+                            onClick={() => { setTabDrawer('sisih'); setShowDrawer(true); }}
+                        >
+                            <ArrowRightLeft size={14} aria-hidden="true" />
+                            Sisih Kas Kecil
+                        </Button>
                     </div>
                 )}
             </PageHeader>
@@ -1179,7 +1188,7 @@ export default function Index({
             {/* Drawer Form Transaksi Bendahara */}
             {bisaTopup && (
                 <Drawer
-                    open={showDrawer}
+                    show={showDrawer}
                     onClose={() => setShowDrawer(false)}
                     title={
                         tabDrawer === 'pemasukan'
@@ -1236,7 +1245,7 @@ export default function Index({
                     {/* Form Pemasukan */}
                     {tabDrawer === 'pemasukan' && (
                         <form onSubmit={submitPemasukan} className="space-y-4">
-                            <FormField label="Sumber Pemasukan" required>
+                            <FormField label="Sumber Pemasukan" error={pemasukanForm.errors.sumber_topup} required>
                                 <Select
                                     size="sm"
                                     value={pemasukanForm.data.sumber_topup}
@@ -1253,13 +1262,30 @@ export default function Index({
                                     <TextField
                                         size="sm"
                                         type="number"
+                                        min="1"
                                         value={pemasukanForm.data.jumlah}
                                         onChange={(e) => pemasukanForm.setData('jumlah', e.target.value)}
                                         placeholder="0"
+                                        required
                                         className="pl-9"
                                     />
                                 </div>
                                 <ChipNominal grup="topup" nilai={pemasukanForm.data.jumlah} onPilih={(n) => pemasukanForm.setData('jumlah', n)} />
+                            </FormField>
+
+                            <FormField label="Tanggal" error={pemasukanForm.errors.tanggal} required>
+                                <div className="relative">
+                                    <CalendarDays size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                    <TextField
+                                        size="sm"
+                                        type="date"
+                                        value={pemasukanForm.data.tanggal}
+                                        onChange={(e) => pemasukanForm.setData('tanggal', e.target.value)}
+                                        max={hariIni}
+                                        required
+                                        className="pl-9"
+                                    />
+                                </div>
                             </FormField>
 
                             <FormField label="Keterangan" error={pemasukanForm.errors.keterangan} hint="Contoh: Setoran modal operasional dari pengurus">
@@ -1270,6 +1296,28 @@ export default function Index({
                                     placeholder="Keterangan pemasukan"
                                 />
                             </FormField>
+
+                            <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                                <input
+                                    type="checkbox"
+                                    checked={Boolean(pemasukanForm.data.lain_lain)}
+                                    onChange={(e) => pemasukanForm.setData('lain_lain', e.target.checked)}
+                                    className="w-4 h-4 rounded accent-brand-green"
+                                />
+                                <span className="text-sm font-semibold text-slate-600">Lain-lain</span>
+                            </label>
+
+                            {Boolean(pemasukanForm.data.lain_lain) && (
+                                <FormField label="Keterangan lain-lain" error={pemasukanForm.errors.keterangan_lain} required>
+                                    <TextField
+                                        size="sm"
+                                        value={pemasukanForm.data.keterangan_lain}
+                                        onChange={(e) => pemasukanForm.setData('keterangan_lain', e.target.value)}
+                                        placeholder="Contoh: Hibah dari donatur"
+                                        required
+                                    />
+                                </FormField>
+                            )}
 
                             <div className="pt-2 flex justify-end gap-2 border-t border-slate-100">
                                 <Button type="button" variant="secondary" size="sm" onClick={() => setShowDrawer(false)}>
@@ -1285,7 +1333,7 @@ export default function Index({
                     {/* Form Pengeluaran */}
                     {tabDrawer === 'pengeluaran' && (
                         <form onSubmit={submitPengeluaran} className="space-y-4">
-                            <FormField label="Sumber Dana" required>
+                            <FormField label="Sumber Dana" error={pengeluaranForm.errors.akun} required>
                                 <Select
                                     size="sm"
                                     value={pengeluaranForm.data.akun}
@@ -1314,13 +1362,30 @@ export default function Index({
                                     <TextField
                                         size="sm"
                                         type="number"
+                                        min="1"
                                         value={pengeluaranForm.data.jumlah}
                                         onChange={(e) => pengeluaranForm.setData('jumlah', e.target.value)}
                                         placeholder="0"
+                                        required
                                         className="pl-9"
                                     />
                                 </div>
                                 <ChipNominal grup="pengeluaran" nilai={pengeluaranForm.data.jumlah} onPilih={(n) => pengeluaranForm.setData('jumlah', n)} />
+                            </FormField>
+
+                            <FormField label="Tanggal" error={pengeluaranForm.errors.tanggal} required>
+                                <div className="relative">
+                                    <CalendarDays size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                    <TextField
+                                        size="sm"
+                                        type="date"
+                                        value={pengeluaranForm.data.tanggal}
+                                        onChange={(e) => pengeluaranForm.setData('tanggal', e.target.value)}
+                                        max={hariIni}
+                                        required
+                                        className="pl-9"
+                                    />
+                                </div>
                             </FormField>
 
                             <FormField label="Keterangan / Keperluan" error={pengeluaranForm.errors.keterangan} required hint="Jelaskan kebutuhan pengeluaran secara lengkap">
@@ -1329,6 +1394,7 @@ export default function Index({
                                     value={pengeluaranForm.data.keterangan}
                                     onChange={(e) => pengeluaranForm.setData('keterangan', e.target.value)}
                                     placeholder="Contoh: Pembelian ATK dan kertas printer"
+                                    required
                                 />
                             </FormField>
 

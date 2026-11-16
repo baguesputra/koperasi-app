@@ -10,11 +10,14 @@ import { useEffect, useState } from 'react';
 export default function Drawer({
     children,
     show = false,
+    open,
     title,
+    description,
     onClose = () => {},
     maxWidth = 'xl',
     mobileMode = 'fullscreen',
 }) {
+    const isOpen = Boolean(show || open);
     const maxWidthClass = {
         lg: 'max-w-lg',
         xl: 'max-w-xl',
@@ -40,7 +43,7 @@ export default function Drawer({
     }`;
 
     return (
-        <Transition show={show} leave="duration-200">
+        <Transition show={isOpen} leave="duration-200">
             <Dialog as="div" className="fixed inset-0 z-50 overflow-hidden" onClose={onClose}>
                 <TransitionChild
                     enter="ease-out duration-300"
@@ -63,11 +66,17 @@ export default function Drawer({
                         leaveTo={isFullscreenMobile ? 'translate-y-full' : 'translate-x-full'}
                     >
                         <DialogPanel className={panelClass}>
-                            <div className="flex items-center justify-between px-4 py-3 sm:px-5 sm:py-3.5 border-b border-slate-100 shrink-0">
-                                <h2 className="text-base sm:text-lg font-bold text-slate-800 tracking-tight">{title}</h2>
+                            <div className="flex items-start justify-between gap-3 px-4 py-3 sm:px-5 sm:py-3.5 border-b border-slate-100 shrink-0">
+                                <div className="min-w-0">
+                                    <h2 className="text-base sm:text-lg font-bold text-slate-800 tracking-tight">{title}</h2>
+                                    {description && (
+                                        <p className="text-xs text-slate-500 mt-0.5">{description}</p>
+                                    )}
+                                </div>
                                 <button
+                                    type="button"
                                     onClick={onClose}
-                                    className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                                    className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors shrink-0"
                                     title="Tutup"
                                 >
                                     <X size={18} />
