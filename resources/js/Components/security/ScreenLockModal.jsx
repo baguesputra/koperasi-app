@@ -61,7 +61,7 @@ export default function ScreenLockModal() {
                 setIsLockedOut(true);
                 setError(res.data?.message || 'Percobaan habis. Sesi ditutup demi keamanan.');
                 setTimeout(() => {
-                    window.location.href = res.data?.redirect || route('login');
+                    window.location.href = route('login');
                 }, 1800);
             } else if (res?.status === 422) {
                 const sisa = res.data?.remaining ?? (remaining !== null ? remaining - 1 : 2);

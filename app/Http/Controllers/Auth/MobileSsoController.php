@@ -107,7 +107,9 @@ class MobileSsoController extends Controller
         ]);
         $request->session()->put('mobile_sso_relay_state', $relayState);
 
-        $target = Socialite::driver('perusahaan')->redirect()->getTargetUrl();
+        $target = SsoController::targetUrl(
+            Socialite::driver('perusahaan')->redirect()
+        );
 
         return redirect()->away($target);
     }

@@ -140,4 +140,21 @@ class MobileAuthTest extends TestCase
 
         $this->headerToken($token)->getJson('/api/v1/me')->assertUnauthorized();
     }
+
+    public function test_login_api_dibatasi_rate_limiter(): void
+    {
+        $this->buatAnggota('TOP-960099');
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->postJson('/api/v1/login', [
+                'no_karyawan' => 'TOP-960099',
+                'password' => 'salah',
+            ])->assertUnprocessable();
+        }
+
+        $this->postJson('/api/v1/login', [
+            'no_karyawan' => 'TOP-960099',
+            'password' => 'salah',
+        ])->assertTooManyRequests();
+    }
 }

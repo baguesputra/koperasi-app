@@ -6,6 +6,9 @@ use App\Exports\AuditLogExport;
 use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Log;
+use RuntimeException;
 use Tests\Concerns\MembuatDataUji;
 use Tests\TestCase;
 
@@ -61,6 +64,37 @@ class AuditLogTest extends TestCase
 
         $response->assertOk();
         $response->assertHeader('content-disposition');
+    }
+
+    public function test_emergency_log_menyaring_kunci_sensitif(): void
+    {
+        Log::shouldReceive('emergency')
+            ->once()
+            ->withArgs(function (string $message, array $context): bool {
+                return str_contains($message, 'KEGAGALAN PENCATATAN AUDIT LOG')
+                    && $context['data_lama']['pin'] === '[REDACTED]'
+                    && $context['data_lama']['nested']['token'] === '[REDACTED]'
+                    && $context['data_baru']['password'] === '[REDACTED]'
+                    && $context['data_baru']['nominal'] === 500000;
+            });
+
+        Event::listen('eloquent.creating: '.AuditLog::class, function () {
+            throw new RuntimeException('Simulasi gagal tulis DB');
+        });
+
+        try {
+            $this->expectException(RuntimeException::class);
+
+            AuditLog::catat(
+                aksi: 'ubah_pengaturan',
+                keterangan: 'Uji sanitasi payload darurat',
+                dataLama: ['pin' => '123456', 'nested' => ['token' => 'rahasia']],
+                dataBaru: ['password' => 'secret123', 'nominal' => 500000],
+                userId: 1
+            );
+        } finally {
+            Event::forget('eloquent.creating: '.AuditLog::class);
+        }
     }
 }
 

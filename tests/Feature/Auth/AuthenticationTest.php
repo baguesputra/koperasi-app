@@ -55,7 +55,13 @@ class AuthenticationTest extends TestCase
     public function test_logout_sso_dialihkan_ke_idp(): void
     {
         config(['auth.mode' => 'sso']);
-        config()->set('services.perusahaan.metadata', 'https://gate.appdutamall.com/saml/metadata');
+        config()->set('services.perusahaan.metadata', implode('', [
+            '<EntityDescriptor xmlns="urn:oasis:names:tc:SAML:2.0:metadata" entityID="https://gate.appdutamall.com/saml">',
+            '<IDPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">',
+            '<SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://gate.appdutamall.com/saml/slo"/>',
+            '</IDPSSODescriptor>',
+            '</EntityDescriptor>',
+        ]));
 
         $user = User::factory()->create(['sso_id' => 'admin@koperasi.test']);
 
@@ -64,5 +70,22 @@ class AuthenticationTest extends TestCase
         $this->assertAuthenticatedAs($user);
         $response->assertRedirect();
         $this->assertStringStartsWith('https://gate.appdutamall.com/saml/slo', $response->headers->get('Location'));
+    }
+
+    public function test_login_web_dibatasi_rate_limiter(): void
+    {
+        $user = User::factory()->create(['no_karyawan' => 'TST-000099']);
+
+        for ($i = 0; $i < 10; $i++) {
+            $this->post('/login', [
+                'no_karyawan' => $user->no_karyawan,
+                'password' => 'wrong-password',
+            ])->assertSessionHasErrors();
+        }
+
+        $this->post('/login', [
+            'no_karyawan' => $user->no_karyawan,
+            'password' => 'wrong-password',
+        ])->assertTooManyRequests();
     }
 }

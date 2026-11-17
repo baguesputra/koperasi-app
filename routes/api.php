@@ -23,7 +23,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     Route::post('/sso/mobile/exchange', [MobileSsoController::class, 'exchange'])->name('api.sso.mobile.exchange');
     // Guest routes (no authentication required, local mode only)
     Route::middleware('guest')->group(function () {
-        Route::post('/login', [AuthController::class, 'login']);
+        Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login-api');
     });
 
     // Authenticated routes (require Sanctum authentication)

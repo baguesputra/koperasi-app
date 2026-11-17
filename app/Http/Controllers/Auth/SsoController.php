@@ -16,15 +16,27 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Laravel\Socialite\Facades\Socialite;
+use Symfony\Component\HttpFoundation\RedirectResponse as SymfonyRedirectResponse;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class SsoController extends Controller
 {
+    public static function targetUrl(SymfonyResponse $response): string
+    {
+        if ($response instanceof SymfonyRedirectResponse) {
+            return $response->getTargetUrl();
+        }
+
+        return (string) $response->headers->get('Location', '');
+    }
+
     public function redirect()
     {
-        $tujuan = Socialite::driver('perusahaan')
-            ->stateless()
-            ->redirect()
-            ->getTargetUrl();
+        $tujuan = self::targetUrl(
+            Socialite::driver('perusahaan')
+                ->stateless()
+                ->redirect()
+        );
 
         return Inertia::location($tujuan);
     }
@@ -304,9 +316,9 @@ class SsoController extends Controller
                 ]);
 
                 // ponytail: full-page ke domain IdP via Inertia::location (XHR tak bisa lintas domain)
-                $tujuan = Socialite::driver('perusahaan')
-                    ->logoutRequest($user->sso_id)
-                    ->getTargetUrl();
+                $tujuan = self::targetUrl(
+                    Socialite::driver('perusahaan')->logoutRequest($user->sso_id)
+                );
 
                 return Inertia::location($tujuan);
             } catch (\Exception $e) {

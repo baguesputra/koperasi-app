@@ -21,7 +21,7 @@ Route::middleware('guest')->group(function () {
         return app(AuthenticatedSessionController::class)->create();
     })->middleware('guest')->name('login');
 
-    Route::post('login', [AuthenticatedSessionController::class, 'store']);
+    Route::post('login', [AuthenticatedSessionController::class, 'store'])->middleware('throttle:login-web');
 
     // Lupa/reset password mandiri dinonaktifkan: akses dikelola GATE.
 });

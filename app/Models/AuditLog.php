@@ -96,8 +96,8 @@ class AuditLog extends Model
                 'user_id' => $userIdFinal,
                 'ip_address' => $ip,
                 'user_agent' => $ua,
-                'data_lama' => $dataLama,
-                'data_baru' => $dataBaru,
+                'data_lama' => self::sanitasiPayloadLog($dataLama),
+                'data_baru' => self::sanitasiPayloadLog($dataBaru),
                 'exception' => $e->getMessage(),
             ]);
 
@@ -112,6 +112,31 @@ class AuditLog extends Model
 
             return null;
         }
+    }
+
+    /**
+     * Mask kunci sensitif sebelum menulis payload darurat ke log file.
+     */
+    private static function sanitasiPayloadLog(mixed $data): mixed
+    {
+        if (! is_array($data)) {
+            return $data;
+        }
+
+        $sensitif = ['pin', 'old_pin', 'new_pin', 'password', 'password_confirmation', 'token', 'secret', 'api_key', 'access_token', 'refresh_token', 'client_secret'];
+        $hasil = [];
+
+        foreach ($data as $kunci => $nilai) {
+            if (is_string($kunci) && in_array(strtolower($kunci), $sensitif, true)) {
+                $hasil[$kunci] = '[REDACTED]';
+            } elseif (is_array($nilai)) {
+                $hasil[$kunci] = self::sanitasiPayloadLog($nilai);
+            } else {
+                $hasil[$kunci] = $nilai;
+            }
+        }
+
+        return $hasil;
     }
 
     /**

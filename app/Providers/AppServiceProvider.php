@@ -62,6 +62,16 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by($kunci);
         });
 
+        RateLimiter::for('login-api', function (Request $request) {
+            $kunci = strtoupper((string) $request->input('no_karyawan')).'|'.$request->ip();
+
+            return Limit::perMinute(5)->by($kunci);
+        });
+
+        RateLimiter::for('login-web', function (Request $request) {
+            return Limit::perMinute(10)->by($request->ip());
+        });
+
         PreventRequestForgery::except([
             '/auth/sso/callback',
             '/auth/sso/slo',

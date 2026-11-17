@@ -63,4 +63,26 @@ class SsoRedirectTest extends TestCase
         $this->post('/logout');
         $this->assertGuest();
     }
+
+    public function test_sso_redirect_web_dan_mobile_menghasilkan_url_idp(): void
+    {
+        config()->set('services.perusahaan.metadata', implode('', [
+            '<EntityDescriptor xmlns="urn:oasis:names:tc:SAML:2.0:metadata" entityID="https://gate.appdutamall.com/saml">',
+            '<IDPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">',
+            '<SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://gate.appdutamall.com/saml/sso"/>',
+            '</IDPSSODescriptor>',
+            '</EntityDescriptor>',
+        ]));
+
+        $web = $this->get(route('sso.redirect'));
+        $web->assertRedirect();
+        $this->assertStringStartsWith('https://gate.appdutamall.com/saml/sso', (string) $web->headers->get('Location'));
+
+        $mobile = $this->get(route('sso.mobile.redirect', [
+            'state' => str_repeat('s', 48),
+            'code_challenge' => str_repeat('c', 43),
+        ]));
+        $mobile->assertRedirect();
+        $this->assertStringStartsWith('https://gate.appdutamall.com/saml/sso', (string) $mobile->headers->get('Location'));
+    }
 }
