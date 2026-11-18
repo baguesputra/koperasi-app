@@ -17,8 +17,8 @@ import Pagination from '@/Components/ui/Pagination';
 
 const statusOptions = [
     { value: '', label: 'Semua Status' },
-    { value: 'diajukan', label: '1. Diajukan (Menunggu Admin)' },
-    { value: 'approved_admin', label: '2. Diteruskan Admin (Menunggu Bendahara)' },
+    { value: 'diajukan', label: '1. Diajukan (Menunggu Sekretaris)' },
+    { value: 'approved_admin', label: '2. Diteruskan Sekretaris (Menunggu Bendahara)' },
     { value: 'approved_bendahara', label: '3. Disetujui Bendahara (Menunggu Ketua)' },
     { value: 'approved_ketua', label: '4. Disetujui Ketua (Menunggu Pencairan)' },
     { value: 'aktif', label: 'Aktif' },
@@ -179,8 +179,8 @@ export default function Index({ pinjaman, filters, statistik, cabangAktif, dafta
                         </div>
                         {/* 3 Pipeline Badges */}
                         <div className="flex items-center gap-1 mt-1.5 flex-wrap">
-                            <span className="text-[10px] sm:text-[11px] font-semibold text-amber-800 bg-amber-100/80 px-1.5 py-0.5 rounded" title="Menunggu Verifikasi Admin">
-                                Admin {statistik.diajukan}
+                            <span className="text-[10px] sm:text-[11px] font-semibold text-amber-800 bg-amber-100/80 px-1.5 py-0.5 rounded" title="Menunggu Verifikasi Sekretaris">
+                                Sekretaris {statistik.diajukan}
                             </span>
                             <span className="text-[10px] sm:text-[11px] font-semibold text-blue-800 bg-blue-100/80 px-1.5 py-0.5 rounded" title="Menunggu Tinjauan Bendahara">
                                 Bendahara {statistik.approved_admin}

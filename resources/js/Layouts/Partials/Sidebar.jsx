@@ -245,7 +245,11 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
                         <span className="min-w-0 leading-tight">
                             <span className="block text-sm font-semibold text-slate-800 truncate">{auth.user?.name}</span>
                             <span className="block text-xs text-slate-400 capitalize truncate">
-                                {auth.user?.roles?.[0] === 'super_admin' ? 'Super Admin' : (auth.user?.roles?.[0]?.replace('_', ' ') ?? '-')}
+                                {auth.user?.roles?.[0] === 'super_admin'
+                                    ? 'Super Admin'
+                                    : ['admin', 'sekretaris'].includes(auth.user?.roles?.[0])
+                                        ? 'Sekretaris'
+                                        : (auth.user?.roles?.[0]?.replace('_', ' ') ?? '-')}
                             </span>
                         </span>
                     </Link>

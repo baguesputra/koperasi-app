@@ -68,7 +68,7 @@ class SsoController extends Controller
                 ]);
 
                 return redirect()->route('sso.gagal')
-                    ->with('error', 'Email tidak tersedia dari SSO. Hubungi admin koperasi untuk mendaftarkan email Anda.');
+                    ->with('error', 'Email tidak tersedia dari SSO. Hubungi Sekretaris koperasi untuk mendaftarkan email Anda.');
             }
 
             $user = User::where('sso_id', $ssoId)->first();
@@ -85,7 +85,7 @@ class SsoController extends Controller
                         ], null, $kandidat->id);
 
                         return redirect()->route('sso.gagal')
-                            ->with('error', 'Akun ini terkait SSO lain. Hubungi admin koperasi untuk penautan akun.');
+                            ->with('error', 'Akun ini terkait SSO lain. Hubungi Sekretaris koperasi untuk penautan akun.');
                     }
                     $user = $kandidat;
                 }
@@ -103,7 +103,7 @@ class SsoController extends Controller
                     ]);
 
                     return redirect()->route('sso.gagal')
-                        ->with('error', 'Akun SSO tidak terdaftar di sistem koperasi. Hubungi admin koperasi untuk mendaftarkan Anda sebagai anggota.');
+                        ->with('error', 'Akun SSO tidak terdaftar di sistem koperasi. Hubungi Sekretaris koperasi untuk mendaftarkan Anda sebagai anggota.');
                 }
 
                 if (array_key_exists('is_active', $baris) && ! $baris['is_active']) {
@@ -132,7 +132,7 @@ class SsoController extends Controller
                             ], null, $kandidatNik->id);
 
                             return redirect()->route('sso.gagal')
-                                ->with('error', 'Akun dengan NIK ini terkait SSO lain. Hubungi admin koperasi untuk penautan akun.');
+                                ->with('error', 'Akun dengan NIK ini terkait SSO lain. Hubungi Sekretaris koperasi untuk penautan akun.');
                         }
                         $user = $kandidatNik;
                         $viaNik = true;
@@ -178,7 +178,7 @@ class SsoController extends Controller
                         ]);
 
                         return redirect()->route('sso.gagal')
-                            ->with('error', 'Akun SSO tidak terdaftar di sistem koperasi. Hubungi admin koperasi untuk mendaftarkan Anda sebagai anggota.');
+                            ->with('error', 'Akun SSO tidak terdaftar di sistem koperasi. Hubungi Sekretaris koperasi untuk mendaftarkan Anda sebagai anggota.');
                     }
                 }
             } else {
@@ -244,7 +244,7 @@ class SsoController extends Controller
                 ], null, $user->id);
 
                 return redirect()->route('sso.gagal')
-                    ->with('error', 'Anda belum terdaftar sebagai anggota koperasi. Hubungi admin koperasi untuk mendaftarkan keanggotaan Anda.');
+                    ->with('error', 'Anda belum terdaftar sebagai anggota koperasi. Hubungi Sekretaris koperasi untuk mendaftarkan keanggotaan Anda.');
             }
 
             if (! $viaNik && $user->email !== $email) {
@@ -256,7 +256,7 @@ class SsoController extends Controller
                 ], null, $user->id);
 
                 return redirect()->route('sso.gagal')
-                    ->with('error', 'Email SSO tidak cocok dengan data lokal. Hubungi admin koperasi untuk memperbarui data Anda.');
+                    ->with('error', 'Email SSO tidak cocok dengan data lokal. Hubungi Sekretaris koperasi untuk memperbarui data Anda.');
             }
 
             $user->update([
@@ -300,7 +300,7 @@ class SsoController extends Controller
             ]);
 
             return redirect()->route('sso.gagal')
-                ->with('error', 'Login SSO gagal. Silakan coba lagi atau hubungi admin koperasi jika berulang.');
+                ->with('error', 'Login SSO gagal. Silakan coba lagi atau hubungi Sekretaris koperasi jika berulang.');
         }
     }
 

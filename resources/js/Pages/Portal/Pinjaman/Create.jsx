@@ -295,7 +295,7 @@ export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal, lim
                         <div className="space-y-3">
                             <div className="flex gap-3">
                                 <div className="w-6 h-6 rounded-full bg-white/15 flex items-center justify-center text-xs font-bold shrink-0">1</div>
-                                <p className="text-sm text-slate-300">Pengajuan diverifikasi awal oleh Admin Koperasi</p>
+                                <p className="text-sm text-slate-300">Pengajuan diverifikasi awal oleh Sekretaris Koperasi</p>
                             </div>
                             <div className="flex gap-3">
                                 <div className="w-6 h-6 rounded-full bg-white/15 flex items-center justify-center text-xs font-bold shrink-0">2</div>

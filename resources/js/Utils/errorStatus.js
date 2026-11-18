@@ -9,7 +9,7 @@ export const errorStatusConfig = {
         deskripsi: 'Halaman ini khusus untuk peran tertentu. Anda tidak memiliki izin untuk membukanya.',
         langkah: [
             'Periksa kembali akun yang sedang Anda gunakan.',
-            'Hubungi admin koperasi jika Anda merasa seharusnya punya akses.',
+            'Hubungi Sekretaris koperasi jika Anda merasa seharusnya punya akses.',
         ],
         aksi: { tipe: 'link', label: 'Kembali ke Dashboard' },
     },
@@ -43,7 +43,7 @@ export const errorStatusConfig = {
         langkah: [
             'Coba muat ulang halaman ini.',
             'Jika tetap terjadi, coba lagi beberapa saat kemudian.',
-            'Hubungi admin koperasi jika masalah terus berlanjut.',
+            'Hubungi Sekretaris koperasi jika masalah terus berlanjut.',
         ],
         aksi: { tipe: 'reload', label: 'Coba Lagi' },
     },

@@ -17,7 +17,7 @@ export default function AnggotaLayout({
     const initial = auth.user?.name?.charAt(0)?.toUpperCase() ?? '?';
     const firstName = auth.user?.name?.split(' ')[0] ?? 'Anggota';
     const roles = auth.user?.roles ?? [];
-    const isPengurus = roles.some(r => ['super_admin', 'admin', 'bendahara', 'ketua_koperasi', 'pengawas'].includes(r));
+    const isPengurus = roles.some(r => ['super_admin', 'sekretaris', 'admin', 'bendahara', 'ketua_koperasi', 'pengawas'].includes(r));
     const anggotaAktif = (auth.user?.anggota_status ?? 'aktif') === 'aktif';
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [showPanduan, setShowPanduan] = useState(false);

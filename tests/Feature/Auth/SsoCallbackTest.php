@@ -89,7 +89,7 @@ class SsoCallbackTest extends TestCase
         $response = $this->get(route('sso.callback'));
 
         $response->assertRedirect(route('sso.gagal'));
-        $response->assertSessionHas('error', 'Email tidak tersedia dari SSO. Hubungi admin koperasi untuk mendaftarkan email Anda.');
+        $response->assertSessionHas('error', 'Email tidak tersedia dari SSO. Hubungi Sekretaris koperasi untuk mendaftarkan email Anda.');
         $this->assertGuest();
     }
 
@@ -105,7 +105,7 @@ class SsoCallbackTest extends TestCase
         $response = $this->get(route('sso.callback'));
 
         $response->assertRedirect(route('sso.gagal'));
-        $response->assertSessionHas('error', 'Akun SSO tidak terdaftar di sistem koperasi. Hubungi admin koperasi untuk mendaftarkan Anda sebagai anggota.');
+        $response->assertSessionHas('error', 'Akun SSO tidak terdaftar di sistem koperasi. Hubungi Sekretaris koperasi untuk mendaftarkan Anda sebagai anggota.');
         $this->assertGuest();
     }
 
@@ -130,25 +130,25 @@ class SsoCallbackTest extends TestCase
         $response = $this->get(route('sso.callback'));
 
         $response->assertRedirect(route('sso.gagal'));
-        $response->assertSessionHas('error', 'Anda belum terdaftar sebagai anggota koperasi. Hubungi admin koperasi untuk mendaftarkan keanggotaan Anda.');
+        $response->assertSessionHas('error', 'Anda belum terdaftar sebagai anggota koperasi. Hubungi Sekretaris koperasi untuk mendaftarkan keanggotaan Anda.');
         $this->assertGuest();
     }
 
     public function test_sso_callback_success_for_staff_without_anggota_relation(): void
     {
-        Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'sekretaris', 'guard_name' => 'web']);
 
         $user = User::factory()->create([
             'email' => 'admin@koperasi.test',
             'no_karyawan' => 'ADM-000001',
             'status' => 'aktif',
         ]);
-        $user->assignRole('admin');
+        $user->assignRole('sekretaris');
 
         $this->mockSsoUser([
             'id' => 'admin@koperasi.test',
             'email' => 'admin@koperasi.test',
-            'name' => 'Admin Koperasi',
+            'name' => 'Sekretaris Koperasi',
         ]);
 
         $response = $this->get(route('sso.callback'));
@@ -184,7 +184,7 @@ class SsoCallbackTest extends TestCase
         $response = $this->get(route('sso.callback'));
 
         $response->assertRedirect(route('sso.gagal'));
-        $response->assertSessionHas('error', 'Email SSO tidak cocok dengan data lokal. Hubungi admin koperasi untuk memperbarui data Anda.');
+        $response->assertSessionHas('error', 'Email SSO tidak cocok dengan data lokal. Hubungi Sekretaris koperasi untuk memperbarui data Anda.');
         $this->assertGuest();
     }
 
@@ -241,7 +241,7 @@ class SsoCallbackTest extends TestCase
         $response = $this->get(route('sso.callback'));
 
         $response->assertRedirect(route('sso.gagal'));
-        $response->assertSessionHas('error', 'Email SSO tidak cocok dengan data lokal. Hubungi admin koperasi untuk memperbarui data Anda.');
+        $response->assertSessionHas('error', 'Email SSO tidak cocok dengan data lokal. Hubungi Sekretaris koperasi untuk memperbarui data Anda.');
         $this->assertGuest();
     }
 

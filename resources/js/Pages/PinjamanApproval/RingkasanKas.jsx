@@ -3,7 +3,7 @@ import PrivacyWrapper from '@/Components/ui/PrivacyWrapper';
 import { formatRupiah } from '@/Utils/formatCurrency';
 
 const PIPELINE_STAGES = [
-    { key: 'admin', label: 'Admin' },
+    { key: 'admin', label: 'Sekretaris' },
     { key: 'bendahara', label: 'Bendahara' },
     { key: 'ketua', label: 'Ketua' },
 ];

@@ -98,7 +98,7 @@ export default function Show({ pinjaman }) {
 
                     {pinjaman.catatan_admin && (
                         <Card className="bg-sky-50 border-sky-200">
-                            <p className="text-sm font-semibold text-sky-800 mb-1.5">Catatan dari Verifikasi Admin</p>
+                            <p className="text-sm font-semibold text-sky-800 mb-1.5">Catatan dari Verifikasi Sekretaris</p>
                             <p className="text-base text-slate-700">{pinjaman.catatan_admin}</p>
                         </Card>
                     )}

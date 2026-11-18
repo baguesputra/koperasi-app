@@ -12,7 +12,9 @@ import PageHeader from '@/Components/ui/PageHeader';
 import { formatRupiah } from '@/Utils/formatCurrency';
 
 const labelRole = {
-    admin: 'Administrator',
+    super_admin: 'Super Admin',
+    sekretaris: 'Sekretaris',
+    admin: 'Sekretaris',
     bendahara: 'Bendahara Koperasi',
     ketua_koperasi: 'Ketua Koperasi',
     pengawas: 'Pengawas Koperasi',
@@ -39,7 +41,7 @@ export default function Edit({ pengguna, ringkasan }) {
     const inisial = pengguna?.name?.charAt(0)?.toUpperCase() ?? '?';
     const a = pengguna?.anggota;
     const roles = pengguna?.roles ?? [];
-    const isPengurus = roles.some((r) => ['super_admin', 'admin', 'bendahara', 'ketua_koperasi', 'pengawas'].includes(r));
+    const isPengurus = roles.some((r) => ['super_admin', 'sekretaris', 'admin', 'bendahara', 'ketua_koperasi', 'pengawas'].includes(r));
 
     return (
         <AppLayout>

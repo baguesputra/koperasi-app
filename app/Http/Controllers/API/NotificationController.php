@@ -212,7 +212,7 @@ class NotificationController extends Controller
 
         $antrean = [];
         if ($boleh('pinjaman.tinjau-admin')) {
-            $antrean['verifikasi Admin'] = Pinjaman::where('status', 'diajukan')->count();
+            $antrean['verifikasi Sekretaris'] = Pinjaman::where('status', 'diajukan')->count();
         }
         if ($boleh('pinjaman.tinjau-bendahara')) {
             $antrean['verifikasi Bendahara'] = Pinjaman::where('status', 'approved_admin')->count();

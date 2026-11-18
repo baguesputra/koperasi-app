@@ -22,9 +22,9 @@ class UserSeeder extends Seeder
 
         $admin = User::firstOrCreate(
             ['no_karyawan' => 'ADM-000001'],
-            ['name' => 'Admin Koperasi', 'email' => 'admin@koperasi.test', 'password' => Hash::make('ADM-000001'), 'pin' => '123456']
+            ['name' => 'Sekretaris Koperasi', 'email' => 'admin@koperasi.test', 'password' => Hash::make('ADM-000001'), 'pin' => '123456']
         );
-        $admin->assignRole('admin');
+        $admin->assignRole('sekretaris');
         if (! $admin->hasPin()) {
             $admin->pin = '123456';
             $admin->save();

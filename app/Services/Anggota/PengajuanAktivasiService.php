@@ -25,7 +25,7 @@ class PengajuanAktivasiService
         }
 
         if ($anggota->status === 'resign') {
-            throw new RuntimeException('Akun resign tidak dapat mengajukan aktivasi mandiri. Hubungi admin koperasi.');
+            throw new RuntimeException('Akun resign tidak dapat mengajukan aktivasi mandiri. Hubungi Sekretaris koperasi.');
         }
 
         $berjalan = PengajuanAktivasi::where('anggota_id', $anggota->id)

@@ -6,20 +6,20 @@ import { Transition } from '@headlessui/react';
 
 const menuGroups = [
     [
-        { label: 'Dashboard', routeName: 'dashboard', roles: ['super_admin', 'admin', 'bendahara', 'ketua_koperasi', 'pengawas'] },
+        { label: 'Dashboard', routeName: 'dashboard', roles: ['super_admin', 'sekretaris', 'bendahara', 'ketua_koperasi', 'pengawas'] },
     ],
     [
-        { label: 'Anggota', routeName: 'anggota.index', roles: ['super_admin', 'admin', 'bendahara', 'ketua_koperasi', 'pengawas'] },
-        { label: 'Simpanan', routeName: null, roles: ['super_admin', 'admin', 'bendahara', 'ketua_koperasi', 'pengawas'] },
-        { label: 'Pinjaman', routeName: 'pinjaman.index', roles: ['super_admin', 'admin', 'bendahara', 'ketua_koperasi', 'pengawas'] },
+        { label: 'Anggota', routeName: 'anggota.index', roles: ['super_admin', 'sekretaris', 'bendahara', 'ketua_koperasi', 'pengawas'] },
+        { label: 'Simpanan', routeName: null, roles: ['super_admin', 'sekretaris', 'bendahara', 'ketua_koperasi', 'pengawas'] },
+        { label: 'Pinjaman', routeName: 'pinjaman.index', roles: ['super_admin', 'sekretaris', 'bendahara', 'ketua_koperasi', 'pengawas'] },
     ],
     [
         { label: 'Approval Pinjaman', routeName: 'approval-pinjaman', roles: ['super_admin', 'bendahara', 'ketua_koperasi'] },
         { label: 'Angsuran', routeName: 'bendahara.angsuran.index', roles: ['super_admin', 'bendahara'] },
         { label: 'Konfirmasi Simpanan', routeName: 'bendahara.simpanan.index', roles: ['super_admin', 'bendahara'] },
-        { label: 'Kas Koperasi', routeName: 'kas-koperasi.index', roles: ['super_admin', 'admin', 'bendahara', 'ketua_koperasi', 'pengawas'] },
-        { label: 'Laporan', routeName: null, roles: ['super_admin', 'admin', 'bendahara', 'ketua_koperasi', 'pengawas'] },
-        { label: 'Pengaturan', routeName: 'pengaturan.index', roles: ['super_admin', 'admin'] },
+        { label: 'Kas Koperasi', routeName: 'kas-koperasi.index', roles: ['super_admin', 'sekretaris', 'bendahara', 'ketua_koperasi', 'pengawas'] },
+        { label: 'Laporan', routeName: null, roles: ['super_admin', 'sekretaris', 'bendahara', 'ketua_koperasi', 'pengawas'] },
+        { label: 'Pengaturan', routeName: 'pengaturan.index', roles: ['super_admin', 'sekretaris'] },
     ],
 ];
 

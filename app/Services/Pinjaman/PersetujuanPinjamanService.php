@@ -78,7 +78,7 @@ class PersetujuanPinjamanService
     {
         $this->tolakBilaSelfApproval($pinjaman);
         if ($pinjaman->status !== 'diajukan') {
-            throw new \RuntimeException('Hanya pinjaman berstatus Diajukan yang dapat diteruskan Admin.');
+            throw new \RuntimeException('Hanya pinjaman berstatus Diajukan yang dapat diteruskan Sekretaris.');
         }
 
         $mandiriBendahara = $pinjaman->catatan_bendahara === 'Diajukan mandiri oleh Bendahara';
@@ -90,7 +90,7 @@ class PersetujuanPinjamanService
 
         AuditLog::catat(
             aksi: 'pinjaman_teruskan_admin',
-            keterangan: "Pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) diteruskan oleh Admin. Diminta: ".WaPesan::rupiah($pinjaman->nominal_diminta ?? $pinjaman->nominal)
+            keterangan: "Pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) diteruskan oleh Sekretaris. Diminta: ".WaPesan::rupiah($pinjaman->nominal_diminta ?? $pinjaman->nominal)
                 .($mandiriBendahara ? ' (pengajuan mandiri Bendahara: tahap Bendahara dilewati agar tak self-approve).' : ''),
             dataLama: ['status' => 'diajukan'],
             dataBaru: ['status' => $mandiriBendahara ? 'approved_bendahara' : 'approved_admin', 'catatan_admin' => $catatan]
@@ -101,7 +101,7 @@ class PersetujuanPinjamanService
             ."- Nomor Referensi: #{$pinjaman->id}\n"
             .'- Nominal diminta: '.WaPesan::rupiah($pinjaman->nominal_diminta ?? $pinjaman->nominal)."\n"
             ."- Tenor diminta: ".($pinjaman->tenor_diminta ?? $pinjaman->tenor_bulan)." bulan\n\n"
-            ."Status saat ini: *Diteruskan Admin* dan sedang menunggu pemeriksaan {$tahapBerikut}."
+            ."Status saat ini: *Diteruskan Sekretaris* dan sedang menunggu pemeriksaan {$tahapBerikut}."
             .' Pemberitahuan selanjutnya akan kami sampaikan melalui WhatsApp ini.';
 
         WaService::keAnggota(
@@ -115,7 +115,7 @@ class PersetujuanPinjamanService
     {
         $this->tolakBilaSelfApproval($pinjaman);
         if ($pinjaman->status !== 'diajukan') {
-            throw new \RuntimeException('Hanya pinjaman berstatus Diajukan yang dapat ditolak Admin.');
+            throw new \RuntimeException('Hanya pinjaman berstatus Diajukan yang dapat ditolak Sekretaris.');
         }
 
         $pinjaman->update([
@@ -125,7 +125,7 @@ class PersetujuanPinjamanService
 
         AuditLog::catat(
             aksi: 'pinjaman_tolak_admin',
-            keterangan: "Pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) ditolak oleh Admin. Nominal: ".WaPesan::rupiah($pinjaman->nominal_diminta ?? $pinjaman->nominal),
+            keterangan: "Pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) ditolak oleh Sekretaris. Nominal: ".WaPesan::rupiah($pinjaman->nominal_diminta ?? $pinjaman->nominal),
             dataLama: ['status' => 'diajukan'],
             dataBaru: ['status' => 'ditolak', 'catatan_admin' => $catatan]
         );
@@ -133,7 +133,7 @@ class PersetujuanPinjamanService
         WaService::keAnggota(
             $pinjaman->anggota,
             'pinjaman_ditolak',
-            $this->pesanDitolak('Admin', $pinjaman, $catatan)
+            $this->pesanDitolak('Sekretaris', $pinjaman, $catatan)
         );
     }
 
@@ -141,7 +141,7 @@ class PersetujuanPinjamanService
     {
         $this->tolakBilaSelfApproval($pinjaman);
         if ($pinjaman->status !== 'approved_admin') {
-            throw new \RuntimeException('Hanya pinjaman berstatus Diteruskan Admin yang dapat disetujui Bendahara.');
+            throw new \RuntimeException('Hanya pinjaman berstatus Diteruskan Sekretaris yang dapat disetujui Bendahara.');
         }
 
         $nominalFinal = $nominal ?? (float) $pinjaman->nominal;
@@ -183,7 +183,7 @@ class PersetujuanPinjamanService
     {
         $this->tolakBilaSelfApproval($pinjaman);
         if ($pinjaman->status !== 'approved_admin') {
-            throw new \RuntimeException('Hanya pinjaman berstatus Diteruskan Admin yang dapat ditolak Bendahara.');
+            throw new \RuntimeException('Hanya pinjaman berstatus Diteruskan Sekretaris yang dapat ditolak Bendahara.');
         }
 
         $statusLama = $pinjaman->status;

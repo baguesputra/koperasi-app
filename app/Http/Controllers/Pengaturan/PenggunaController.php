@@ -15,7 +15,7 @@ use Spatie\Permission\Models\Role;
 
 class PenggunaController extends Controller
 {
-    private const ROLE_ASSIGNABLE = ['admin', 'bendahara', 'ketua_koperasi', 'pengawas', 'anggota'];
+    private const ROLE_ASSIGNABLE = ['sekretaris', 'bendahara', 'ketua_koperasi', 'pengawas', 'anggota'];
 
     private const NO_KARYAWAN_ROOT = ['SPADM-000001', 'ADM-000001'];
 

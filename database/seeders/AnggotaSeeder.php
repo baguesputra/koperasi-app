@@ -307,7 +307,7 @@ class AnggotaSeeder extends Seeder
                 'kembali_wajib' => 45_000,
                 'total_dikembalikan' => 95_000,
                 'tanggal_proses' => $row['tanggal_resign'],
-                'aktor' => 'Admin Koperasi',
+                'aktor' => 'Sekretaris Koperasi',
             ];
 
             $anggota->update([

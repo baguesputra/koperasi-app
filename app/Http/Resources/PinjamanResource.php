@@ -114,10 +114,10 @@ class PinjamanResource extends JsonResource
                 'catatan' => $this->keperluan,
             ],
             [
-                'label' => 'Verifikasi Admin',
+                'label' => 'Verifikasi Sekretaris',
                 'status' => $ditolakAdmin ? 'rejected' : ($adminDone ? 'done' : 'current'),
                 'tanggal' => null,
-                'oleh' => $this->catatan_admin ? 'Admin Koperasi' : null,
+                'oleh' => $this->catatan_admin ? 'Sekretaris Koperasi' : null,
                 'catatan' => $this->catatan_admin,
             ],
             [

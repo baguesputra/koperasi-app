@@ -40,7 +40,7 @@ class RolePermissionSuperAdminPengawasTest extends TestCase
     public function test_admin_hanya_bisa_kerjaan_admin_dan_dibatasi_dari_approval_keuangan(): void
     {
         $admin = User::where('no_karyawan', 'ADM-000001')->firstOrFail();
-        $this->assertTrue($admin->hasRole('admin'));
+        $this->assertTrue($admin->hasRole('sekretaris'));
 
         $this->actingAs($admin);
         session(['auth.password_confirmed_at' => time()]);

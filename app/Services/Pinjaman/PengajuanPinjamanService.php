@@ -149,7 +149,7 @@ class PengajuanPinjamanService
             'pinjaman_diajukan',
             WaPesan::susun($anggota->nama, $anggota->no_karyawan,
                 'Pengajuan pinjaman Anda telah kami terima pada '.now()->translatedFormat('d F Y')." dengan rincian sebagai berikut:\n\n{$rincian}\n\n"
-                .'Status saat ini: *Menunggu verifikasi Admin*.'
+                .'Status saat ini: *Menunggu verifikasi Sekretaris*.'
                 .' Pemberitahuan selanjutnya akan kami sampaikan melalui WhatsApp ini.')
         );
 

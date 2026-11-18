@@ -279,6 +279,6 @@ class MobilePengurusLanjutanTest extends TestCase
 
         $res = $this->headerToken($token)->getJson('/api/v1/notifications')->assertOk();
         $judul = collect($res->json('data'))->pluck('judul')->all();
-        $this->assertTrue(collect($judul)->some(fn ($j) => str_contains((string) $j, 'verifikasi Admin')));
+        $this->assertTrue(collect($judul)->some(fn ($j) => str_contains((string) $j, 'verifikasi Sekretaris')));
     }
 }

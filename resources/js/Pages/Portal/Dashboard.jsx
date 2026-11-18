@@ -27,7 +27,7 @@ import PwaInstallPrompt from '@/Components/ui/PwaInstallPrompt';
 
 const statusPengajuanLabel = {
     diajukan: {
-        text: 'Menunggu pemeriksaan Admin',
+        text: 'Menunggu pemeriksaan Sekretaris',
         step: 1,
     },
     approved_admin: {
@@ -417,11 +417,11 @@ export default function Dashboard({
                 { element: '[data-tour="privacy-toggle"]', popover: { title: 'Sembunyikan Saldo', description: 'Tombol ini menyembunyikan atau menampilkan seluruh nominal keuangan di Dashboard.' } },
                 { element: '[data-tour="financial-summary"]', popover: { title: 'Ringkasan Keuangan', description: 'Pantau total simpanan dan limit pinjaman yang masih tersedia.' } },
                 { element: '[data-tour="quick-actions"]', popover: { title: 'Menu Utama', description: 'Ajukan pinjaman, tambah limit, ubah tenor, atau buka panduan lengkap.' } },
-                ...(pengajuanBerjalan ? [{ element: '[data-tour="application-tracker"]', popover: { title: 'Pelacakan Pengajuan', description: 'Pantau proses pemeriksaan Admin, Bendahara, hingga persetujuan Ketua.' } }] : []),
+                ...(pengajuanBerjalan ? [{ element: '[data-tour="application-tracker"]', popover: { title: 'Pelacakan Pengajuan', description: 'Pantau proses pemeriksaan Sekretaris, Bendahara, hingga persetujuan Ketua.' } }] : []),
                 { element: '[data-tour="loan-progress"]', popover: { title: 'Progres Pinjaman', description: 'Pantau jumlah angsuran terbayar, sisa angsuran, cicilan bulanan, dan persentase pelunasan.' } },
                 { element: '[data-tour="savings-card"]', popover: { title: 'Rincian Simpanan', description: 'Lihat total simpanan beserta rincian Simpanan Wajib dan Simpanan Pokok. Ketentuan tarif dapat dibuka di bagian ini.' } },
                 { element: '[data-tour="history-summary"]', popover: { title: 'Aktivitas & Riwayat', description: 'Lihat transaksi simpanan dan pembayaran terakhir.' } },
-                { element: '[data-tour="plafon-rules"]', popover: { title: 'Ketentuan Pinjaman', description: 'Lihat batas nominal pinjaman dan tenor maksimal. Limit mengikuti ketentuan koperasi serta diproses melalui verifikasi Admin, Bendahara, lalu persetujuan Ketua.' } },
+                { element: '[data-tour="plafon-rules"]', popover: { title: 'Ketentuan Pinjaman', description: 'Lihat batas nominal pinjaman dan tenor maksimal. Limit mengikuti ketentuan koperasi serta diproses melalui verifikasi Sekretaris, Bendahara, lalu persetujuan Ketua.' } },
             ].filter((step) => document.querySelector(step.element));
 
             if (!steps.length) return;
@@ -981,7 +981,7 @@ export default function Dashboard({
 
                         const langkah = [
                             {
-                                nama: 'Admin',
+                                nama: 'Sekretaris',
                                 selesai: currentStep > 1,
                                 kini: currentStep === 1,
                                 selesaiText: 'Selesai diverifikasi',
@@ -994,7 +994,7 @@ export default function Dashboard({
                                 kini: currentStep === 2,
                                 selesaiText: 'Selesai diverifikasi',
                                 kiniText: 'Sedang diverifikasi',
-                                tungguText: 'Menunggu Admin',
+                                tungguText: 'Menunggu Sekretaris',
                             },
                             {
                                 nama: 'Ketua Koperasi',
@@ -1388,7 +1388,7 @@ export default function Dashboard({
                             </ol>
 
                             <p className="pd-card__foot">
-                                Pengajuan pinjaman diproses berjenjang: verifikasi Admin, pemeriksaan
+                                Pengajuan pinjaman diproses berjenjang: verifikasi Sekretaris, pemeriksaan
                                 Bendahara, dan persetujuan Ketua Koperasi.
                             </p>
                         </section>

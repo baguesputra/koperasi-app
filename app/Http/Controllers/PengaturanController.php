@@ -105,7 +105,7 @@ class PengaturanController extends Controller
                         'id' => $role->id,
                         'name' => $role->name,
                         'jumlah_user' => $role->users_count,
-                        'dilindungi' => in_array($role->name, ['super_admin', 'admin', 'bendahara', 'ketua_koperasi', 'pengawas', 'anggota']),
+                        'dilindungi' => in_array($role->name, ['super_admin', 'sekretaris', 'bendahara', 'ketua_koperasi', 'pengawas', 'anggota']),
                         'permissions' => $role->permissions->pluck('name')->values(),
                     ]);
 

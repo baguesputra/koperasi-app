@@ -99,7 +99,7 @@ class LaporanController extends Controller
         abort_unless(
             ! ($def['admin_only'] ?? false) || Gate::allows('pengaturan.kelola'),
             403,
-            'Laporan ini hanya tersedia untuk Admin.'
+            'Laporan ini hanya tersedia untuk Sekretaris.'
         );
 
         return $def;

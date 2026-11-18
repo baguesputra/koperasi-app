@@ -1,6 +1,6 @@
 export const statusLabel = {
     diajukan: 'Diajukan',
-    approved_admin: 'Diteruskan Admin',
+    approved_admin: 'Diteruskan Sekretaris',
     approved_bendahara: 'Disetujui Bendahara',
     aktif: 'Aktif',
     lunas: 'Lunas',

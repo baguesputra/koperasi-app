@@ -361,7 +361,7 @@ class ResignService
         $shortfall = round($snap['total_tagihan'] - $totalTerpakai, 2);
 
         if ($shortfall <= 0) {
-            throw new RuntimeException('Perhitungan shortfall tidak valid. Hubungi admin.');
+            throw new RuntimeException('Perhitungan shortfall tidak valid. Hubungi Sekretaris.');
         }
 
         // Buat SATU cicilan akhir pada pinjaman dengan sisa terbesar.

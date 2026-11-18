@@ -26,7 +26,7 @@ const permissionLabel = {
     'simpanan.lihat': 'Lihat data simpanan',
     'simpanan.konfirmasi': 'Konfirmasi simpanan bulanan',
     'pinjaman.lihat': 'Lihat semua data pinjaman',
-    'pinjaman.tinjau-admin': 'Verifikasi awal pinjaman (tahap Admin)',
+    'pinjaman.tinjau-admin': 'Verifikasi awal pinjaman (tahap Sekretaris)',
     'pinjaman.tinjau-bendahara': 'Tinjau & setujui pinjaman (tahap Bendahara)',
     'pinjaman.approve-ketua': 'Setujui final pinjaman (tahap Ketua)',
     'angsuran.konfirmasi': 'Konfirmasi pembayaran angsuran',

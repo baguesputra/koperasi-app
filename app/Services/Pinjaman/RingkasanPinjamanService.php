@@ -84,7 +84,7 @@ class RingkasanPinjamanService
             ],
             'bendahara' => [
                 'label' => 'Menunggu Usulan Anda',
-                'sublabel' => 'Telah lolos verifikasi Admin',
+                'sublabel' => 'Telah lolos verifikasi Sekretaris',
                 'tahap' => 'Tahap 2',
                 'jumlah' => $bendaharaJumlah,
                 'total' => $bendaharaTotal,
@@ -122,7 +122,7 @@ class RingkasanPinjamanService
             'persen_terpakai' => $persenTerpakai,
             'status_likuiditas' => $statusLikuiditas,
             'pipeline' => [
-                'admin' => ['label' => '1. Verifikasi Admin', 'jumlah' => $adminJumlah, 'total' => $adminTotal],
+                'admin' => ['label' => '1. Verifikasi Sekretaris', 'jumlah' => $adminJumlah, 'total' => $adminTotal],
                 'bendahara' => ['label' => '2. Usulan Bendahara', 'jumlah' => $bendaharaJumlah, 'total' => $bendaharaTotal],
                 'ketua' => ['label' => '3. Keputusan Ketua', 'jumlah' => $ketuaJumlah, 'total' => $ketuaTotal],
                 'cair_mandiri' => ['label' => 'Pencairan Mandiri Ketua', 'jumlah' => $cairMandiriJumlah, 'total' => $cairMandiriTotal],

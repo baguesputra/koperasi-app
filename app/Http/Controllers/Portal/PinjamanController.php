@@ -84,7 +84,7 @@ class PinjamanController extends Controller
         if (! $tenorMaksimal) {
             return response()->json([
                 'valid' => false,
-                'pesan' => 'Ketentuan tenor untuk nominal ini belum diatur. Silakan hubungi Admin koperasi.',
+                'pesan' => 'Ketentuan tenor untuk nominal ini belum diatur. Silakan hubungi Sekretaris koperasi.',
             ], 422);
         }
 

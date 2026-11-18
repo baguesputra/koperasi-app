@@ -227,8 +227,8 @@ const TATA_CARA = [
             {
                 judul: 'Pantau alur persetujuan 3 tahap di Beranda',
                 deskripsi:
-                    'Status pengajuan tampil langsung di Beranda (Admin → Bendahara → Ketua Koperasi) dan notifikasi pencairan dikirimkan melalui WhatsApp.',
-                mockup: <MiniTimeline steps={['Admin', 'Bendahara', 'Ketua', 'Dana Cair']} />,
+                    'Status pengajuan tampil langsung di Beranda (Sekretaris → Bendahara → Ketua Koperasi) dan notifikasi pencairan dikirimkan melalui WhatsApp.',
+                mockup: <MiniTimeline steps={['Sekretaris', 'Bendahara', 'Ketua', 'Dana Cair']} />,
             },
         ],
         catatan: [
@@ -314,7 +314,7 @@ const TATA_CARA = [
                 judul: 'Isi alasan perubahan & kirim pengajuan',
                 deskripsi:
                     'Tuliskan alasan pengajuan (minimal 10 karakter) lalu kirim. Perubahan jadwal akan berlaku setelah disetujui Bendahara dan Ketua Koperasi.',
-                mockup: <MiniTimeline steps={['Admin / Bendahara', 'Ketua', 'Jadwal Baru']} />,
+                mockup: <MiniTimeline steps={['Sekretaris / Bendahara', 'Ketua', 'Jadwal Baru']} />,
             },
         ],
         catatan: [
@@ -331,7 +331,7 @@ const FAQ = [
         items: [
             {
                 q: 'Berapa lama proses persetujuan pengajuan pinjaman saya?',
-                a: 'Pengajuan melalui 3 tahap berjenjang: Admin (verifikasi kelengkapan), Bendahara (pemeriksaan limit & kas), dan Ketua Koperasi (persetujuan & pencairan). Rata-rata memerlukan waktu 1–3 hari kerja per tahap tergantung antrean.',
+                a: 'Pengajuan melalui 3 tahap berjenjang: Sekretaris (verifikasi kelengkapan), Bendahara (pemeriksaan limit & kas), dan Ketua Koperasi (persetujuan & pencairan). Rata-rata memerlukan waktu 1–3 hari kerja per tahap tergantung antrean.',
             },
             {
                 q: 'Kenapa pengajuan pinjaman saya ditolak?',

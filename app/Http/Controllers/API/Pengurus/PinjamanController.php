@@ -176,7 +176,7 @@ class PinjamanController extends Controller
     private function approveAdmin(Request $request, Pinjaman $pinjaman): string
     {
         if (! $request->user()->can('pinjaman.tinjau-admin')) {
-            throw new RuntimeException('Anda tidak memiliki akses ke tahap verifikasi Admin.');
+            throw new RuntimeException('Anda tidak memiliki akses ke tahap verifikasi Sekretaris.');
         }
 
         $this->persetujuan->approveAdmin($pinjaman, $request->catatan);
@@ -251,12 +251,12 @@ class PinjamanController extends Controller
     private function rejectAdmin(Request $request, Pinjaman $pinjaman): string
     {
         if (! $request->user()->can('pinjaman.tinjau-admin')) {
-            throw new RuntimeException('Anda tidak memiliki akses ke tahap verifikasi Admin.');
+            throw new RuntimeException('Anda tidak memiliki akses ke tahap verifikasi Sekretaris.');
         }
 
         $this->persetujuan->rejectAdmin($pinjaman, $request->catatan);
 
-        return 'Pengajuan ditolak oleh Admin.';
+        return 'Pengajuan ditolak oleh Sekretaris.';
     }
 
     private function rejectBendahara(Request $request, Pinjaman $pinjaman): string

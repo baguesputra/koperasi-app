@@ -109,7 +109,7 @@ export default function KeputusanDrawer({ pinjaman, onClose }) {
 
             {pinjaman.catatan_admin && (
                 <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                    <p className="text-xs text-slate-400 mb-1">Catatan Admin</p>
+                    <p className="text-xs text-slate-400 mb-1">Catatan Sekretaris</p>
                     <p className="text-sm text-slate-700">{pinjaman.catatan_admin}</p>
                 </div>
             )}

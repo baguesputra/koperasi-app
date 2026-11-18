@@ -41,8 +41,8 @@ const OUTCOME_STYLE = {
 const AKSI_MAP = {
     // Pinjaman
     pinjaman_diajukan: { label: 'Ajukan Pinjaman', outcome: 'biru', kategori: 'pinjaman' },
-    pinjaman_teruskan_admin: { label: 'Teruskan Pinjaman (Admin)', outcome: 'hijau', kategori: 'pinjaman' },
-    pinjaman_tolak_admin: { label: 'Tolak Pinjaman (Admin)', outcome: 'merah', kategori: 'pinjaman' },
+    pinjaman_teruskan_admin: { label: 'Teruskan Pinjaman (Sekretaris)', outcome: 'hijau', kategori: 'pinjaman' },
+    pinjaman_tolak_admin: { label: 'Tolak Pinjaman (Sekretaris)', outcome: 'merah', kategori: 'pinjaman' },
     pinjaman_setujui_bendahara: { label: 'Setujui Pinjaman (Bendahara)', outcome: 'hijau', kategori: 'pinjaman' },
     pinjaman_tolak_bendahara: { label: 'Tolak Pinjaman (Bendahara)', outcome: 'merah', kategori: 'pinjaman' },
     pinjaman_cair_bendahara: { label: 'Cairkan Pinjaman (Bendahara)', outcome: 'ungu', kategori: 'pinjaman' },

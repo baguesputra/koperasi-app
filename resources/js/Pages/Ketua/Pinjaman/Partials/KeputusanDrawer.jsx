@@ -39,7 +39,7 @@ export default function KeputusanDrawer({ pinjaman, onClose }) {
         <div className="space-y-4">
             {pinjaman.catatan_admin && (
                 <div className="bg-sky-50 border border-sky-200 rounded-xl p-4">
-                    <p className="text-xs font-bold text-sky-800 mb-1">Catatan dari Verifikasi Admin</p>
+                    <p className="text-xs font-bold text-sky-800 mb-1">Catatan dari Verifikasi Sekretaris</p>
                     <p className="text-sm text-slate-700">{pinjaman.catatan_admin}</p>
                 </div>
             )}

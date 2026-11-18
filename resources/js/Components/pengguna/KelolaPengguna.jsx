@@ -11,7 +11,7 @@ import Select from '@/Components/ui/Select';
 import KataSandi from '@/Components/ui/KataSandi';
 import Pagination from '@/Components/ui/Pagination';
 
-const labelRole = { super_admin: 'Super Admin', admin: 'Admin', bendahara: 'Bendahara', ketua_koperasi: 'Ketua', pengawas: 'Pengawas', anggota: 'Anggota' };
+const labelRole = { super_admin: 'Super Admin', sekretaris: 'Sekretaris', admin: 'Sekretaris', bendahara: 'Bendahara', ketua_koperasi: 'Ketua', pengawas: 'Pengawas', anggota: 'Anggota' };
 
 function TombolAksi({ label, title, onClick, tone, disabled }) {
     const tones = {
@@ -377,7 +377,7 @@ export default function KelolaPengguna({
                                 </p>
                                 <div className="flex sm:hidden items-center gap-1 mt-1">
                                     {user.roles.map((role) => (
-                                        <span key={role} className={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-bold rounded-full ${role === 'admin' ? 'bg-brand-navy text-white' : 'bg-slate-100 text-slate-600'}`}>
+                                        <span key={role} className={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-bold rounded-full ${role === 'sekretaris' || role === 'admin' ? 'bg-brand-navy text-white' : 'bg-slate-100 text-slate-600'}`}>
                                             {labelRole[role] ?? role}
                                         </span>
                                     ))}
@@ -385,7 +385,7 @@ export default function KelolaPengguna({
                             </div>
                             <div className="hidden sm:flex items-center gap-1.5 shrink-0">
                                 {user.roles.map((role) => (
-                                    <span key={role} className={`inline-flex items-center px-2 py-0.5 text-[11px] font-bold rounded-full ${role === 'admin' ? 'bg-brand-navy text-white' : 'bg-slate-100 text-slate-600'}`}>
+                                    <span key={role} className={`inline-flex items-center px-2 py-0.5 text-[11px] font-bold rounded-full ${role === 'sekretaris' || role === 'admin' ? 'bg-brand-navy text-white' : 'bg-slate-100 text-slate-600'}`}>
                                         {labelRole[role] ?? role}
                                     </span>
                                 ))}

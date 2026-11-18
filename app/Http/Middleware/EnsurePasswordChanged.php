@@ -14,14 +14,14 @@ class EnsurePasswordChanged
         $user = $request->user();
 
         // Blokir anggota yang sudah di-resign dari mengakses aplikasi.
-        // Hanya cek untuk user yang punya relasi anggota (bukan admin/bendahara/ketua).
+        // Hanya cek untuk user yang punya relasi anggota (bukan sekretaris/bendahara/ketua).
         if ($user && $user->anggota && $user->anggota->status === 'resign') {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
             return redirect()->route('login')->withErrors([
-                'no_karyawan' => 'Akun Anda telah di-resign dari koperasi. Hubungi admin untuk informasi lebih lanjut.',
+                'no_karyawan' => 'Akun Anda telah di-resign dari koperasi. Hubungi Sekretaris untuk informasi lebih lanjut.',
             ]);
         }
 

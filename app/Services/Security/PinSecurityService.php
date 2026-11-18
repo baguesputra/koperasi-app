@@ -50,7 +50,7 @@ class PinSecurityService
                 'valid' => false,
                 'remaining' => 0,
                 'locked_out' => true,
-                'message' => 'PIN dikunci 15 menit karena terlalu banyak salah. Hubungi admin bila lupa.',
+                'message' => 'PIN dikunci 15 menit karena terlalu banyak salah. Hubungi Sekretaris bila lupa.',
             ];
         }
 

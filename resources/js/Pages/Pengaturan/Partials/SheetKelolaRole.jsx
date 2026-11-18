@@ -26,7 +26,7 @@ const permissionLabel = {
     'simpanan.lihat': 'Lihat data simpanan',
     'simpanan.konfirmasi': 'Konfirmasi simpanan bulanan',
     'pinjaman.lihat': 'Lihat semua data pinjaman',
-    'pinjaman.tinjau-admin': 'Verifikasi awal pinjaman (tahap Admin)',
+    'pinjaman.tinjau-admin': 'Verifikasi awal pinjaman (tahap Sekretaris)',
     'pinjaman.tinjau-bendahara': 'Tinjau & setujui pinjaman (tahap Bendahara)',
     'pinjaman.approve-ketua': 'Setujui final pinjaman (tahap Ketua)',
     'angsuran.konfirmasi': 'Konfirmasi pembayaran angsuran',
@@ -105,7 +105,7 @@ export default function SheetKelolaRole({ roleList, semuaPermission }) {
             <div>
                 {headerKecil('Tambah Role')}
                 <form onSubmit={submitBuat}>
-                    <FormField label="Nama Role" error={buat.errors.name} hint="Gunakan tanda hubung untuk kata terpisah, contoh: admin-cabang">
+                    <FormField label="Nama Role" error={buat.errors.name} hint="Gunakan tanda hubung untuk kata terpisah, contoh: sekretaris-cabang">
                         <TextField size="sm" value={buat.data.name} onChange={(e) => buat.setData('name', e.target.value)} autoFocus />
                     </FormField>
                     <div className="flex items-center gap-3">

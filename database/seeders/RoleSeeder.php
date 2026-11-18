@@ -14,8 +14,8 @@ class RoleSeeder extends Seeder
         $superAdmin = Role::firstOrCreate(['name' => 'super_admin']);
         $superAdmin->syncPermissions(Permission::all());
 
-        // 2. Admin: Operasional administrasi kepegawaian, verifikasi awal, kelola user & organisasi
-        $admin = Role::firstOrCreate(['name' => 'admin']);
+        // 2. Sekretaris: Operasional administrasi kepegawaian, verifikasi awal, kelola user & organisasi
+        $admin = Role::firstOrCreate(['name' => 'sekretaris']);
         $admin->syncPermissions([
             'anggota.lihat', 'anggota.kelola', 'anggota.resign',
             'simpanan.lihat',

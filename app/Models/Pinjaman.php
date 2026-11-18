@@ -233,7 +233,7 @@ class Pinjaman extends Model
                 'icon' => 'file-text',
             ],
             [
-                'label' => 'Verifikasi Admin',
+                'label' => 'Verifikasi Sekretaris',
                 'date' => $adminData['date'] ?? '-',
                 'user' => $adminData['user'] ?? 'Belum tercatat',
                 'status' => $ditolakAdmin ? 'rejected' : ($adminDone ? 'done' : 'current'),

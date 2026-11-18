@@ -11,7 +11,7 @@ import {
 export default function Profil({ anggota, rekening }) {
     const { auth } = usePage().props;
     const roles = auth?.user?.roles ?? [];
-    const isPengurus = roles.some((r) => ['super_admin', 'admin', 'bendahara', 'ketua_koperasi', 'pengawas'].includes(r));
+    const isPengurus = roles.some((r) => ['super_admin', 'sekretaris', 'admin', 'bendahara', 'ketua_koperasi', 'pengawas'].includes(r));
 
     const [showForm, setShowForm] = useState(false);
     const [copiedId, setCopiedId] = useState(null);
@@ -415,7 +415,7 @@ export default function Profil({ anggota, rekening }) {
                                             Dashboard Pengurus
                                         </p>
                                         <p className="text-xs text-slate-400 mt-0.5">
-                                            Akses panel manajemen admin & kas
+                                            Akses panel manajemen pengurus & kas
                                         </p>
                                     </div>
                                 </div>

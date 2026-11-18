@@ -39,7 +39,7 @@ export const INTEGRATION_FLOWS = [
         id: 'pengurus-approval',
         step: '03',
         title: 'Approval Pengurus 3 Jenjang',
-        subtitle: 'Admin -> Bendahara -> Ketua -> Pencairan',
+        subtitle: 'Sekretaris -> Bendahara -> Ketua -> Pencairan',
         targetId: 'pengurus-ringkasan',
         steps: [
             'Muat antrean & posisi kas (jika berhak) melalui GET /api/v1/pengurus/ringkasan.',
@@ -842,7 +842,7 @@ export const ENDPOINT_GROUPS = [
     {
         id: 'pengurus-approval',
         name: 'Pengurus: Ringkasan & Approval 3 Jenjang',
-        description: 'Dashboard antrean pengurus serta tinjauan berjenjang (Admin, Bendahara, Ketua) untuk pinjaman, limit, dan percepatan.',
+        description: 'Dashboard antrean pengurus serta tinjauan berjenjang (Sekretaris, Bendahara, Ketua) untuk pinjaman, limit, dan percepatan.',
         endpoints: [
             {
                 id: 'pengurus-ringkasan',
