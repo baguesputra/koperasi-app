@@ -10,9 +10,9 @@ import Drawer from '@/Components/ui/Drawer';
 import KeputusanDrawer from './Partials/KeputusanDrawer';
 import { formatRupiah } from '@/Utils/formatCurrency';
 
-const tabDasar = 'inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-t-lg border -mb-px';
-const tabAktif = `${tabDasar} bg-white border-slate-200 border-b-0 text-brand-navy`;
-const tabNonAktif = `${tabDasar} bg-slate-50 border-slate-200 text-slate-500 hover:bg-white hover:text-slate-700`;
+const tabDasar = 'inline-flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl transition-all duration-150';
+const tabAktif = `${tabDasar} bg-gradient-to-b from-white to-brand-green-light/30 border border-brand-green/40 text-brand-navy shadow-sm`;
+const tabNonAktif = `${tabDasar} text-slate-600 hover:bg-white/80 hover:text-brand-navy`;
 
 export default function Index({ menunggu, riwayat }) {
     const [tab, setTab] = useState('baru');
@@ -36,7 +36,7 @@ export default function Index({ menunggu, riwayat }) {
 
             <Card padding="none">
                 {/* Tab lembaran dokumen */}
-                <div className="flex items-end gap-1 px-3 pt-2 border-b border-slate-200">
+                <div className="flex flex-wrap items-center gap-1.5 px-3.5 py-2.5 bg-gradient-to-r from-[#f4f7fb] via-[#f8fafc] to-[#f0faf4] border-b border-slate-200/80">
                     <button onClick={() => setTab('baru')} className={tab === 'baru' ? tabAktif : tabNonAktif}>
                         Menunggu Tinjauan
                         {menunggu.length > 0 && (
@@ -55,7 +55,7 @@ export default function Index({ menunggu, riwayat }) {
                     {tab === 'baru' ? (
                         <table className="w-full table-sticky-first">
                             <thead>
-                                <tr className="text-left sticky top-0 bg-white z-10">
+                                <tr className="text-left sticky top-0 bg-gradient-to-r from-[#f4f7fb] via-[#f8fafc] to-[#f1faf4] border-b border-slate-200/80 z-10">
                                     <th className="px-5 py-3 text-sm font-semibold text-slate-500">Anggota</th>
                                     <th className="px-5 py-3 text-sm font-semibold text-slate-500">Tipe</th>
                                     <th className="hidden md:table-cell px-5 py-3 text-sm font-semibold text-slate-500">Tenor Lama → Baru</th>
@@ -79,7 +79,7 @@ export default function Index({ menunggu, riwayat }) {
                                             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); bukaDetail(p); } }}
                                             tabIndex={0}
                                             title="Klik untuk meninjau"
-                                            className="border-t border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer focus-visible:outline-none focus-visible:bg-slate-100"
+                                            className="group border-t border-slate-100/80 hover:bg-brand-green-light/35 transition-colors cursor-pointer focus-visible:outline-none focus-visible:bg-brand-green-light/45"
                                         >
                                             <td className="px-5 py-3">
                                                 <div className="flex items-center gap-3">
@@ -95,7 +95,7 @@ export default function Index({ menunggu, riwayat }) {
                                             <td className="px-5 py-3 text-sm text-slate-600">{p.tanggal_pengajuan}</td>
                                             <td className="px-5 py-3"><StatusBadge status="pending" /></td>
                                             <td className="px-3 py-3 text-right" aria-hidden="true">
-                                                <ChevronRight size={18} className="ml-auto text-slate-300" />
+                                                <ChevronRight size={18} className="ml-auto text-slate-300 group-hover:text-brand-green group-hover:translate-x-0.5 transition-all" />
                                             </td>
                                         </tr>
                                     ))
@@ -105,7 +105,7 @@ export default function Index({ menunggu, riwayat }) {
                     ) : (
                         <table className="w-full table-sticky-first">
                             <thead>
-                                <tr className="text-left sticky top-0 bg-white z-10">
+                                <tr className="text-left sticky top-0 bg-gradient-to-r from-[#f4f7fb] via-[#f8fafc] to-[#f1faf4] border-b border-slate-200/80 z-10">
                                     <th className="px-5 py-3 text-sm font-semibold text-slate-500">Anggota</th>
                                     <th className="px-5 py-3 text-sm font-semibold text-slate-500">Tipe</th>
                                     <th className="hidden md:table-cell px-5 py-3 text-sm font-semibold text-slate-500">Tenor</th>
@@ -122,7 +122,7 @@ export default function Index({ menunggu, riwayat }) {
                                     </tr>
                                 ) : (
                                     riwayat.map((p) => (
-                                        <tr key={p.id} onClick={() => bukaDetail(p)} className="border-t border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer">
+                                        <tr key={p.id} onClick={() => bukaDetail(p)} className="group border-t border-slate-100/80 hover:bg-brand-green-light/35 transition-colors cursor-pointer">
                                             <td className="px-5 py-3">
                                                 <div className="flex items-center gap-3">
                                                     <FotoAnggota nama={p.anggota.nama} fotoUrl={p.anggota.foto_url} ukuran="sm" />

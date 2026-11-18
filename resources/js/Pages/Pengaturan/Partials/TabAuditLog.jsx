@@ -253,9 +253,9 @@ export default function TabAuditLog({
                         </p>
                     </div>
 
-                    <div className="bg-slate-50/80 border border-slate-200/80 rounded-2xl p-4 flex flex-col justify-between">
-                        <div className="flex items-center gap-2 text-slate-500 mb-1">
-                            <Filter size={16} className="text-slate-600" />
+                    <div className="bg-gradient-to-br from-brand-navy/[0.04] to-white border border-slate-200/80 rounded-2xl p-4 flex flex-col justify-between shadow-2xs">
+                        <div className="flex items-center gap-2 text-brand-navy/80 mb-1">
+                            <Filter size={16} className="text-brand-navy" />
                             <span className="text-xs font-semibold">Status Filter</span>
                         </div>
                         <p className="text-xs font-medium text-slate-600 truncate">
@@ -266,7 +266,7 @@ export default function TabAuditLog({
             )}
 
             {/* Filter Bar Lengkap */}
-            <div className="bg-slate-50/90 border border-slate-200/90 rounded-2xl p-4 sm:p-5 space-y-3.5">
+            <div className="bg-gradient-to-br from-brand-navy/[0.03] via-white to-brand-green-light/20 border border-slate-200/85 shadow-2xs rounded-2xl p-4 sm:p-5 space-y-3.5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                     {/* Pencarian bebas */}
                     <div className="lg:col-span-2">
@@ -418,10 +418,10 @@ export default function TabAuditLog({
                         return (
                             <li
                                 key={log.id}
-                                className={`rounded-2xl border transition-all duration-150 ${
+                                    className={`rounded-2xl border transition-all duration-150 ${
                                     expanded
-                                        ? 'border-brand-green/30 bg-white shadow-sm ring-1 ring-brand-green/10'
-                                        : 'border-slate-200/90 bg-white hover:border-slate-300 hover:shadow-xs'
+                                        ? 'border-brand-green/40 bg-white shadow-md ring-1 ring-brand-green/15'
+                                        : 'border-slate-200/85 bg-white shadow-[0_1px_4px_rgba(15,30,54,0.04)] hover:border-brand-green/40 hover:shadow-sm'
                                 }`}
                             >
                                 <button
@@ -505,7 +505,7 @@ export default function TabAuditLog({
 
                                 {/* Detail diff & Forensik saat di-expand */}
                                 {expanded && (
-                                    <div className="px-4 sm:px-5 pb-4.5 pt-1 pl-[52px] sm:pl-[64px] border-t border-slate-100 bg-slate-50/40 rounded-b-2xl space-y-3">
+                                    <div className="px-4 sm:px-5 pb-4.5 pt-1 pl-[52px] sm:pl-[64px] border-t border-slate-100 bg-gradient-to-b from-slate-50/50 to-brand-green-light/15 rounded-b-2xl space-y-3">
                                         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
                                             <span className="font-semibold text-slate-700">
                                                 Detail Forensik Log #{log.id}
@@ -576,10 +576,10 @@ export default function TabAuditLog({
                                     type="button"
                                     onClick={() => gantiHalaman(link.url)}
                                     aria-current={link.active ? 'page' : undefined}
-                                    className={`min-w-9 h-9 px-2 text-sm font-semibold rounded-xl transition-colors ${fokusRing} ${
+                                    className={`min-w-9 h-9 px-2 text-sm font-semibold rounded-xl transition-all ${fokusRing} ${
                                         link.active
-                                            ? 'bg-brand-navy text-white'
-                                            : 'text-slate-600 hover:bg-slate-100'
+                                            ? 'bg-gradient-to-b from-brand-navy-light to-brand-navy text-white shadow-xs'
+                                            : 'text-slate-600 hover:bg-brand-green-light/60 hover:text-brand-navy'
                                     }`}
                                 >
                                     {link.label}

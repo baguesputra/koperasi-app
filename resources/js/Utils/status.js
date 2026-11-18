@@ -10,12 +10,12 @@ export const statusLabel = {
 };
 
 export const statusStyle = {
-    aktif: 'text-blue-600 bg-blue-50',
-    lunas: 'text-brand-green-dark bg-brand-green-light',
-    ditolak: 'text-red-600 bg-red-50',
-    diajukan: 'text-amber-700 bg-amber-50',
-    approved_admin: 'text-amber-700 bg-amber-50',
-    approved_bendahara: 'text-amber-700 bg-amber-50',
-    belum_bayar: 'text-slate-600 bg-slate-100',
-    nonaktif: 'text-slate-600 bg-slate-100',
+    aktif: 'text-blue-700 bg-sky-50 border border-blue-200/80',
+    lunas: 'text-brand-green-dark bg-brand-green-light border border-emerald-200/80',
+    ditolak: 'text-red-700 bg-red-50 border border-red-200/80',
+    diajukan: 'text-amber-700 bg-amber-50 border border-amber-200/80',
+    approved_admin: 'text-sky-700 bg-sky-50 border border-sky-200/80',
+    approved_bendahara: 'text-indigo-700 bg-indigo-50 border border-indigo-200/80',
+    belum_bayar: 'text-slate-600 bg-slate-50 border border-slate-200/90',
+    nonaktif: 'text-slate-600 bg-slate-50 border border-slate-200/90',
 };

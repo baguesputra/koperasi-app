@@ -77,8 +77,8 @@ function PengurusTable({ baris, setBaris, alokasi, daftarAnggota, readOnly = fal
     }
 
     return (
-        <div className="rounded-xl border border-slate-200 overflow-hidden bg-white">
-            <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b border-slate-100">
+        <div className="rounded-xl border border-slate-200/80 overflow-hidden shadow-2xs bg-white">
+            <div className="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-brand-navy/[0.04] via-slate-50/40 to-brand-green-light/25 border-b border-slate-200/75">
                 <p className="text-sm font-bold text-slate-700">SHU Pengurus Koperasi (dari anggota)</p>
                 {readOnly && (
                     <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
@@ -96,7 +96,7 @@ function PengurusTable({ baris, setBaris, alokasi, daftarAnggota, readOnly = fal
                         const noKaryawan = anggota?.no_karyawan ? ` • NIK: ${anggota.no_karyawan}` : '';
                         const cabang = anggota?.cabang ? ` (${anggota.cabang})` : '';
                         return (
-                            <div key={i} className="flex items-center justify-between gap-3 px-3.5 py-2.5 hover:bg-slate-50/50">
+                            <div key={i} className="flex items-center justify-between gap-3 px-3.5 py-2.5 hover:bg-brand-green-light/25 transition-colors">
                                 <div className="min-w-0">
                                     <p className="text-sm font-semibold text-slate-800 truncate">
                                         {nama} <span className="text-xs font-normal text-slate-500">{cabang}{noKaryawan}</span>
@@ -162,7 +162,7 @@ function PengurusTable({ baris, setBaris, alokasi, daftarAnggota, readOnly = fal
                 </>
             )}
 
-            <div className="flex items-center justify-between px-3 py-2 border-t border-slate-100 bg-slate-50/60">
+            <div className="flex items-center justify-between px-3 py-2 border-t border-slate-200/75 bg-gradient-to-r from-brand-navy/[0.03] via-white to-brand-green-light/20">
                 {!readOnly ? (
                     <button
                         type="button"
@@ -200,8 +200,8 @@ function RincianTable({ judul, baris, setBaris, alokasi, readOnly = false }) {
     }
 
     return (
-        <div className="rounded-xl border border-slate-200 overflow-hidden bg-white">
-            <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b border-slate-100">
+        <div className="rounded-xl border border-slate-200/80 overflow-hidden shadow-2xs bg-white">
+            <div className="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-brand-navy/[0.04] via-slate-50/40 to-brand-green-light/25 border-b border-slate-200/75">
                 <p className="text-sm font-bold text-slate-700">{judul}</p>
                 {readOnly && (
                     <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
@@ -214,7 +214,7 @@ function RincianTable({ judul, baris, setBaris, alokasi, readOnly = false }) {
             {readOnly ? (
                 <div className="divide-y divide-slate-100">
                     {baris.map((r, i) => (
-                        <div key={i} className="flex items-center justify-between gap-3 px-3.5 py-2.5 hover:bg-slate-50/50">
+                        <div key={i} className="flex items-center justify-between gap-3 px-3.5 py-2.5 hover:bg-brand-green-light/25 transition-colors">
                             <div className="min-w-0">
                                 <p className="text-sm font-semibold text-slate-800 truncate">{r.nama || `Pengawas ${i + 1}`}</p>
                             </div>
@@ -260,7 +260,7 @@ function RincianTable({ judul, baris, setBaris, alokasi, readOnly = false }) {
                 </>
             )}
 
-            <div className="flex items-center justify-between px-3 py-2 border-t border-slate-100 bg-slate-50/60">
+            <div className="flex items-center justify-between px-3 py-2 border-t border-slate-200/75 bg-gradient-to-r from-brand-navy/[0.03] via-white to-brand-green-light/20">
                 {!readOnly ? (
                     <button
                         type="button"

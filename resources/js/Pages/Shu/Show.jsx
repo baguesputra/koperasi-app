@@ -152,7 +152,7 @@ export default function Show({ periode, ringkasan, detail, sums = {}, daftarAngg
                 </Card>
             )}
 
-            <div className="flex gap-1 mb-4 border-b border-slate-200" role="tablist" aria-label="Bagian SHU">
+            <div className="inline-flex flex-wrap gap-1.5 mb-4 p-1.5 rounded-2xl bg-gradient-to-r from-[#f4f7fb] via-[#f8fafc] to-[#f0faf4] border border-slate-200/80" role="tablist" aria-label="Bagian SHU">
                 {TABS.map((t) => (
                     <button
                         key={t.kunci}
@@ -160,10 +160,10 @@ export default function Show({ periode, ringkasan, detail, sums = {}, daftarAngg
                         role="tab"
                         aria-selected={tab === t.kunci}
                         onClick={() => setTab(t.kunci)}
-                        className={`px-4 py-2.5 text-sm font-semibold -mb-px border-b-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/40 rounded-t-lg ${
+                        className={`px-4 py-2 text-sm font-semibold rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/40 ${
                             tab === t.kunci
-                                ? 'border-brand-green text-brand-green-dark'
-                                : 'border-transparent text-slate-500 hover:text-slate-800'
+                                ? 'bg-gradient-to-b from-white to-brand-green-light/30 border border-brand-green/40 text-brand-navy shadow-sm'
+                                : 'border border-transparent text-slate-600 hover:bg-white/80 hover:text-brand-navy'
                         }`}
                     >
                         {t.label}

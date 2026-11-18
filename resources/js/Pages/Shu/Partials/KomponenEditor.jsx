@@ -124,7 +124,7 @@ export default function KomponenEditor({
                         const awal = Math.round((periode.persen?.[kolom] ?? 0) * 10000) / 100;
                         const diubah = nilai !== awal;
                         return (
-                            <div key={kunci} className={`rounded-xl px-3 py-2 ${diubah && !readOnly ? 'bg-amber-50 ring-1 ring-amber-300' : 'bg-slate-50'}`}>
+                            <div key={kunci} className={`rounded-xl px-3 py-2 border shadow-2xs transition-colors ${diubah && !readOnly ? 'bg-amber-50 border-amber-300 ring-1 ring-amber-300/60' : 'bg-gradient-to-b from-slate-50/60 to-white border-slate-200/80 hover:border-brand-green/35'}`}>
                                 <label htmlFor={`persen-${kolom}`} className="block text-xs font-semibold text-slate-600 mb-1 leading-tight min-h-8">
                                     {KOMPONEN_LABEL[kunci]}
                                 </label>
@@ -158,8 +158,8 @@ export default function KomponenEditor({
                     })}
                 </div>
 
-                <div className="rounded-xl border border-slate-200 overflow-hidden mb-4">
-                    <div className="flex items-center justify-between px-3 py-2 bg-slate-50">
+                <div className="rounded-xl border border-slate-200/80 overflow-hidden shadow-2xs mb-4">
+                    <div className="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-brand-navy/[0.04] via-slate-50/40 to-brand-green-light/25 border-b border-slate-200/70">
                         <p className="text-sm font-bold text-slate-700">Komponen tambahan <span className="font-normal text-slate-400">(dana tak dibagi)</span></p>
                         {!readOnly && (
                             <button

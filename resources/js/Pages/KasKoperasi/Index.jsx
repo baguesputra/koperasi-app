@@ -549,16 +549,16 @@ export default function Index({
                             role="tab"
                             aria-selected={isAktif}
                             onClick={() => terapkan({ kanal: '' })}
-                            className={`group text-left p-3.5 sm:p-4 rounded-2xl border transition-all duration-150 flex flex-col justify-between ${fokusRing} ${
+                            className={`group text-left p-3.5 sm:p-4 rounded-2xl border transition-all duration-200 flex flex-col justify-between ${fokusRing} ${
                                 isAktif
-                                    ? 'bg-gradient-to-br from-[#0B1527] via-[#0F1E36] to-[#0A2E1A] text-white border-slate-800 shadow-sm'
-                                    : 'bg-white text-slate-800 border-slate-200/90 hover:border-slate-300 shadow-2xs'
+                                    ? 'bg-gradient-to-br from-[#0B1527] via-[#0F1E36] to-[#0A2E1A] text-white border-slate-800 shadow-md shadow-brand-navy/20'
+                                    : 'bg-white text-slate-800 border-slate-200/80 shadow-[0_2px_10px_-3px_rgba(15,30,54,0.06)] hover:-translate-y-0.5 hover:border-brand-green/45 hover:shadow-[0_8px_20px_-6px_rgba(15,30,54,0.10)]'
                             }`}
                         >
                             <div className="flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-2.5">
                                     <span className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-                                        isAktif ? 'bg-white/10 text-emerald-400' : 'bg-slate-100 text-slate-600'
+                                        isAktif ? 'bg-white/10 text-emerald-400' : 'bg-gradient-to-br from-brand-navy/10 to-sky-100 text-brand-navy'
                                     }`}>
                                         <Landmark size={16} />
                                     </span>
@@ -604,16 +604,16 @@ export default function Index({
                             role="tab"
                             aria-selected={isAktif}
                             onClick={() => terapkan({ kanal: 'bank' })}
-                            className={`group text-left p-3.5 sm:p-4 rounded-2xl border transition-all duration-150 flex flex-col justify-between ${fokusRing} ${
+                            className={`group text-left p-3.5 sm:p-4 rounded-2xl border transition-all duration-200 flex flex-col justify-between ${fokusRing} ${
                                 isAktif
-                                    ? 'bg-gradient-to-br from-[#0B1527] via-[#0F1E36] to-[#0A2E1A] text-white border-slate-800 shadow-sm'
-                                    : 'bg-white text-slate-800 border-slate-200/90 hover:border-slate-300 shadow-2xs'
+                                    ? 'bg-gradient-to-br from-[#0B1527] via-[#0F1E36] to-[#0A2E1A] text-white border-slate-800 shadow-md shadow-brand-navy/20'
+                                    : 'bg-white text-slate-800 border-slate-200/80 shadow-[0_2px_10px_-3px_rgba(15,30,54,0.06)] hover:-translate-y-0.5 hover:border-brand-green/45 hover:shadow-[0_8px_20px_-6px_rgba(15,30,54,0.10)]'
                             }`}
                         >
                             <div className="flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-2.5">
                                     <span className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-                                        isAktif ? 'bg-white/10 text-emerald-400' : 'bg-slate-100 text-slate-600'
+                                        isAktif ? 'bg-white/10 text-emerald-400' : 'bg-gradient-to-br from-sky-50 to-indigo-100 text-sky-700'
                                     }`}>
                                         <Building2 size={16} />
                                     </span>
@@ -659,16 +659,16 @@ export default function Index({
                             role="tab"
                             aria-selected={isAktif}
                             onClick={() => terapkan({ kanal: 'kas_kecil' })}
-                            className={`group text-left p-3.5 sm:p-4 rounded-2xl border transition-all duration-150 flex flex-col justify-between ${fokusRing} ${
+                            className={`group text-left p-3.5 sm:p-4 rounded-2xl border transition-all duration-200 flex flex-col justify-between ${fokusRing} ${
                                 isAktif
-                                    ? 'bg-gradient-to-br from-[#0B1527] via-[#0F1E36] to-[#0A2E1A] text-white border-slate-800 shadow-sm'
-                                    : 'bg-white text-slate-800 border-slate-200/90 hover:border-slate-300 shadow-2xs'
+                                    ? 'bg-gradient-to-br from-[#0B1527] via-[#0F1E36] to-[#0A2E1A] text-white border-slate-800 shadow-md shadow-brand-navy/20'
+                                    : 'bg-white text-slate-800 border-slate-200/80 shadow-[0_2px_10px_-3px_rgba(15,30,54,0.06)] hover:-translate-y-0.5 hover:border-brand-green/45 hover:shadow-[0_8px_20px_-6px_rgba(15,30,54,0.10)]'
                             }`}
                         >
                             <div className="flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-2.5">
                                     <span className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-                                        isAktif ? 'bg-white/10 text-emerald-400' : 'bg-slate-100 text-slate-600'
+                                        isAktif ? 'bg-white/10 text-emerald-400' : 'bg-gradient-to-br from-brand-green-light to-emerald-100 text-brand-green-dark'
                                     }`}>
                                         <Wallet size={16} />
                                     </span>
@@ -1088,7 +1088,7 @@ export default function Index({
                         <div className="overflow-x-auto">
                             <table className="hidden md:table w-full text-sm border-collapse">
                                 <thead>
-                                    <tr className="text-left text-[11px] uppercase tracking-wide text-slate-400 border-b border-slate-200">
+                                    <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-b border-slate-200/80 bg-gradient-to-r from-brand-navy/[0.04] via-slate-50/40 to-brand-green-light/25">
                                         <th scope="col" className="py-2.5 pr-2 font-semibold w-24">Tgl</th>
                                         <th scope="col" className="py-2.5 pr-2 font-semibold w-32">No. Bukti</th>
                                         <th scope="col" className="py-2.5 pr-2 font-semibold">Keterangan</th>
@@ -1100,7 +1100,7 @@ export default function Index({
                                 </thead>
                                 <tbody>
                                     {/* Baris Saldo Awal */}
-                                    <tr className="border-b border-slate-100 bg-slate-50/70">
+                                    <tr className="border-b border-slate-200/70 bg-gradient-to-r from-brand-navy/[0.04] to-transparent">
                                         <td colSpan={4} className="py-2 pr-2 text-xs font-bold text-slate-600">
                                             Saldo awal{labelAkunSaldo} {labelBulan}
                                         </td>
@@ -1164,7 +1164,7 @@ export default function Index({
                                     ))}
 
                                     {/* Baris Total Mutasi */}
-                                    <tr className="border-t-2 border-slate-200 bg-slate-50/70">
+                                    <tr className="border-t-2 border-brand-navy/15 bg-gradient-to-r from-brand-navy/[0.04] via-white to-brand-green-light/20">
                                         <td colSpan={4} className="py-2.5 pr-2 text-xs font-bold text-slate-700">
                                             Total {labelBulan}
                                         </td>
@@ -1181,7 +1181,7 @@ export default function Index({
 
                                     {/* Baris Saldo Akhir */}
                                     {saldoValid && (
-                                        <tr className="bg-slate-50/70 -mt-px">
+                                        <tr className="bg-gradient-to-r from-brand-navy/[0.04] via-white to-brand-green-light/20 -mt-px">
                                             <td colSpan={6} className="py-1 pr-2 text-xs text-slate-500 text-right">
                                                 Saldo akhir{labelAkunSaldo} {labelBulan}
                                             </td>
@@ -1197,7 +1197,7 @@ export default function Index({
                         {/* Mobile List View */}
                         <ul className="md:hidden divide-y divide-slate-100">
                             {/* Saldo Awal Mobile */}
-                            <li className="flex items-center justify-between gap-3 py-2.5 bg-slate-50 rounded-lg px-2.5 -mx-1 mb-1">
+                            <li className="flex items-center justify-between gap-3 py-2.5 bg-gradient-to-r from-brand-navy/[0.05] to-brand-green-light/20 border border-slate-200/60 rounded-lg px-2.5 -mx-1 mb-1">
                                 <div>
                                     <p className="text-xs font-bold text-slate-700">Saldo Awal {labelBulan}</p>
                                     <p className="text-[10px] text-slate-400">Pembuka periode</p>

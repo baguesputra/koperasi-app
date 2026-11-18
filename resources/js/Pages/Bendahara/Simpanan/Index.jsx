@@ -208,7 +208,7 @@ export default function Index({
                 </div>
             </div>
 
-            <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-full w-fit max-w-full overflow-x-auto mb-4">
+            <div className="flex items-center gap-1.5 bg-gradient-to-r from-brand-navy/[0.05] via-slate-100/80 to-brand-green-light/30 border border-slate-200/80 p-1 rounded-full w-fit max-w-full overflow-x-auto mb-4">
                 {tab.map((t) => {
                     const aktif = cabangAktif === t.key;
                     return (
@@ -217,7 +217,7 @@ export default function Index({
                             onClick={() => pindahTab(t.key)}
                             aria-pressed={aktif}
                             className={`inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-full whitespace-nowrap transition-all shrink-0 ${
-                                aktif ? 'bg-white text-slate-800 shadow-md' : 'text-slate-500 hover:text-slate-700'
+                                aktif ? 'bg-gradient-to-b from-white to-brand-green-light/25 text-brand-navy border border-brand-green/35 shadow-sm' : 'text-slate-600 hover:bg-white/75 hover:text-brand-navy'
                             }`}
                         >
                             <MapPin size={15} />
@@ -233,7 +233,7 @@ export default function Index({
             <Card padding="sm" className="shadow-md border-slate-200/70 mb-4">
                 <div className="pb-3 mb-1 border-b border-slate-100">
                     {/* Segmented Status Switcher */}
-                    <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 border border-slate-200/80 mb-3">
+                    <div className="inline-flex items-center p-1 rounded-xl bg-gradient-to-r from-brand-navy/[0.04] to-brand-green-light/20 border border-slate-200/80 mb-3">
                         <button
                             type="button"
                             onClick={() => setTabStatus('belum')}
@@ -250,8 +250,8 @@ export default function Index({
                             onClick={() => setTabStatus('sudah')}
                             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${fokusRing} ${
                                 tabStatus === 'sudah'
-                                    ? 'bg-white text-emerald-700 shadow-xs'
-                                    : 'text-slate-500 hover:text-slate-800'
+                                    ? 'bg-white text-emerald-700 border border-emerald-200/80 shadow-xs'
+                                    : 'text-slate-600 hover:text-brand-navy border border-transparent'
                             }`}
                         >
                             Sudah Dikonfirmasi ({dataSudahSimpanan.length})
@@ -281,11 +281,11 @@ export default function Index({
                             )}
                         </div>
                         <div className="flex items-center gap-2 md:ml-auto">
-                            <div className="flex items-center rounded-full border border-slate-200 bg-slate-50/60 overflow-hidden">
+                            <div className="flex items-center rounded-full border border-slate-200/80 bg-gradient-to-r from-slate-50/70 to-brand-green-light/20 overflow-hidden">
                                 <button
                                     onClick={() => geserBulan(-1)}
                                     aria-label={`Bulan sebelum ${labelBulan}`}
-                                    className={`px-2.5 py-2 text-slate-500 hover:bg-white hover:text-slate-700 transition-colors ${fokusRing}`}
+                                    className={`px-2.5 py-2 text-slate-500 hover:bg-white hover:text-brand-navy transition-colors ${fokusRing}`}
                                 >
                                     <ChevronLeft size={16} />
                                 </button>
@@ -299,7 +299,7 @@ export default function Index({
                                 <button
                                     onClick={() => geserBulan(1)}
                                     aria-label={`Bulan setelah ${labelBulan}`}
-                                    className={`px-2.5 py-2 text-slate-500 hover:bg-white hover:text-slate-700 transition-colors ${fokusRing}`}
+                                    className={`px-2.5 py-2 text-slate-500 hover:bg-white hover:text-brand-navy transition-colors ${fokusRing}`}
                                 >
                                     <ChevronRight size={16} />
                                 </button>
@@ -382,8 +382,8 @@ export default function Index({
                                 return (
                                     <li key={a.id}>
                                         <label
-                                            className={`flex items-center gap-3 px-2 py-3 rounded-xl cursor-pointer transition-all has-[:focus-visible]:bg-slate-50 ${
-                                                dipilih ? 'bg-brand-green-light/40 hover:bg-brand-green-light/60' : 'hover:bg-gradient-to-r hover:from-slate-50 hover:to-transparent'
+                                            className={`flex items-center gap-3 px-2 py-3 rounded-xl cursor-pointer transition-all has-[:focus-visible]:bg-brand-green-light/40 ${
+                                                dipilih ? 'bg-brand-green-light/45 hover:bg-brand-green-light/65' : 'hover:bg-brand-green-light/30'
                                             }`}
                                         >
                                             <input
@@ -441,7 +441,7 @@ export default function Index({
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-1.5 flex-wrap">
                                         <p className="text-sm font-semibold text-slate-800 group-hover:text-brand-navy truncate">{a.nama}</p>
-                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700">
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-2xs">
                                             Terkonfirmasi
                                         </span>
                                         <ChevronRight size={14} className="text-slate-300 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all" aria-hidden="true" />
@@ -483,7 +483,7 @@ export default function Index({
             >
                 {itemBatal && (
                     <div className="space-y-4">
-                        <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
+                        <div className="p-3.5 rounded-xl bg-gradient-to-br from-brand-navy/[0.03] via-slate-50/60 to-brand-green-light/20 border border-slate-200/80 shadow-2xs space-y-2 text-xs">
                             <div className="flex items-center justify-between gap-2">
                                 <span className="text-slate-500">Anggota</span>
                                 <span className="font-semibold text-slate-800">{itemBatal.nama}</span>

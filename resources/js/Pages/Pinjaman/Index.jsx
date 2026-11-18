@@ -226,15 +226,15 @@ export default function Index({ pinjaman, filters, statistik, cabangAktif, dafta
                     onClick={() => terapkanFilter({ status: filters.status === 'lunas' ? '' : 'lunas' })}
                     className={`text-left rounded-2xl p-4 border transition-all duration-200 cursor-pointer group flex flex-col justify-between ${
                         filters.status === 'lunas'
-                            ? 'bg-slate-50 border-slate-400 ring-2 ring-slate-400/20 shadow-md'
-                            : 'bg-white border-slate-200/80 hover:border-slate-300 shadow-xs hover:shadow-md'
+                            ? 'bg-gradient-to-br from-sky-50 to-teal-50/60 border-sky-400 ring-2 ring-sky-400/20 shadow-md'
+                            : 'bg-white border-slate-200/80 hover:-translate-y-0.5 hover:border-brand-navy/35 shadow-[0_2px_8px_-2px_rgba(15,30,54,0.05)] hover:shadow-md'
                     }`}
                 >
                     <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-semibold text-slate-500 group-hover:text-slate-800 transition-colors">
+                        <span className="text-xs font-semibold text-slate-500 group-hover:text-brand-navy transition-colors">
                             Pinjaman Lunas
                         </span>
-                        <span className="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
+                        <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-brand-navy/10 to-sky-100 text-brand-navy flex items-center justify-center shrink-0">
                             <CheckCircle2 size={16} />
                         </span>
                     </div>
@@ -310,7 +310,7 @@ export default function Index({ pinjaman, filters, statistik, cabangAktif, dafta
                 <div className="overflow-x-auto">
                     <table className="w-full table-sticky-first table-head-static text-sm">
                         <thead>
-                            <tr className="text-left bg-gradient-to-r from-slate-50 to-white border-b border-slate-200/80">
+                            <tr className="text-left bg-gradient-to-r from-brand-navy/[0.04] via-white to-brand-green-light/35 border-b border-slate-200/80">
                                 <th className="px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap">Anggota</th>
                                 <th className="px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap">Nominal</th>
                                 <th className="hidden lg:table-cell px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap">Tenor</th>

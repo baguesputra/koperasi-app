@@ -184,7 +184,7 @@ export default function BayarTab({ periode, ringkasan, komponenBayar = [], akun,
                                     const isOpen = Boolean(bukaRincian[k.id]);
 
                                     return (
-                                        <tr key={k.id} className="align-top hover:bg-slate-50/50 transition-colors">
+                                        <tr key={k.id} className="align-top hover:bg-brand-green-light/25 transition-colors">
                                             <td className="py-3 pr-3">
                                                 <div className="flex items-baseline gap-2 flex-wrap">
                                                     <p className="font-semibold text-slate-800">{k.nama_komponen}</p>
@@ -274,7 +274,7 @@ export default function BayarTab({ periode, ringkasan, komponenBayar = [], akun,
                                 })}
                             </tbody>
                             <tfoot>
-                                <tr className="border-t-2 border-slate-200 bg-slate-50/70 font-bold">
+                                <tr className="border-t-2 border-brand-navy/15 bg-gradient-to-r from-brand-navy/[0.04] via-white to-brand-green-light/25 font-bold">
                                     <td className="py-2.5 pr-3 text-slate-700">Total Komponen yang Disalurkan</td>
                                     <td className="py-2.5 px-3 text-right tabular-nums text-slate-800">
                                         {formatRupiah(ringkasan.total_komponen_bayar ?? 0)}

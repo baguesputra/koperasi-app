@@ -220,10 +220,10 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                                 return (
                                     <div
                                         key={grup.label}
-                                        className={`rounded-xl border p-3.5 sm:p-4 flex flex-col justify-between transition-colors ${
+                                        className={`rounded-xl border p-3.5 sm:p-4 flex flex-col justify-between transition-all duration-200 ${
                                             sibuk
-                                                ? 'bg-white border-slate-200/90 shadow-2xs'
-                                                : 'bg-slate-50/60 border-slate-200/50 opacity-75'
+                                                ? 'bg-gradient-to-br from-white via-white to-amber-50/30 border-slate-200/90 shadow-[0_2px_10px_-3px_rgba(15,30,54,0.06)] hover:border-amber-300/70'
+                                                : 'bg-gradient-to-br from-white to-slate-50/50 border-slate-200/70 opacity-85 hover:opacity-100'
                                         }`}
                                     >
                                         <div className="flex items-center justify-between gap-2 pb-3 mb-2.5 border-b border-slate-100">
@@ -231,8 +231,8 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                                                 <div
                                                     className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 ${
                                                         sibuk
-                                                            ? 'bg-amber-50 border-amber-200/70 text-amber-700'
-                                                            : 'bg-slate-100 border-slate-200/60 text-slate-500'
+                                                            ? 'bg-gradient-to-br from-amber-50 to-orange-100/70 border-amber-200/80 text-amber-700'
+                                                            : 'bg-gradient-to-br from-brand-navy/5 to-sky-50 border-slate-200/80 text-slate-500'
                                                     }`}
                                                 >
                                                     <Icon size={16} aria-hidden="true" />
@@ -258,10 +258,10 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                                                     <Link
                                                         key={a.label}
                                                         href={a.href}
-                                                        className={`flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+                                                        className={`flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
                                                             aktif
-                                                                ? 'bg-slate-50/90 hover:bg-amber-50/60 text-slate-700 hover:text-slate-900 border border-slate-200/70'
-                                                                : 'text-slate-500 hover:bg-slate-100/70 hover:text-slate-700'
+                                                                ? 'bg-gradient-to-r from-amber-50/60 to-white hover:from-amber-50 hover:to-orange-50/40 text-slate-700 hover:text-amber-900 border border-amber-200/60 hover:border-amber-300/80 shadow-2xs'
+                                                                : 'text-slate-500 hover:bg-brand-green-light/55 hover:text-brand-navy'
                                                         } ${focusRing}`}
                                                     >
                                                         <span className="truncate">{a.label}</span>
@@ -339,7 +339,7 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                                 const relatif = waktuRelatif(item.tanggal_iso);
                                 const labelStatus = statusLabel[item.status] ?? item.status;
                                 return (
-                                    <div key={i} className="flex items-start gap-3 py-3 first:pt-1 last:pb-1">
+                                    <div key={i} className="flex items-start gap-3 -mx-2 px-2 py-3 first:pt-1.5 last:pb-1.5 rounded-xl hover:bg-brand-green-light/25 transition-colors">
                                         <div
                                             className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
                                                 statusStyle[item.status] ?? 'bg-slate-100 text-slate-600'

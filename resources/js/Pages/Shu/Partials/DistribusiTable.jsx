@@ -72,7 +72,7 @@ export default function DistribusiTable({ periode, detail, sums = {}, filters = 
         <Card padding="none">
             {/* Rekapitulasi Distribusi SHU Anggota (Format Excel Baris 247-248) */}
             {(detail.data.length > 0 || (ringkasan?.anggota ?? 0) > 0) && (
-                <div className="p-4 border-b border-slate-100 bg-slate-50/50">
+                <div className="p-4 border-b border-slate-200/75 bg-gradient-to-r from-brand-navy/[0.04] via-white to-brand-green-light/25">
                     <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                         <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
                             Rekapitulasi Distribusi SHU Anggota (Format Excel)
@@ -187,7 +187,7 @@ export default function DistribusiTable({ periode, detail, sums = {}, filters = 
                             const beda = liveRow && Math.abs(bersih - d.shu_bersih) >= 1;
                             const angkaLive = `px-4 py-2.5 text-right tabular-nums privacy-blur${beda ? ' text-amber-700' : ''}`;
                             return (
-                                <tr key={d.id} className="hover:bg-slate-50/60">
+                                <tr key={d.id} className="hover:bg-brand-green-light/30 transition-colors">
                                     <td className="px-4 py-2.5 tabular-nums text-slate-500">{d.no}</td>
                                     <td className="px-4 py-2.5">
                                         <p className="font-semibold text-slate-800">{d.nama}</p>
@@ -202,7 +202,7 @@ export default function DistribusiTable({ periode, detail, sums = {}, filters = 
                                     <td className={angkaLive}>{formatRupiah(bruto)}</td>
                                     <td className={`${angkaLive} font-bold`}>{formatRupiah(bersih)}</td>
                                     <td className="px-4 py-2.5">
-                                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${d.status_bayar === 'sudah' ? 'bg-brand-green-light text-brand-green-dark' : 'bg-slate-100 text-slate-500'}`}>
+                                        <span className={`inline-flex items-center text-xs font-bold px-2.5 py-0.5 rounded-full border shadow-2xs ${d.status_bayar === 'sudah' ? 'bg-brand-green-light text-brand-green-dark border-emerald-200/80' : 'bg-slate-50 text-slate-600 border-slate-200/80'}`}>
                                             {d.status_bayar === 'sudah' ? `Dibayar ${d.dibayar_pada ?? ''}` : 'Belum'}
                                         </span>
                                     </td>
@@ -224,7 +224,7 @@ export default function DistribusiTable({ periode, detail, sums = {}, filters = 
                         })}
                     </tbody>
                     <tfoot>
-                        <tr className="border-t-2 border-slate-200 bg-slate-50/70 font-bold">
+                        <tr className="border-t-2 border-brand-navy/15 bg-gradient-to-r from-brand-navy/[0.04] via-white to-brand-green-light/25 font-bold">
                             <td colSpan={2} className="px-4 py-2.5">Total{detail.total > detail.data.length ? ` (${detail.total} anggota)` : ''}</td>
                             <td className="px-4 py-2.5 text-right tabular-nums privacy-blur">{formatRupiah(sums.wajib ?? 0)}</td>
                             <td className="px-4 py-2.5 text-right tabular-nums privacy-blur">{formatRupiah(sums.pokok ?? 0)}</td>

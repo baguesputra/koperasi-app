@@ -25,11 +25,11 @@ export default function Pagination({ links, routeName, params = {}, preserveScro
                     key={i}
                     disabled={!link.url}
                     onClick={() => link.url && router.get(link.url, {}, { preserveState: true, preserveScroll })}
-                    className={`min-h-[36px] min-w-[36px] sm:min-h-[32px] sm:min-w-[32px] px-2.5 py-1.5 sm:px-3 sm:py-1 text-xs sm:text-sm font-semibold rounded-lg transition-colors inline-flex items-center justify-center ${
+                    className={`min-h-[36px] min-w-[36px] sm:min-h-[32px] sm:min-w-[32px] px-2.5 py-1.5 sm:px-3 sm:py-1 text-xs sm:text-sm font-semibold rounded-lg transition-all inline-flex items-center justify-center ${
                         link.active
-                            ? 'bg-brand-green text-white'
+                            ? 'bg-gradient-to-b from-brand-green to-brand-green-dark text-white shadow-xs'
                             : link.url
-                            ? 'text-slate-600 hover:bg-slate-100'
+                            ? 'text-slate-600 hover:bg-brand-green-light/70 hover:text-brand-green-dark'
                             : 'text-slate-300 cursor-not-allowed'
                     }`}
                 >

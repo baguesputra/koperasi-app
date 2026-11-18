@@ -14,9 +14,9 @@ import Button from '@/Components/ui/Button';
 import { formatRupiah } from '@/Utils/formatCurrency';
 import { withIdempotencyKey } from '@/Utils/idempotency';
 
-const tabDasar = 'inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-t-lg border -mb-px';
-const tabAktif = `${tabDasar} bg-white border-slate-200 border-b-0 text-brand-navy`;
-const tabNonAktif = `${tabDasar} bg-slate-50 border-slate-200 text-slate-500 hover:bg-white hover:text-slate-700`;
+const tabDasar = 'inline-flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl transition-all duration-150';
+const tabAktif = `${tabDasar} bg-gradient-to-b from-white to-brand-green-light/30 border border-brand-green/40 text-brand-navy shadow-sm`;
+const tabNonAktif = `${tabDasar} text-slate-600 hover:bg-white/80 hover:text-brand-navy`;
 
 function KeputusanDrawer({ pengajuan, ketentuanFinansial, onClose }) {
     const [aksi, setAksi] = useState(null);
@@ -74,7 +74,7 @@ function KeputusanDrawer({ pengajuan, ketentuanFinansial, onClose }) {
             </div>
 
             {/* Kepegawaian & Masa Kerja (GATE HRIS) */}
-            <div className="bg-slate-50/80 rounded-xl p-3.5 sm:p-4 border border-slate-200/90 shadow-2xs">
+            <div className="bg-gradient-to-br from-slate-50/70 to-white rounded-xl p-3.5 sm:p-4 border border-slate-200/80 shadow-xs">
                 <div className="flex items-center justify-between mb-2.5">
                     <div className="flex items-center gap-1.5 text-slate-800 font-bold text-xs sm:text-sm">
                         <Briefcase size={15} className="text-brand-green" />
@@ -129,7 +129,7 @@ function KeputusanDrawer({ pengajuan, ketentuanFinansial, onClose }) {
             </div>
 
             {/* Identitas & Kontak */}
-            <div className="bg-slate-50/80 rounded-xl p-3.5 sm:p-4 border border-slate-200/90 shadow-2xs">
+            <div className="bg-gradient-to-br from-slate-50/70 to-white rounded-xl p-3.5 sm:p-4 border border-slate-200/80 shadow-xs">
                 <div className="flex items-center gap-1.5 text-slate-800 font-bold text-xs sm:text-sm mb-2.5">
                     <UserCheck size={15} className="text-brand-green" />
                     <h4>Identitas &amp; Kontak</h4>
@@ -226,7 +226,7 @@ function KeputusanDrawer({ pengajuan, ketentuanFinansial, onClose }) {
             )}
 
             {/* Pernyataan & Kepatuhan Pemohon */}
-            <div className="bg-slate-50/80 rounded-xl p-3.5 sm:p-4 border border-slate-200/90 shadow-2xs text-xs">
+            <div className="bg-gradient-to-br from-slate-50/70 to-white rounded-xl p-3.5 sm:p-4 border border-slate-200/80 shadow-xs text-xs">
                 <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-1.5 text-slate-800 font-bold text-xs sm:text-sm">
                         <ShieldCheck size={15} className="text-brand-green" />
@@ -250,7 +250,7 @@ function KeputusanDrawer({ pengajuan, ketentuanFinansial, onClose }) {
 
             {/* Catatan Ketua */}
             {pengajuan.catatan_ketua && (
-                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                <div className="bg-gradient-to-br from-brand-navy/[0.03] to-white rounded-xl p-4 border border-slate-200/80 shadow-2xs">
                     <div className="flex items-center justify-between mb-1">
                         <p className="text-xs font-bold text-slate-600">Catatan Ketua</p>
                         {pengajuan.tanggal_keputusan && (
@@ -292,7 +292,7 @@ function KeputusanDrawer({ pengajuan, ketentuanFinansial, onClose }) {
                         </form>
                     )
                 ) : (
-                    <div className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200">
+                    <div className="flex items-center justify-between bg-gradient-to-r from-brand-navy/[0.03] to-white p-3 rounded-xl border border-slate-200/80 shadow-2xs">
                         <span className="text-xs text-slate-500 font-medium">Status Keputusan:</span>
                         <StatusBadge status={pengajuan.status} />
                     </div>
@@ -316,7 +316,7 @@ export default function Index({ menunggu, riwayat, ketentuanFinansial }) {
             <PageHeader title="Pengajuan Aktivasi Anggota" subtitle={`${menunggu.length} pengajuan menunggu keputusan`} />
 
             <Card padding="none">
-                <div className="flex items-end gap-1 px-3 pt-2 border-b border-slate-200">
+                <div className="flex flex-wrap items-center gap-1.5 px-3.5 py-2.5 bg-gradient-to-r from-[#f4f7fb] via-[#f8fafc] to-[#f0faf4] border-b border-slate-200/80">
                     <button onClick={() => setTab('baru')} className={tab === 'baru' ? tabAktif : tabNonAktif}>
                         Menunggu Keputusan
                         {menunggu.length > 0 && (
@@ -333,7 +333,7 @@ export default function Index({ menunggu, riwayat, ketentuanFinansial }) {
                 <div className="overflow-x-auto">
                     <table className="w-full table-sticky-first">
                         <thead>
-                            <tr className="text-left sticky top-0 bg-white z-10">
+                            <tr className="text-left sticky top-0 bg-gradient-to-r from-[#f4f7fb] via-[#f8fafc] to-[#f1faf4] border-b border-slate-200/80 z-10">
                                 <th className="px-5 py-3 text-sm font-semibold text-slate-500">Pemohon</th>
                                 <th className="hidden md:table-cell px-5 py-3 text-sm font-semibold text-slate-500">Cabang</th>
                                 <th className="px-5 py-3 text-sm font-semibold text-slate-500">Tanggal</th>
@@ -356,7 +356,7 @@ export default function Index({ menunggu, riwayat, ketentuanFinansial }) {
                                         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); buka(p); } }}
                                         tabIndex={0}
                                         title="Klik untuk mereview"
-                                        className="border-t border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer focus-visible:outline-none focus-visible:bg-slate-100"
+                                        className="group border-t border-slate-100/80 hover:bg-brand-green-light/35 transition-colors cursor-pointer focus-visible:outline-none focus-visible:bg-brand-green-light/45"
                                     >
                                         <td className="px-5 py-3">
                                             <div className="flex items-center gap-3">
@@ -371,7 +371,7 @@ export default function Index({ menunggu, riwayat, ketentuanFinansial }) {
                                         <td className="px-5 py-3 text-sm text-slate-600">{p.tanggal_pengajuan}</td>
                                         <td className="px-5 py-3"><StatusBadge status={p.status === 'diajukan' ? 'pending' : p.status} /></td>
                                         <td className="px-3 py-3 text-right" aria-hidden="true">
-                                            <ChevronRight size={18} className="ml-auto text-slate-300" />
+                                            <ChevronRight size={18} className="ml-auto text-slate-300 group-hover:text-brand-green group-hover:translate-x-0.5 transition-all" />
                                         </td>
                                     </tr>
                                 ))

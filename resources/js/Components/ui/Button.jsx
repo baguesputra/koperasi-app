@@ -1,11 +1,11 @@
-export const buttonBase = 'inline-flex items-center justify-center gap-2 font-semibold rounded-xl sm:rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
+export const buttonBase = 'inline-flex items-center justify-center gap-2 font-semibold rounded-xl sm:rounded-lg transition-all duration-150 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed';
 
 export const buttonVariants = {
-    primary: 'bg-brand-green text-white hover:bg-brand-green-dark active:bg-brand-green-dark',
-    secondary: 'bg-brand-navy text-white hover:bg-brand-navy-light',
-    outline: 'border-2 border-brand-navy text-brand-navy hover:bg-slate-50',
-    ghost: 'text-brand-navy hover:bg-slate-100',
-    danger: 'bg-red-500 text-white hover:bg-red-600',
+    primary: 'bg-gradient-to-b from-brand-green to-brand-green-dark text-white shadow-xs hover:brightness-105 active:brightness-95',
+    secondary: 'bg-gradient-to-b from-brand-navy-light to-brand-navy text-white shadow-xs hover:brightness-110',
+    outline: 'border-2 border-brand-navy/80 text-brand-navy bg-white hover:bg-brand-navy/5 hover:border-brand-navy',
+    ghost: 'text-brand-navy hover:bg-brand-navy/6',
+    danger: 'bg-gradient-to-b from-red-500 to-red-600 text-white shadow-xs hover:brightness-105',
 };
 
 // Responsive: finger-friendly touch target di mobile (min 44px), compact & sleek di desktop (32px - 40px)

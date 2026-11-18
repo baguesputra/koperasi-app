@@ -99,8 +99,8 @@ export default function Index({ periode = [], filters = {}, persenDefault = {}, 
                             ))}
                         </div>
                         {errors.persen && <p className="text-sm text-red-600 mb-2">{errors.persen}</p>}
-                        <div className="mb-4 rounded-xl border border-slate-200 overflow-hidden">
-                            <div className="flex items-center justify-between px-3 py-2 bg-slate-50">
+                        <div className="mb-4 rounded-xl border border-slate-200/80 overflow-hidden shadow-2xs">
+                            <div className="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-brand-navy/[0.04] via-slate-50/40 to-brand-green-light/25 border-b border-slate-200/70">
                                 <p className="text-sm font-semibold text-slate-700">Komponen tambahan <span className="font-normal text-slate-400">(opsional, dana tak dibagi)</span></p>
                                 <button
                                     type="button"
@@ -179,7 +179,7 @@ export default function Index({ periode = [], filters = {}, persenDefault = {}, 
                             <li key={p.id}>
                                 <Link
                                     href={route('shu.show', p.id)}
-                                    className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50"
+                                    className="group flex items-center gap-3 px-4 py-3 hover:bg-brand-green-light/30 transition-colors"
                                 >
                                     <div className="min-w-0 flex-1">
                                         <p className="text-base font-bold text-slate-800">Tahun buku {p.tahun_buku}</p>

@@ -56,7 +56,7 @@ body {
 }
 
 .table-sticky-first tbody tr:hover td:first-child {
-    background: var(--color-paper); /* sinkron dengan hover:bg-slate-50 */
+    background: #effaf3; /* sinkron dengan hover brand-green-light/40 */
 }
 
 .table-sticky-first th:first-child {
@@ -67,11 +67,12 @@ body {
     position: sticky;
     top: 0;
     z-index: 15;
-    background: var(--color-paper-2);
+    background: linear-gradient(180deg, #f8fafd 0%, #f1f6fb 100%);
 }
 
 .table-head-static thead th {
     position: static;
+    background: transparent;
 }
 
 /* Fade halus tiap footer sidebar bertukar (ciut <-> terbuka). */

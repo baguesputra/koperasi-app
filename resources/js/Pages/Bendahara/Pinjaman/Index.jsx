@@ -11,9 +11,9 @@ import KeputusanDrawer from './Partials/KeputusanDrawer';
 import RingkasanKas from '@/Pages/PinjamanApproval/RingkasanKas';
 import { formatRupiah } from '@/Utils/formatCurrency';
 
-const tabDasar = 'inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-t-lg border -mb-px';
-const tabAktif = `${tabDasar} bg-white border-slate-200 border-b-0 text-brand-navy`;
-const tabNonAktif = `${tabDasar} bg-slate-50 border-slate-200 text-slate-500 hover:bg-white hover:text-slate-700`;
+const tabDasar = 'inline-flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl transition-all duration-150';
+const tabAktif = `${tabDasar} bg-gradient-to-b from-white to-brand-green-light/30 border border-brand-green/40 text-brand-navy shadow-sm`;
+const tabNonAktif = `${tabDasar} text-slate-600 hover:bg-white/80 hover:text-brand-navy`;
 
 export default function Index({ menungguTinjauan = [], menungguPencairan = [], riwayat = [], ringkasanKas }) {
     const [tab, setTab] = useState('baru');
@@ -42,7 +42,7 @@ export default function Index({ menungguTinjauan = [], menungguPencairan = [], r
 
             <Card padding="none">
                 {/* Tab lembaran dokumen */}
-                <div className="flex items-end gap-1 px-3 pt-2 border-b border-slate-200">
+                <div className="flex flex-wrap items-center gap-1.5 px-3.5 py-2.5 bg-gradient-to-r from-[#f4f7fb] via-[#f8fafc] to-[#f0faf4] border-b border-slate-200/80">
                     <button onClick={() => setTab('baru')} className={tab === 'baru' ? tabAktif : tabNonAktif}>
                         Approval Baru
                         {menungguTinjauan.length > 0 && (
@@ -69,7 +69,7 @@ export default function Index({ menungguTinjauan = [], menungguPencairan = [], r
                     {tab === 'baru' ? (
                         <table className="w-full table-sticky-first">
                             <thead>
-                                <tr className="text-left">
+                                <tr className="text-left border-b border-slate-200/80 bg-gradient-to-r from-[#f4f7fb] via-[#f8fafc] to-[#f1faf4]">
                                     <th className="px-5 py-3 text-sm font-semibold text-slate-500">Anggota</th>
                                     <th className="px-5 py-3 text-sm font-semibold text-slate-500">Nominal</th>
                                     <th className="px-5 py-3 text-sm font-semibold text-slate-500">Tenor</th>
@@ -93,7 +93,7 @@ export default function Index({ menungguTinjauan = [], menungguPencairan = [], r
                                             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); bukaDetail(p); } }}
                                             tabIndex={0}
                                             title="Klik untuk meninjau"
-                                            className="border-t border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer focus-visible:outline-none focus-visible:bg-slate-100"
+                                            className="group border-t border-slate-100/80 hover:bg-brand-green-light/35 transition-colors cursor-pointer focus-visible:outline-none focus-visible:bg-brand-green-light/45"
                                         >
                                             <td className="px-5 py-3">
                                                 <div className="flex items-center gap-3">
@@ -109,7 +109,7 @@ export default function Index({ menungguTinjauan = [], menungguPencairan = [], r
                                             <td className="px-5 py-3 text-sm text-slate-600">{p.tanggal_pengajuan}</td>
                                             <td className="px-5 py-3"><StatusBadge status={p.status} /></td>
                                             <td className="px-3 py-3 text-right" aria-hidden="true">
-                                                <ChevronRight size={18} className="ml-auto text-slate-300" />
+                                                <ChevronRight size={18} className="ml-auto text-slate-300 group-hover:text-brand-green group-hover:translate-x-0.5 transition-all" />
                                             </td>
                                         </tr>
                                     ))
@@ -119,7 +119,7 @@ export default function Index({ menungguTinjauan = [], menungguPencairan = [], r
                     ) : tab === 'cair' ? (
                         <table className="w-full table-sticky-first">
                             <thead>
-                                <tr className="text-left">
+                                <tr className="text-left border-b border-slate-200/80 bg-gradient-to-r from-[#f4f7fb] via-[#f8fafc] to-[#f1faf4]">
                                     <th className="px-5 py-3 text-sm font-semibold text-slate-500">Anggota</th>
                                     <th className="px-5 py-3 text-sm font-semibold text-slate-500">Nominal Disetujui</th>
                                     <th className="px-5 py-3 text-sm font-semibold text-slate-500">Tenor</th>
@@ -143,7 +143,7 @@ export default function Index({ menungguTinjauan = [], menungguPencairan = [], r
                                             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); bukaDetail(p); } }}
                                             tabIndex={0}
                                             title="Klik untuk mencairkan"
-                                            className="border-t border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer focus-visible:outline-none focus-visible:bg-slate-100"
+                                            className="group border-t border-slate-100/80 hover:bg-brand-green-light/35 transition-colors cursor-pointer focus-visible:outline-none focus-visible:bg-brand-green-light/45"
                                         >
                                             <td className="px-5 py-3">
                                                 <div className="flex items-center gap-3">
@@ -159,7 +159,7 @@ export default function Index({ menungguTinjauan = [], menungguPencairan = [], r
                                             <td className="px-5 py-3 text-sm text-slate-600">{p.tanggal_pengajuan}</td>
                                             <td className="px-5 py-3"><StatusBadge status={p.status} /></td>
                                             <td className="px-3 py-3 text-right" aria-hidden="true">
-                                                <ChevronRight size={18} className="ml-auto text-slate-300" />
+                                                <ChevronRight size={18} className="ml-auto text-slate-300 group-hover:text-brand-green group-hover:translate-x-0.5 transition-all" />
                                             </td>
                                         </tr>
                                     ))
@@ -169,7 +169,7 @@ export default function Index({ menungguTinjauan = [], menungguPencairan = [], r
                     ) : (
                         <table className="w-full table-sticky-first">
                             <thead>
-                                <tr className="text-left">
+                                <tr className="text-left border-b border-slate-200/80 bg-gradient-to-r from-[#f4f7fb] via-[#f8fafc] to-[#f1faf4]">
                                     <th className="px-5 py-3 text-sm font-semibold text-slate-500">Anggota</th>
                                     <th className="px-5 py-3 text-sm font-semibold text-slate-500">Nominal</th>
                                     <th className="px-5 py-3 text-sm font-semibold text-slate-500">Tenor</th>
@@ -186,7 +186,7 @@ export default function Index({ menungguTinjauan = [], menungguPencairan = [], r
                                     </tr>
                                 ) : (
                                     riwayat.map((p) => (
-                                        <tr key={p.id} onClick={() => bukaDetail(p)} className="border-t border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer">
+                                        <tr key={p.id} onClick={() => bukaDetail(p)} className="group border-t border-slate-100/80 hover:bg-brand-green-light/35 transition-colors cursor-pointer">
                                             <td className="px-5 py-3">
                                                 <p className="text-sm font-semibold text-slate-800 truncate">{p.anggota.nama}</p>
                                                 <p className="text-xs text-slate-400">{p.anggota.no_karyawan}</p>

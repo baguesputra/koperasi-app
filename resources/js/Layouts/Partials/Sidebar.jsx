@@ -111,15 +111,15 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
         .filter((group) => group.items.length > 0);
 
     return (
-        <aside className={`${tertutup ? 'w-16' : 'w-60'} h-full bg-white border border-slate-200/80 rounded-2xl flex flex-col transition-all duration-300 overflow-hidden ${expanding ? 'relative z-50 shadow-2xl' : 'shadow-[0_4px_20px_-2px_rgba(15,23,42,0.08),0_2px_6px_-1px_rgba(15,23,42,0.04)]'}`}>
-            <div className={`h-13 sm:h-[50px] flex items-center shrink-0 ${tertutup ? 'justify-center px-2' : 'justify-between px-3.5'}`}>
+        <aside className={`${tertutup ? 'w-16' : 'w-60'} h-full bg-gradient-to-b from-white via-white to-slate-50/70 border border-slate-200/80 rounded-2xl flex flex-col transition-all duration-300 overflow-hidden ${expanding ? 'relative z-50 shadow-2xl' : 'shadow-[0_10px_28px_-6px_rgba(15,30,54,0.10),0_2px_8px_-2px_rgba(15,30,54,0.05)]'}`}>
+            <div className={`h-13 sm:h-[50px] flex items-center shrink-0 border-b border-slate-100/80 ${tertutup ? 'justify-center px-2' : 'justify-between px-3.5'}`}>
                 {tertutup ? (
                     <button
                         type="button"
                         onClick={togglePrivacy}
                         title={isPrivacyActive ? 'Mode Privasi: Aktif (Klik untuk nonaktifkan • Ctrl+Shift+P)' : 'Mode Privasi: Nonaktif (Klik untuk aktifkan • Ctrl+Shift+P)'}
                         aria-label="Mode Privasi"
-                        className="relative p-1.5 rounded-xl hover:bg-slate-50 transition-colors inline-flex items-center justify-center"
+                        className="relative p-1.5 rounded-xl hover:bg-brand-green-light/50 transition-colors inline-flex items-center justify-center"
                     >
                         <img src="/images/logo-ui.webp" alt="Koperasi App" width="28" height="28" className="w-7 h-7 shrink-0" />
                         <span
@@ -142,7 +142,7 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
                             title={isPrivacyActive ? 'Mode Privasi: Aktif (Klik untuk nonaktifkan • Ctrl+Shift+P)' : 'Mode Privasi: Nonaktif (Klik untuk aktifkan • Ctrl+Shift+P)'}
                             aria-label="Toggle Mode Privasi"
                             aria-pressed={isPrivacyActive}
-                            className={`relative inline-flex items-center justify-center w-7 h-7 rounded-lg hover:bg-slate-100 active:scale-95 transition-all duration-150 shrink-0 ${fokusRing}`}
+                            className={`relative inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-brand-navy hover:bg-brand-green-light/60 active:scale-95 transition-all duration-150 shrink-0 ${fokusRing}`}
                         >
                             <PrivacyIcon
                                 key={isPrivacyActive ? 'active' : 'inactive'}
@@ -187,14 +187,14 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
                                         href={href}
                                         ref={isActive ? tautanAktif : undefined}
                                         title={tertutup ? item.label : undefined}
-                                        className={`flex items-center ${tertutup ? 'gap-0 justify-center' : 'gap-3'} px-2.5 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+                                        className={`group flex items-center ${tertutup ? 'gap-0 justify-center' : 'gap-3'} px-2.5 py-1.5 rounded-xl text-sm font-semibold transition-all duration-150 ${
                                             isActive
-                                                ? 'bg-brand-navy text-white shadow-2xs'
-                                                : 'text-slate-600 hover:bg-slate-50'
+                                                ? 'bg-gradient-to-r from-brand-navy via-brand-navy to-brand-navy-light text-white shadow-md shadow-brand-navy/20 ring-1 ring-white/10'
+                                                : 'text-slate-600 hover:bg-gradient-to-r hover:from-brand-green-light/70 hover:to-transparent hover:text-brand-navy'
                                         }`}
                                     >
                                         <span className="relative shrink-0">
-                                            <Icon size={18} strokeWidth={2} className={isActive ? 'text-brand-green' : ''} />
+                                            <Icon size={18} strokeWidth={2} className={isActive ? 'text-brand-green' : 'text-slate-400 group-hover:text-brand-green transition-colors'} />
                                             {badge > 0 && (
                                                 tertutup ? (
                                                     <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-red-500" />
@@ -232,14 +232,14 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
             ) : (
                 <div
                     key="kaki-buka"
-                    className="border-t border-slate-100 px-3 py-2 shrink-0 flex items-center gap-1 animate-sidebar-fade"
+                    className="border-t border-slate-200/70 bg-gradient-to-r from-slate-50/50 to-brand-green-light/15 px-3 py-2 shrink-0 flex items-center gap-1 animate-sidebar-fade"
                 >
                     <Link
                         href={route('profile.edit')}
                         title="Profil Saya"
-                        className={`flex items-center gap-2 min-w-0 flex-1 rounded-lg p-1 -m-0.5 hover:bg-slate-50 transition-colors ${fokusRing}`}
+                        className={`flex items-center gap-2 min-w-0 flex-1 rounded-xl p-1 -m-0.5 hover:bg-white/90 hover:shadow-xs transition-all ${fokusRing}`}
                     >
-                        <span className="w-8 h-8 rounded-full bg-brand-green text-white flex items-center justify-center text-xs font-bold shrink-0">
+                        <span className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-green to-brand-green-dark text-white ring-2 ring-brand-green-light flex items-center justify-center text-xs font-bold shrink-0">
                             {initial}
                         </span>
                         <span className="min-w-0 leading-tight">
@@ -253,7 +253,7 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
                         <Link
                             href={route('pengaturan.index')}
                             title="Pengaturan"
-                            className={`p-1.5 rounded-lg text-slate-400 hover:text-brand-navy hover:bg-slate-50 transition-colors shrink-0 ${fokusRing}`}
+                            className={`p-1.5 rounded-lg text-slate-400 hover:text-brand-navy hover:bg-brand-green-light/60 transition-all shrink-0 ${fokusRing}`}
                         >
                             <Settings size={17} />
                         </Link>
@@ -288,7 +288,7 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
                     type="button"
                     onClick={onToggle}
                     title="Buka sidebar"
-                    className="mx-auto mb-2 flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-brand-navy hover:bg-slate-50 transition-colors shrink-0"
+                    className="mx-auto mb-2 flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-brand-navy hover:bg-brand-green-light/60 transition-all shrink-0"
                 >
                     <ChevronRight size={17} />
                 </button>

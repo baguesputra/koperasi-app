@@ -91,7 +91,7 @@ export default function Index({
 
             {/* Mobile: navigasi horizontal */}
             <div className="lg:hidden mb-4 -mx-1 px-1 overflow-x-auto">
-                <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-max min-w-full">
+                <div className="flex gap-1 bg-slate-100/80 border border-slate-200/70 p-1 rounded-xl w-max min-w-full">
                     {sectionsTampil.flatMap((s) => s.items).map((item) => {
                         const Icon = item.icon;
                         const isActive = tabAktif === item.key;
@@ -99,8 +99,10 @@ export default function Index({
                             <button
                                 key={item.key}
                                 onClick={() => pindahTab(item.key)}
-                                className={`flex min-h-[40px] items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors ${
-                                    isActive ? 'bg-white text-brand-navy shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                                className={`flex min-h-[40px] items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-all ${
+                                    isActive
+                                        ? 'bg-gradient-to-r from-brand-navy to-brand-navy-light text-white shadow-sm'
+                                        : 'text-slate-600 hover:bg-white/80 hover:text-brand-navy'
                                 }`}
                             >
                                 <Icon size={16} />
@@ -114,7 +116,7 @@ export default function Index({
             <Card padding="none" className="overflow-hidden">
             <div className="grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)] items-start">
                 {/* Desktop: navigasi grup */}
-                <nav aria-label="Navigasi pengaturan" className="hidden lg:block p-3 space-y-5 border-r border-slate-100 self-stretch">
+                <nav aria-label="Navigasi pengaturan" className="hidden lg:block p-3 space-y-5 bg-gradient-to-b from-slate-50/40 to-white border-r border-slate-200/70 self-stretch">
                     {sectionsTampil.map((section) => (
                         <div key={section.grup}>
                             <p className="px-2 mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
@@ -130,11 +132,13 @@ export default function Index({
                                             onClick={() => pindahTab(item.key)}
                                             title={item.desc}
                                             aria-current={isActive ? 'page' : undefined}
-                                            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold text-left transition-colors ${
-                                                isActive ? 'bg-brand-navy text-white' : 'text-slate-600 hover:bg-slate-50'
+                                            className={`group w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold text-left transition-all duration-150 ${
+                                                isActive
+                                                    ? 'bg-gradient-to-r from-brand-navy via-brand-navy to-brand-navy-light text-white shadow-md shadow-brand-navy/15'
+                                                    : 'text-slate-600 hover:bg-brand-green-light/55 hover:text-brand-navy'
                                             }`}
                                         >
-                                            <Icon size={17} className={`shrink-0 ${isActive ? 'text-brand-green' : ''}`} />
+                                            <Icon size={17} className={`shrink-0 ${isActive ? 'text-brand-green' : 'text-slate-400 group-hover:text-brand-green transition-colors'}`} />
                                             <span className="min-w-0">
                                                 <span className="block truncate">{item.label}</span>
                                                 <span className={`block text-xs font-normal truncate ${isActive ? 'text-slate-300' : 'text-slate-400'}`}>
@@ -163,7 +167,7 @@ export default function Index({
                                         key={s.id}
                                         type="button"
                                         onClick={() => lompatSection(s.id)}
-                                        className="min-h-[40px] px-3.5 inline-flex items-center rounded-full text-xs font-bold text-brand-navy bg-slate-100 hover:bg-brand-green-light hover:text-brand-green-dark transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/40"
+                                        className="min-h-[40px] px-3.5 inline-flex items-center rounded-full text-xs font-bold text-brand-navy bg-gradient-to-b from-white to-slate-50/90 border border-slate-200/80 shadow-2xs hover:border-brand-green/40 hover:from-brand-green-light/70 hover:to-brand-green-light/40 hover:text-brand-green-dark transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/40"
                                     >
                                         {s.label}
                                     </button>

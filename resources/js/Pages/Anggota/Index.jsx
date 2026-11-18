@@ -211,7 +211,7 @@ export default function Index({ anggota, statistik, filters, daftarCabang = [] }
                 <div className="overflow-x-auto">
                     <table className="w-full table-sticky-first table-head-static text-sm">
                         <thead>
-                            <tr className="text-left bg-gradient-to-r from-slate-50 to-white border-b border-slate-200/80">
+                            <tr className="text-left bg-gradient-to-r from-brand-navy/[0.04] via-white to-brand-green-light/35 border-b border-slate-200/80">
                                 <th className="px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap">Anggota</th>
                                 <th className="px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap">Cabang</th>
                                 <th className="hidden lg:table-cell px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-500">Jabatan</th>

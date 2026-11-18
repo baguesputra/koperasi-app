@@ -59,15 +59,15 @@ export default function DetailDrawer({ pinjaman, angsuran, pelunasan_resign, jur
                 )}
             >
                 <dl className="grid grid-cols-3 gap-2 text-center">
-                    <div className="rounded-xl bg-slate-50/80 border border-slate-100 px-2 py-2.5">
+                    <div className="rounded-xl bg-gradient-to-b from-slate-50/70 to-white border border-slate-200/80 shadow-2xs px-2 py-2.5">
                         <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Nominal</dt>
                         <dd className="text-sm font-bold text-slate-800 tabular-nums mt-0.5 privacy-blur">{formatRupiah(pinjaman.nominal)}</dd>
                     </div>
-                    <div className="rounded-xl bg-slate-50/80 border border-slate-100 px-2 py-2.5">
+                    <div className="rounded-xl bg-gradient-to-b from-slate-50/70 to-white border border-slate-200/80 shadow-2xs px-2 py-2.5">
                         <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Tenor</dt>
                         <dd className="text-sm font-bold text-slate-800 tabular-nums mt-0.5">{pinjaman.tenor_bulan} bln</dd>
                     </div>
-                    <div className="rounded-xl bg-slate-50/80 border border-slate-100 px-2 py-2.5">
+                    <div className="rounded-xl bg-gradient-to-b from-slate-50/70 to-white border border-slate-200/80 shadow-2xs px-2 py-2.5">
                         <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Pengajuan</dt>
                         <dd className="text-xs font-bold text-slate-800 mt-1">{pinjaman.tanggal_pengajuan}</dd>
                     </div>
@@ -90,12 +90,12 @@ export default function DetailDrawer({ pinjaman, angsuran, pelunasan_resign, jur
                             <Wallet size={17} />
                         </span>
                         <div className="flex-1 grid grid-cols-2 gap-2 text-sm">
-                            <div className="rounded-xl bg-slate-50 px-3 py-2">
+                            <div className="rounded-xl bg-gradient-to-br from-brand-navy/[0.03] to-white border border-slate-200/75 px-3 py-2">
                                 <p className="text-[11px] text-slate-400">Total Dilunasi</p>
                                 <p className="font-bold text-slate-800 tabular-nums privacy-blur">{formatRupiah(pelunasan_resign.total)}</p>
                             </div>
                             {pelunasan_resign.tanggal && (
-                                <div className="rounded-xl bg-slate-50 px-3 py-2">
+                                <div className="rounded-xl bg-gradient-to-br from-brand-navy/[0.03] to-white border border-slate-200/75 px-3 py-2">
                                     <p className="text-[11px] text-slate-400">Tanggal</p>
                                     <p className="font-bold text-slate-800">{pelunasan_resign.tanggal}</p>
                                 </div>
@@ -111,9 +111,9 @@ export default function DetailDrawer({ pinjaman, angsuran, pelunasan_resign, jur
                 ) : (
                     <ul className="divide-y divide-slate-50 -mx-1">
                         {angsuran.map((a) => (
-                            <li key={a.id} className="flex items-center justify-between gap-3 px-1 py-2.5">
+                            <li key={a.id} className="flex items-center justify-between gap-3 -mx-2 px-3 py-2.5 rounded-xl hover:bg-brand-green-light/25 transition-colors">
                                 <div className="flex items-center gap-2.5 min-w-0">
-                                    <span className="w-8 h-8 rounded-full bg-slate-100 text-slate-600 inline-flex items-center justify-center text-xs font-bold shrink-0 tabular-nums">
+                                    <span className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-navy/10 to-sky-100/80 text-brand-navy inline-flex items-center justify-center text-xs font-bold shrink-0 tabular-nums">
                                         {a.cicilan_ke}
                                     </span>
                                     <div className="min-w-0">
