@@ -1,8 +1,19 @@
-import { Landmark } from 'lucide-react';
+import { AlertTriangle, Landmark, ShieldCheck } from 'lucide-react';
 import PrivacyWrapper from '@/Components/ui/PrivacyWrapper';
 import { formatRupiah } from '@/Utils/formatCurrency';
 
-export default function RingkasanKas({ ringkasan, judul = 'Beban Persetujuan Pinjaman' }) {
+const PIPELINE_STAGES = [
+    { key: 'admin', label: 'Admin' },
+    { key: 'bendahara', label: 'Bendahara' },
+    { key: 'ketua', label: 'Ketua' },
+];
+
+/**
+ * Ringkasan posisi beban approval & kapasitas kas bank dalam satu kartu
+ * 4 kolom terpadu agar mudah dipindai dari kiri ke kanan tanpa memakan
+ * ruang vertikal di atas tabel approval.
+ */
+export default function RingkasanKas({ ringkasan }) {
     if (!ringkasan) return null;
 
     const {
@@ -18,140 +29,126 @@ export default function RingkasanKas({ ringkasan, judul = 'Beban Persetujuan Pin
     const defisit = sisa_proyeksi < 0;
 
     return (
-        <div className="bg-gradient-to-br from-brand-navy to-slate-900 border border-slate-700/60 rounded-2xl p-5 text-white mb-6 shadow-sm">
-            {/* Header: Judul */}
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-4 pb-3 border-b border-white/10">
-                <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-brand-green/20 border border-brand-green/30 flex items-center justify-center text-brand-green-light">
-                        <Landmark size={18} />
-                    </div>
-                    <div>
-                        <div className="flex items-center gap-2">
-                            <p className="text-base font-bold tracking-tight">{judul}</p>
-                            {beban_peran?.tahap && (
-                                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-white/10 text-slate-300">
-                                    {beban_peran.tahap}
-                                </span>
-                            )}
-                        </div>
-                        <p className="text-xs text-slate-400">Komitmen kas keluar & kapasitas kas bank koperasi</p>
-                    </div>
-                </div>
-            </div>
-
-            {/* 4 Kartu Metrik Utama */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-                {/* 1. Beban Tugas Peran Saat Ini */}
-                <div className="bg-white/10 rounded-xl p-4 border border-white/20 backdrop-blur-sm">
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                        <p className="text-xs font-semibold text-brand-green-light">
+        <section
+            aria-label="Ringkasan beban persetujuan pinjaman"
+            className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_10px_-3px_rgba(15,30,54,0.06),0_1px_3px_rgba(15,30,54,0.04)] mb-4 overflow-hidden"
+        >
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                {/* 1. Antrean Anda */}
+                <div className="px-4 py-3 sm:px-4.5 sm:py-3.5 bg-gradient-to-br from-brand-navy/[0.03] to-brand-green-light/20 sm:border-l-4 sm:border-l-brand-navy border-b lg:border-b-0 sm:border-r border-slate-200/75 flex flex-col justify-between">
+                    <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-bold text-brand-navy truncate">
                             {beban_peran?.label ?? 'Antrean Anda'}
-                        </p>
-                        <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-brand-green/20 text-brand-green-light font-bold">
-                            Tindakan
+                        </span>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-brand-navy text-white text-[11px] font-bold tabular-nums shrink-0">
+                            {beban_peran?.jumlah ?? 0} pengajuan
                         </span>
                     </div>
-                    <p className="text-2xl font-black text-white">{beban_peran?.jumlah ?? 0} <span className="text-sm font-medium text-slate-300">pengajuan</span></p>
-                    <p className="text-xs text-slate-300 mt-1 font-semibold">
-                        Beban: <PrivacyWrapper>{formatRupiah(beban_peran?.total ?? 0)}</PrivacyWrapper>
+                    <p className="text-lg sm:text-xl font-extrabold text-slate-900 tabular-nums mt-1.5 tracking-tight">
+                        <PrivacyWrapper>{formatRupiah(beban_peran?.total ?? 0)}</PrivacyWrapper>
                     </p>
-                    {Boolean(beban_peran?.cair_mandiri_jumlah) && (
-                        <p className="text-[11px] text-amber-300 mt-1">
-                            + {beban_peran.cair_mandiri_jumlah} mandiri (<PrivacyWrapper>{formatRupiah(beban_peran.cair_mandiri_total)}</PrivacyWrapper>)
-                        </p>
+                    <p className="text-xs text-slate-500 mt-1 truncate">
+                        {beban_peran?.tahap ?? 'Menunggu tindakan Anda'}
+                        {Boolean(beban_peran?.cair_mandiri_jumlah) && (
+                            <span className="text-amber-700 font-semibold">
+                                {' '}• +{beban_peran.cair_mandiri_jumlah} mandiri (
+                                <PrivacyWrapper>{formatRupiah(beban_peran.cair_mandiri_total)}</PrivacyWrapper>)
+                            </span>
+                        )}
+                    </p>
+                </div>
+
+                {/* 2. Saldo Bank Koperasi */}
+                <div className="px-4 py-3 sm:px-4.5 sm:py-3.5 border-b lg:border-b-0 lg:border-r border-slate-200/75 flex flex-col justify-between">
+                    <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-semibold text-slate-500 truncate">
+                            Saldo Bank Koperasi
+                        </span>
+                        <Landmark size={15} className="text-slate-400 shrink-0" aria-hidden="true" />
+                    </div>
+                    <p className="text-lg sm:text-xl font-bold text-slate-800 tabular-nums mt-1.5 tracking-tight">
+                        <PrivacyWrapper>{formatRupiah(saldo_bank)}</PrivacyWrapper>
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1 truncate">Kas bank siap dicairkan</p>
+                </div>
+
+                {/* 3. Total Antrean Berjalan */}
+                <div className="px-4 py-3 sm:px-4.5 sm:py-3.5 border-b sm:border-b-0 sm:border-r border-slate-200/75 flex flex-col justify-between">
+                    <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-semibold text-slate-500 truncate">
+                            Total Antrean Berjalan
+                        </span>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200/80 text-[11px] font-bold tabular-nums shrink-0">
+                            {jumlah_antrean} total
+                        </span>
+                    </div>
+                    <p className="text-lg sm:text-xl font-bold text-slate-800 tabular-nums mt-1.5 tracking-tight">
+                        <PrivacyWrapper>{formatRupiah(total_antrean)}</PrivacyWrapper>
+                    </p>
+                    {pipeline ? (
+                        <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                            {PIPELINE_STAGES.map((stage) => {
+                                const aktif = peran === stage.key;
+                                const jumlah = pipeline[stage.key]?.jumlah ?? 0;
+                                return (
+                                    <span
+                                        key={stage.key}
+                                        className={`inline-flex items-center gap-1 text-[11px] rounded px-1.5 py-0.5 tabular-nums ${
+                                            aktif
+                                                ? 'bg-brand-green-light text-brand-green-dark font-bold'
+                                                : 'bg-slate-100 text-slate-600 font-medium'
+                                        }`}
+                                    >
+                                        <span>{stage.label}</span>
+                                        <span className={aktif ? 'font-extrabold' : 'font-semibold text-slate-700'}>
+                                            {jumlah}
+                                        </span>
+                                    </span>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <p className="text-xs text-slate-500 mt-1 truncate">Di seluruh tahap persetujuan</p>
                     )}
                 </div>
 
-                {/* 2. Total Antrean Berjalan (Seluruh Koperasi) */}
-                <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                    <p className="text-xs text-slate-300 mb-1">Total Antrean Koperasi</p>
-                    <p className="text-xl font-bold">
-                        <PrivacyWrapper>{formatRupiah(total_antrean)}</PrivacyWrapper>
-                    </p>
-                    <p className="text-[11px] text-slate-400 mt-1">{jumlah_antrean} pengajuan di seluruh tahap</p>
-                </div>
-
-                {/* 3. Saldo Bank Aktif */}
-                <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                    <p className="text-xs text-slate-300 mb-1">Saldo Bank Koperasi</p>
-                    <p className="text-xl font-bold">
-                        <PrivacyWrapper>{formatRupiah(saldo_bank)}</PrivacyWrapper>
-                    </p>
-                    <p className="text-[11px] text-slate-400 mt-1">Tersedia untuk transfer pencairan</p>
-                </div>
-
-                {/* 4. Proyeksi Sisa Saldo Bank */}
-                <div className={`rounded-xl p-4 border ${defisit ? 'bg-red-500/15 border-red-400/30' : 'bg-emerald-500/15 border-emerald-400/30'}`}>
-                    <p className={`text-xs mb-1 ${defisit ? 'text-red-200' : 'text-emerald-200'}`}>Proyeksi Sisa Bank</p>
-                    <p className={`text-xl font-bold ${defisit ? 'text-red-300' : 'text-emerald-300'}`}>
+                {/* 4. Proyeksi Sisa Bank */}
+                <div
+                    className={`px-4 py-3 sm:px-4.5 sm:py-3.5 flex flex-col justify-between ${
+                        defisit ? 'bg-rose-50/35' : 'bg-emerald-50/30'
+                    }`}
+                >
+                    <div className="flex items-center justify-between gap-2">
+                        <span className={`text-xs font-semibold truncate ${defisit ? 'text-rose-800' : 'text-emerald-800'}`}>
+                            Proyeksi Sisa Bank
+                        </span>
+                        <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold border shrink-0 ${
+                                defisit
+                                    ? 'bg-rose-100/80 text-rose-700 border-rose-200/80'
+                                    : 'bg-brand-green-light text-brand-green-dark border-emerald-200/80'
+                            }`}
+                        >
+                            {defisit ? (
+                                <AlertTriangle size={12} aria-hidden="true" />
+                            ) : (
+                                <ShieldCheck size={12} aria-hidden="true" />
+                            )}
+                            <span>{defisit ? 'Defisit' : 'Aman'}</span>
+                        </span>
+                    </div>
+                    <p
+                        className={`text-lg sm:text-xl font-extrabold tabular-nums mt-1.5 tracking-tight ${
+                            defisit ? 'text-rose-700' : 'text-brand-green-dark'
+                        }`}
+                    >
                         <PrivacyWrapper>{formatRupiah(sisa_proyeksi)}</PrivacyWrapper>
                     </p>
-                    <p className={`text-[11px] mt-1 ${defisit ? 'text-red-300/80' : 'text-emerald-300/80'}`}>
-                        {defisit ? 'Saldo kurang jika semua cair' : 'Sisa aman setelah pencairan'}
+                    <p className={`text-xs mt-1 truncate ${defisit ? 'text-rose-700' : 'text-emerald-800/80'}`}>
+                        {defisit ? 'Saldo kurang jika semua cair' : 'Estimasi sisa setelah cair'}
                     </p>
                 </div>
             </div>
-
-            {/* Pipeline Jalur Antrean (Funnel Approval) */}
-            {pipeline && (
-                <div className="mt-4 pt-3 border-t border-white/10">
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-                        Distribusi Antrean Berdasarkan Tahap Persetujuan
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        {/* Tahap 1: Admin */}
-                        <div className={`rounded-lg px-3 py-2 text-xs border transition-colors ${
-                            peran === 'admin'
-                                ? 'bg-brand-green/15 border-brand-green/40 text-white font-medium'
-                                : 'bg-white/5 border-white/10 text-slate-300'
-                        }`}>
-                            <div className="flex items-center justify-between">
-                                <span className={peran === 'admin' ? 'text-brand-green-light font-bold' : 'text-slate-400'}>
-                                    1. Verifikasi Admin
-                                </span>
-                                <span className="font-bold">{pipeline.admin?.jumlah ?? 0}</span>
-                            </div>
-                            <p className="text-[11px] text-slate-400 mt-0.5">
-                                <PrivacyWrapper>{formatRupiah(pipeline.admin?.total ?? 0)}</PrivacyWrapper>
-                            </p>
-                        </div>
-
-                        {/* Tahap 2: Bendahara */}
-                        <div className={`rounded-lg px-3 py-2 text-xs border transition-colors ${
-                            peran === 'bendahara'
-                                ? 'bg-brand-green/15 border-brand-green/40 text-white font-medium'
-                                : 'bg-white/5 border-white/10 text-slate-300'
-                        }`}>
-                            <div className="flex items-center justify-between">
-                                <span className={peran === 'bendahara' ? 'text-brand-green-light font-bold' : 'text-slate-400'}>
-                                    2. Usulan Bendahara
-                                </span>
-                                <span className="font-bold">{pipeline.bendahara?.jumlah ?? 0}</span>
-                            </div>
-                            <p className="text-[11px] text-slate-400 mt-0.5">
-                                <PrivacyWrapper>{formatRupiah(pipeline.bendahara?.total ?? 0)}</PrivacyWrapper>
-                            </p>
-                        </div>
-
-                        {/* Tahap 3: Ketua */}
-                        <div className={`rounded-lg px-3 py-2 text-xs border transition-colors ${
-                            peran === 'ketua'
-                                ? 'bg-brand-green/15 border-brand-green/40 text-white font-medium'
-                                : 'bg-white/5 border-white/10 text-slate-300'
-                        }`}>
-                            <div className="flex items-center justify-between">
-                                <span className={peran === 'ketua' ? 'text-brand-green-light font-bold' : 'text-slate-400'}>
-                                    3. Keputusan Ketua
-                                </span>
-                                <span className="font-bold">{pipeline.ketua?.jumlah ?? 0}</span>
-                            </div>
-                            <p className="text-[11px] text-slate-400 mt-0.5">
-                                <PrivacyWrapper>{formatRupiah(pipeline.ketua?.total ?? 0)}</PrivacyWrapper>
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
+        </section>
     );
 }
