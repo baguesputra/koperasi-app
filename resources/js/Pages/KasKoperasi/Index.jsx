@@ -552,7 +552,7 @@ export default function Index({
                             className={`group text-left p-3.5 sm:p-4 rounded-2xl border transition-all duration-200 flex flex-col justify-between ${fokusRing} ${
                                 isAktif
                                     ? 'bg-gradient-to-br from-[#0B1527] via-[#0F1E36] to-[#0A2E1A] text-white border-slate-800 shadow-md shadow-brand-navy/20'
-                                    : 'bg-white text-slate-800 border-slate-200/80 shadow-[0_2px_10px_-3px_rgba(15,30,54,0.06)] hover:-translate-y-0.5 hover:border-brand-green/45 hover:shadow-[0_8px_20px_-6px_rgba(15,30,54,0.10)]'
+                                    : 'bg-white text-slate-800 border-slate-200/80 shadow-[0_2px_10px_-3px_rgba(15,30,54,0.06)] hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_8px_20px_-6px_rgba(15,30,54,0.10)]'
                             }`}
                         >
                             <div className="flex items-center justify-between gap-2">
@@ -607,7 +607,7 @@ export default function Index({
                             className={`group text-left p-3.5 sm:p-4 rounded-2xl border transition-all duration-200 flex flex-col justify-between ${fokusRing} ${
                                 isAktif
                                     ? 'bg-gradient-to-br from-[#0B1527] via-[#0F1E36] to-[#0A2E1A] text-white border-slate-800 shadow-md shadow-brand-navy/20'
-                                    : 'bg-white text-slate-800 border-slate-200/80 shadow-[0_2px_10px_-3px_rgba(15,30,54,0.06)] hover:-translate-y-0.5 hover:border-brand-green/45 hover:shadow-[0_8px_20px_-6px_rgba(15,30,54,0.10)]'
+                                    : 'bg-white text-slate-800 border-slate-200/80 shadow-[0_2px_10px_-3px_rgba(15,30,54,0.06)] hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_8px_20px_-6px_rgba(15,30,54,0.10)]'
                             }`}
                         >
                             <div className="flex items-center justify-between gap-2">
@@ -662,7 +662,7 @@ export default function Index({
                             className={`group text-left p-3.5 sm:p-4 rounded-2xl border transition-all duration-200 flex flex-col justify-between ${fokusRing} ${
                                 isAktif
                                     ? 'bg-gradient-to-br from-[#0B1527] via-[#0F1E36] to-[#0A2E1A] text-white border-slate-800 shadow-md shadow-brand-navy/20'
-                                    : 'bg-white text-slate-800 border-slate-200/80 shadow-[0_2px_10px_-3px_rgba(15,30,54,0.06)] hover:-translate-y-0.5 hover:border-brand-green/45 hover:shadow-[0_8px_20px_-6px_rgba(15,30,54,0.10)]'
+                                    : 'bg-white text-slate-800 border-slate-200/80 shadow-[0_2px_10px_-3px_rgba(15,30,54,0.06)] hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_8px_20px_-6px_rgba(15,30,54,0.10)]'
                             }`}
                         >
                             <div className="flex items-center justify-between gap-2">

@@ -111,7 +111,7 @@ export default function Index({ kelompok }) {
                                     <Link
                                         key={l.slug}
                                         href={route('laporan.show', l.slug)}
-                                        className={`group text-left bg-white rounded-2xl border border-slate-200/70 shadow-sm p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-brand-green/40 ${fokusRing}`}
+                                        className={`group text-left bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_8px_-2px_rgba(15,30,54,0.05)] p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-slate-300 ${fokusRing}`}
                                     >
                                         <div className="flex items-start justify-between gap-2 mb-3">
                                             <span className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-navy/5 to-brand-green-light/60 text-brand-navy flex items-center justify-center shrink-0 group-hover:from-brand-green-light group-hover:to-brand-green-light group-hover:text-brand-green-dark transition-colors">

@@ -464,7 +464,7 @@ export default function ApiDocsIndex({ authMode = 'local' }) {
                                             key={flow.id}
                                             type="button"
                                             onClick={() => jumpToElement(flow.targetId, true)}
-                                            className="group flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-brand-green/50 hover:shadow-md"
+                                            className="group flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-slate-300 hover:shadow-md"
                                         >
                                             <div>
                                                 <div className="flex items-center justify-between gap-2">

@@ -220,10 +220,10 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                                 return (
                                     <div
                                         key={grup.label}
-                                        className={`rounded-xl border p-3.5 sm:p-4 flex flex-col justify-between transition-all duration-200 ${
+                                        className={`rounded-xl border p-3.5 sm:p-4 flex flex-col justify-between ${
                                             sibuk
-                                                ? 'bg-gradient-to-br from-white via-white to-amber-50/30 border-slate-200/90 shadow-[0_2px_10px_-3px_rgba(15,30,54,0.06)] hover:border-amber-300/70'
-                                                : 'bg-gradient-to-br from-white to-slate-50/50 border-slate-200/70 opacity-85 hover:opacity-100'
+                                                ? 'bg-gradient-to-br from-white via-white to-amber-50/30 border-slate-200/90 shadow-[0_2px_10px_-3px_rgba(15,30,54,0.06)]'
+                                                : 'bg-gradient-to-br from-white to-slate-50/50 border-slate-200/70 opacity-85'
                                         }`}
                                     >
                                         <div className="flex items-center justify-between gap-2 pb-3 mb-2.5 border-b border-slate-100">

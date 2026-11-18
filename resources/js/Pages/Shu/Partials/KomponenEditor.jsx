@@ -124,7 +124,7 @@ export default function KomponenEditor({
                         const awal = Math.round((periode.persen?.[kolom] ?? 0) * 10000) / 100;
                         const diubah = nilai !== awal;
                         return (
-                            <div key={kunci} className={`rounded-xl px-3 py-2 border shadow-2xs transition-colors ${diubah && !readOnly ? 'bg-amber-50 border-amber-300 ring-1 ring-amber-300/60' : 'bg-gradient-to-b from-slate-50/60 to-white border-slate-200/80 hover:border-brand-green/35'}`}>
+                            <div key={kunci} className={`rounded-xl px-3 py-2 border shadow-2xs ${diubah && !readOnly ? 'bg-amber-50 border-amber-300 ring-1 ring-amber-300/60' : 'bg-gradient-to-b from-slate-50/60 to-white border-slate-200/80'}`}>
                                 <label htmlFor={`persen-${kolom}`} className="block text-xs font-semibold text-slate-600 mb-1 leading-tight min-h-8">
                                     {KOMPONEN_LABEL[kunci]}
                                 </label>

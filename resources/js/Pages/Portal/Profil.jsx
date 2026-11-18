@@ -383,7 +383,7 @@ export default function Profil({ anggota, rekening }) {
                         <button
                             type="button"
                             onClick={() => window.dispatchEvent(new CustomEvent('open-panduan'))}
-                            className="group flex items-center justify-between p-4 rounded-2xl border border-slate-100 hover:border-emerald-200 hover:bg-emerald-50/30 transition-all text-left"
+                            className="group flex items-center justify-between p-4 rounded-2xl border border-slate-200/80 hover:border-slate-300 hover:shadow-xs transition-all text-left"
                         >
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 group-hover:bg-brand-green group-hover:text-white transition-colors">
@@ -404,7 +404,7 @@ export default function Profil({ anggota, rekening }) {
                         {isPengurus && (
                             <Link
                                 href={route('dashboard')}
-                                className="group flex items-center justify-between p-4 rounded-2xl border border-slate-100 hover:border-blue-200 hover:bg-blue-50/30 transition-all"
+                                className="group flex items-center justify-between p-4 rounded-2xl border border-slate-200/80 hover:border-slate-300 hover:shadow-xs transition-all"
                             >
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-colors">

@@ -135,18 +135,10 @@ export default function Index({ anggota, statistik, filters, daftarCabang = [] }
             </PageHeader>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-                <div className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
-                    <StatWidget compact label="Total" value={statistik.total} icon={Users} tone="navy" />
-                </div>
-                <div className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
-                    <StatWidget compact label="Aktif" value={statistik.aktif} icon={UserCheck} tone="green" />
-                </div>
-                <div className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
-                    <StatWidget compact label="Nonaktif" value={statistik.nonaktif} icon={UserX} tone="amber" />
-                </div>
-                <div className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
-                    <StatWidget compact label="Resign" value={statistik.resign} icon={UserMinus} tone="rose" />
-                </div>
+                <StatWidget compact label="Total" value={statistik.total} icon={Users} tone="navy" />
+                <StatWidget compact label="Aktif" value={statistik.aktif} icon={UserCheck} tone="green" />
+                <StatWidget compact label="Nonaktif" value={statistik.nonaktif} icon={UserX} tone="amber" />
+                <StatWidget compact label="Resign" value={statistik.resign} icon={UserMinus} tone="rose" />
             </div>
 
             <Card padding="sm" className="shadow-md border-slate-200/70 mb-4">

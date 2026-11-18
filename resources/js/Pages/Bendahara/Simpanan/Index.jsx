@@ -197,13 +197,9 @@ export default function Index({
             </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
-                <div className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
-                    <StatWidget compact label="Belum Konfirmasi" value={belumSimpanan.length} icon={Users} tone="amber" />
-                </div>
-                <div className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
-                    <StatWidget compact label="Per Anggota" value={formatRupiah(nominalPerAnggota)} icon={Wallet} tone="navy" />
-                </div>
-                <div className="col-span-2 lg:col-span-1 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md rounded-xl">
+                <StatWidget compact label="Belum Konfirmasi" value={belumSimpanan.length} icon={Users} tone="amber" />
+                <StatWidget compact label="Per Anggota" value={formatRupiah(nominalPerAnggota)} icon={Wallet} tone="navy" />
+                <div className="col-span-2 lg:col-span-1">
                     <StatWidget compact label="Dana Sosial" value={formatRupiah(totalDanaSosialTerkumpul)} icon={HeartHandshake} tone="green" />
                 </div>
             </div>

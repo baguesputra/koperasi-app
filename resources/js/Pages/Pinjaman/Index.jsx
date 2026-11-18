@@ -155,7 +155,7 @@ export default function Index({ pinjaman, filters, statistik, cabangAktif, dafta
                     className={`text-left rounded-2xl p-4 border transition-all duration-200 cursor-pointer group flex flex-col justify-between ${
                         ['diajukan', 'approved_admin', 'approved_bendahara', 'approved_ketua'].includes(filters.status)
                             ? 'bg-amber-50/40 border-amber-400 ring-2 ring-amber-400/20 shadow-md'
-                            : 'bg-white border-slate-200/80 hover:border-amber-300 shadow-xs hover:shadow-md'
+                            : 'bg-white border-slate-200/80 hover:border-slate-300 shadow-xs hover:shadow-md'
                     }`}
                 >
                     <div className="flex items-center justify-between gap-2">
@@ -199,7 +199,7 @@ export default function Index({ pinjaman, filters, statistik, cabangAktif, dafta
                     className={`text-left rounded-2xl p-4 border transition-all duration-200 cursor-pointer group flex flex-col justify-between ${
                         filters.status === 'aktif'
                             ? 'bg-emerald-50/40 border-brand-green ring-2 ring-brand-green/20 shadow-md'
-                            : 'bg-white border-slate-200/80 hover:border-brand-green/50 shadow-xs hover:shadow-md'
+                            : 'bg-white border-slate-200/80 hover:border-slate-300 shadow-xs hover:shadow-md'
                     }`}
                 >
                     <div className="flex items-center justify-between gap-2">
@@ -227,7 +227,7 @@ export default function Index({ pinjaman, filters, statistik, cabangAktif, dafta
                     className={`text-left rounded-2xl p-4 border transition-all duration-200 cursor-pointer group flex flex-col justify-between ${
                         filters.status === 'lunas'
                             ? 'bg-gradient-to-br from-sky-50 to-teal-50/60 border-sky-400 ring-2 ring-sky-400/20 shadow-md'
-                            : 'bg-white border-slate-200/80 hover:-translate-y-0.5 hover:border-brand-navy/35 shadow-[0_2px_8px_-2px_rgba(15,30,54,0.05)] hover:shadow-md'
+                            : 'bg-white border-slate-200/80 hover:border-slate-300 shadow-xs hover:shadow-md'
                     }`}
                 >
                     <div className="flex items-center justify-between gap-2">

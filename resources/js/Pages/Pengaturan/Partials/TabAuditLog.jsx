@@ -421,7 +421,7 @@ export default function TabAuditLog({
                                     className={`rounded-2xl border transition-all duration-150 ${
                                     expanded
                                         ? 'border-brand-green/40 bg-white shadow-md ring-1 ring-brand-green/15'
-                                        : 'border-slate-200/85 bg-white shadow-[0_1px_4px_rgba(15,30,54,0.04)] hover:border-brand-green/40 hover:shadow-sm'
+                                        : 'border-slate-200/85 bg-white shadow-[0_1px_4px_rgba(15,30,54,0.04)] hover:border-slate-300 hover:shadow-sm'
                                 }`}
                             >
                                 <button
