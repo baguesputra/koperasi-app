@@ -1,12 +1,13 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, router } from '@inertiajs/react';
-import { Search, HeartHandshake, PiggyBank, Users, Wallet, ChevronRight, X, RefreshCw } from 'lucide-react';
+import { Search, HeartHandshake, PiggyBank, Users, Wallet, ChevronRight, X, RefreshCw, History } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import useDebouncedValue from '@/Utils/useDebouncedValue';
 import Button from '@/Components/ui/Button';
 import Card from '@/Components/ui/Card';
 import FotoAnggota from '@/Components/ui/FotoAnggota';
 import Drawer from '@/Components/ui/Drawer';
+import { DrawerHero, DrawerSection } from '@/Components/ui/DrawerSection';
 import StatusBadge from '@/Components/ui/StatusBadge';
 import PageHeader from '@/Components/ui/PageHeader';
 import TextField from '@/Components/ui/TextField';
@@ -16,19 +17,10 @@ import Pagination from '@/Components/ui/Pagination';
 
 const jenisLabel = { pokok: 'Pokok', wajib: 'Wajib', dana_sosial: 'Dana Sosial' };
 const jenisTone = {
-    pokok: 'bg-brand-navy/5 text-brand-navy',
-    wajib: 'bg-brand-green-light text-brand-green-dark',
-    dana_sosial: 'bg-rose-50 text-rose-700',
+    pokok: 'bg-brand-navy/5 text-brand-navy border-brand-navy/15',
+    wajib: 'bg-brand-green-light text-brand-green-dark border-emerald-200/80',
+    dana_sosial: 'bg-rose-50 text-rose-700 border-rose-200/80',
 };
-
-function Seksi({ judul, children }) {
-    return (
-        <section className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm">
-            <h3 className="text-sm font-bold text-slate-800 mb-3">{judul}</h3>
-            {children}
-        </section>
-    );
-}
 
 export default function Index({
     anggota,
@@ -318,82 +310,103 @@ export default function Index({
 
             <Pagination links={anggota.links} />
 
-            <Drawer show={drawerOpen} title={`Simpanan — ${detailAnggota?.nama ?? ''}`} onClose={() => setDrawerOpen(false)}>
+            <Drawer
+                show={drawerOpen}
+                title={`Simpanan — ${detailAnggota?.nama ?? ''}`}
+                badge={detailAnggota ? <StatusBadge status={detailAnggota.status} /> : null}
+                onClose={() => setDrawerOpen(false)}
+            >
                 {detailAnggota && (
-                    <div className="space-y-3">
-                        <div className="flex items-center gap-3 rounded-2xl bg-gradient-to-r from-brand-navy to-brand-navy-light text-white px-4 py-3 shadow-md shadow-brand-navy/20">
-                            <FotoAnggota nama={detailAnggota.nama} fotoUrl={detailAnggota.foto_url} ukuran="md" className="bg-white/15 ring-white/20" />
-                            <div className="min-w-0 flex-1">
-                                <p className="text-sm font-bold truncate">{detailAnggota.nama}</p>
-                                <p className="text-xs text-white/70 truncate">{detailAnggota.no_karyawan} • {detailAnggota.cabang}</p>
+                    <div className="space-y-3.5">
+                        <DrawerHero>
+                            <div className="flex items-center gap-3">
+                                <FotoAnggota nama={detailAnggota.nama} fotoUrl={detailAnggota.foto_url} ukuran="md" className="bg-white/15 ring-white/20 shrink-0" />
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-sm sm:text-base font-bold text-white truncate">{detailAnggota.nama}</p>
+                                    <p className="text-xs text-slate-300 truncate mt-0.5">
+                                        <span className="font-mono">{detailAnggota.no_karyawan}</span> • {detailAnggota.cabang}
+                                    </p>
+                                </div>
                             </div>
-                            <StatusBadge status={detailAnggota.status} />
-                        </div>
+                        </DrawerHero>
 
-                        <div className="rounded-2xl border border-brand-green/30 bg-brand-green-light/40 p-4">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-brand-green-dark/70">Total Simpanan</p>
-                            <p className="text-3xl font-bold text-slate-800 tabular-nums mt-0.5 privacy-blur">{formatRupiah(detailAnggota.total_simpanan)}</p>
-                            <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-brand-green/20">
-                                <div className="rounded-xl bg-white/80 p-2 text-center">
-                                    <p className="text-[11px] font-semibold text-slate-500">Pokok</p>
-                                    <p className="text-sm font-bold text-slate-800 tabular-nums privacy-blur">{formatRupiah(detailAnggota.simpanan_pokok ?? 0)}</p>
+                        <DrawerSection title="Total Simpanan" icon={PiggyBank} tone="emerald" padding="none">
+                            <div className="px-4 py-3.5">
+                                <p className="text-2xl sm:text-[26px] font-extrabold text-slate-900 tabular-nums privacy-blur">
+                                    {formatRupiah(detailAnggota.total_simpanan)}
+                                </p>
+                            </div>
+                            <div className="grid grid-cols-2 divide-x divide-slate-100 border-t border-slate-100">
+                                <div className="px-4 py-2.5">
+                                    <p className="text-[11px] font-medium text-slate-500">Simpanan Pokok</p>
+                                    <p className="text-sm font-bold text-slate-800 tabular-nums mt-0.5 privacy-blur">
+                                        {formatRupiah(detailAnggota.simpanan_pokok ?? 0)}
+                                    </p>
                                 </div>
-                                <div className="rounded-xl bg-white/80 p-2 text-center">
-                                    <p className="text-[11px] font-semibold text-slate-500">Wajib</p>
-                                    <p className="text-sm font-bold text-slate-800 tabular-nums privacy-blur">{formatRupiah(detailAnggota.simpanan_wajib ?? 0)}</p>
+                                <div className="px-4 py-2.5">
+                                    <p className="text-[11px] font-medium text-slate-500">Simpanan Wajib</p>
+                                    <p className="text-sm font-bold text-slate-800 tabular-nums mt-0.5 privacy-blur">
+                                        {formatRupiah(detailAnggota.simpanan_wajib ?? 0)}
+                                    </p>
                                 </div>
                             </div>
-                        </div>
+                        </DrawerSection>
 
                         {detailAnggota.alokasi_pelunasan_resign > 0 && (
-                            <Seksi judul="Pelunasan saat Resign">
-                                <div className="flex items-start gap-2.5">
-                                    <span className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 inline-flex items-center justify-center shrink-0">
-                                        <Wallet size={17} />
-                                    </span>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-semibold text-rose-700">Dialokasikan untuk pelunasan pinjaman</p>
-                                        <div className="grid grid-cols-3 gap-2 mt-2 text-sm">
-                                            <div className="rounded-xl bg-slate-50 px-2.5 py-1.5">
-                                                <p className="text-[11px] text-slate-400">Dari Pokok</p>
-                                                <p className="font-bold text-slate-800 tabular-nums privacy-blur">-{formatRupiah(detailAnggota.alokasi_dari_pokok)}</p>
-                                            </div>
-                                            <div className="rounded-xl bg-slate-50 px-2.5 py-1.5">
-                                                <p className="text-[11px] text-slate-400">Dari Wajib</p>
-                                                <p className="font-bold text-slate-800 tabular-nums privacy-blur">-{formatRupiah(detailAnggota.alokasi_dari_wajib)}</p>
-                                            </div>
-                                            <div className="rounded-xl bg-rose-50 px-2.5 py-1.5">
-                                                <p className="text-[11px] text-rose-400">Total</p>
-                                                <p className="font-bold text-rose-600 tabular-nums privacy-blur">-{formatRupiah(detailAnggota.alokasi_pelunasan_resign)}</p>
-                                            </div>
-                                        </div>
-                                        {detailAnggota.tanggal_resign && (
-                                            <p className="text-xs text-slate-400 mt-2">Tanggal proses: {detailAnggota.tanggal_resign}</p>
-                                        )}
+                            <DrawerSection
+                                title="Pelunasan saat Resign"
+                                description="Dialokasikan untuk pelunasan pinjaman"
+                                icon={Wallet}
+                                tone="rose"
+                                padding="none"
+                            >
+                                <div className="grid grid-cols-3 divide-x divide-slate-100">
+                                    <div className="px-3.5 py-2.5">
+                                        <p className="text-[11px] text-slate-500">Dari Pokok</p>
+                                        <p className="text-sm font-bold text-slate-800 tabular-nums mt-0.5 privacy-blur">
+                                            -{formatRupiah(detailAnggota.alokasi_dari_pokok)}
+                                        </p>
+                                    </div>
+                                    <div className="px-3.5 py-2.5">
+                                        <p className="text-[11px] text-slate-500">Dari Wajib</p>
+                                        <p className="text-sm font-bold text-slate-800 tabular-nums mt-0.5 privacy-blur">
+                                            -{formatRupiah(detailAnggota.alokasi_dari_wajib)}
+                                        </p>
+                                    </div>
+                                    <div className="px-3.5 py-2.5 bg-rose-50/40">
+                                        <p className="text-[11px] text-rose-700 font-medium">Total</p>
+                                        <p className="text-sm font-bold text-rose-600 tabular-nums mt-0.5 privacy-blur">
+                                            -{formatRupiah(detailAnggota.alokasi_pelunasan_resign)}
+                                        </p>
                                     </div>
                                 </div>
-                            </Seksi>
+                                {detailAnggota.tanggal_resign && (
+                                    <div className="px-4 py-2 bg-[#F8FAFC] border-t border-slate-100 text-xs text-slate-500">
+                                        Tanggal proses: {detailAnggota.tanggal_resign}
+                                    </div>
+                                )}
+                            </DrawerSection>
                         )}
 
-                        <Seksi judul={`Riwayat (${detailAnggota.riwayat.length})`}>
+                        <DrawerSection title={`Riwayat Simpanan (${detailAnggota.riwayat.length})`} icon={History} padding="none">
                             {detailAnggota.riwayat.length === 0 ? (
-                                <p className="py-6 text-center text-sm text-slate-400">Belum ada riwayat simpanan.</p>
+                                <p className="py-8 text-center text-sm text-slate-500">Belum ada riwayat simpanan.</p>
                             ) : (
-                                <ul className="divide-y divide-slate-50 -mx-1">
+                                <ul className="divide-y divide-slate-100">
                                     {detailAnggota.riwayat.map((r, i) => (
-                                        <li key={i} className="flex items-center justify-between gap-3 px-1 py-2.5">
+                                        <li key={i} className="flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-brand-green-light/25 transition-colors">
                                             <div className="flex items-center gap-2.5 min-w-0">
-                                                <span className={`px-2.5 py-1 text-xs font-bold rounded-full shrink-0 ${jenisTone[r.jenis] ?? 'bg-slate-100 text-slate-600'}`}>
+                                                <span className={`px-2.5 py-0.5 text-xs font-bold rounded-full border shrink-0 ${jenisTone[r.jenis] ?? 'bg-slate-100 text-slate-600 border-slate-200'}`}>
                                                     {jenisLabel[r.jenis] ?? r.jenis}
                                                 </span>
-                                                <p className="text-xs text-slate-400 truncate">{r.bulan_periode} • {r.tanggal_input}</p>
+                                                <p className="text-xs text-slate-500 truncate">{r.bulan_periode} • {r.tanggal_input}</p>
                                             </div>
                                             <p className="text-sm font-bold text-slate-800 tabular-nums whitespace-nowrap privacy-blur">{formatRupiah(r.jumlah)}</p>
                                         </li>
                                     ))}
                                 </ul>
                             )}
-                        </Seksi>
+                        </DrawerSection>
                     </div>
                 )}
             </Drawer>

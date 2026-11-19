@@ -37,24 +37,32 @@ export default function PreviewNominal({ routeName, pinjamanId, nominal, tenorBu
 
     if (!preview) return null;
 
+    const defisit = preview.kas_sisa < 0;
+
     return (
-        <div className="mt-3 rounded-xl bg-slate-50 border border-slate-200 p-4 text-xs sm:text-sm space-y-2">
-            <div className="flex items-center justify-between gap-4">
+        <div className="mt-3 rounded-xl bg-white border border-slate-200/80 shadow-[0_1px_3px_rgba(15,30,54,0.04)] overflow-hidden text-xs sm:text-sm">
+            <div className={`px-3.5 py-2 border-b ${defisit ? 'bg-rose-50/50 border-rose-200/70' : 'bg-slate-50/70 border-slate-100'} flex items-center justify-between gap-2`}>
+                <span className={`text-[11px] font-bold uppercase tracking-wider ${defisit ? 'text-rose-700' : 'text-slate-600'}`}>
+                    Pratinjau Cicilan &amp; Kas
+                </span>
+            </div>
+            <div className="p-3.5 divide-y divide-slate-100">
+            <div className="flex items-center justify-between gap-4 pb-2">
                 <span className="text-slate-500">Tenor berlaku (auto-clamp maks {preview.tenor_maksimal} bln)</span>
-                <span className="font-bold text-slate-800">{preview.tenor_bulan} bulan</span>
+                <span className="font-bold text-slate-800 tabular-nums">{preview.tenor_bulan} bulan</span>
             </div>
 
-            <div className="pt-2 border-t border-slate-200/80 space-y-1.5">
+            <div className="py-2 space-y-1.5">
                 <div className="flex items-center justify-between gap-4">
                     <span className="text-slate-500">Beban cicilan bln ke-1 (puncak)</span>
-                    <span className="font-semibold text-slate-800">
+                    <span className="font-semibold text-slate-800 tabular-nums">
                         {preview.cicilan_pertama ? <PrivacyWrapper>{formatRupiah(preview.cicilan_pertama.total_bayar)}</PrivacyWrapper> : '-'}
                     </span>
                 </div>
                 {preview.cicilan_terakhir && (
                     <div className="flex items-center justify-between gap-4">
                         <span className="text-slate-500">Beban cicilan bln terakhir</span>
-                        <span className="font-semibold text-slate-800">
+                        <span className="font-semibold text-slate-800 tabular-nums">
                             <PrivacyWrapper>{formatRupiah(preview.cicilan_terakhir.total_bayar)}</PrivacyWrapper>
                         </span>
                     </div>
@@ -62,25 +70,26 @@ export default function PreviewNominal({ routeName, pinjamanId, nominal, tenorBu
                 {Boolean(preview.cicilan_rata_rata) && (
                     <div className="flex items-center justify-between gap-4">
                         <span className="text-slate-500">Rata-rata cicilan per bulan</span>
-                        <span className="font-semibold text-brand-navy">
+                        <span className="font-semibold text-brand-navy tabular-nums">
                             <PrivacyWrapper>{formatRupiah(preview.cicilan_rata_rata)}</PrivacyWrapper>
                         </span>
                     </div>
                 )}
             </div>
 
-            <div className="flex items-center justify-between gap-4 pt-1.5 border-t border-slate-200">
+            <div className="flex items-center justify-between gap-4 py-2">
                 <span className="text-slate-600 font-medium">Total {preview.total_cicilan} {cicilanLabel}</span>
-                <span className="font-bold text-brand-navy">
+                <span className="font-bold text-brand-navy tabular-nums">
                     <PrivacyWrapper>{formatRupiah(preview.total_bayar)}</PrivacyWrapper>
                 </span>
             </div>
 
-            <div className="flex items-center justify-between gap-4 pt-1.5 border-t border-slate-200">
+            <div className="flex items-center justify-between gap-4 pt-2">
                 <span className="text-slate-600 font-medium">Proyeksi sisa saldo bank</span>
-                <span className={`font-bold ${preview.kas_sisa < 0 ? 'text-red-600' : 'text-emerald-700'}`}>
+                <span className={`font-bold tabular-nums ${defisit ? 'text-rose-600' : 'text-brand-green-dark'}`}>
                     <PrivacyWrapper>{formatRupiah(preview.kas_sisa)}</PrivacyWrapper>
                 </span>
+            </div>
             </div>
         </div>
     );

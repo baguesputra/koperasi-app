@@ -1,6 +1,31 @@
 import { useForm } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
+import {
+    AlertCircle,
+    ArrowLeft,
+    Check,
+    CheckCircle2,
+    ChevronDown,
+    ChevronUp,
+    FileText,
+    Layers,
+    MessageSquareText,
+    User,
+    Wallet,
+    X,
+    XCircle,
+} from 'lucide-react';
 import Button from '@/Components/ui/Button';
+import {
+    DrawerBody,
+    DrawerField,
+    DrawerFieldGrid,
+    DrawerFooter,
+    DrawerHero,
+    DrawerNoteCallout,
+    DrawerSection,
+} from '@/Components/ui/DrawerSection';
+import StatusBadge from '@/Components/ui/StatusBadge';
 import { formatRupiah } from '@/Utils/formatCurrency';
 import { withIdempotencyKey } from '@/Utils/idempotency';
 
@@ -13,7 +38,15 @@ const tipeLabel = {
 export default function KeputusanDrawer({ pengajuan, onClose }) {
     const [aksi, setAksi] = useState(null);
     const [showTable, setShowTable] = useState(true);
+    const formId = useId();
+    const formRef = useRef(null);
     const { data, setData, post, processing, errors } = useForm({ catatan: '', bulan_berlaku: 'bulan_ini' });
+
+    useEffect(() => {
+        if (aksi && formRef.current) {
+            formRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }, [aksi]);
 
     function submit(e) {
         e.preventDefault();
@@ -27,279 +60,351 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
     }
 
     const bisaDiproses = pengajuan.status === 'approved_bendahara';
-    const isApproved = pengajuan.status === 'aktif';
-    const isRejected = pengajuan.status === 'ditolak';
+    const badgeStatus = pengajuan.status === 'aktif' ? 'disetujui' : pengajuan.status;
 
     const tipe = tipeLabel[pengajuan.tipe] ?? pengajuan.tipe;
     const preview = pengajuan.preview;
     const angsuranBaru = pengajuan.angsuran_baru;
 
     return (
-        <div className="space-y-4">
-            {pengajuan.catatan_bendahara && (
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                    <p className="text-xs font-bold text-amber-700 mb-1">Catatan dari Bendahara</p>
-                    <p className="text-sm text-slate-700">{pengajuan.catatan_bendahara}</p>
-                </div>
-            )}
-
-            {pengajuan.catatan_ketua && (
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-                    <p className="text-xs font-bold text-slate-500 mb-1">Catatan Keputusan Anda</p>
-                    <p className="text-sm text-slate-700">{pengajuan.catatan_ketua}</p>
-                </div>
-            )}
-
-            <div className="bg-brand-navy rounded-2xl p-5 text-white">
-                <p className="text-xs text-slate-300 mb-1">Jenis Pengajuan</p>
-                <p className="text-xl font-bold mb-4">{tipe}</p>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-white/10">
-                    <div>
-                        <p className="text-xs text-slate-300 mb-1">Tenor Saat Ini</p>
-                        <p className="text-lg font-bold">{pengajuan.tenor_lama} bulan</p>
-                    </div>
-                    {pengajuan.tenor_baru && (
+        <>
+            <DrawerBody>
+                <DrawerHero>
+                    <div className="flex items-start justify-between gap-3">
                         <div>
-                            <p className="text-xs text-slate-300 mb-1">Tenor Diminta</p>
-                            <p className="text-lg font-bold text-brand-green-light">{pengajuan.tenor_baru} bulan</p>
+                            <p className="text-[11px] font-medium text-slate-300">Jenis Pengajuan</p>
+                            <p className="text-xl sm:text-2xl font-bold text-white mt-0.5">{tipe}</p>
                         </div>
-                    )}
-                    <div>
-                        <p className="text-xs text-slate-300 mb-1">Tanggal Pengajuan</p>
-                        <p className="text-lg font-bold">{pengajuan.tanggal_pengajuan}</p>
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/10 border border-white/15 text-xs font-semibold text-slate-200 shrink-0 tabular-nums">
+                            Sisa {pengajuan.pinjaman.sisa_angsuran}x angsuran
+                        </span>
                     </div>
-                </div>
-            </div>
 
-            <div className="bg-slate-50 rounded-xl p-5 border border-slate-200">
-                <p className="text-sm font-bold text-slate-700 mb-3">Data Anggota</p>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-4">
-                    <div>
-                        <p className="text-xs text-slate-400 mb-1">Nama</p>
-                        <p className="text-base font-semibold text-slate-800">{pengajuan.anggota.nama}</p>
-                    </div>
-                    <div>
-                        <p className="text-xs text-slate-400 mb-1">No. Karyawan</p>
-                        <p className="text-base font-semibold text-slate-800">{pengajuan.anggota.no_karyawan}</p>
-                    </div>
-                    {pengajuan.anggota.cabang && (
+                    <div className="grid grid-cols-3 gap-3 pt-3.5 mt-3.5 border-t border-white/10">
                         <div>
-                            <p className="text-xs text-slate-400 mb-1">Cabang</p>
-                            <p className="text-base font-semibold text-slate-800">{pengajuan.anggota.cabang}</p>
+                            <p className="text-[11px] text-slate-300">Tenor Saat Ini</p>
+                            <p className="text-sm sm:text-base font-bold mt-0.5 tabular-nums">{pengajuan.tenor_lama} bulan</p>
                         </div>
-                    )}
-                    {pengajuan.anggota.jabatan && (
                         <div>
-                            <p className="text-xs text-slate-400 mb-1">Jabatan</p>
-                            <p className="text-base font-semibold text-slate-800">{pengajuan.anggota.jabatan === 'hod' ? 'HOD' : 'Staff'}</p>
+                            <p className="text-[11px] text-slate-300">Tenor Diminta</p>
+                            <p className="text-sm sm:text-base font-bold text-emerald-300 mt-0.5 tabular-nums">
+                                {pengajuan.tenor_baru ? `${pengajuan.tenor_baru} bulan` : 'Lunas Sekarang'}
+                            </p>
                         </div>
-                    )}
-                    {pengajuan.anggota.lama_keanggotaan_tahun && (
                         <div>
-                            <p className="text-xs text-slate-400 mb-1">Lama Keanggotaan</p>
-                            <p className="text-base font-semibold text-slate-800">{pengajuan.anggota.lama_keanggotaan_tahun} tahun</p>
+                            <p className="text-[11px] text-slate-300">Tgl Pengajuan</p>
+                            <p className="text-sm sm:text-base font-bold mt-0.5">{pengajuan.tanggal_pengajuan}</p>
                         </div>
-                    )}
-                    <div>
-                        <p className="text-xs text-slate-400 mb-1">Sisa Angsuran</p>
-                        <p className="text-base font-semibold text-slate-800">{pengajuan.pinjaman.sisa_angsuran}x</p>
                     </div>
-                </div>
-            </div>
+                </DrawerHero>
 
-            <div className="bg-slate-50 rounded-xl p-4">
-                <p className="text-xs text-slate-400 mb-3">Alasan Pengajuan</p>
-                <p className="text-sm text-slate-700">{pengajuan.keterangan || '-'}</p>
-            </div>
+                {pengajuan.catatan_bendahara && (
+                    <DrawerNoteCallout
+                        label="Catatan dari Bendahara"
+                        note={pengajuan.catatan_bendahara}
+                        tone="amber"
+                        icon={MessageSquareText}
+                    />
+                )}
 
-            {preview && (
-                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                    <p className="text-xs text-slate-400 mb-3">Simulasi Perubahan (Bunga Menurun / Declining Balance)</p>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <div className="bg-white rounded-lg p-4 border border-slate-200">
-                            <p className="text-xs text-slate-400 mb-1">Sisa Pokok</p>
-                            <p className="text-lg font-bold text-slate-800 break-all privacy-blur">{formatRupiah(preview.sisa_pokok)}</p>
-                        </div>
-                        {preview.bunga !== undefined && (
-                            <div className="bg-amber-50 rounded-lg p-4 border border-amber-100">
-                                <p className="text-xs text-slate-400 mb-1">Bunga 1 Bulan</p>
-                                <p className="text-lg font-bold text-amber-700 break-all privacy-blur">{formatRupiah(preview.bunga)}</p>
-                            </div>
+                {pengajuan.catatan_ketua && (
+                    <DrawerNoteCallout
+                        label="Catatan Keputusan Anda"
+                        note={pengajuan.catatan_ketua}
+                        tone="emerald"
+                        icon={MessageSquareText}
+                    />
+                )}
+
+                <DrawerSection title="Data Anggota" icon={User}>
+                    <DrawerFieldGrid cols={3}>
+                        <DrawerField label="Nama" value={pengajuan.anggota.nama} />
+                        <DrawerField label="No. Karyawan" value={pengajuan.anggota.no_karyawan} mono />
+                        {pengajuan.anggota.cabang && (
+                            <DrawerField label="Cabang" value={pengajuan.anggota.cabang} />
                         )}
-                        {preview.total_bayar && (
-                            <div className="bg-brand-green/10 rounded-lg p-4 border border-brand-green/20">
-                                <p className="text-xs text-slate-400 mb-1">Total Bayar (Lunas Sekarang)</p>
-                                <p className="text-lg font-bold text-brand-green break-all privacy-blur">{formatRupiah(preview.total_bayar)}</p>
-                            </div>
+                        {pengajuan.anggota.jabatan && (
+                            <DrawerField label="Jabatan" value={pengajuan.anggota.jabatan === 'hod' ? 'HOD' : 'Staff'} />
                         )}
+                        {pengajuan.anggota.lama_keanggotaan_tahun && (
+                            <DrawerField label="Lama Keanggotaan" value={`${pengajuan.anggota.lama_keanggotaan_tahun} tahun`} />
+                        )}
+                        <DrawerField label="Sisa Angsuran" value={`${pengajuan.pinjaman.sisa_angsuran}x`} />
+                    </DrawerFieldGrid>
+                </DrawerSection>
+
+                <DrawerSection title="Alasan Pengajuan" icon={FileText}>
+                    <p className="text-sm text-slate-700 leading-relaxed">{pengajuan.keterangan || '-'}</p>
+                </DrawerSection>
+
+                {preview && (
+                    <DrawerSection
+                        title="Simulasi Perubahan"
+                        description="Perhitungan bunga menurun (declining balance)"
+                        icon={Layers}
+                        padding="none"
+                    >
+                        <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
+                            <div className="p-3.5 sm:px-4">
+                                <p className="text-[11px] font-medium text-slate-500">Sisa Pokok</p>
+                                <p className="text-base font-bold text-slate-900 tabular-nums mt-0.5 privacy-blur">
+                                    {formatRupiah(preview.sisa_pokok)}
+                                </p>
+                            </div>
+                            {preview.bunga !== undefined && (
+                                <div className="p-3.5 sm:px-4 bg-amber-50/35">
+                                    <p className="text-[11px] font-medium text-amber-800">Bunga 1 Bulan</p>
+                                    <p className="text-base font-bold text-amber-700 tabular-nums mt-0.5 privacy-blur">
+                                        {formatRupiah(preview.bunga)}
+                                    </p>
+                                </div>
+                            )}
+                            {preview.total_bayar && (
+                                <div className="p-3.5 sm:px-4 bg-emerald-50/35">
+                                    <p className="text-[11px] font-medium text-emerald-800">Total Bayar (Lunas Sekarang)</p>
+                                    <p className="text-base font-extrabold text-brand-green-dark tabular-nums mt-0.5 privacy-blur">
+                                        {formatRupiah(preview.total_bayar)}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
                         {preview.jadwal && preview.jadwal.length > 0 && (
-                            <div className="md:col-span-3">
-                                <p className="text-xs text-slate-400 mb-2">Detail Angsuran Baru</p>
+                            <div className="border-t border-slate-200/80">
+                                <div className="px-4 py-2 bg-[#F8FAFC] border-b border-slate-100">
+                                    <p className="text-xs font-semibold text-slate-600">Detail Angsuran Baru</p>
+                                </div>
                                 <div className="overflow-x-auto">
-                                    <table className="w-full text-sm">
+                                    <table className="w-full text-xs sm:text-sm">
                                         <thead>
-                                            <tr className="text-left text-slate-400 border-b border-slate-200">
-                                                <th className="py-2 px-3 w-12 text-center">Ke</th>
-                                                <th className="py-2 px-3 text-right">Pokok</th>
-                                                <th className="py-2 px-3 text-right">Bunga</th>
-                                                <th className="py-2 px-3 text-right">Total Bayar</th>
+                                            <tr className="text-left text-slate-600 bg-gradient-to-r from-[#f4f7fb] via-[#f8fafc] to-[#f1faf4] border-b border-slate-200/80">
+                                                <th className="py-2 px-3 w-12 text-center font-semibold">Ke</th>
+                                                <th className="py-2 px-3 text-right font-semibold">Pokok</th>
+                                                <th className="py-2 px-3 text-right font-semibold">Bunga</th>
+                                                <th className="py-2 px-3 text-right font-semibold">Total Bayar</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {preview.jadwal.map((a) => (
-                                                <tr key={a.cicilan_ke} className="border-b border-slate-50 hover:bg-slate-50">
-                                                    <td className="py-2 px-3 text-center font-medium text-slate-700">{a.cicilan_ke}</td>
-                                                    <td className="py-2 px-3 text-right text-slate-700 privacy-blur">{formatRupiah(a.nominal_pokok)}</td>
-                                                    <td className="py-2 px-3 text-right text-amber-600 privacy-blur">{formatRupiah(a.nominal_bunga)}</td>
-                                                    <td className="py-2 px-3 text-right font-semibold text-slate-800 privacy-blur">{formatRupiah(a.total_bayar)}</td>
+                                                <tr key={a.cicilan_ke} className="border-b border-slate-100 hover:bg-brand-green-light/25 transition-colors">
+                                                    <td className="py-2 px-3 text-center font-medium text-slate-700 tabular-nums">{a.cicilan_ke}</td>
+                                                    <td className="py-2 px-3 text-right text-slate-700 tabular-nums privacy-blur">{formatRupiah(a.nominal_pokok)}</td>
+                                                    <td className="py-2 px-3 text-right text-amber-700 tabular-nums privacy-blur">{formatRupiah(a.nominal_bunga)}</td>
+                                                    <td className="py-2 px-3 text-right font-semibold text-slate-800 tabular-nums privacy-blur">{formatRupiah(a.total_bayar)}</td>
                                                 </tr>
                                             ))}
-                                            <tr className="font-bold bg-white border-t-2 border-slate-200">
+                                            <tr className="font-bold bg-[#F4F7FB] border-t-2 border-slate-200">
                                                 <td className="py-2 px-3">Total</td>
-                                                <td className="py-2 px-3 text-right privacy-blur">{formatRupiah(preview.jadwal.reduce((s, a) => s + a.nominal_pokok, 0))}</td>
-                                                <td className="py-2 px-3 text-right text-amber-600 privacy-blur">{formatRupiah(preview.jadwal.reduce((s, a) => s + a.nominal_bunga, 0))}</td>
-                                                <td className="py-2 px-3 text-right privacy-blur">{formatRupiah(preview.jadwal.reduce((s, a) => s + a.total_bayar, 0))}</td>
+                                                <td className="py-2 px-3 text-right tabular-nums privacy-blur">{formatRupiah(preview.jadwal.reduce((s, a) => s + a.nominal_pokok, 0))}</td>
+                                                <td className="py-2 px-3 text-right text-amber-700 tabular-nums privacy-blur">{formatRupiah(preview.jadwal.reduce((s, a) => s + a.nominal_bunga, 0))}</td>
+                                                <td className="py-2 px-3 text-right text-brand-navy tabular-nums privacy-blur">{formatRupiah(preview.jadwal.reduce((s, a) => s + a.total_bayar, 0))}</td>
                                             </tr>
                                         </tbody>
                                     </table>
                                 </div>
                             </div>
                         )}
-                    </div>
-                </div>
-            )}
+                    </DrawerSection>
+                )}
 
-            {angsuranBaru && angsuranBaru.length > 0 && (
-                <div className="border border-slate-200 rounded-xl overflow-hidden">
-                    <button
-                        type="button"
-                        onClick={() => setShowTable(!showTable)}
-                        className="w-full px-4 py-3 bg-slate-50 flex items-center justify-between text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
+                {angsuranBaru && angsuranBaru.length > 0 && (
+                    <DrawerSection
+                        title="Detail Jadwal Angsuran Baru"
+                        description={`${angsuranBaru.length} cicilan`}
+                        icon={Layers}
+                        padding="none"
+                        action={
+                            <button
+                                type="button"
+                                onClick={() => setShowTable(!showTable)}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-colors"
+                            >
+                                <span>{showTable ? 'Tutup Jadwal' : 'Lihat Jadwal'}</span>
+                                {showTable ? <ChevronUp size={14} aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />}
+                            </button>
+                        }
                     >
-                        <span className="flex items-center gap-2">
-                            <svg className={`w-5 h-5 transition-transform ${showTable ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                            Detail Jadwal Angsuran Baru
-                        </span>
-                        <span className="text-xs text-slate-400">{angsuranBaru.length} cicilan</span>
-                    </button>
-
-                    {showTable && (
-                        <div className="overflow-x-auto p-3">
-                            <table className="w-full text-sm">
-                                <thead>
-                                    <tr className="text-left text-slate-400 border-b border-slate-200">
-                                        <th className="py-2 px-3 w-12 text-center">Ke</th>
-                                        <th className="py-2 px-3 text-right">Pokok</th>
-                                        <th className="py-2 px-3 text-right">Bunga</th>
-                                        <th className="py-2 px-3 text-right">Total Bayar</th>
-                                        <th className="py-2 px-3 text-center">Jatuh Tempo</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {angsuranBaru.map((a) => (
-                                        <tr key={a.id} className="border-b border-slate-50 hover:bg-slate-50">
-                                            <td className="py-2 px-3 text-center font-medium text-slate-700">{a.cicilan_ke}</td>
-                                            <td className="py-2 px-3 text-right text-slate-700 privacy-blur">{formatRupiah(a.nominal_pokok)}</td>
-                                            <td className="py-2 px-3 text-right text-amber-600 privacy-blur">{formatRupiah(a.nominal_bunga)}</td>
-                                            <td className="py-2 px-3 text-right font-semibold text-slate-800 privacy-blur">{formatRupiah(a.total_bayar)}</td>
-                                            <td className="py-2 px-3 text-center text-slate-600 whitespace-nowrap">
-                                                {a.tanggal_jatuh_tempo ? new Date(a.tanggal_jatuh_tempo).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}
-                                            </td>
+                        {showTable && (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-xs sm:text-sm">
+                                    <thead>
+                                        <tr className="text-left text-slate-600 bg-gradient-to-r from-[#f4f7fb] via-[#f8fafc] to-[#f1faf4] border-b border-slate-200/80">
+                                            <th className="py-2 px-3 w-12 text-center font-semibold">Ke</th>
+                                            <th className="py-2 px-3 text-right font-semibold">Pokok</th>
+                                            <th className="py-2 px-3 text-right font-semibold">Bunga</th>
+                                            <th className="py-2 px-3 text-right font-semibold">Total Bayar</th>
+                                            <th className="py-2 px-3 text-center font-semibold">Jatuh Tempo</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                                <tfoot className="bg-slate-50 border-t-2 border-slate-200">
-                                    <tr className="font-bold text-slate-800">
-                                        <td className="py-2 px-3">Total</td>
-                                        <td className="py-2 px-3 text-right privacy-blur">{formatRupiah(angsuranBaru.reduce((sum, a) => sum + a.nominal_pokok, 0))}</td>
-                                        <td className="py-2 px-3 text-right text-amber-600 privacy-blur">{formatRupiah(angsuranBaru.reduce((sum, a) => sum + a.nominal_bunga, 0))}</td>
-                                        <td className="py-2 px-3 text-right privacy-blur">{formatRupiah(angsuranBaru.reduce((sum, a) => sum + a.total_bayar, 0))}</td>
-                                        <td></td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-                    )}
-                </div>
-            )}
+                                    </thead>
+                                    <tbody>
+                                        {angsuranBaru.map((a) => (
+                                            <tr key={a.id} className="border-b border-slate-100 hover:bg-brand-green-light/25 transition-colors">
+                                                <td className="py-2 px-3 text-center font-medium text-slate-700 tabular-nums">{a.cicilan_ke}</td>
+                                                <td className="py-2 px-3 text-right text-slate-700 tabular-nums privacy-blur">{formatRupiah(a.nominal_pokok)}</td>
+                                                <td className="py-2 px-3 text-right text-amber-700 tabular-nums privacy-blur">{formatRupiah(a.nominal_bunga)}</td>
+                                                <td className="py-2 px-3 text-right font-semibold text-slate-800 tabular-nums privacy-blur">{formatRupiah(a.total_bayar)}</td>
+                                                <td className="py-2 px-3 text-center text-slate-600 whitespace-nowrap">
+                                                    {a.tanggal_jatuh_tempo ? new Date(a.tanggal_jatuh_tempo).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                    <tfoot className="bg-[#F4F7FB] border-t-2 border-slate-200">
+                                        <tr className="font-bold text-slate-800">
+                                            <td className="py-2 px-3">Total</td>
+                                            <td className="py-2 px-3 text-right tabular-nums privacy-blur">{formatRupiah(angsuranBaru.reduce((sum, a) => sum + a.nominal_pokok, 0))}</td>
+                                            <td className="py-2 px-3 text-right text-amber-700 tabular-nums privacy-blur">{formatRupiah(angsuranBaru.reduce((sum, a) => sum + a.nominal_bunga, 0))}</td>
+                                            <td className="py-2 px-3 text-right text-brand-navy tabular-nums privacy-blur">{formatRupiah(angsuranBaru.reduce((sum, a) => sum + a.total_bayar, 0))}</td>
+                                            <td></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        )}
+                    </DrawerSection>
+                )}
 
-            {pengajuan.nominal_final && (
-                <div className="bg-brand-green/5 border border-brand-green/20 rounded-xl p-4">
-                    <p className="text-xs text-brand-green-dark mb-1">Nominal Final Pelunasan</p>
-                    <p className="text-xl font-bold text-brand-green privacy-blur">{formatRupiah(pengajuan.nominal_final)}</p>
-                </div>
-            )}
+                {pengajuan.nominal_final && (
+                    <DrawerSection title="Nominal Final Pelunasan" icon={Wallet} tone="emerald">
+                        <p className="text-xl font-extrabold text-brand-green-dark tabular-nums privacy-blur">
+                            {formatRupiah(pengajuan.nominal_final)}
+                        </p>
+                    </DrawerSection>
+                )}
 
-            <div className="pt-4 border-t border-slate-100">
-                {bisaDiproses && !aksi && (
-                    <div className="flex items-center gap-3">
-                        <Button variant="primary" onClick={() => setAksi('approve')}>
-                            Setujui
-                        </Button>
-                        <Button variant="danger" onClick={() => setAksi('reject')}>
-                            Tolak
-                        </Button>
+                {errors.keputusan && (
+                    <div className="flex items-start gap-2.5 bg-rose-50/50 border border-rose-200/80 rounded-xl p-3.5">
+                        <AlertCircle size={17} className="text-rose-500 shrink-0 mt-0.5" />
+                        <p className="text-sm font-medium text-rose-700">{errors.keputusan}</p>
                     </div>
                 )}
 
                 {bisaDiproses && aksi && (
-                    <form onSubmit={submit}>
-                        {aksi === 'approve' && (
-                            <div className="mb-4">
-                                <label className="block text-sm font-semibold text-slate-600 mb-2">Berlaku Mulai</label>
-                                <div className="flex gap-3">
-                                    <label className={`flex-1 flex items-center gap-2 p-3 rounded-xl border-2 cursor-pointer ${data.bulan_berlaku === 'bulan_ini' ? 'border-brand-green bg-brand-green-light' : 'border-slate-200'}`}>
-                                        <input type="radio" checked={data.bulan_berlaku === 'bulan_ini'} onChange={() => setData('bulan_berlaku', 'bulan_ini')} />
-                                        <span className="text-sm font-semibold">Bulan Ini</span>
-                                    </label>
-                                    <label className={`flex-1 flex items-center gap-2 p-3 rounded-xl border-2 cursor-pointer ${data.bulan_berlaku === 'bulan_depan' ? 'border-brand-green bg-brand-green-light' : 'border-slate-200'}`}>
-                                        <input type="radio" checked={data.bulan_berlaku === 'bulan_depan'} onChange={() => setData('bulan_berlaku', 'bulan_depan')} />
-                                        <span className="text-sm font-semibold">Bulan Depan</span>
-                                    </label>
+                    <DrawerSection
+                        ref={formRef}
+                        title={aksi === 'approve' ? 'Otorisasi Perubahan Tenor' : 'Konfirmasi Penolakan'}
+                        icon={aksi === 'approve' ? CheckCircle2 : XCircle}
+                        tone={aksi === 'reject' ? 'rose' : 'emerald'}
+                    >
+                        <form id={formId} onSubmit={submit} className="space-y-3.5">
+                            {aksi === 'approve' && (
+                                <div>
+                                    <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-2">Berlaku Mulai</label>
+                                    <div className="grid grid-cols-2 gap-2.5">
+                                        <label
+                                            className={`flex items-center gap-2.5 p-3 rounded-xl border-2 cursor-pointer transition-colors ${
+                                                data.bulan_berlaku === 'bulan_ini'
+                                                    ? 'border-brand-green bg-brand-green-light/50 text-brand-navy'
+                                                    : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                                            }`}
+                                        >
+                                            <input
+                                                type="radio"
+                                                checked={data.bulan_berlaku === 'bulan_ini'}
+                                                onChange={() => setData('bulan_berlaku', 'bulan_ini')}
+                                                className="text-brand-green focus:ring-brand-green"
+                                            />
+                                            <span className="text-sm font-semibold">Bulan Ini</span>
+                                        </label>
+                                        <label
+                                            className={`flex items-center gap-2.5 p-3 rounded-xl border-2 cursor-pointer transition-colors ${
+                                                data.bulan_berlaku === 'bulan_depan'
+                                                    ? 'border-brand-green bg-brand-green-light/50 text-brand-navy'
+                                                    : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                                            }`}
+                                        >
+                                            <input
+                                                type="radio"
+                                                checked={data.bulan_berlaku === 'bulan_depan'}
+                                                onChange={() => setData('bulan_berlaku', 'bulan_depan')}
+                                                className="text-brand-green focus:ring-brand-green"
+                                            />
+                                            <span className="text-sm font-semibold">Bulan Depan</span>
+                                        </label>
+                                    </div>
+                                    {errors.bulan_berlaku && <p className="text-xs sm:text-sm font-medium text-red-600 mt-1.5">{errors.bulan_berlaku}</p>}
                                 </div>
-                                {errors.bulan_berlaku && <p className="text-sm text-red-600 mt-1.5">{errors.bulan_berlaku}</p>}
+                            )}
+
+                            <div>
+                                <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">
+                                    Catatan {aksi === 'approve' ? 'Persetujuan' : 'Penolakan'}
+                                </label>
+                                <textarea
+                                    value={data.catatan}
+                                    onChange={(e) => setData('catatan', e.target.value)}
+                                    rows={3}
+                                    placeholder={
+                                        aksi === 'approve'
+                                            ? 'Contoh: Perubahan tenor disetujui, jadwal angsuran diperbarui.'
+                                            : 'Contoh: Belum memenuhi ketentuan perubahan tenor.'
+                                    }
+                                    className="w-full px-3.5 py-2.5 text-base sm:text-sm rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
+                                    autoFocus
+                                />
+                                {errors.catatan && <p className="text-xs sm:text-sm font-medium text-red-600 mt-1.5">{errors.catatan}</p>}
                             </div>
-                        )}
+                        </form>
+                    </DrawerSection>
+                )}
+            </DrawerBody>
 
-                        <label className="block text-sm font-semibold text-slate-600 mb-2">
-                            Catatan {aksi === 'approve' ? 'Persetujuan' : 'Penolakan'}
-                        </label>
-                        <textarea
-                            value={data.catatan}
-                            onChange={(e) => setData('catatan', e.target.value)}
-                            rows={3}
-                            placeholder={aksi === 'approve' ? 'Contoh: Layak dicairkan, saldo mencukupi.' : 'Contoh: Belum memenuhi ketentuan.'}
-                            className="w-full px-4 py-2.5 text-base rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
-                            autoFocus
-                        />
-                        {errors.catatan && <p className="text-sm text-red-600 mt-1.5">{errors.catatan}</p>}
-
-                        <div className="flex items-center gap-3 mt-4">
+            <DrawerFooter>
+                {bisaDiproses ? (
+                    !aksi ? (
+                        <div className="grid grid-cols-2 gap-2.5 sm:flex sm:items-center sm:justify-between">
                             <Button
-                                type="submit"
-                                variant={aksi === 'approve' ? 'primary' : 'danger'}
-                                disabled={processing}
+                                type="button"
+                                variant="dangerSoft"
+                                size="drawer"
+                                onClick={() => setAksi('reject')}
                             >
-                                {processing ? 'Memproses...' : `Konfirmasi ${aksi === 'approve' ? 'Setujui' : 'Tolak'}`}
+                                <X size={16} />
+                                Tolak
                             </Button>
-                            <Button type="button" variant="ghost" onClick={() => setAksi(null)}>
-                                Batal
+                            <Button
+                                type="button"
+                                variant="primary"
+                                size="drawer"
+                                onClick={() => setAksi('approve')}
+                            >
+                                <Check size={16} />
+                                Setujui
                             </Button>
                         </div>
-                    </form>
+                    ) : (
+                        <div className="grid grid-cols-2 gap-2.5 sm:flex sm:items-center sm:justify-between">
+                            <Button
+                                type="button"
+                                variant="neutral"
+                                size="drawer"
+                                onClick={() => setAksi(null)}
+                                disabled={processing}
+                            >
+                                <ArrowLeft size={16} />
+                                Batal
+                            </Button>
+                            <Button
+                                type="submit"
+                                form={formId}
+                                variant={aksi === 'approve' ? 'primary' : 'danger'}
+                                size="drawer"
+                                disabled={processing}
+                            >
+                                {aksi === 'approve' ? <Check size={16} /> : <X size={16} />}
+                                {processing ? 'Memproses...' : `Konfirmasi ${aksi === 'approve' ? 'Setujui' : 'Tolak'}`}
+                            </Button>
+                        </div>
+                    )
+                ) : (
+                    <div className="flex items-center justify-between gap-3">
+                        <StatusBadge status={badgeStatus} />
+                        <Button type="button" variant="neutral" size="drawer" onClick={onClose}>
+                            Tutup
+                        </Button>
+                    </div>
                 )}
-
-                {(isApproved || isRejected) && (
-                    <span className={`inline-flex items-center px-3 py-1.5 text-sm font-semibold rounded-lg ${
-                        isApproved ? 'bg-brand-green/10 text-brand-green' : 'bg-red-50 text-red-600'
-                    }`}>
-                        {isApproved ? 'Disetujui' : 'Ditolak'}
-                    </span>
-                )}
-            </div>
-        </div>
+            </DrawerFooter>
+        </>
     );
 }

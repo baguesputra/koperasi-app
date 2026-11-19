@@ -32,7 +32,7 @@ export default function Show({ anggota, riwayat, totalSimpanan, alokasiPelunasan
             </div>
 
             {adaPelunasanResign && (
-                <Card className="mb-4 border-l-4 border-l-rose-500">
+                <Card className="mb-4 border-rose-200/80">
                     <div className="flex items-start gap-3">
                         <span className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 inline-flex items-center justify-center shrink-0">
                             <Wallet size={19} />
@@ -40,22 +40,22 @@ export default function Show({ anggota, riwayat, totalSimpanan, alokasiPelunasan
                         <div className="flex-1 min-w-0">
                             <p className="text-sm font-bold text-rose-700">Dipakai untuk Pelunasan Pinjaman saat Resign</p>
                             <p className="text-xs text-slate-500 mt-0.5">Sebagian simpanan dialokasikan untuk melunasi angsuran tersisa.</p>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3 text-sm">
-                                <div className="rounded-xl bg-slate-50 px-3 py-2">
-                                    <p className="text-[11px] text-slate-400">Dari Pokok</p>
-                                    <p className="font-bold text-slate-800 tabular-nums">-{formatRupiah(alokasiDariPokok)}</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-200/80 border border-slate-200/80 rounded-xl bg-white mt-3 text-sm overflow-hidden">
+                                <div className="px-3 py-2.5">
+                                    <p className="text-[11px] font-semibold text-slate-500">Dari Pokok</p>
+                                    <p className="font-bold text-slate-800 tabular-nums mt-0.5">-{formatRupiah(alokasiDariPokok)}</p>
                                 </div>
-                                <div className="rounded-xl bg-slate-50 px-3 py-2">
-                                    <p className="text-[11px] text-slate-400">Dari Wajib</p>
-                                    <p className="font-bold text-slate-800 tabular-nums">-{formatRupiah(alokasiDariWajib)}</p>
+                                <div className="px-3 py-2.5">
+                                    <p className="text-[11px] font-semibold text-slate-500">Dari Wajib</p>
+                                    <p className="font-bold text-slate-800 tabular-nums mt-0.5">-{formatRupiah(alokasiDariWajib)}</p>
                                 </div>
-                                <div className="rounded-xl bg-rose-50 px-3 py-2">
-                                    <p className="text-[11px] text-rose-400">Total Dipakai</p>
-                                    <p className="font-bold text-rose-600 tabular-nums">-{formatRupiah(alokasiPelunasanResign)}</p>
+                                <div className="px-3 py-2.5 bg-rose-50/50">
+                                    <p className="text-[11px] font-semibold text-rose-700">Total Dipakai</p>
+                                    <p className="font-bold text-rose-700 tabular-nums mt-0.5">-{formatRupiah(alokasiPelunasanResign)}</p>
                                 </div>
                             </div>
                             {tanggalResign && (
-                                <p className="text-xs text-slate-400 mt-2">Tanggal proses: {tanggalResign}</p>
+                                <p className="text-xs text-slate-500 mt-2">Tanggal proses: {tanggalResign}</p>
                             )}
                         </div>
                     </div>

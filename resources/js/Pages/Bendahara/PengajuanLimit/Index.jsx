@@ -148,7 +148,14 @@ export default function Index({ menunggu, riwayat }) {
                 </div>
             </Card>
 
-            <Drawer show={drawerOpen} title={`Detail Pengajuan Limit - ${detailPengajuan?.anggota?.nama ?? 'Anggota'}`} onClose={tutupDetail} maxWidth="3xl">
+            <Drawer
+                show={drawerOpen}
+                layout="split"
+                title={`Pengajuan Limit — ${detailPengajuan?.anggota?.nama ?? 'Anggota'}`}
+                badge={detailPengajuan ? <StatusBadge status={detailPengajuan.status} /> : null}
+                onClose={tutupDetail}
+                maxWidth="3xl"
+            >
                 {detailPengajuan && (
                     <KeputusanDrawer
                         key={detailPengajuan.id}

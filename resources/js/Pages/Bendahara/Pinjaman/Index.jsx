@@ -204,7 +204,14 @@ export default function Index({ menungguTinjauan = [], menungguPencairan = [], r
                 </div>
             </Card>
 
-            <Drawer show={drawerOpen} title={`Tinjau Pinjaman - ${detailPinjaman?.anggota?.nama ?? 'Anggota'}`} onClose={tutupDetail} maxWidth="3xl">
+            <Drawer
+                show={drawerOpen}
+                layout="split"
+                title={`Tinjau Pinjaman — ${detailPinjaman?.anggota?.nama ?? 'Anggota'}`}
+                badge={detailPinjaman ? <StatusBadge status={detailPinjaman.status} /> : null}
+                onClose={tutupDetail}
+                maxWidth="3xl"
+            >
                 {detailPinjaman && (
                     <KeputusanDrawer
                         key={detailPinjaman.id}

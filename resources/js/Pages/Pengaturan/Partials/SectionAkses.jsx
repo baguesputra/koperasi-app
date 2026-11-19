@@ -19,7 +19,7 @@ export default function SectionAkses({ pengguna, filterPengguna, daftarRole, rol
 
     return (
         <div className="space-y-4">
-            <p className="text-sm text-slate-400">Pilih kelola pengguna atau role — panel terbuka di samping tanpa pindah halaman.</p>
+            <p className="text-sm text-slate-500">Pilih kelola pengguna atau role — panel terbuka di samping tanpa pindah halaman.</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {items.map((item) => {
                     const Icon = item.icon;
@@ -29,8 +29,10 @@ export default function SectionAkses({ pengguna, filterPengguna, daftarRole, rol
                             key={item.key}
                             type="button"
                             onClick={() => setSheet(active ? null : item.key)}
-                            className={`bg-white rounded-2xl border p-5 flex items-center justify-between gap-4 text-left transition-colors ${
-                                active ? 'border-brand-green ring-1 ring-brand-green' : 'border-slate-100 hover:bg-slate-50'
+                            className={`bg-white rounded-2xl border p-5 flex items-center justify-between gap-4 text-left shadow-2xs transition-colors ${
+                                active
+                                    ? 'border-brand-green ring-1 ring-brand-green'
+                                    : 'border-slate-200/80 hover:border-slate-300'
                             }`}
                         >
                             <div className="flex items-center gap-3 min-w-0">
@@ -39,10 +41,10 @@ export default function SectionAkses({ pengguna, filterPengguna, daftarRole, rol
                                 </div>
                                 <div className="min-w-0">
                                     <p className="text-base font-bold text-slate-800">{item.title}</p>
-                                    <p className="text-sm text-slate-400">{item.desc}</p>
+                                    <p className="text-sm text-slate-500">{item.desc}</p>
                                 </div>
                             </div>
-                            <ChevronRight size={18} className={`shrink-0 transition-transform ${active ? 'rotate-90' : 'text-slate-300'}`} />
+                            <ChevronRight size={18} className={`shrink-0 transition-transform ${active ? 'rotate-90 text-brand-green' : 'text-slate-400'}`} />
                         </button>
                     );
                 })}

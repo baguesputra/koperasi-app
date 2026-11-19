@@ -1,8 +1,16 @@
+import { GitCommitHorizontal } from 'lucide-react';
+import { DrawerSection } from '@/Components/ui/DrawerSection';
 import { formatRupiah } from '@/Utils/formatCurrency';
 
 export default function JejakNominal({ pinjaman, finalLabel = 'Final' }) {
     const baris = [
-        { label: 'Diminta anggota', nilai: pinjaman.nominal_diminta, tenor: pinjaman.tenor_diminta, tone: 'text-slate-800' },
+        {
+            label: 'Diminta anggota',
+            nilai: pinjaman.nominal_diminta,
+            tenor: pinjaman.tenor_diminta,
+            dot: 'bg-slate-400',
+            tone: 'text-slate-800',
+        },
     ];
 
     if (pinjaman.nominal_disetujui_bendahara) {
@@ -10,7 +18,8 @@ export default function JejakNominal({ pinjaman, finalLabel = 'Final' }) {
             label: 'Usulan Bendahara',
             nilai: pinjaman.nominal_disetujui_bendahara,
             tenor: pinjaman.tenor_disetujui_bendahara,
-            tone: 'text-blue-700',
+            dot: 'bg-indigo-500',
+            tone: 'text-indigo-700',
         });
     }
 
@@ -19,25 +28,33 @@ export default function JejakNominal({ pinjaman, finalLabel = 'Final' }) {
             label: finalLabel,
             nilai: pinjaman.nominal_disetujui,
             tenor: pinjaman.tenor_disetujui,
+            dot: 'bg-brand-green',
             tone: 'text-brand-green-dark',
         });
     }
 
     if (baris.length <= 1) return null;
 
+    const colsClass = baris.length >= 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2';
+
     return (
-        <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-            <p className="text-sm font-bold text-slate-700 mb-2">Jejak Persetujuan Nominal</p>
-            <div className="space-y-1.5 text-sm">
+        <DrawerSection title="Jejak Persetujuan Nominal" icon={GitCommitHorizontal} padding="none">
+            <div className={`grid grid-cols-1 ${colsClass} divide-y sm:divide-y-0 sm:divide-x divide-slate-100`}>
                 {baris.map((b) => (
-                    <div key={b.label} className="flex items-center justify-between gap-4">
-                        <span className="text-slate-500">{b.label}</span>
-                        <span className={`font-semibold ${b.tone}`}>
-                            <span className="privacy-blur">{formatRupiah(b.nilai)}</span>{b.tenor ? ` • ${b.tenor} bln` : ''}
-                        </span>
+                    <div key={b.label} className="p-3.5 sm:px-4">
+                        <div className="flex items-center gap-1.5">
+                            <span className={`w-2 h-2 rounded-full shrink-0 ${b.dot}`} aria-hidden="true" />
+                            <span className="text-[11px] font-semibold text-slate-500">{b.label}</span>
+                        </div>
+                        <p className={`text-sm sm:text-base font-bold tabular-nums mt-1 ${b.tone}`}>
+                            <span className="privacy-blur">{formatRupiah(b.nilai)}</span>
+                        </p>
+                        {b.tenor && (
+                            <p className="text-xs text-slate-500 mt-0.5">{b.tenor} bulan</p>
+                        )}
                     </div>
                 ))}
             </div>
-        </div>
+        </DrawerSection>
     );
 }

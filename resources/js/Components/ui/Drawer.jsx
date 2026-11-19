@@ -13,6 +13,10 @@ export default function Drawer({
     open,
     title,
     description,
+    badge = null,
+    footer = null,
+    surface = 'alabaster',
+    layout = 'scroll',
     onClose = () => {},
     maxWidth = 'xl',
     mobileMode = 'fullscreen',
@@ -23,7 +27,7 @@ export default function Drawer({
         xl: 'max-w-xl',
         '2xl': 'max-w-2xl',
         '3xl': 'max-w-3xl',
-    }[maxWidth];
+    }[maxWidth] ?? 'max-w-xl';
 
     const [isMobile, setIsMobile] = useState(false);
 
@@ -35,11 +39,12 @@ export default function Drawer({
     }, []);
 
     const isFullscreenMobile = mobileMode === 'fullscreen' && isMobile;
+    const surfaceClass = surface === 'white' ? 'bg-white' : 'bg-[#F5F7FA]';
 
-    const panelClass = `relative flex h-full w-full flex-col bg-white shadow-xl ${
+    const panelClass = `relative flex h-full w-full flex-col ${surfaceClass} ${
         isFullscreenMobile
             ? 'max-w-full w-full rounded-none'
-            : maxWidthClass
+            : `${maxWidthClass} border-l border-slate-200/80 shadow-[-12px_0_40px_-10px_rgba(15,30,54,0.18)]`
     }`;
 
     return (
@@ -53,7 +58,7 @@ export default function Drawer({
                     leaveFrom="opacity-100"
                     leaveTo="opacity-0"
                 >
-                    <div className="absolute inset-0 bg-slate-900/50" />
+                    <div className="absolute inset-0 bg-brand-navy/45 backdrop-blur-[2px]" />
                 </TransitionChild>
 
                 <div className={`fixed inset-0 flex ${isFullscreenMobile ? 'justify-center items-end' : 'justify-end'}`}>
@@ -66,25 +71,45 @@ export default function Drawer({
                         leaveTo={isFullscreenMobile ? 'translate-y-full' : 'translate-x-full'}
                     >
                         <DialogPanel className={panelClass}>
-                            <div className="flex items-start justify-between gap-3 px-4 py-3 sm:px-5 sm:py-3.5 border-b border-slate-100 shrink-0">
-                                <div className="min-w-0">
-                                    <h2 className="text-base sm:text-lg font-bold text-slate-800 tracking-tight">{title}</h2>
-                                    {description && (
-                                        <p className="text-xs text-slate-500 mt-0.5">{description}</p>
-                                    )}
+                            <div className="shrink-0 bg-white border-b border-slate-200/80 relative">
+                                <div className="flex items-start justify-between gap-3 px-4 py-3 sm:px-5 sm:py-3.5">
+                                    <div className="min-w-0 flex-1">
+                                        <h2 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight truncate">{title}</h2>
+                                        {description && (
+                                            <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{description}</p>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        {badge}
+                                        <button
+                                            type="button"
+                                            onClick={onClose}
+                                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors shrink-0"
+                                            aria-label="Tutup panel"
+                                            title="Tutup (Esc)"
+                                        >
+                                            <X size={18} />
+                                        </button>
+                                    </div>
                                 </div>
-                                <button
-                                    type="button"
-                                    onClick={onClose}
-                                    className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors shrink-0"
-                                    title="Tutup"
-                                >
-                                    <X size={18} />
-                                </button>
                             </div>
-                            <div className="flex-1 overflow-y-auto px-4 py-3.5 sm:px-5 sm:py-4">
-                                {children}
-                            </div>
+
+                            {layout === 'split' ? (
+                                <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+                                    {children}
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5">
+                                        {children}
+                                    </div>
+                                    {footer && (
+                                        <div className="shrink-0 bg-white border-t border-slate-200/80 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:px-5 sm:py-3.5 shadow-[0_-4px_16px_-4px_rgba(15,30,54,0.06)]">
+                                            {footer}
+                                        </div>
+                                    )}
+                                </>
+                            )}
                         </DialogPanel>
                     </TransitionChild>
                 </div>

@@ -158,8 +158,13 @@ export default function KelolaPengguna({
         }
     }
 
+    const cardWrapClass =
+        mode === 'drawer'
+            ? 'rounded-xl bg-white border border-slate-200/80 shadow-[0_1px_3px_rgba(15,30,54,0.04)] p-4'
+            : '';
+
     const headerKecil = (children) => (
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
             <button
                 onClick={() => setView('list')}
                 aria-label="Kembali ke daftar"
@@ -173,7 +178,7 @@ export default function KelolaPengguna({
 
     if (view === 'tambah') {
         return (
-            <div>
+            <div className={cardWrapClass}>
                 {headerKecil('Tambah Pengguna')}
                 <form onSubmit={submitTambah}>
                     <FormField label="Nama Lengkap" error={tambah.errors.name} required>
@@ -196,12 +201,13 @@ export default function KelolaPengguna({
                         <TextField size="sm" type="email" value={tambah.data.email} onChange={(e) => tambah.setData('email', e.target.value)} placeholder="budi@koperasi.test" />
                     </FormField>
                     <p className="-mt-2 mb-3 text-xs text-slate-500">Akun baru login via SSO — tanpa password lokal.</p>
-                    <div className="flex items-center gap-2 pt-1">
-                        <Button type="submit" size="sm" disabled={tambah.processing} className="rounded-full shadow-md shadow-brand-green/25">
-                            {tambah.processing ? 'Menyimpan...' : 'Simpan Pengguna'}
-                        </Button>
-                        <Button type="button" variant="ghost" size="sm" className="rounded-full" onClick={() => setView('list')}>
+                    <div className="flex items-center justify-between gap-2.5 pt-3.5 border-t border-slate-100">
+                        <Button type="button" variant="neutral" size="drawer" className="rounded-full" onClick={() => setView('list')}>
+                            <ArrowLeft size={16} />
                             Batal
+                        </Button>
+                        <Button type="submit" size="drawer" disabled={tambah.processing} className="rounded-full shadow-md shadow-brand-green/25">
+                            {tambah.processing ? 'Menyimpan...' : 'Simpan Pengguna'}
                         </Button>
                     </div>
                 </form>
@@ -211,7 +217,7 @@ export default function KelolaPengguna({
 
     if (view === 'edit') {
         return (
-            <div>
+            <div className={cardWrapClass}>
                 {headerKecil(`Edit — ${target?.name ?? ''}`)}
                 <form onSubmit={submitEdit}>
                     <FormField label="Nama Lengkap" error={edit.errors.name} required>
@@ -240,12 +246,13 @@ export default function KelolaPengguna({
                         </Select>
                     </FormField>
                     {edit.errors.pengguna && <p className="text-xs font-medium text-red-600 mb-3">{edit.errors.pengguna}</p>}
-                    <div className="flex items-center gap-2 pt-1">
-                        <Button type="submit" size="sm" disabled={edit.processing || target?.dilindungi} className="rounded-full shadow-md shadow-brand-green/25">
-                            {edit.processing ? 'Menyimpan...' : 'Simpan Perubahan'}
-                        </Button>
-                        <Button type="button" variant="ghost" size="sm" className="rounded-full" onClick={() => setView('list')}>
+                    <div className="flex items-center justify-between gap-2.5 pt-3.5 border-t border-slate-100">
+                        <Button type="button" variant="neutral" size="drawer" className="rounded-full" onClick={() => setView('list')}>
+                            <ArrowLeft size={16} />
                             Batal
+                        </Button>
+                        <Button type="submit" size="drawer" disabled={edit.processing || target?.dilindungi} className="rounded-full shadow-md shadow-brand-green/25">
+                            {edit.processing ? 'Menyimpan...' : 'Simpan Perubahan'}
                         </Button>
                     </div>
                 </form>
@@ -255,17 +262,23 @@ export default function KelolaPengguna({
 
     if (view === 'reset') {
         return (
-            <div>
+            <div className={cardWrapClass}>
                 {headerKecil(`Reset Password — ${target?.name ?? ''}`)}
-                <div className="flex items-start gap-2.5 rounded-2xl bg-amber-50 border border-amber-200 px-3.5 py-2.5 text-xs text-amber-800 mb-4">
-                    <Lock size={15} className="shrink-0 mt-0.5" />
+                <div className="flex items-start gap-2.5 rounded-xl bg-amber-50/55 border border-amber-200/80 px-3.5 py-2.5 text-xs text-amber-900 mb-4">
+                    <Lock size={15} className="text-amber-600 shrink-0 mt-0.5" />
                     <p>Password baru langsung berlaku. Beri tahu pengguna lewat jalur aman, bukan grup umum.</p>
                 </div>
                 <form onSubmit={submitReset}>
                     <FormField label="Password Baru" error={reset.errors.password} hint="Min. 8 karakter" required>
                         <KataSandi size="sm" meter value={reset.data.password} onChange={(e) => reset.setData('password', e.target.value)} placeholder="Min. 8 karakter" autoFocus required />
                     </FormField>
-                    <label className="flex items-start gap-2.5 cursor-pointer rounded-xl bg-slate-50 border border-slate-100 px-3 py-2.5 mb-4">
+                    <label
+                        className={`flex items-start gap-2.5 cursor-pointer rounded-xl border px-3 py-2.5 mb-4 transition-colors ${
+                            reset.data.tanpa_wajib_ganti
+                                ? 'bg-brand-green-light/30 border-brand-green/40'
+                                : 'bg-white border-slate-200/80 hover:border-slate-300'
+                        }`}
+                    >
                         <input
                             type="checkbox"
                             checked={reset.data.tanpa_wajib_ganti}
@@ -274,19 +287,20 @@ export default function KelolaPengguna({
                         />
                         <span className="text-sm text-slate-700">
                             <span className="font-semibold">Jangan wajibkan ganti password saat login.</span>
-                            <span className="block text-xs text-slate-400 mt-0.5">
+                            <span className="block text-xs text-slate-500 mt-0.5">
                                 {reset.data.tanpa_wajib_ganti
                                     ? 'Pengguna bisa langsung login dengan password baru.'
                                     : 'Pengguna diminta mengganti password pada login berikutnya.'}
                             </span>
                         </span>
                     </label>
-                    <div className="flex items-center gap-2">
-                        <Button type="submit" size="sm" disabled={reset.processing} className="rounded-full shadow-md shadow-brand-green/25">
-                            {reset.processing ? 'Menyimpan...' : 'Reset Password'}
-                        </Button>
-                        <Button type="button" variant="ghost" size="sm" className="rounded-full" onClick={() => setView('list')}>
+                    <div className="flex items-center justify-between gap-2.5 pt-3.5 border-t border-slate-100">
+                        <Button type="button" variant="neutral" size="drawer" className="rounded-full" onClick={() => setView('list')}>
+                            <ArrowLeft size={16} />
                             Batal
+                        </Button>
+                        <Button type="submit" size="drawer" disabled={reset.processing} className="rounded-full shadow-md shadow-brand-green/25">
+                            {reset.processing ? 'Menyimpan...' : 'Reset Password'}
                         </Button>
                     </div>
                 </form>
@@ -319,26 +333,26 @@ export default function KelolaPengguna({
                         onChange={(e) => setCari(e.target.value)}
                         placeholder="Cari nama / no. karyawan / email..."
                         aria-label="Cari pengguna"
-                        className="pl-10 pr-8 text-sm rounded-full border-slate-200 bg-slate-50/60 focus:bg-white"
+                        className="pl-10 pr-8 text-sm rounded-full border-slate-200 bg-white shadow-2xs"
                     />
                     {cari && (
                         <button
                             type="button"
                             onClick={() => setCari('')}
                             aria-label="Hapus pencarian"
-                            className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 inline-flex items-center justify-center rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-200/70"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 inline-flex items-center justify-center rounded-full text-slate-500 hover:text-slate-700 hover:bg-slate-200/70"
                         >
                             <X size={14} />
                         </button>
                     )}
                 </div>
-                <Select size="sm" value={filterPengguna.role ?? ''} onChange={(e) => muat({ role: e.target.value })} aria-label="Filter role" className="rounded-full border-slate-200 bg-slate-50/60 text-sm">
+                <Select size="sm" value={filterPengguna.role ?? ''} onChange={(e) => muat({ role: e.target.value })} aria-label="Filter role" className="rounded-full border-slate-200 bg-white text-sm shadow-2xs">
                     <option value="">Semua Role</option>
                     {daftarRole.map((r) => (
                         <option key={r} value={r}>{labelRole[r] ?? r}</option>
                     ))}
                 </Select>
-                <Select size="sm" value={filterPengguna.status ?? ''} onChange={(e) => muat({ status: e.target.value })} aria-label="Filter status" className="rounded-full border-slate-200 bg-slate-50/60 text-sm">
+                <Select size="sm" value={filterPengguna.status ?? ''} onChange={(e) => muat({ status: e.target.value })} aria-label="Filter status" className="rounded-full border-slate-200 bg-white text-sm shadow-2xs">
                     <option value="">Semua Status</option>
                     <option value="aktif">Aktif</option>
                     <option value="nonaktif">Nonaktif</option>
@@ -346,9 +360,9 @@ export default function KelolaPengguna({
             </div>
 
             {pengguna.data.length === 0 ? (
-                <div className="text-center py-10 px-4">
-                    <p className="text-sm font-semibold text-slate-600">Tidak ada pengguna yang cocok</p>
-                    <p className="text-sm text-slate-400 mt-1">Coba ubah kata kunci atau filter.</p>
+                <div className="rounded-xl bg-white border border-slate-200/80 text-center py-10 px-4 shadow-[0_1px_3px_rgba(15,30,54,0.04)]">
+                    <p className="text-sm font-semibold text-slate-700">Tidak ada pengguna yang cocok</p>
+                    <p className="text-sm text-slate-500 mt-1">Coba ubah kata kunci atau filter.</p>
                     {filterAktif && mode === 'halaman' && (
                         <Button type="button" variant="outline" size="sm" className="mt-3 rounded-full" onClick={resetFilter}>
                             Tampilkan semua
@@ -356,24 +370,24 @@ export default function KelolaPengguna({
                     )}
                 </div>
             ) : (
-                <ul className="divide-y divide-slate-50 border border-slate-100 rounded-2xl overflow-hidden">
+                <ul className="divide-y divide-slate-100 border border-slate-200/80 rounded-xl overflow-hidden bg-white shadow-[0_1px_3px_rgba(15,30,54,0.04)]">
                     {pengguna.data.map((user) => (
-                        <li key={user.id} className="flex items-center gap-3 px-4 py-3 bg-white hover:bg-slate-50/60 transition-colors">
+                        <li key={user.id} className="flex items-center gap-3 px-4 py-3 bg-white hover:bg-brand-green-light/25 transition-colors">
                             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-navy to-brand-navy-light text-white flex items-center justify-center text-sm font-bold shrink-0 shadow-sm" aria-hidden="true">
                                 {user.name.charAt(0).toUpperCase()}
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm font-semibold text-slate-800 flex items-center gap-1.5 truncate">
                                     <span className="truncate">{user.name}</span>
-                                    {user.dilindungi && <Lock size={13} className="text-slate-300 shrink-0" />}
+                                    {user.dilindungi && <Lock size={13} className="text-slate-400 shrink-0" />}
                                     {user.harus_ganti_password && (
-                                        <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700">
+                                        <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80">
                                             Ganti password
                                         </span>
                                     )}
                                 </p>
-                                <p className="text-xs text-slate-400 truncate">
-                                    {user.no_karyawan}{user.email ? ` • ${user.email}` : ''}
+                                <p className="text-xs text-slate-500 truncate">
+                                    <span className="font-mono">{user.no_karyawan}</span>{user.email ? ` • ${user.email}` : ''}
                                 </p>
                                 <div className="flex sm:hidden items-center gap-1 mt-1">
                                     {user.roles.map((role) => (
@@ -417,21 +431,21 @@ export default function KelolaPengguna({
             )}
 
             {mode === 'drawer' && pengguna.last_page > 1 && (
-                <div className="flex items-center justify-between mt-4 text-sm">
+                <div className="flex items-center justify-between mt-4 bg-white rounded-xl border border-slate-200/80 px-3 py-2 text-sm shadow-2xs">
                     <button
                         disabled={!pengguna.prev_page_url}
                         onClick={() => muat({ page: pengguna.current_page - 1 })}
-                        className="px-3 py-1.5 rounded-lg font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        className="px-3 py-1 rounded-lg font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     >
                         ← Sebelumnya
                     </button>
-                    <span className="text-slate-500 font-semibold tabular-nums">
+                    <span className="text-slate-600 font-semibold tabular-nums">
                         {pengguna.current_page}/{pengguna.last_page}
                     </span>
                     <button
                         disabled={!pengguna.next_page_url}
                         onClick={() => muat({ page: pengguna.current_page + 1 })}
-                        className="px-3 py-1.5 rounded-lg font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        className="px-3 py-1 rounded-lg font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     >
                         Berikutnya →
                     </button>

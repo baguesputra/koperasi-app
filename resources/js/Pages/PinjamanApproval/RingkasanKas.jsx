@@ -35,7 +35,7 @@ export default function RingkasanKas({ ringkasan }) {
         >
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                 {/* 1. Antrean Anda */}
-                <div className="px-4 py-3 sm:px-4.5 sm:py-3.5 bg-gradient-to-br from-brand-navy/[0.03] to-brand-green-light/20 sm:border-l-4 sm:border-l-brand-navy border-b lg:border-b-0 sm:border-r border-slate-200/75 flex flex-col justify-between">
+                <div className="px-4 py-3 sm:px-4.5 sm:py-3.5 bg-gradient-to-br from-brand-navy/[0.03] to-brand-green-light/20 border-b lg:border-b-0 sm:border-r border-slate-200/75 flex flex-col justify-between">
                     <div className="flex items-center justify-between gap-2">
                         <span className="text-xs font-bold text-brand-navy truncate">
                             {beban_peran?.label ?? 'Antrean Anda'}

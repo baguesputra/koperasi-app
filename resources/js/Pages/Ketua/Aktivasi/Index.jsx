@@ -1,15 +1,24 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, useForm } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import {
-    ChevronRight, CheckCircle2, AlertCircle, Briefcase, UserCheck,
-    CreditCard, ShieldCheck, MapPin
+    ArrowLeft, Check, ChevronRight, CheckCircle2, AlertCircle, Briefcase, UserCheck,
+    CreditCard, ShieldCheck, MapPin, MessageSquareText, X, XCircle
 } from 'lucide-react';
 import Card from '@/Components/ui/Card';
 import FotoAnggota from '@/Components/ui/FotoAnggota';
 import StatusBadge from '@/Components/ui/StatusBadge';
 import PageHeader from '@/Components/ui/PageHeader';
 import Drawer from '@/Components/ui/Drawer';
+import {
+    DrawerBody,
+    DrawerField,
+    DrawerFieldGrid,
+    DrawerFooter,
+    DrawerHero,
+    DrawerNoteCallout,
+    DrawerSection,
+} from '@/Components/ui/DrawerSection';
 import Button from '@/Components/ui/Button';
 import { formatRupiah } from '@/Utils/formatCurrency';
 import { withIdempotencyKey } from '@/Utils/idempotency';
@@ -20,9 +29,17 @@ const tabNonAktif = `${tabDasar} text-slate-600 hover:bg-white/80 hover:text-bra
 
 function KeputusanDrawer({ pengajuan, ketentuanFinansial, onClose }) {
     const [aksi, setAksi] = useState(null);
+    const formId = useId();
+    const formRef = useRef(null);
     const { data, setData, post, processing, errors } = useForm({ catatan: '' });
     const bisaDiproses = pengajuan.status === 'diajukan';
     const isReaktivasi = pengajuan.anggota.is_reaktivasi;
+
+    useEffect(() => {
+        if (aksi && formRef.current) {
+            formRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }, [aksi]);
 
     function submit(e) {
         e.preventDefault();
@@ -33,245 +50,187 @@ function KeputusanDrawer({ pengajuan, ketentuanFinansial, onClose }) {
     }
 
     return (
-        <div className="space-y-3.5">
-            {/* Header Profil Pemohon */}
-            <div className="bg-gradient-to-br from-[#0B1527] via-[#0F1E36] to-[#0A2E1A] rounded-xl p-4 sm:p-4.5 text-white shadow-sm border border-slate-800">
-                <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3">
+        <>
+            <DrawerBody>
+                <DrawerHero>
+                    <div className="flex items-start gap-3.5">
                         <FotoAnggota
                             nama={pengajuan.anggota.nama}
                             fotoUrl={pengajuan.anggota.foto_url}
                             ukuran="lg"
                             className="ring-2 ring-white/20 shrink-0"
                         />
-                        <div>
+                        <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 flex-wrap">
                                 <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight">
                                     {pengajuan.anggota.nama}
                                 </h3>
                                 {isReaktivasi ? (
-                                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30">
+                                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-200 border border-amber-400/30">
                                         Re-Aktivasi
                                     </span>
                                 ) : (
-                                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-200 border border-emerald-400/30">
                                         Anggota Baru
                                     </span>
                                 )}
                             </div>
                             <p className="text-xs text-slate-300 mt-1 flex items-center gap-2 flex-wrap">
-                                <span>No. Karyawan: <strong className="text-white">{pengajuan.anggota.no_karyawan}</strong></span>
+                                <span>No. Karyawan: <strong className="text-white font-mono">{pengajuan.anggota.no_karyawan}</strong></span>
                                 <span>&bull;</span>
-                                <span>No. Anggota: <strong className="text-white">{pengajuan.anggota.no_anggota}</strong></span>
+                                <span>No. Anggota: <strong className="text-white font-mono">{pengajuan.anggota.no_anggota}</strong></span>
                             </p>
-                            <p className="text-[11px] text-slate-400 mt-0.5">
+                            <p className="text-[11px] text-slate-300 mt-0.5">
                                 Diajukan pada: {pengajuan.tanggal_pengajuan}
                             </p>
                         </div>
                     </div>
-                    <StatusBadge status={pengajuan.status === 'diajukan' ? 'pending' : pengajuan.status} />
-                </div>
-            </div>
+                </DrawerHero>
 
-            {/* Kepegawaian & Masa Kerja (GATE HRIS) */}
-            <div className="bg-gradient-to-br from-slate-50/70 to-white rounded-xl p-3.5 sm:p-4 border border-slate-200/80 shadow-xs">
-                <div className="flex items-center justify-between mb-2.5">
-                    <div className="flex items-center gap-1.5 text-slate-800 font-bold text-xs sm:text-sm">
-                        <Briefcase size={15} className="text-brand-green" />
-                        <h4>Kepegawaian &amp; Masa Kerja</h4>
-                    </div>
-                    {pengajuan.anggota.gate_synced_at && (
-                        <span className="text-[10px] text-slate-400 font-medium">
-                            Sinkron GATE: {pengajuan.anggota.gate_synced_at}
-                        </span>
+                <DrawerSection
+                    title="Kepegawaian & Masa Kerja"
+                    icon={Briefcase}
+                    action={
+                        pengajuan.anggota.gate_synced_at && (
+                            <span className="text-[11px] text-slate-500 font-medium">
+                                Sinkron GATE: {pengajuan.anggota.gate_synced_at}
+                            </span>
+                        )
+                    }
+                >
+                    <DrawerFieldGrid cols={2}>
+                        <DrawerField
+                            label="Masa Kerja Perusahaan"
+                            value={pengajuan.anggota.masa_kerja ?? '-'}
+                            sub={pengajuan.anggota.tanggal_mulai_kerja ? `Mulai: ${pengajuan.anggota.tanggal_mulai_kerja}` : null}
+                        />
+                        <DrawerField
+                            label="Cabang & Unit Bisnis"
+                            value={pengajuan.anggota.cabang ?? '-'}
+                            sub={pengajuan.anggota.unit_bisnis ?? '-'}
+                        />
+                        <DrawerField label="Jabatan" value={pengajuan.anggota.jabatan ?? '-'} />
+                        <DrawerField
+                            label="Departemen / Divisi"
+                            value={pengajuan.anggota.department ?? '-'}
+                            sub={pengajuan.anggota.divisi ? `Divisi: ${pengajuan.anggota.divisi}` : null}
+                        />
+                    </DrawerFieldGrid>
+                </DrawerSection>
+
+                <DrawerSection title="Identitas & Kontak" icon={UserCheck}>
+                    <DrawerFieldGrid cols={2}>
+                        <DrawerField label="No. KTP / NIK" value={pengajuan.anggota.no_ktp ?? '-'} mono />
+                        <DrawerField label="No. WhatsApp / HP" value={pengajuan.anggota.no_hp ?? '-'} />
+                        <DrawerField label="Email Akun SSO" value={pengajuan.anggota.email ?? '-'} />
+                        <DrawerField
+                            label="Status Keanggotaan"
+                            value={<span className="capitalize">{pengajuan.anggota.status}</span>}
+                        />
+                    </DrawerFieldGrid>
+                    {pengajuan.anggota.alamat && (
+                        <div className="mt-3 pt-2.5 border-t border-slate-100 text-xs text-slate-600 flex items-start gap-1.5">
+                            <MapPin size={13} className="text-slate-500 shrink-0 mt-0.5" aria-hidden="true" />
+                            <span>Alamat: {pengajuan.anggota.alamat}</span>
+                        </div>
                     )}
-                </div>
+                </DrawerSection>
 
-                <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs sm:text-sm">
-                    <div className="bg-white p-2.5 rounded-lg border border-slate-200/70">
-                        <p className="text-[11px] text-slate-500 font-medium">Masa Kerja Perusahaan</p>
-                        <p className="font-bold text-slate-900 mt-0.5">
-                            {pengajuan.anggota.masa_kerja ?? '-'}
+                {ketentuanFinansial && (
+                    <DrawerSection
+                        title="Ketentuan Finansial Pasca-Aktivasi"
+                        icon={CreditCard}
+                        tone="emerald"
+                        padding="none"
+                    >
+                        <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
+                            <div className="p-3.5 sm:px-4">
+                                <p className="text-[11px] font-medium text-slate-500">Simpanan Pokok</p>
+                                <p className="text-sm sm:text-base font-extrabold text-brand-green-dark tabular-nums mt-0.5">
+                                    {formatRupiah(ketentuanFinansial.simpanan_pokok ?? 50000)}
+                                </p>
+                                <p className="text-[11px] text-slate-500 mt-0.5">Dicatat otomatis ke buku kas</p>
+                            </div>
+                            <div className="p-3.5 sm:px-4">
+                                <p className="text-[11px] font-medium text-slate-500">Iuran Bulanan</p>
+                                <p className="text-sm sm:text-base font-extrabold text-slate-900 tabular-nums mt-0.5">
+                                    {formatRupiah((ketentuanFinansial.simpanan_wajib ?? 45000) + (ketentuanFinansial.dana_sosial ?? 5000))}
+                                    <span className="text-xs font-normal text-slate-500">/bln</span>
+                                </p>
+                                <p className="text-[11px] text-slate-500 mt-0.5">Wajib + Dana Sosial</p>
+                            </div>
+                            <div className="p-3.5 sm:px-4">
+                                <p className="text-[11px] font-medium text-slate-500">Plafon Pinjaman Awal</p>
+                                <p className="text-sm sm:text-base font-extrabold text-brand-navy tabular-nums mt-0.5">
+                                    {formatRupiah(ketentuanFinansial.limit_awal ?? 1000000)}
+                                </p>
+                                <p className="text-[11px] text-slate-500 mt-0.5">Hak limit pinjaman pertama</p>
+                            </div>
+                        </div>
+                    </DrawerSection>
+                )}
+
+                {isReaktivasi && (
+                    <DrawerSection title="Riwayat Keanggotaan Sebelumnya" icon={AlertCircle} tone="amber">
+                        <p className="text-xs sm:text-sm text-slate-700">
+                            Anggota ini sebelumnya pernah mengundurkan diri / resign pada tanggal:{' '}
+                            <strong>{pengajuan.anggota.tanggal_resign ?? '-'}</strong>
                         </p>
-                        {pengajuan.anggota.tanggal_mulai_kerja && (
-                            <p className="text-[10px] text-slate-400">
-                                Mulai: {pengajuan.anggota.tanggal_mulai_kerja}
+                        {pengajuan.anggota.alasan_resign && (
+                            <p className="text-xs text-slate-600 mt-2 italic px-3 py-2 rounded-lg bg-amber-50/50 border border-amber-200/70">
+                                Alasan resign sebelumnya: &ldquo;{pengajuan.anggota.alasan_resign}&rdquo;
                             </p>
                         )}
-                    </div>
-                    <div className="bg-white p-2.5 rounded-lg border border-slate-200/70">
-                        <p className="text-[11px] text-slate-500 font-medium">Cabang &amp; Unit Bisnis</p>
-                        <p className="font-bold text-slate-900 mt-0.5 truncate">
-                            {pengajuan.anggota.cabang ?? '-'}
-                        </p>
-                        <p className="text-[10px] text-slate-400 truncate">
-                            {pengajuan.anggota.unit_bisnis ?? '-'}
-                        </p>
-                    </div>
-                    <div className="bg-white p-2.5 rounded-lg border border-slate-200/70">
-                        <p className="text-[11px] text-slate-500 font-medium">Jabatan</p>
-                        <p className="font-semibold text-slate-800 mt-0.5 truncate">
-                            {pengajuan.anggota.jabatan ?? '-'}
-                        </p>
-                    </div>
-                    <div className="bg-white p-2.5 rounded-lg border border-slate-200/70">
-                        <p className="text-[11px] text-slate-500 font-medium">Departemen / Divisi</p>
-                        <p className="font-semibold text-slate-800 mt-0.5 truncate">
-                            {pengajuan.anggota.department ?? '-'}
-                        </p>
-                        {pengajuan.anggota.divisi && (
-                            <p className="text-[10px] text-slate-400 truncate">
-                                Divisi: {pengajuan.anggota.divisi}
-                            </p>
-                        )}
-                    </div>
-                </div>
-            </div>
+                    </DrawerSection>
+                )}
 
-            {/* Identitas & Kontak */}
-            <div className="bg-gradient-to-br from-slate-50/70 to-white rounded-xl p-3.5 sm:p-4 border border-slate-200/80 shadow-xs">
-                <div className="flex items-center gap-1.5 text-slate-800 font-bold text-xs sm:text-sm mb-2.5">
-                    <UserCheck size={15} className="text-brand-green" />
-                    <h4>Identitas &amp; Kontak</h4>
-                </div>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 text-sm">
-                    <div>
-                        <p className="text-[11px] text-slate-500 font-medium">No. KTP / NIK</p>
-                        <p className="font-semibold text-slate-800 font-mono">
-                            {pengajuan.anggota.no_ktp ?? '-'}
-                        </p>
+                <DrawerSection
+                    title="Pernyataan Digital Pemohon"
+                    icon={ShieldCheck}
+                    action={
+                        <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">
+                            {pengajuan.versi_syarat}
+                        </span>
+                    }
+                >
+                    <div className="space-y-2 text-xs sm:text-sm text-slate-700">
+                        <div className="flex items-start gap-2">
+                            <CheckCircle2 size={15} className="text-brand-green shrink-0 mt-0.5" aria-hidden="true" />
+                            <span>Pemohon menyatakan data diri &amp; kepegawaian telah diisi dengan sebenarnya.</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                            <CheckCircle2 size={15} className="text-brand-green shrink-0 mt-0.5" aria-hidden="true" />
+                            <span>Pemohon menyetujui kepatuhan AD/ART dan seluruh kebijakan Koperasi.</span>
+                        </div>
                     </div>
-                    <div>
-                        <p className="text-[11px] text-slate-500 font-medium">No. WhatsApp / HP</p>
-                        <p className="font-semibold text-slate-800">
-                            {pengajuan.anggota.no_hp ?? '-'}
-                        </p>
-                    </div>
-                    <div>
-                        <p className="text-[11px] text-slate-500 font-medium">Email Akun SSO</p>
-                        <p className="font-semibold text-slate-800 truncate" title={pengajuan.anggota.email}>
-                            {pengajuan.anggota.email ?? '-'}
-                        </p>
-                    </div>
-                    <div>
-                        <p className="text-[11px] text-slate-500 font-medium">Status Keanggotaan</p>
-                        <p className="font-semibold text-slate-800 capitalize">
-                            {pengajuan.anggota.status}
-                        </p>
-                    </div>
-                </div>
-                {pengajuan.anggota.alamat && (
-                    <div className="mt-2.5 pt-2.5 border-t border-slate-200/60 text-xs text-slate-600 flex items-start gap-1.5">
-                        <MapPin size={13} className="text-slate-400 shrink-0 mt-0.5" />
-                        <span>Alamat: {pengajuan.anggota.alamat}</span>
+                </DrawerSection>
+
+                {pengajuan.catatan_ketua && (
+                    <DrawerNoteCallout
+                        label="Catatan Ketua"
+                        note={pengajuan.catatan_ketua}
+                        timestamp={pengajuan.tanggal_keputusan}
+                        tone="emerald"
+                        icon={MessageSquareText}
+                    />
+                )}
+
+                {errors.keputusan && (
+                    <div className="flex items-start gap-2.5 bg-rose-50/50 border border-rose-200/80 rounded-xl p-3.5">
+                        <AlertCircle size={17} className="text-rose-500 shrink-0 mt-0.5" />
+                        <p className="text-sm font-medium text-rose-700">{errors.keputusan}</p>
                     </div>
                 )}
-            </div>
 
-            {/* Ketentuan Finansial Pasca-Aktivasi */}
-            {ketentuanFinansial && (
-                <div className="bg-emerald-50/60 rounded-xl p-3.5 sm:p-4 border border-emerald-200/80 shadow-2xs">
-                    <div className="flex items-center gap-1.5 text-emerald-900 font-bold text-xs sm:text-sm mb-2.5">
-                        <CreditCard size={15} className="text-emerald-700" />
-                        <h4>Ketentuan Finansial Pasca-Aktivasi</h4>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-                        <div className="bg-white/90 p-2.5 sm:p-3 rounded-lg border border-emerald-200/70">
-                            <p className="text-[11px] text-slate-500 font-medium">Simpanan Pokok</p>
-                            <p className="text-sm sm:text-base font-extrabold text-emerald-800 mt-0.5">
-                                {formatRupiah(ketentuanFinansial.simpanan_pokok ?? 50000)}
-                            </p>
-                            <p className="text-[10px] text-slate-400 mt-0.5">
-                                Dicatat otomatis ke buku kas
-                            </p>
-                        </div>
-                        <div className="bg-white/90 p-2.5 sm:p-3 rounded-lg border border-emerald-200/70">
-                            <p className="text-[11px] text-slate-500 font-medium">Iuran Bulanan</p>
-                            <p className="text-sm sm:text-base font-extrabold text-slate-800 mt-0.5">
-                                {formatRupiah((ketentuanFinansial.simpanan_wajib ?? 45000) + (ketentuanFinansial.dana_sosial ?? 5000))}<span className="text-xs font-normal text-slate-400">/bln</span>
-                            </p>
-                            <p className="text-[10px] text-slate-400 mt-0.5">
-                                Wajib + Dana Sosial
-                            </p>
-                        </div>
-                        <div className="bg-white/90 p-2.5 sm:p-3 rounded-lg border border-emerald-200/70">
-                            <p className="text-[11px] text-slate-500 font-medium">Plafon Pinjaman Awal</p>
-                            <p className="text-sm sm:text-base font-extrabold text-brand-navy mt-0.5">
-                                {formatRupiah(ketentuanFinansial.limit_awal ?? 1000000)}
-                            </p>
-                            <p className="text-[10px] text-slate-400 mt-0.5">
-                                Hak limit pinjaman pertama
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Riwayat Resign Sebelumnya (Jika Re-Aktivasi) */}
-            {isReaktivasi && (
-                <div className="bg-amber-50/80 rounded-xl p-3.5 sm:p-4 border border-amber-200/90 text-xs text-amber-900 shadow-2xs">
-                    <div className="flex items-center gap-1.5 font-bold mb-1.5 text-amber-950">
-                        <AlertCircle size={15} className="text-amber-600" />
-                        <span>Riwayat Keanggotaan Sebelumnya</span>
-                    </div>
-                    <p className="text-slate-700">
-                        Anggota ini sebelumnya pernah mengundurkan diri / resign pada tanggal: <strong>{pengajuan.anggota.tanggal_resign ?? '-'}</strong>
-                    </p>
-                    {pengajuan.anggota.alasan_resign && (
-                        <p className="text-slate-600 mt-1 italic bg-white/70 p-2 rounded-lg border border-amber-200/60">
-                            Alasan resign sebelumnya: &ldquo;{pengajuan.anggota.alasan_resign}&rdquo;
-                        </p>
-                    )}
-                </div>
-            )}
-
-            {/* Pernyataan & Kepatuhan Pemohon */}
-            <div className="bg-gradient-to-br from-slate-50/70 to-white rounded-xl p-3.5 sm:p-4 border border-slate-200/80 shadow-xs text-xs">
-                <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-1.5 text-slate-800 font-bold text-xs sm:text-sm">
-                        <ShieldCheck size={15} className="text-brand-green" />
-                        <h4>Pernyataan Digital Pemohon</h4>
-                    </div>
-                    <span className="text-[10px] font-semibold text-slate-500 bg-slate-200/80 px-2 py-0.5 rounded-full">
-                        {pengajuan.versi_syarat}
-                    </span>
-                </div>
-                <div className="space-y-1.5 text-slate-700">
-                    <div className="flex items-center gap-2">
-                        <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
-                        <span>Pemohon menyatakan data diri &amp; kepegawaian telah diisi dengan sebenarnya.</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
-                        <span>Pemohon menyetujui kepatuhan AD/ART dan seluruh kebijakan Koperasi.</span>
-                    </div>
-                </div>
-            </div>
-
-            {/* Catatan Ketua */}
-            {pengajuan.catatan_ketua && (
-                <div className="bg-gradient-to-br from-brand-navy/[0.03] to-white rounded-xl p-4 border border-slate-200/80 shadow-2xs">
-                    <div className="flex items-center justify-between mb-1">
-                        <p className="text-xs font-bold text-slate-600">Catatan Ketua</p>
-                        {pengajuan.tanggal_keputusan && (
-                            <span className="text-[10px] text-slate-400">{pengajuan.tanggal_keputusan}</span>
-                        )}
-                    </div>
-                    <p className="text-sm text-slate-800 bg-white p-2.5 rounded-lg border border-slate-200/60">{pengajuan.catatan_ketua}</p>
-                </div>
-            )}
-
-            <div className="pt-4 border-t border-slate-100">
-                {errors.keputusan && <p className="text-sm text-red-600 mb-3">{errors.keputusan}</p>}
-                {bisaDiproses ? (
-                    !aksi ? (
-                        <div className="flex items-center gap-3">
-                            <Button variant="primary" onClick={() => setAksi('approve')} className="flex-1">Setujui Aktivasi</Button>
-                            <Button variant="danger" onClick={() => setAksi('reject')} className="flex-1">Tolak Pengajuan</Button>
-                        </div>
-                    ) : (
-                        <form onSubmit={submit}>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                {bisaDiproses && aksi && (
+                    <DrawerSection
+                        ref={formRef}
+                        title={aksi === 'approve' ? 'Konfirmasi Persetujuan Aktivasi' : 'Konfirmasi Penolakan Aktivasi'}
+                        icon={aksi === 'approve' ? CheckCircle2 : XCircle}
+                        tone={aksi === 'reject' ? 'rose' : 'emerald'}
+                    >
+                        <form id={formId} onSubmit={submit}>
+                            <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">
                                 Catatan {aksi === 'approve' ? 'Persetujuan' : 'Penolakan'}
                             </label>
                             <textarea
@@ -279,26 +238,72 @@ function KeputusanDrawer({ pengajuan, ketentuanFinansial, onClose }) {
                                 onChange={(e) => setData('catatan', e.target.value)}
                                 rows={3}
                                 placeholder={aksi === 'approve' ? 'Contoh: Data telah diverifikasi sesuai HRIS GATE, aktivasi disetujui.' : 'Contoh: Masa kerja belum memenuhi ketentuan, mohon periksa kembali.'}
-                                className="w-full px-4 py-2.5 text-sm rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
+                                className="w-full px-3.5 py-2.5 text-base sm:text-sm rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
                                 autoFocus
                             />
-                            {errors.catatan && <p className="text-sm text-red-600 mt-1.5">{errors.catatan}</p>}
-                            <div className="flex items-center gap-3 mt-4">
-                                <Button type="submit" variant={aksi === 'approve' ? 'primary' : 'danger'} disabled={processing}>
-                                    {processing ? 'Memproses...' : `Konfirmasi ${aksi === 'approve' ? 'Setujui' : 'Tolak'}`}
-                                </Button>
-                                <Button type="button" variant="ghost" onClick={() => setAksi(null)}>Batal</Button>
-                            </div>
+                            {errors.catatan && <p className="text-xs sm:text-sm font-medium text-red-600 mt-1.5">{errors.catatan}</p>}
                         </form>
+                    </DrawerSection>
+                )}
+            </DrawerBody>
+
+            <DrawerFooter>
+                {bisaDiproses ? (
+                    !aksi ? (
+                        <div className="grid grid-cols-2 gap-2.5 sm:flex sm:items-center sm:justify-between">
+                            <Button
+                                type="button"
+                                variant="dangerSoft"
+                                size="drawer"
+                                onClick={() => setAksi('reject')}
+                            >
+                                <X size={16} />
+                                Tolak Pengajuan
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="primary"
+                                size="drawer"
+                                onClick={() => setAksi('approve')}
+                            >
+                                <Check size={16} />
+                                Setujui Aktivasi
+                            </Button>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-2 gap-2.5 sm:flex sm:items-center sm:justify-between">
+                            <Button
+                                type="button"
+                                variant="neutral"
+                                size="drawer"
+                                onClick={() => setAksi(null)}
+                                disabled={processing}
+                            >
+                                <ArrowLeft size={16} />
+                                Batal
+                            </Button>
+                            <Button
+                                type="submit"
+                                form={formId}
+                                variant={aksi === 'approve' ? 'primary' : 'danger'}
+                                size="drawer"
+                                disabled={processing}
+                            >
+                                {aksi === 'approve' ? <Check size={16} /> : <X size={16} />}
+                                {processing ? 'Memproses...' : `Konfirmasi ${aksi === 'approve' ? 'Setujui' : 'Tolak'}`}
+                            </Button>
+                        </div>
                     )
                 ) : (
-                    <div className="flex items-center justify-between bg-gradient-to-r from-brand-navy/[0.03] to-white p-3 rounded-xl border border-slate-200/80 shadow-2xs">
-                        <span className="text-xs text-slate-500 font-medium">Status Keputusan:</span>
+                    <div className="flex items-center justify-between gap-3">
                         <StatusBadge status={pengajuan.status} />
+                        <Button type="button" variant="neutral" size="drawer" onClick={onClose}>
+                            Tutup
+                        </Button>
                     </div>
                 )}
-            </div>
-        </div>
+            </DrawerFooter>
+        </>
     );
 }
 
@@ -381,7 +386,14 @@ export default function Index({ menunggu, riwayat, ketentuanFinansial }) {
                 </div>
             </Card>
 
-            <Drawer show={open} title={`Aktivasi - ${detail?.anggota?.nama ?? 'Anggota'}`} onClose={tutup} maxWidth="2xl">
+            <Drawer
+                show={open}
+                layout="split"
+                title={`Aktivasi — ${detail?.anggota?.nama ?? 'Anggota'}`}
+                badge={detail ? <StatusBadge status={detail.status === 'diajukan' ? 'pending' : detail.status} /> : null}
+                onClose={tutup}
+                maxWidth="2xl"
+            >
                 {detail && <KeputusanDrawer key={detail.id} pengajuan={detail} ketentuanFinansial={ketentuanFinansial} onClose={tutup} />}
             </Drawer>
         </AppLayout>

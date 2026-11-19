@@ -1,11 +1,11 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, usePage, useForm, router, Link } from '@inertiajs/react';
 import {
-    Wallet, ArrowDownCircle, ArrowUpCircle, ChevronLeft, ChevronRight,
+    Wallet, ArrowDownCircle, ArrowUpCircle, ArrowLeft, ChevronLeft, ChevronRight,
     Landmark, Building2, CalendarDays, Search, X, ArrowRightLeft, Check, BookOpenText,
     SlidersHorizontal, ChevronDown, Calendar, RotateCcw
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import Card from '@/Components/ui/Card';
 import Button from '@/Components/ui/Button';
 import Pagination from '@/Components/ui/Pagination';
@@ -14,6 +14,12 @@ import TextField from '@/Components/ui/TextField';
 import FormField from '@/Components/ui/FormField';
 import Select from '@/Components/ui/Select';
 import Drawer from '@/Components/ui/Drawer';
+import {
+    DrawerBody,
+    DrawerFooter,
+    DrawerKeyValue,
+    DrawerSection,
+} from '@/Components/ui/DrawerSection';
 import useDebouncedValue from '@/Utils/useDebouncedValue';
 import ChipNominal from '@/Components/ui/ChipNominal';
 import { formatRupiah, formatRupiahSingkat } from '@/Utils/formatCurrency';
@@ -87,6 +93,8 @@ export default function Index({
     const [showDrawer, setShowDrawer] = useState(false);
     const [tabDrawer, setTabDrawer] = useState('pemasukan');
     const [jurnalBatal, setJurnalBatal] = useState(null);
+    const transaksiFormId = useId();
+    const batalFormId = useId();
     const [cari, setCari] = useState(filters.cari ?? '');
     const cariDebounced = useDebouncedValue(cari);
     const pertama = useRef(true);
@@ -1272,6 +1280,7 @@ export default function Index({
             {bisaTopup && (
                 <Drawer
                     show={showDrawer}
+                    layout="split"
                     onClose={() => setShowDrawer(false)}
                     title={
                         tabDrawer === 'pemasukan'
@@ -1288,259 +1297,274 @@ export default function Index({
                             : 'Pindahkan dana dari Bank ke Kas Kecil untuk operasional tunai'
                     }
                 >
-                    {/* Tab Switcher dalam Drawer */}
-                    <div className="flex rounded-xl bg-slate-100 p-1 mb-5">
-                        <button
-                            type="button"
-                            onClick={() => setTabDrawer('pemasukan')}
-                            className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
-                                tabDrawer === 'pemasukan'
-                                    ? 'bg-white text-emerald-800 shadow-xs'
-                                    : 'text-slate-600 hover:text-slate-900'
-                            }`}
-                        >
-                            Pemasukan
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setTabDrawer('pengeluaran')}
-                            className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
-                                tabDrawer === 'pengeluaran'
-                                    ? 'bg-white text-rose-800 shadow-xs'
-                                    : 'text-slate-600 hover:text-slate-900'
-                            }`}
-                        >
-                            Pengeluaran
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setTabDrawer('sisih')}
-                            className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
-                                tabDrawer === 'sisih'
-                                    ? 'bg-white text-amber-800 shadow-xs'
-                                    : 'text-slate-600 hover:text-slate-900'
-                            }`}
-                        >
-                            Sisih Kas Kecil
-                        </button>
-                    </div>
+                    <DrawerBody>
+                        {/* Tab Switcher dalam Drawer */}
+                        <div className="flex rounded-xl bg-gradient-to-r from-[#f4f7fb] via-[#f8fafc] to-[#f0faf4] border border-slate-200/80 p-1">
+                            <button
+                                type="button"
+                                onClick={() => setTabDrawer('pemasukan')}
+                                className={`flex-1 inline-flex items-center justify-center gap-1.5 py-2 text-xs font-semibold rounded-lg transition-all ${
+                                    tabDrawer === 'pemasukan'
+                                        ? 'bg-white text-brand-green-dark shadow-xs border border-emerald-200/70'
+                                        : 'text-slate-600 hover:text-slate-900'
+                                }`}
+                            >
+                                <ArrowDownCircle size={14} aria-hidden="true" />
+                                <span>Pemasukan</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setTabDrawer('pengeluaran')}
+                                className={`flex-1 inline-flex items-center justify-center gap-1.5 py-2 text-xs font-semibold rounded-lg transition-all ${
+                                    tabDrawer === 'pengeluaran'
+                                        ? 'bg-white text-rose-700 shadow-xs border border-rose-200/70'
+                                        : 'text-slate-600 hover:text-slate-900'
+                                }`}
+                            >
+                                <ArrowUpCircle size={14} aria-hidden="true" />
+                                <span>Pengeluaran</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setTabDrawer('sisih')}
+                                className={`flex-1 inline-flex items-center justify-center gap-1.5 py-2 text-xs font-semibold rounded-lg transition-all ${
+                                    tabDrawer === 'sisih'
+                                        ? 'bg-white text-amber-800 shadow-xs border border-amber-200/70'
+                                        : 'text-slate-600 hover:text-slate-900'
+                                }`}
+                            >
+                                <ArrowRightLeft size={14} aria-hidden="true" />
+                                <span>Sisih Kas Kecil</span>
+                            </button>
+                        </div>
 
-                    {/* Form Pemasukan */}
-                    {tabDrawer === 'pemasukan' && (
-                        <form onSubmit={submitPemasukan} className="space-y-4">
-                            <FormField label="Sumber Pemasukan" error={pemasukanForm.errors.sumber_topup} required>
-                                <Select
-                                    size="sm"
-                                    value={pemasukanForm.data.sumber_topup}
-                                    onChange={(e) => pemasukanForm.setData('sumber_topup', e.target.value)}
-                                >
-                                    <option value="modal">Penambahan Modal</option>
-                                    <option value="bunga_bank">Pendapatan Bunga Bank</option>
-                                </Select>
-                            </FormField>
+                        {/* Form Pemasukan */}
+                        {tabDrawer === 'pemasukan' && (
+                            <DrawerSection title="Formulir Pemasukan Kas" icon={ArrowDownCircle} tone="emerald">
+                                <form id={transaksiFormId} onSubmit={submitPemasukan} className="space-y-1">
+                                    <FormField label="Sumber Pemasukan" error={pemasukanForm.errors.sumber_topup} required>
+                                        <Select
+                                            size="sm"
+                                            value={pemasukanForm.data.sumber_topup}
+                                            onChange={(e) => pemasukanForm.setData('sumber_topup', e.target.value)}
+                                        >
+                                            <option value="modal">Penambahan Modal</option>
+                                            <option value="bunga_bank">Pendapatan Bunga Bank</option>
+                                        </Select>
+                                    </FormField>
 
-                            <FormField label="Nominal Pemasukan" error={pemasukanForm.errors.jumlah} required>
-                                <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400">Rp</span>
-                                    <TextField
-                                        size="sm"
-                                        type="number"
-                                        min="1"
-                                        value={pemasukanForm.data.jumlah}
-                                        onChange={(e) => pemasukanForm.setData('jumlah', e.target.value)}
-                                        placeholder="0"
-                                        required
-                                        className="pl-9"
-                                    />
+                                    <FormField label="Nominal Pemasukan" error={pemasukanForm.errors.jumlah} required>
+                                        <div className="relative">
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-500">Rp</span>
+                                            <TextField
+                                                size="sm"
+                                                type="number"
+                                                min="1"
+                                                value={pemasukanForm.data.jumlah}
+                                                onChange={(e) => pemasukanForm.setData('jumlah', e.target.value)}
+                                                placeholder="0"
+                                                required
+                                                className="pl-9"
+                                            />
+                                        </div>
+                                        <ChipNominal grup="topup" nilai={pemasukanForm.data.jumlah} onPilih={(n) => pemasukanForm.setData('jumlah', n)} />
+                                    </FormField>
+
+                                    <FormField label="Tanggal" error={pemasukanForm.errors.tanggal} required>
+                                        <div className="relative">
+                                            <CalendarDays size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                                            <TextField
+                                                size="sm"
+                                                type="date"
+                                                value={pemasukanForm.data.tanggal}
+                                                onChange={(e) => pemasukanForm.setData('tanggal', e.target.value)}
+                                                max={hariIni}
+                                                required
+                                                className="pl-9"
+                                            />
+                                        </div>
+                                    </FormField>
+
+                                    <FormField label="Keterangan" error={pemasukanForm.errors.keterangan} hint="Contoh: Setoran modal operasional dari pengurus">
+                                        <TextField
+                                            size="sm"
+                                            value={pemasukanForm.data.keterangan}
+                                            onChange={(e) => pemasukanForm.setData('keterangan', e.target.value)}
+                                            placeholder="Keterangan pemasukan"
+                                        />
+                                    </FormField>
+
+                                    <label className="flex items-center gap-2.5 cursor-pointer select-none pt-1 pb-2">
+                                        <input
+                                            type="checkbox"
+                                            checked={Boolean(pemasukanForm.data.lain_lain)}
+                                            onChange={(e) => pemasukanForm.setData('lain_lain', e.target.checked)}
+                                            className="w-4 h-4 rounded accent-brand-green"
+                                        />
+                                        <span className="text-sm font-semibold text-slate-700">Lain-lain</span>
+                                    </label>
+
+                                    {Boolean(pemasukanForm.data.lain_lain) && (
+                                        <FormField label="Keterangan lain-lain" error={pemasukanForm.errors.keterangan_lain} required>
+                                            <TextField
+                                                size="sm"
+                                                value={pemasukanForm.data.keterangan_lain}
+                                                onChange={(e) => pemasukanForm.setData('keterangan_lain', e.target.value)}
+                                                placeholder="Contoh: Hibah dari donatur"
+                                                required
+                                            />
+                                        </FormField>
+                                    )}
+                                </form>
+                            </DrawerSection>
+                        )}
+
+                        {/* Form Pengeluaran */}
+                        {tabDrawer === 'pengeluaran' && (
+                            <DrawerSection title="Formulir Pengeluaran Kas" icon={ArrowUpCircle} tone="rose">
+                                <form id={transaksiFormId} onSubmit={submitPengeluaran} className="space-y-1">
+                                    <FormField label="Sumber Dana" error={pengeluaranForm.errors.akun} required>
+                                        <Select
+                                            size="sm"
+                                            value={pengeluaranForm.data.akun}
+                                            onChange={(e) => pengeluaranForm.setData('akun', e.target.value)}
+                                        >
+                                            <option value="kas_kecil">Kas Kecil (Saldo: {formatRupiah(saldoKasKecil ?? 0)})</option>
+                                            <option value="bank">Kas Bank (Saldo: {formatRupiah(saldoBank ?? 0)})</option>
+                                        </Select>
+                                    </FormField>
+
+                                    <FormField label="Jenis Pengeluaran" error={pengeluaranForm.errors.tipe} required>
+                                        <Select
+                                            size="sm"
+                                            value={pengeluaranForm.data.tipe}
+                                            onChange={(e) => pengeluaranForm.setData('tipe', e.target.value)}
+                                        >
+                                            {Object.entries(tipePengeluaranList).map(([k, v]) => (
+                                                <option key={k} value={k}>{v}</option>
+                                            ))}
+                                        </Select>
+                                    </FormField>
+
+                                    <FormField label="Nominal Pengeluaran" error={pengeluaranForm.errors.jumlah} required>
+                                        <div className="relative">
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-500">Rp</span>
+                                            <TextField
+                                                size="sm"
+                                                type="number"
+                                                min="1"
+                                                value={pengeluaranForm.data.jumlah}
+                                                onChange={(e) => pengeluaranForm.setData('jumlah', e.target.value)}
+                                                placeholder="0"
+                                                required
+                                                className="pl-9"
+                                            />
+                                        </div>
+                                        <ChipNominal grup="pengeluaran" nilai={pengeluaranForm.data.jumlah} onPilih={(n) => pengeluaranForm.setData('jumlah', n)} />
+                                    </FormField>
+
+                                    <FormField label="Tanggal" error={pengeluaranForm.errors.tanggal} required>
+                                        <div className="relative">
+                                            <CalendarDays size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                                            <TextField
+                                                size="sm"
+                                                type="date"
+                                                value={pengeluaranForm.data.tanggal}
+                                                onChange={(e) => pengeluaranForm.setData('tanggal', e.target.value)}
+                                                max={hariIni}
+                                                required
+                                                className="pl-9"
+                                            />
+                                        </div>
+                                    </FormField>
+
+                                    <FormField label="Keterangan / Keperluan" error={pengeluaranForm.errors.keterangan} required hint="Jelaskan kebutuhan pengeluaran secara lengkap">
+                                        <TextField
+                                            size="sm"
+                                            value={pengeluaranForm.data.keterangan}
+                                            onChange={(e) => pengeluaranForm.setData('keterangan', e.target.value)}
+                                            placeholder="Contoh: Pembelian ATK dan kertas printer"
+                                            required
+                                        />
+                                    </FormField>
+                                </form>
+                            </DrawerSection>
+                        )}
+
+                        {/* Form Sisih Kas Kecil */}
+                        {tabDrawer === 'sisih' && (
+                            <>
+                                <div className="rounded-xl bg-amber-50/55 border border-amber-200/80 p-3.5 text-xs text-slate-700 leading-relaxed">
+                                    <p className="font-bold text-amber-900 mb-1">Pemindahan Dana Bank &rarr; Kas Kecil</p>
+                                    Saldo Kas Bank saat ini: <strong className="text-slate-900 privacy-blur">{formatRupiah(saldoBank ?? 0)}</strong>.
+                                    Dana yang disisihkan akan ditarik dari Bank dan masuk ke saldo Kas Kecil untuk kebutuhan operasional tunai.
                                 </div>
-                                <ChipNominal grup="topup" nilai={pemasukanForm.data.jumlah} onPilih={(n) => pemasukanForm.setData('jumlah', n)} />
-                            </FormField>
 
-                            <FormField label="Tanggal" error={pemasukanForm.errors.tanggal} required>
-                                <div className="relative">
-                                    <CalendarDays size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                                    <TextField
-                                        size="sm"
-                                        type="date"
-                                        value={pemasukanForm.data.tanggal}
-                                        onChange={(e) => pemasukanForm.setData('tanggal', e.target.value)}
-                                        max={hariIni}
-                                        required
-                                        className="pl-9"
-                                    />
-                                </div>
-                            </FormField>
+                                <DrawerSection title="Formulir Sisih Kas Kecil" icon={ArrowRightLeft} tone="amber">
+                                    <form id={transaksiFormId} onSubmit={submitSisih} className="space-y-1">
+                                        <FormField label="Nominal Sisih" error={sisihForm.errors.jumlah} required>
+                                            <div className="relative">
+                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-500">Rp</span>
+                                                <TextField
+                                                    size="sm"
+                                                    type="number"
+                                                    value={sisihForm.data.jumlah}
+                                                    onChange={(e) => sisihForm.setData('jumlah', e.target.value)}
+                                                    placeholder="0"
+                                                    className="pl-9"
+                                                />
+                                            </div>
+                                            <ChipNominal grup="sisih" nilai={sisihForm.data.jumlah} onPilih={(n) => sisihForm.setData('jumlah', n)} />
+                                        </FormField>
 
-                            <FormField label="Keterangan" error={pemasukanForm.errors.keterangan} hint="Contoh: Setoran modal operasional dari pengurus">
-                                <TextField
-                                    size="sm"
-                                    value={pemasukanForm.data.keterangan}
-                                    onChange={(e) => pemasukanForm.setData('keterangan', e.target.value)}
-                                    placeholder="Keterangan pemasukan"
-                                />
-                            </FormField>
+                                        <FormField label="Keterangan" error={sisihForm.errors.keterangan} hint="Contoh: Kas operasional sekretariat minggu ke-2">
+                                            <TextField
+                                                size="sm"
+                                                value={sisihForm.data.keterangan}
+                                                onChange={(e) => sisihForm.setData('keterangan', e.target.value)}
+                                                placeholder="Keterangan penyisihan dana"
+                                            />
+                                        </FormField>
+                                    </form>
+                                </DrawerSection>
+                            </>
+                        )}
+                    </DrawerBody>
 
-                            <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                                <input
-                                    type="checkbox"
-                                    checked={Boolean(pemasukanForm.data.lain_lain)}
-                                    onChange={(e) => pemasukanForm.setData('lain_lain', e.target.checked)}
-                                    className="w-4 h-4 rounded accent-brand-green"
-                                />
-                                <span className="text-sm font-semibold text-slate-600">Lain-lain</span>
-                            </label>
-
-                            {Boolean(pemasukanForm.data.lain_lain) && (
-                                <FormField label="Keterangan lain-lain" error={pemasukanForm.errors.keterangan_lain} required>
-                                    <TextField
-                                        size="sm"
-                                        value={pemasukanForm.data.keterangan_lain}
-                                        onChange={(e) => pemasukanForm.setData('keterangan_lain', e.target.value)}
-                                        placeholder="Contoh: Hibah dari donatur"
-                                        required
-                                    />
-                                </FormField>
-                            )}
-
-                            <div className="pt-2 flex justify-end gap-2 border-t border-slate-100">
-                                <Button type="button" variant="secondary" size="sm" onClick={() => setShowDrawer(false)}>
-                                    Batal
-                                </Button>
-                                <Button type="submit" size="sm" disabled={pemasukanForm.processing}>
-                                    {pemasukanForm.processing ? 'Menyimpan...' : 'Simpan Pemasukan'}
-                                </Button>
-                            </div>
-                        </form>
-                    )}
-
-                    {/* Form Pengeluaran */}
-                    {tabDrawer === 'pengeluaran' && (
-                        <form onSubmit={submitPengeluaran} className="space-y-4">
-                            <FormField label="Sumber Dana" error={pengeluaranForm.errors.akun} required>
-                                <Select
-                                    size="sm"
-                                    value={pengeluaranForm.data.akun}
-                                    onChange={(e) => pengeluaranForm.setData('akun', e.target.value)}
-                                >
-                                    <option value="kas_kecil">Kas Kecil (Saldo: {formatRupiah(saldoKasKecil ?? 0)})</option>
-                                    <option value="bank">Kas Bank (Saldo: {formatRupiah(saldoBank ?? 0)})</option>
-                                </Select>
-                            </FormField>
-
-                            <FormField label="Jenis Pengeluaran" error={pengeluaranForm.errors.tipe} required>
-                                <Select
-                                    size="sm"
-                                    value={pengeluaranForm.data.tipe}
-                                    onChange={(e) => pengeluaranForm.setData('tipe', e.target.value)}
-                                >
-                                    {Object.entries(tipePengeluaranList).map(([k, v]) => (
-                                        <option key={k} value={k}>{v}</option>
-                                    ))}
-                                </Select>
-                            </FormField>
-
-                            <FormField label="Nominal Pengeluaran" error={pengeluaranForm.errors.jumlah} required>
-                                <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400">Rp</span>
-                                    <TextField
-                                        size="sm"
-                                        type="number"
-                                        min="1"
-                                        value={pengeluaranForm.data.jumlah}
-                                        onChange={(e) => pengeluaranForm.setData('jumlah', e.target.value)}
-                                        placeholder="0"
-                                        required
-                                        className="pl-9"
-                                    />
-                                </div>
-                                <ChipNominal grup="pengeluaran" nilai={pengeluaranForm.data.jumlah} onPilih={(n) => pengeluaranForm.setData('jumlah', n)} />
-                            </FormField>
-
-                            <FormField label="Tanggal" error={pengeluaranForm.errors.tanggal} required>
-                                <div className="relative">
-                                    <CalendarDays size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                                    <TextField
-                                        size="sm"
-                                        type="date"
-                                        value={pengeluaranForm.data.tanggal}
-                                        onChange={(e) => pengeluaranForm.setData('tanggal', e.target.value)}
-                                        max={hariIni}
-                                        required
-                                        className="pl-9"
-                                    />
-                                </div>
-                            </FormField>
-
-                            <FormField label="Keterangan / Keperluan" error={pengeluaranForm.errors.keterangan} required hint="Jelaskan kebutuhan pengeluaran secara lengkap">
-                                <TextField
-                                    size="sm"
-                                    value={pengeluaranForm.data.keterangan}
-                                    onChange={(e) => pengeluaranForm.setData('keterangan', e.target.value)}
-                                    placeholder="Contoh: Pembelian ATK dan kertas printer"
-                                    required
-                                />
-                            </FormField>
-
-                            <div className="pt-2 flex justify-end gap-2 border-t border-slate-100">
-                                <Button type="button" variant="secondary" size="sm" onClick={() => setShowDrawer(false)}>
-                                    Batal
-                                </Button>
-                                <Button type="submit" size="sm" disabled={pengeluaranForm.processing}>
-                                    {pengeluaranForm.processing ? 'Menyimpan...' : 'Simpan Pengeluaran'}
-                                </Button>
-                            </div>
-                        </form>
-                    )}
-
-                    {/* Form Sisih Kas Kecil */}
-                    {tabDrawer === 'sisih' && (
-                        <form onSubmit={submitSisih} className="space-y-4">
-                            <div className="p-3 bg-amber-50 rounded-xl border border-amber-200/70 text-xs text-amber-800 leading-relaxed">
-                                <p className="font-semibold text-amber-900 mb-1">Pemindahan Dana Bank &rarr; Kas Kecil</p>
-                                Saldo Kas Bank saat ini: <strong>{formatRupiah(saldoBank ?? 0)}</strong>.
-                                Dana yang disisihkan akan ditarik dari Bank dan masuk ke saldo Kas Kecil untuk kebutuhan operasional tunai.
-                            </div>
-
-                            <FormField label="Nominal Sisih" error={sisihForm.errors.jumlah} required>
-                                <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400">Rp</span>
-                                    <TextField
-                                        size="sm"
-                                        type="number"
-                                        value={sisihForm.data.jumlah}
-                                        onChange={(e) => sisihForm.setData('jumlah', e.target.value)}
-                                        placeholder="0"
-                                        className="pl-9"
-                                    />
-                                </div>
-                                <ChipNominal grup="sisih" nilai={sisihForm.data.jumlah} onPilih={(n) => sisihForm.setData('jumlah', n)} />
-                            </FormField>
-
-                            <FormField label="Keterangan" error={sisihForm.errors.keterangan} hint="Contoh: Kas operasional sekretariat minggu ke-2">
-                                <TextField
-                                    size="sm"
-                                    value={sisihForm.data.keterangan}
-                                    onChange={(e) => sisihForm.setData('keterangan', e.target.value)}
-                                    placeholder="Keterangan penyisihan dana"
-                                />
-                            </FormField>
-
-                            <div className="pt-2 flex justify-end gap-2 border-t border-slate-100">
-                                <Button type="button" variant="secondary" size="sm" onClick={() => setShowDrawer(false)}>
-                                    Batal
-                                </Button>
-                                <Button type="submit" size="sm" disabled={sisihForm.processing}>
-                                    {sisihForm.processing ? 'Menyimpan...' : 'Sisih Sekarang'}
-                                </Button>
-                            </div>
-                        </form>
-                    )}
+                    <DrawerFooter>
+                        <div className="grid grid-cols-2 gap-2.5 sm:flex sm:items-center sm:justify-between">
+                            <Button type="button" variant="neutral" size="drawer" onClick={() => setShowDrawer(false)}>
+                                <ArrowLeft size={16} />
+                                Batal
+                            </Button>
+                            <Button
+                                type="submit"
+                                form={transaksiFormId}
+                                size="drawer"
+                                disabled={
+                                    tabDrawer === 'pemasukan'
+                                        ? pemasukanForm.processing
+                                        : tabDrawer === 'pengeluaran'
+                                        ? pengeluaranForm.processing
+                                        : sisihForm.processing
+                                }
+                            >
+                                <Check size={16} />
+                                {tabDrawer === 'pemasukan'
+                                    ? pemasukanForm.processing ? 'Menyimpan...' : 'Simpan Pemasukan'
+                                    : tabDrawer === 'pengeluaran'
+                                    ? pengeluaranForm.processing ? 'Menyimpan...' : 'Simpan Pengeluaran'
+                                    : sisihForm.processing ? 'Menyimpan...' : 'Sisih Sekarang'}
+                            </Button>
+                        </div>
+                    </DrawerFooter>
                 </Drawer>
             )}
 
             {/* Drawer Rincian & Pembatalan Transaksi (Jurnal Pembalik / Storno) */}
             <Drawer
                 show={Boolean(jurnalBatal)}
+                layout="split"
                 onClose={() => setJurnalBatal(null)}
                 title={bisaTopup && jurnalBatal?.bisa_dibatalkan ? 'Rincian & Pembatalan Transaksi' : 'Rincian Transaksi Kas'}
                 description={
@@ -1548,128 +1572,170 @@ export default function Index({
                         ? 'Tinjau rincian transaksi atau terbitkan jurnal pembalik (storno) bila terjadi kesalahan input.'
                         : 'Detail mutasi dan jejak bukti kas koperasi.'
                 }
+                badge={
+                    jurnalBatal && (
+                        jurnalBatal.dibatalkan_pada ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full border text-xs font-semibold bg-slate-100 text-slate-700 border-slate-300">
+                                Dibatalkan
+                            </span>
+                        ) : jurnalBatal.koreksi_dari_id ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full border text-xs font-semibold bg-amber-50 text-amber-800 border-amber-200">
+                                Jurnal Pembalik
+                            </span>
+                        ) : (
+                            <span
+                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full border text-xs font-semibold ${
+                                    jurnalBatal.tipe === 'masuk'
+                                        ? 'bg-brand-green-light text-brand-green-dark border-emerald-200/80'
+                                        : 'bg-rose-50 text-rose-700 border-rose-200/80'
+                                }`}
+                            >
+                                {jurnalBatal.tipe === 'masuk' ? '+ Masuk' : '− Keluar'}
+                            </span>
+                        )
+                    )
+                }
             >
                 {jurnalBatal && (
-                    <div className="space-y-4">
-                        <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
-                            <div className="flex items-center justify-between gap-2">
-                                <span className="text-slate-500">No. Bukti</span>
-                                <span className="font-mono font-semibold text-slate-800">{jurnalBatal.no_bukti ?? `#${jurnalBatal.id}`}</span>
-                            </div>
-                            <div className="flex items-center justify-between gap-2">
-                                <span className="text-slate-500">Tanggal</span>
-                                <span className="font-medium text-slate-800">{jurnalBatal.tanggal} ({jurnalBatal.hari})</span>
-                            </div>
-                            <div className="flex items-center justify-between gap-2">
-                                <span className="text-slate-500">Akun</span>
-                                <span className="font-medium text-slate-800">{kanalMeta[jurnalBatal.kanal ?? jurnalBatal.akun]?.label ?? 'Bank'}</span>
-                            </div>
-                            <div className="flex items-center justify-between gap-2">
-                                <span className="text-slate-500">Kategori</span>
-                                <span className="font-medium text-slate-800">{subInfoBaris(jurnalBatal) || (kategoriLabel[jurnalBatal.kategori] ?? jurnalBatal.kategori)}</span>
-                            </div>
-                            <div className="flex items-center justify-between gap-2">
-                                <span className="text-slate-500">Nominal</span>
-                                <span className={`font-bold tabular-nums privacy-blur ${jurnalBatal.tipe === 'masuk' ? 'text-emerald-700' : 'text-rose-600'}`}>
-                                    {jurnalBatal.tipe === 'masuk' ? '+' : '−'} {formatRupiah(jurnalBatal.jumlah)}
-                                </span>
-                            </div>
-                            <div className="pt-2 border-t border-slate-200">
-                                <span className="block text-slate-500 mb-0.5">Keterangan</span>
-                                <p className={`font-medium ${jurnalBatal.dibatalkan_pada ? 'line-through text-slate-400' : 'text-slate-800'}`}>
-                                    {jurnalBatal.keterangan}
-                                </p>
-                            </div>
-                            {jurnalBatal.dibatalkan_pada && (
-                                <div className="pt-2 border-t border-slate-200">
-                                    <span className="inline-block text-[10px] font-semibold text-slate-600 bg-slate-200/70 px-1.5 py-0.5 rounded mb-1">
-                                        Dibatalkan pada {jurnalBatal.dibatalkan_pada}
-                                    </span>
-                                    {jurnalBatal.alasan_batal && (
-                                        <p className="text-slate-600">Alasan: {jurnalBatal.alasan_batal}</p>
-                                    )}
+                    <>
+                        <DrawerBody>
+                            <DrawerSection
+                                tone={jurnalBatal.tipe === 'masuk' ? 'emerald' : 'rose'}
+                                padding="sm"
+                            >
+                                <div className="flex items-start justify-between gap-3">
+                                    <div>
+                                        <p className="text-[11px] font-medium text-slate-500">Nominal Mutasi</p>
+                                        <p
+                                            className={`text-2xl font-extrabold tabular-nums mt-0.5 privacy-blur ${
+                                                jurnalBatal.tipe === 'masuk' ? 'text-brand-green-dark' : 'text-rose-600'
+                                            }`}
+                                        >
+                                            {jurnalBatal.tipe === 'masuk' ? '+' : '−'} {formatRupiah(jurnalBatal.jumlah)}
+                                        </p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-xs font-mono font-semibold text-slate-800">
+                                            {jurnalBatal.no_bukti ?? `#${jurnalBatal.id}`}
+                                        </p>
+                                        <p className="text-[11px] text-slate-500 mt-0.5">
+                                            {jurnalBatal.tanggal} ({jurnalBatal.hari})
+                                        </p>
+                                    </div>
                                 </div>
-                            )}
-                            {jurnalBatal.koreksi_dari_id && (
-                                <div className="pt-2 border-t border-slate-200">
-                                    <span className="inline-block text-[10px] font-semibold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded">
-                                        Jurnal Pembalik (Storno) {jurnalBatal.koreksi_dari_no_bukti ? `untuk ${jurnalBatal.koreksi_dari_no_bukti}` : ''}
-                                    </span>
+                            </DrawerSection>
+
+                            <DrawerSection title="Rincian Transaksi" icon={BookOpenText}>
+                                <DrawerKeyValue
+                                    rows={[
+                                        { label: 'No. Bukti', value: jurnalBatal.no_bukti ?? `#${jurnalBatal.id}`, mono: true },
+                                        { label: 'Tanggal', value: `${jurnalBatal.tanggal} (${jurnalBatal.hari})` },
+                                        { label: 'Akun', value: kanalMeta[jurnalBatal.kanal ?? jurnalBatal.akun]?.label ?? 'Bank' },
+                                        { label: 'Kategori', value: subInfoBaris(jurnalBatal) || (kategoriLabel[jurnalBatal.kategori] ?? jurnalBatal.kategori) },
+                                    ]}
+                                />
+
+                                <div className="pt-2.5 mt-2.5 border-t border-slate-100">
+                                    <p className="text-[11px] font-medium text-slate-500 mb-1">Keterangan</p>
+                                    <p className={`text-sm font-medium leading-relaxed ${jurnalBatal.dibatalkan_pada ? 'line-through text-slate-400' : 'text-slate-800'}`}>
+                                        {jurnalBatal.keterangan}
+                                    </p>
                                 </div>
-                            )}
-                        </div>
 
-                        {jurnalBatal.rute_asal && auth.user?.permissions?.includes(jurnalBatal.rute_asal.izin) && (
-                            <div className="flex justify-start">
-                                <Link
-                                    href={route(jurnalBatal.rute_asal.nama, jurnalBatal.rute_asal.id)}
-                                    className="inline-flex items-center gap-1 text-xs font-semibold text-brand-green-dark hover:text-brand-green hover:underline"
-                                >
-                                    Lihat Berkas Asal
-                                    <ChevronRight size={13} aria-hidden="true" />
-                                </Link>
-                            </div>
-                        )}
-
-                        {bisaTopup && jurnalBatal.bisa_dibatalkan ? (
-                            <form onSubmit={submitBatal} className="space-y-4 pt-2 border-t border-slate-100">
-                                {['sisih_kas_kecil', 'terima_sisih_kas_kecil'].includes(jurnalBatal.kategori) && (
-                                    <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800">
-                                        Pembatalan <strong>Sisih Kas Kecil</strong> otomatis membalik kedua jurnal berpasangan (mengembalikan saldo dari Kas Kecil ke Bank).
+                                {jurnalBatal.dibatalkan_pada && (
+                                    <div className="pt-2.5 mt-2.5 border-t border-slate-100 space-y-1">
+                                        <span className="inline-block text-[11px] font-semibold text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
+                                            Dibatalkan pada {jurnalBatal.dibatalkan_pada}
+                                        </span>
+                                        {jurnalBatal.alasan_batal && (
+                                            <p className="text-xs text-slate-600">Alasan: {jurnalBatal.alasan_batal}</p>
+                                        )}
                                     </div>
                                 )}
 
-                                <FormField
-                                    label="Alasan Pembatalan / Koreksi"
-                                    error={batalForm.errors.alasan}
-                                    required
-                                    hint="Contoh: Salah pilih akun Kas Kecil, seharusnya dari Kas Bank"
-                                >
-                                    <TextField
-                                        size="sm"
-                                        as="textarea"
-                                        rows={3}
-                                        value={batalForm.data.alasan}
-                                        onChange={(e) => batalForm.setData('alasan', e.target.value)}
-                                        placeholder="Jelaskan alasan pembatalan transaksi ini..."
-                                        required
-                                    />
-                                </FormField>
+                                {jurnalBatal.koreksi_dari_id && (
+                                    <div className="pt-2.5 mt-2.5 border-t border-slate-100">
+                                        <span className="inline-block text-[11px] font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
+                                            Jurnal Pembalik (Storno) {jurnalBatal.koreksi_dari_no_bukti ? `untuk ${jurnalBatal.koreksi_dari_no_bukti}` : ''}
+                                        </span>
+                                    </div>
+                                )}
 
-                                <div className="pt-2 flex justify-end gap-2 border-t border-slate-100">
-                                    <Button type="button" variant="secondary" size="sm" onClick={() => setJurnalBatal(null)}>
-                                        Tutup
-                                    </Button>
+                                {jurnalBatal.rute_asal && auth.user?.permissions?.includes(jurnalBatal.rute_asal.izin) && (
+                                    <div className="pt-3 mt-2.5 border-t border-slate-100">
+                                        <Link
+                                            href={route(jurnalBatal.rute_asal.nama, jurnalBatal.rute_asal.id)}
+                                            className="inline-flex items-center gap-1 text-xs font-semibold text-brand-green-dark hover:text-brand-green hover:underline"
+                                        >
+                                            Lihat Berkas Asal
+                                            <ChevronRight size={13} aria-hidden="true" />
+                                        </Link>
+                                    </div>
+                                )}
+                            </DrawerSection>
+
+                            {bisaTopup && jurnalBatal.bisa_dibatalkan ? (
+                                <DrawerSection title="Terbitkan Jurnal Pembalik (Storno)" icon={RotateCcw} tone="rose">
+                                    <form id={batalFormId} onSubmit={submitBatal} className="space-y-3">
+                                        {['sisih_kas_kecil', 'terima_sisih_kas_kecil'].includes(jurnalBatal.kategori) && (
+                                            <div className="p-3 rounded-lg bg-amber-50/70 border border-amber-200/80 text-xs text-amber-900">
+                                                Pembatalan <strong>Sisih Kas Kecil</strong> otomatis membalik kedua jurnal berpasangan (mengembalikan saldo dari Kas Kecil ke Bank).
+                                            </div>
+                                        )}
+
+                                        <FormField
+                                            label="Alasan Pembatalan / Koreksi"
+                                            error={batalForm.errors.alasan}
+                                            required
+                                            hint="Contoh: Salah pilih akun Kas Kecil, seharusnya dari Kas Bank"
+                                        >
+                                            <TextField
+                                                size="sm"
+                                                as="textarea"
+                                                rows={3}
+                                                value={batalForm.data.alasan}
+                                                onChange={(e) => batalForm.setData('alasan', e.target.value)}
+                                                placeholder="Jelaskan alasan pembatalan transaksi ini..."
+                                                required
+                                            />
+                                        </FormField>
+                                    </form>
+                                </DrawerSection>
+                            ) : (
+                                bisaTopup && (
+                                    <DrawerSection title="Status Pembatalan" icon={RotateCcw} tone="amber">
+                                        <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
+                                            {jurnalBatal.dibatalkan_pada
+                                                ? 'Transaksi ini sudah dibatalkan sehingga tidak dapat dibatalkan ulang.'
+                                                : jurnalBatal.koreksi_dari_id
+                                                ? 'Baris ini adalah jurnal pembalik (storno) dan tidak dapat dibatalkan lagi.'
+                                                : 'Transaksi otomatis dari modul Simpanan, Pinjaman, atau SHU hanya dapat dikelola dari modul asalnya.'}
+                                        </p>
+                                    </DrawerSection>
+                                )
+                            )}
+                        </DrawerBody>
+
+                        <DrawerFooter>
+                            <div className={`flex flex-col-reverse sm:flex-row sm:items-center gap-2.5 ${bisaTopup && jurnalBatal.bisa_dibatalkan ? 'sm:justify-between' : 'sm:justify-end'}`}>
+                                <Button type="button" variant="neutral" size="drawer" onClick={() => setJurnalBatal(null)}>
+                                    Tutup
+                                </Button>
+                                {bisaTopup && jurnalBatal.bisa_dibatalkan && (
                                     <Button
                                         type="submit"
-                                        size="sm"
+                                        form={batalFormId}
+                                        variant="danger"
+                                        size="drawer"
                                         disabled={batalForm.processing}
-                                        className="bg-rose-600 hover:bg-rose-700"
                                     >
-                                        <RotateCcw size={14} aria-hidden="true" />
+                                        <RotateCcw size={16} aria-hidden="true" />
                                         {batalForm.processing ? 'Memproses...' : 'Terbitkan Jurnal Pembalik'}
                                     </Button>
-                                </div>
-                            </form>
-                        ) : (
-                            <>
-                                {bisaTopup && (
-                                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600">
-                                        {jurnalBatal.dibatalkan_pada
-                                            ? 'Transaksi ini sudah dibatalkan sehingga tidak dapat dibatalkan ulang.'
-                                            : jurnalBatal.koreksi_dari_id
-                                            ? 'Baris ini adalah jurnal pembalik (storno) dan tidak dapat dibatalkan lagi.'
-                                            : 'Transaksi otomatis dari modul Simpanan, Pinjaman, atau SHU hanya dapat dikelola dari modul asalnya.'}
-                                    </div>
                                 )}
-                                <div className="pt-2 flex justify-end border-t border-slate-100">
-                                    <Button type="button" variant="secondary" size="sm" onClick={() => setJurnalBatal(null)}>
-                                        Tutup
-                                    </Button>
-                                </div>
-                            </>
-                        )}
-                    </div>
+                            </div>
+                        </DrawerFooter>
+                    </>
                 )}
             </Drawer>
         </AppLayout>

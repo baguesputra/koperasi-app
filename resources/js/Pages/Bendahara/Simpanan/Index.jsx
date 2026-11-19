@@ -1,7 +1,7 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, router, useForm } from '@inertiajs/react';
-import { useEffect, useMemo, useState } from 'react';
-import { HeartHandshake, Check, ChevronLeft, ChevronRight, ChevronDown, Search, X, RefreshCw, Users, Wallet, MapPin, Calendar, RotateCcw } from 'lucide-react';
+import { useEffect, useId, useMemo, useState } from 'react';
+import { HeartHandshake, Check, ChevronLeft, ChevronRight, ChevronDown, Search, X, RefreshCw, Users, Wallet, MapPin, Calendar, RotateCcw, AlertCircle } from 'lucide-react';
 import Card from '@/Components/ui/Card';
 import FotoAnggota from '@/Components/ui/FotoAnggota';
 import StatWidget from '@/Components/ui/StatWidget';
@@ -10,6 +10,12 @@ import PageHeader from '@/Components/ui/PageHeader';
 import TextField from '@/Components/ui/TextField';
 import FormField from '@/Components/ui/FormField';
 import Drawer from '@/Components/ui/Drawer';
+import {
+    DrawerBody,
+    DrawerFooter,
+    DrawerKeyValue,
+    DrawerSection,
+} from '@/Components/ui/DrawerSection';
 import { formatRupiah, formatRupiahSingkat } from '@/Utils/formatCurrency';
 import { withIdempotencyKey } from '@/Utils/idempotency';
 
@@ -33,6 +39,7 @@ export default function Index({
     const [rincianTerbuka, setRincianTerbuka] = useState(false);
     const [tabStatus, setTabStatus] = useState('belum');
     const [itemBatal, setItemBatal] = useState(null);
+    const batalFormId = useId();
 
     const batalForm = useForm({
         bulan_periode: bulan,
@@ -473,81 +480,96 @@ export default function Index({
 
             <Drawer
                 show={Boolean(itemBatal)}
+                layout="split"
                 onClose={() => setItemBatal(null)}
                 title="Rincian & Rollback Konfirmasi Simpanan"
                 description="Membatalkan konfirmasi akan menghapus simpanan wajib periode ini dan menerbitkan jurnal pembalik (storno) di Buku Kas."
+                badge={
+                    itemBatal && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full border text-xs font-semibold bg-brand-green-light text-brand-green-dark border-emerald-200/80">
+                            Terkonfirmasi
+                        </span>
+                    )
+                }
             >
                 {itemBatal && (
-                    <div className="space-y-4">
-                        <div className="p-3.5 rounded-xl bg-gradient-to-br from-brand-navy/[0.03] via-slate-50/60 to-brand-green-light/20 border border-slate-200/80 shadow-2xs space-y-2 text-xs">
-                            <div className="flex items-center justify-between gap-2">
-                                <span className="text-slate-500">Anggota</span>
-                                <span className="font-semibold text-slate-800">{itemBatal.nama}</span>
-                            </div>
-                            <div className="flex items-center justify-between gap-2">
-                                <span className="text-slate-500">No. Karyawan / Cabang</span>
-                                <span className="font-medium text-slate-800">{itemBatal.no_karyawan} • {itemBatal.cabang}</span>
-                            </div>
-                            <div className="flex items-center justify-between gap-2">
-                                <span className="text-slate-500">Periode</span>
-                                <span className="font-medium text-slate-800">{labelBulan}</span>
-                            </div>
-                            <div className="flex items-center justify-between gap-2">
-                                <span className="text-slate-500">Simpanan Wajib</span>
-                                <span className="font-medium tabular-nums privacy-blur text-slate-800">{formatRupiah(itemBatal.nominal_wajib)}</span>
-                            </div>
-                            <div className="flex items-center justify-between gap-2">
-                                <span className="text-slate-500">Dana Sosial</span>
-                                <span className="font-medium tabular-nums privacy-blur text-slate-800">{formatRupiah(itemBatal.nominal_dana_sosial)}</span>
-                            </div>
-                            <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-200">
-                                <span className="font-semibold text-slate-700">Total Dibalikkan</span>
-                                <span className="font-bold tabular-nums privacy-blur text-rose-600">{formatRupiah(itemBatal.nominal_total)}</span>
-                            </div>
-                        </div>
+                    <>
+                        <DrawerBody>
+                            <DrawerSection tone={itemBatal.bisa_dibatalkan ? 'rose' : 'default'} padding="sm">
+                                <div className="flex items-center gap-3">
+                                    <FotoAnggota nama={itemBatal.nama} fotoUrl={itemBatal.foto_url} ukuran="md" className="shrink-0" />
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-sm font-bold text-slate-900 truncate">{itemBatal.nama}</p>
+                                        <p className="text-xs text-slate-500 truncate mt-0.5">
+                                            <span className="font-mono">{itemBatal.no_karyawan}</span> • {itemBatal.cabang} • {labelBulan}
+                                        </p>
+                                    </div>
+                                    <div className="text-right shrink-0">
+                                        <p className="text-[11px] text-slate-500">Total Simpanan</p>
+                                        <p className="text-base sm:text-lg font-extrabold text-rose-600 tabular-nums privacy-blur">
+                                            {formatRupiah(itemBatal.nominal_total)}
+                                        </p>
+                                    </div>
+                                </div>
+                            </DrawerSection>
 
-                        {itemBatal.bisa_dibatalkan ? (
-                            <form onSubmit={submitBatal} className="space-y-4">
-                                <FormField
-                                    label="Alasan Pembatalan / Rollback"
-                                    error={batalForm.errors.alasan}
-                                    required
-                                    hint="Contoh: Salah contreng anggota saat konfirmasi massal"
-                                >
-                                    <TextField
-                                        size="sm"
-                                        as="textarea"
-                                        rows={3}
-                                        value={batalForm.data.alasan}
-                                        onChange={(e) => batalForm.setData('alasan', e.target.value)}
-                                        placeholder="Jelaskan alasan pembatalan konfirmasi simpanan ini..."
-                                        required
-                                    />
-                                </FormField>
+                            <DrawerSection title="Rincian Komponen" icon={Wallet}>
+                                <DrawerKeyValue
+                                    rows={[
+                                        { label: 'Anggota', value: itemBatal.nama },
+                                        { label: 'No. Karyawan / Cabang', value: `${itemBatal.no_karyawan} • ${itemBatal.cabang}` },
+                                        { label: 'Periode', value: labelBulan },
+                                        { label: 'Simpanan Wajib', value: formatRupiah(itemBatal.nominal_wajib), privacy: true },
+                                        { label: 'Dana Sosial', value: formatRupiah(itemBatal.nominal_dana_sosial), privacy: true },
+                                        { label: 'Total Dibalikkan', value: formatRupiah(itemBatal.nominal_total), tone: 'rose', emphasize: true, privacy: true },
+                                    ]}
+                                />
+                            </DrawerSection>
 
-                                <div className="pt-2 flex justify-end gap-2 border-t border-slate-100">
-                                    <Button type="button" variant="secondary" size="sm" onClick={() => setItemBatal(null)}>
-                                        Tutup
-                                    </Button>
-                                    <Button type="submit" size="sm" disabled={batalForm.processing} className="bg-rose-600 hover:bg-rose-700">
-                                        <RotateCcw size={14} aria-hidden="true" />
+                            {itemBatal.bisa_dibatalkan ? (
+                                <DrawerSection title="Rollback Konfirmasi Simpanan" icon={RotateCcw} tone="rose">
+                                    <form id={batalFormId} onSubmit={submitBatal}>
+                                        <FormField
+                                            label="Alasan Pembatalan / Rollback"
+                                            error={batalForm.errors.alasan}
+                                            required
+                                            hint="Contoh: Salah contreng anggota saat konfirmasi massal"
+                                        >
+                                            <TextField
+                                                size="sm"
+                                                as="textarea"
+                                                rows={3}
+                                                value={batalForm.data.alasan}
+                                                onChange={(e) => batalForm.setData('alasan', e.target.value)}
+                                                placeholder="Jelaskan alasan pembatalan konfirmasi simpanan ini..."
+                                                required
+                                            />
+                                        </FormField>
+                                    </form>
+                                </DrawerSection>
+                            ) : (
+                                <DrawerSection title="Status Rollback" icon={AlertCircle} tone="amber">
+                                    <p className="text-xs sm:text-sm text-amber-900">
+                                        Anggota ini berstatus <strong>{itemBatal.status_anggota}</strong> sehingga konfirmasi simpanan tidak dapat dibatalkan.
+                                    </p>
+                                </DrawerSection>
+                            )}
+                        </DrawerBody>
+
+                        <DrawerFooter>
+                            <div className={`flex flex-col-reverse sm:flex-row sm:items-center gap-2.5 ${itemBatal.bisa_dibatalkan ? 'sm:justify-between' : 'sm:justify-end'}`}>
+                                <Button type="button" variant="neutral" size="drawer" onClick={() => setItemBatal(null)}>
+                                    Tutup
+                                </Button>
+                                {itemBatal.bisa_dibatalkan && (
+                                    <Button type="submit" form={batalFormId} variant="danger" size="drawer" disabled={batalForm.processing}>
+                                        <RotateCcw size={16} aria-hidden="true" />
                                         {batalForm.processing ? 'Memproses...' : 'Batalkan Konfirmasi Simpanan'}
                                     </Button>
-                                </div>
-                            </form>
-                        ) : (
-                            <>
-                                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800">
-                                    Anggota ini berstatus <strong>{itemBatal.status_anggota}</strong> sehingga konfirmasi simpanan tidak dapat dibatalkan.
-                                </div>
-                                <div className="pt-2 flex justify-end border-t border-slate-100">
-                                    <Button type="button" variant="secondary" size="sm" onClick={() => setItemBatal(null)}>
-                                        Tutup
-                                    </Button>
-                                </div>
-                            </>
-                        )}
-                    </div>
+                                )}
+                            </div>
+                        </DrawerFooter>
+                    </>
                 )}
             </Drawer>
         </AppLayout>

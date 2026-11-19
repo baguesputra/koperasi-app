@@ -1,22 +1,44 @@
 import { useForm } from '@inertiajs/react';
-import { useState } from 'react';
-import { AlertCircle, CheckCircle2, ArrowUpRight, Minus, CreditCard, Calendar } from 'lucide-react';
+import { useEffect, useId, useRef, useState } from 'react';
+import {
+    AlertCircle,
+    ArrowLeft,
+    ArrowUpRight,
+    Calendar,
+    Check,
+    CheckCircle2,
+    ChevronDown,
+    ChevronUp,
+    Clock,
+    CreditCard,
+    FileText,
+    GitCommitHorizontal,
+    MessageSquareText,
+    User,
+    X,
+    XCircle,
+} from 'lucide-react';
 import Button from '@/Components/ui/Button';
 import ChipNominal from '@/Components/ui/ChipNominal';
+import {
+    DrawerBody,
+    DrawerField,
+    DrawerFieldGrid,
+    DrawerFooter,
+    DrawerHero,
+    DrawerKeyValue,
+    DrawerNoteCallout,
+    DrawerSection,
+} from '@/Components/ui/DrawerSection';
 import StatusBadge from '@/Components/ui/StatusBadge';
 import { formatRupiah } from '@/Utils/formatCurrency';
 import { withIdempotencyKey } from '@/Utils/idempotency';
 
-function calculateDueDate(tanggalPengajuan, cicilanKe) {
-    const date = new Date(tanggalPengajuan);
-    date.setMonth(date.getMonth() + cicilanKe);
-    date.setDate(0);
-    return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
 export default function KeputusanDrawer({ pengajuan, onClose }) {
     const [aksi, setAksi] = useState(null);
     const [showPinjamanTable, setShowPinjamanTable] = useState(false);
+    const formId = useId();
+    const formRef = useRef(null);
     const { data, setData, post, processing, errors } = useForm({
         catatan: '',
         limit_disetujui: String(pengajuan.limit_disetujui_bendahara ?? pengajuan.limit_diminta ?? ''),
@@ -24,7 +46,16 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
 
     const bisaDiproses = pengajuan.status === 'approved_bendahara';
     const selisihLimit = pengajuan.limit_diminta - pengajuan.limit_saat_ini;
+    const persenKenaikan = pengajuan.limit_saat_ini > 0
+        ? ((selisihLimit / pengajuan.limit_saat_ini) * 100).toFixed(1)
+        : '0.0';
     const diBawahSaatIni = Number(data.limit_disetujui) > 0 && Number(data.limit_disetujui) < pengajuan.limit_saat_ini;
+
+    useEffect(() => {
+        if (aksi && formRef.current) {
+            formRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }, [aksi]);
 
     function submit(e) {
         e.preventDefault();
@@ -37,309 +68,285 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
         }));
     }
 
-    function formatAngsuranDate(tanggalPengajuan, cicilanKe) {
-        return calculateDueDate(tanggalPengajuan, cicilanKe);
-    }
+    const jejakRows = [
+        { label: 'Diminta anggota', value: formatRupiah(pengajuan.limit_diminta), privacy: true },
+        ...(pengajuan.limit_disetujui_bendahara
+            ? [{ label: 'Disetujui Bendahara', value: formatRupiah(pengajuan.limit_disetujui_bendahara), tone: 'navy', privacy: true }]
+            : []),
+        ...(pengajuan.limit_disetujui
+            ? [{ label: 'Final Ketua', value: formatRupiah(pengajuan.limit_disetujui), tone: 'emerald', emphasize: true, privacy: true }]
+            : []),
+    ];
+
+    const totalSisaPinjaman = (pengajuan.pinjaman_aktif ?? []).reduce((sum, p) => sum + (p.sisa_total_bayar ?? 0), 0);
 
     return (
-        <div className="space-y-4">
-            {/* Header: Limit Comparison */}
-            <div className="bg-brand-navy rounded-2xl p-5 text-white">
-                <div className="flex items-start justify-between gap-4 mb-4">
-                    <div>
-                        <p className="text-xs text-slate-300 mb-1">Anggota</p>
-                        <p className="text-xl font-bold">{pengajuan.anggota.nama}</p>
-                        <p className="text-sm text-slate-300 mt-0.5">{pengajuan.anggota.no_karyawan}</p>
-                    </div>
-                    <StatusBadge status={pengajuan.status} />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-white/10">
-                    <div className="bg-white/5 rounded-xl p-4">
-                        <p className="text-xs text-slate-300 mb-1">Limit Saat Ini</p>
-                        <p className="text-2xl font-bold privacy-blur">{formatRupiah(pengajuan.limit_saat_ini)}</p>
-                    </div>
-                    <div className="bg-white/5 rounded-xl p-4 flex items-center justify-center">
-                        <ArrowUpRight className="text-amber-400" size={24} />
-                    </div>
-                    <div className="bg-brand-green/20 rounded-xl p-4 border border-brand-green/30">
-                        <p className="text-xs text-brand-green/80 mb-1">Limit Diminta</p>
-                        <p className="text-2xl font-bold text-brand-green-light privacy-blur">{formatRupiah(pengajuan.limit_diminta)}</p>
-                        <p className="text-xs text-brand-green/70 mt-1 privacy-blur">
-                            +{formatRupiah(selisihLimit)} ({((selisihLimit / pengajuan.limit_saat_ini) * 100).toFixed(1)}%)
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Alasan Pengajuan */}
-            <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                <p className="text-xs text-slate-400 mb-2">Alasan Pengajuan</p>
-                <p className="text-sm text-slate-700">{pengajuan.keterangan}</p>
-            </div>
-
-            {/* Data Anggota */}
-            <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                <p className="text-sm font-bold text-slate-700 mb-3">Data Anggota</p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3">
-                    <div>
-                        <p className="text-xs text-slate-400 mb-1">No. Karyawan</p>
-                        <p className="text-base font-semibold text-slate-800">{pengajuan.anggota.no_karyawan}</p>
-                    </div>
-                    <div>
-                        <p className="text-xs text-slate-400 mb-1">Cabang</p>
-                        <p className="text-base font-semibold text-slate-800">{pengajuan.anggota.cabang}</p>
-                    </div>
-                    <div>
-                        <p className="text-xs text-slate-400 mb-1">Lama Keanggotaan</p>
-                        <p className="text-base font-semibold text-slate-800">{pengajuan.anggota.lama_keanggotaan_tahun} tahun</p>
-                    </div>
-                    <div>
-                        <p className="text-xs text-slate-400 mb-1">Tanggal Pengajuan</p>
-                        <p className="text-base font-semibold text-slate-800">{pengajuan.tanggal_pengajuan}</p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Ringkasan Pinjaman Aktif - Quick Overview */}
-            <div className="bg-white rounded-xl border border-slate-200 p-4">
-                <div className="flex items-center gap-2 mb-3">
-                    <CreditCard className="text-brand-navy" size={18} />
-                    <p className="text-sm font-bold text-slate-700">Status Pinjaman</p>
-                </div>
-                {pengajuan.pinjaman_aktif && pengajuan.pinjaman_aktif.length > 0 ? (
-                    <div className="space-y-3">
-                        {pengajuan.pinjaman_aktif.map((p, idx) => (
-                            <div key={p.id} className="bg-slate-50 rounded-lg p-3 border border-slate-100">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                                            <CreditCard size={16} />
-                                        </div>
-                                        <div>
-                                            <p className="font-semibold text-slate-800">Pinjaman #{idx + 1}</p>
-                                            <p className="text-xs text-slate-400 privacy-blur">
-                                                {formatRupiah(p.nominal)} &bull; {p.tenor_bulan} bln
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                                            <Calendar size={12} />
-                                            <span>Cicilan ke-{(p.total_cicilan - p.sisa_cicilan) + 1} / {p.total_cicilan}</span>
-                                        </div>
-                                        <p className="text-sm font-bold text-slate-800 mt-0.5 privacy-blur">
-                                            {formatRupiah(p.sisa_total_bayar)}
-                                        </p>
-                                        <p className="text-xs text-slate-400">Sisa Total Bayar</p>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="flex items-center justify-center py-4 text-slate-400">
-                        <p className="text-sm">Tidak ada pinjaman aktif</p>
-                    </div>
-                )}
-            </div>
-
-            {/* Pinjaman Aktif Detail */}
-            {pengajuan.pinjaman_aktif && pengajuan.pinjaman_aktif.length > 0 && (
-                <div className="border border-slate-200 rounded-xl overflow-hidden">
-                    <button
-                        type="button"
-                        onClick={() => setShowPinjamanTable(!showPinjamanTable)}
-                        className="w-full px-4 py-3 bg-slate-50 flex items-center justify-between text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
-                    >
-                        <span className="flex items-center gap-2">
-                            <svg className={`w-5 h-5 transition-transform ${showPinjamanTable ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                            Detail Jadwal Angsuran ({pengajuan.pinjaman_aktif.length} pinjaman)
-                        </span>
-                        <span className="text-xs text-slate-400">
-                            Total Sisa: <span className="privacy-blur">{formatRupiah(pengajuan.pinjaman_aktif.reduce((sum, p) => sum + p.sisa_total_bayar, 0))}</span>
-                        </span>
-                    </button>
-
-                    {showPinjamanTable && (
-                        <div className="p-3 space-y-4">
-                            {pengajuan.pinjaman_aktif.map((p, idx) => (
-                                <div key={p.id} className="border border-slate-200 rounded-lg p-4 bg-white">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                                                <Minus size={16} />
-                                            </div>
-                                            <div>
-                                                <p className="font-semibold text-slate-800">Pinjaman #{idx + 1}</p>
-                                                <p className="text-xs text-slate-400 privacy-blur">{formatRupiah(p.nominal)} &bull; {p.tenor_bulan} bln</p>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-sm font-bold text-slate-800 privacy-blur">{formatRupiah(p.sisa_total_bayar)}</p>
-                                            <p className="text-xs text-slate-400">Sisa Bayar</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-3 gap-3 text-sm mb-3">
-                                        <div className="bg-slate-50 rounded-lg p-3">
-                                            <p className="text-xs text-slate-400 mb-1">Sisa Cicilan</p>
-                                            <p className="font-semibold text-slate-700">{p.sisa_cicilan} / {p.total_cicilan}</p>
-                                        </div>
-                                    </div>
-
-                                    {p.jadwal_angsuran && p.jadwal_angsuran.length > 0 && (
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full text-xs">
-                                                <thead>
-                                                    <tr className="text-left text-slate-400 border-b border-slate-200">
-                                                        <th className="py-1.5 px-2 w-10 text-center">Ke</th>
-                                                        <th className="py-1.5 px-2 text-right">Pokok</th>
-                                                        <th className="py-1.5 px-2 text-right">Bunga</th>
-                                                        <th className="py-1.5 px-2 text-right">Total</th>
-                                                        <th className="py-1.5 px-2 text-center">Jatuh Tempo</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {p.jadwal_angsuran.slice(0, 6).map((a) => (
-                                                        <tr key={a.cicilan_ke} className="border-b border-slate-50 hover:bg-slate-50">
-                                                            <td className="py-1.5 px-2 text-center font-medium text-slate-700">{a.cicilan_ke}</td>
-                                                            <td className="py-1.5 px-2 text-right text-slate-700 privacy-blur">{formatRupiah(a.nominal_pokok)}</td>
-                                                            <td className="py-1.5 px-2 text-right text-amber-600 privacy-blur">{formatRupiah(a.nominal_bunga)}</td>
-                                                            <td className="py-1.5 px-2 text-right font-semibold text-slate-800 privacy-blur">{formatRupiah(a.total_bayar)}</td>
-                                                            <td className="py-1.5 px-2 text-center text-slate-600 whitespace-nowrap">{a.tanggal_jatuh_tempo}</td>
-                                                        </tr>
-                                                    ))}
-                                                    {p.jadwal_angsuran.length > 6 && (
-                                                        <tr className="text-center text-slate-400">
-                                                            <td colSpan={5} className="py-2">+{p.jadwal_angsuran.length - 6} angsuran lagi...</td>
-                                                        </tr>
-                                                    )}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
+        <>
+            <DrawerBody>
+                <DrawerHero>
+                    <div className="flex items-start justify-between gap-4 mb-4">
+                        <div className="min-w-0">
+                            <p className="text-[11px] font-medium text-slate-300">Pemohon Kenaikan Limit</p>
+                            <p className="text-lg sm:text-xl font-bold text-white truncate mt-0.5">{pengajuan.anggota.nama}</p>
+                            <p className="text-xs text-slate-300 font-mono mt-0.5">{pengajuan.anggota.no_karyawan}</p>
                         </div>
-                    )}
-                </div>
-            )}
+                        <span className="text-xs text-slate-300 shrink-0">{pengajuan.tanggal_pengajuan}</span>
+                    </div>
 
-            {/* Pinjaman Pending */}
-            {pengajuan.pinjaman_pending && (
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                    <div className="flex items-start gap-2.5">
-                        <CheckCircle2 size={18} className="text-amber-600 shrink-0 mt-0.5" />
-                        <div className="flex-1">
-                            <p className="text-xs font-bold text-amber-700 mb-1">Pinjaman Sedang Diproses</p>
-                            <p className="text-sm text-slate-700">
-                                Nominal: <span className="privacy-blur">{formatRupiah(pengajuan.pinjaman_pending.nominal)}</span> &bull;
-                                Status: {pengajuan.pinjaman_pending.status === 'diajukan' ? 'Menunggu Bendahara' : 'Menunggu Ketua'}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3.5 border-t border-white/10">
+                        <div className="rounded-xl bg-white/[0.06] border border-white/10 p-3.5">
+                            <p className="text-[11px] text-slate-300">Limit Saat Ini</p>
+                            <p className="text-xl sm:text-2xl font-bold text-white tabular-nums mt-1 privacy-blur">
+                                {formatRupiah(pengajuan.limit_saat_ini)}
                             </p>
-                            <p className="text-xs text-amber-600 mt-1">Pengajuan ini akan mempengaruhi limit tersedia jika disetujui.</p>
+                        </div>
+
+                        <div className="rounded-xl bg-brand-green/20 border border-brand-green/35 p-3.5">
+                            <div className="flex items-center justify-between gap-2">
+                                <p className="text-[11px] font-semibold text-emerald-200">Limit Diminta</p>
+                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/25 border border-emerald-400/30 px-2 py-0.5 text-[11px] font-bold text-emerald-200 tabular-nums privacy-blur">
+                                    <ArrowUpRight size={11} aria-hidden="true" />
+                                    +{persenKenaikan}%
+                                </span>
+                            </div>
+                            <p className="text-xl sm:text-2xl font-extrabold text-white tabular-nums mt-1 privacy-blur">
+                                {formatRupiah(pengajuan.limit_diminta)}
+                            </p>
+                            <p className="text-[11px] text-emerald-200 mt-0.5 tabular-nums privacy-blur">
+                                Selisih: +{formatRupiah(selisihLimit)}
+                            </p>
                         </div>
                     </div>
-                </div>
-            )}
+                </DrawerHero>
 
-            {/* Jejak nominal: diminta vs bendahara vs final */}
-            {(pengajuan.limit_disetujui_bendahara || pengajuan.limit_disetujui) && (
-                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                    <p className="text-sm font-bold text-slate-700 mb-2">Jejak Persetujuan</p>
-                    <div className="space-y-1.5 text-sm">
-                        <div className="flex items-center justify-between gap-4">
-                            <span className="text-slate-500">Diminta anggota</span>
-                            <span className="font-semibold text-slate-800 privacy-blur">{formatRupiah(pengajuan.limit_diminta)}</span>
-                        </div>
-                        {pengajuan.limit_disetujui_bendahara && (
-                            <div className="flex items-center justify-between gap-4">
-                                <span className="text-slate-500">Disetujui Bendahara</span>
-                                <span className="font-semibold text-blue-700 privacy-blur">{formatRupiah(pengajuan.limit_disetujui_bendahara)}</span>
-                            </div>
-                        )}
-                        {pengajuan.limit_disetujui && (
-                            <div className="flex items-center justify-between gap-4">
-                                <span className="text-slate-500">Final Ketua</span>
-                                <span className="font-semibold text-brand-green-dark privacy-blur">{formatRupiah(pengajuan.limit_disetujui)}</span>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
-
-            {/* Catatan Bendahara */}
-            {pengajuan.catatan_bendahara && (
-                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                    <p className="text-xs text-slate-400 mb-1">Catatan Bendahara</p>
-                    <p className="text-sm text-slate-700">{pengajuan.catatan_bendahara}</p>
-                </div>
-            )}
-
-            {/* Catatan Ketua (jika sudah diproses) */}
-            {pengajuan.catatan_ketua && (
-                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                    <p className="text-xs text-slate-400 mb-1">Catatan Ketua Koperasi</p>
-                    <p className="text-sm text-slate-700">{pengajuan.catatan_ketua}</p>
-                </div>
-            )}
-
-            {/* Action Section */}
-            <div className="pt-4 border-t border-slate-100">
-                {errors.keputusan && (
-                    <div className="flex items-start gap-2.5 bg-red-50 border border-red-100 rounded-xl p-3 mb-4">
-                        <AlertCircle size={18} className="text-red-500 shrink-0 mt-0.5" />
-                        <p className="text-sm font-medium text-red-700">{errors.keputusan}</p>
-                    </div>
+                {pengajuan.catatan_bendahara && (
+                    <DrawerNoteCallout
+                        label="Catatan Bendahara"
+                        note={pengajuan.catatan_bendahara}
+                        tone="indigo"
+                        icon={MessageSquareText}
+                    />
                 )}
 
-                {bisaDiproses ? (
-                    <>
-                        {!aksi ? (
-                            <div className="flex items-center gap-3">
-                                <Button variant="primary" onClick={() => setAksi('approve')}>
-                                    Setujui
-                                </Button>
-                                <Button variant="danger" onClick={() => setAksi('reject')}>
-                                    Tolak
-                                </Button>
-                            </div>
-                        ) : (
-                            <form onSubmit={submit}>
-                                {aksi === 'approve' && (
-                                    <div className="mb-4">
-                                        <label className="block text-sm font-semibold text-slate-600 mb-1">
-                                            Total Limit Baru Final yang Disetujui
-                                        </label>
-                                        <p className="text-xs text-slate-500 mb-2">
-                                            Isi total limit baru secara keseluruhan (bukan nilai selisih). Wajib {'>'} <span className="privacy-blur">{formatRupiah(pengajuan.limit_saat_ini)}</span>.
-                                        </p>
-                                        <div className="relative">
-                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-base font-semibold text-slate-400">Rp</span>
-                                            <input
-                                                type="number"
-                                                min={pengajuan.limit_saat_ini + 1}
-                                                value={data.limit_disetujui}
-                                                onChange={(e) => setData('limit_disetujui', e.target.value)}
-                                                className="w-full pl-12 pr-4 py-2.5 text-lg font-bold rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors privacy-blur"
-                                                autoFocus
+                {pengajuan.catatan_ketua && (
+                    <DrawerNoteCallout
+                        label="Catatan Ketua Koperasi"
+                        note={pengajuan.catatan_ketua}
+                        tone="emerald"
+                        icon={MessageSquareText}
+                    />
+                )}
+
+                {(pengajuan.limit_disetujui_bendahara || pengajuan.limit_disetujui) && (
+                    <DrawerSection title="Jejak Persetujuan Limit" icon={GitCommitHorizontal}>
+                        <DrawerKeyValue rows={jejakRows} />
+                    </DrawerSection>
+                )}
+
+                <DrawerSection title="Alasan Pengajuan" icon={FileText}>
+                    <p className="text-sm text-slate-700 leading-relaxed">{pengajuan.keterangan || '-'}</p>
+                </DrawerSection>
+
+                <DrawerSection title="Data Anggota" icon={User}>
+                    <DrawerFieldGrid cols={4}>
+                        <DrawerField label="No. Karyawan" value={pengajuan.anggota.no_karyawan} mono />
+                        <DrawerField label="Cabang" value={pengajuan.anggota.cabang} />
+                        <DrawerField label="Lama Keanggotaan" value={`${pengajuan.anggota.lama_keanggotaan_tahun} tahun`} />
+                        <DrawerField label="Tgl Pengajuan" value={pengajuan.tanggal_pengajuan} />
+                    </DrawerFieldGrid>
+                </DrawerSection>
+
+                <DrawerSection title="Status Pinjaman" icon={CreditCard} padding="none">
+                    {pengajuan.pinjaman_aktif && pengajuan.pinjaman_aktif.length > 0 ? (
+                        <div className="divide-y divide-slate-100">
+                            {pengajuan.pinjaman_aktif.map((p, idx) => {
+                                const terbayar = Math.max(0, (p.total_cicilan ?? 0) - (p.sisa_cicilan ?? 0));
+                                const persen = p.total_cicilan > 0 ? Math.min(100, Math.round((terbayar / p.total_cicilan) * 100)) : 0;
+                                return (
+                                    <div key={p.id} className="p-3.5 sm:px-4 space-y-2">
+                                        <div className="flex items-center justify-between gap-3">
+                                            <div className="flex items-center gap-2.5 min-w-0">
+                                                <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-50 to-indigo-100/80 text-sky-700 inline-flex items-center justify-center shrink-0">
+                                                    <CreditCard size={15} aria-hidden="true" />
+                                                </span>
+                                                <div className="min-w-0">
+                                                    <p className="text-sm font-semibold text-slate-800">Pinjaman #{idx + 1}</p>
+                                                    <p className="text-xs text-slate-500 tabular-nums privacy-blur">
+                                                        {formatRupiah(p.nominal)} &bull; {p.tenor_bulan} bln
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right shrink-0">
+                                                <p className="text-sm font-bold text-slate-800 tabular-nums privacy-blur">
+                                                    {formatRupiah(p.sisa_total_bayar)}
+                                                </p>
+                                                <p className="text-[11px] text-slate-500 flex items-center justify-end gap-1">
+                                                    <Calendar size={11} aria-hidden="true" />
+                                                    Cicilan ke-{terbayar + 1} / {p.total_cicilan}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                                            <div
+                                                className="h-full rounded-full bg-gradient-to-r from-brand-navy to-brand-green"
+                                                style={{ width: `${persen}%` }}
                                             />
                                         </div>
-                                        <ChipNominal grup="limit_baru" nilai={data.limit_disetujui} onPilih={(n) => setData('limit_disetujui', n)} />
-                                        {Number(data.limit_disetujui) > pengajuan.limit_saat_ini && (
-                                            <p className="text-xs font-semibold text-brand-green-dark mt-1.5 privacy-blur">
-                                                Penambahan limit: +{formatRupiah(Number(data.limit_disetujui) - pengajuan.limit_saat_ini)}
-                                            </p>
-                                        )}
-                                        {errors.limit_disetujui && <p className="text-sm text-red-600 mt-1.5">{errors.limit_disetujui}</p>}
-                                        {diBawahSaatIni && (
-                                            <p className="text-sm text-red-600 font-semibold mt-1.5">Nominal di bawah limit saat ini (<span className="privacy-blur">{formatRupiah(pengajuan.limit_saat_ini)}</span>). Masukkan total limit baru yang lebih besar.</p>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <div className="py-6 text-center text-sm text-slate-500">
+                            Tidak ada pinjaman aktif
+                        </div>
+                    )}
+                </DrawerSection>
+
+                {pengajuan.pinjaman_aktif && pengajuan.pinjaman_aktif.length > 0 && (
+                    <DrawerSection
+                        title={`Detail Jadwal Angsuran (${pengajuan.pinjaman_aktif.length} pinjaman)`}
+                        description={
+                            <>
+                                Total sisa: <strong className="text-slate-700 tabular-nums privacy-blur">{formatRupiah(totalSisaPinjaman)}</strong>
+                            </>
+                        }
+                        icon={Calendar}
+                        padding="none"
+                        action={
+                            <button
+                                type="button"
+                                onClick={() => setShowPinjamanTable(!showPinjamanTable)}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-colors"
+                            >
+                                <span>{showPinjamanTable ? 'Tutup Jadwal' : 'Lihat Jadwal'}</span>
+                                {showPinjamanTable ? <ChevronUp size={14} aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />}
+                            </button>
+                        }
+                    >
+                        {showPinjamanTable && (
+                            <div className="divide-y divide-slate-200/80">
+                                {pengajuan.pinjaman_aktif.map((p, idx) => (
+                                    <div key={p.id} className="p-3.5 sm:p-4 space-y-2.5">
+                                        <div className="flex flex-wrap items-center justify-between gap-2">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm font-bold text-slate-800">Pinjaman #{idx + 1}</span>
+                                                <span className="text-xs text-slate-500 tabular-nums privacy-blur">
+                                                    {formatRupiah(p.nominal)} &bull; {p.tenor_bulan} bln
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-xs">
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-semibold">
+                                                    Sisa {p.sisa_cicilan} / {p.total_cicilan} cicilan
+                                                </span>
+                                                <span className="font-bold text-slate-800 tabular-nums privacy-blur">
+                                                    {formatRupiah(p.sisa_total_bayar)}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {p.jadwal_angsuran && p.jadwal_angsuran.length > 0 && (
+                                            <div className="overflow-x-auto rounded-lg border border-slate-200/80">
+                                                <table className="w-full text-xs">
+                                                    <thead className="bg-gradient-to-r from-[#f4f7fb] via-[#f8fafc] to-[#f1faf4] text-slate-600 border-b border-slate-200/80">
+                                                        <tr>
+                                                            <th className="py-2 px-2.5 w-10 text-center font-semibold">Ke</th>
+                                                            <th className="py-2 px-2.5 text-right font-semibold">Pokok</th>
+                                                            <th className="py-2 px-2.5 text-right font-semibold">Bunga</th>
+                                                            <th className="py-2 px-2.5 text-right font-semibold">Total</th>
+                                                            <th className="py-2 px-2.5 text-center font-semibold">Jatuh Tempo</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {p.jadwal_angsuran.slice(0, 6).map((a) => (
+                                                            <tr key={a.cicilan_ke} className="border-b border-slate-100 last:border-0 hover:bg-brand-green-light/25 transition-colors">
+                                                                <td className="py-1.5 px-2.5 text-center font-medium text-slate-700 tabular-nums">{a.cicilan_ke}</td>
+                                                                <td className="py-1.5 px-2.5 text-right text-slate-700 tabular-nums privacy-blur">{formatRupiah(a.nominal_pokok)}</td>
+                                                                <td className="py-1.5 px-2.5 text-right text-amber-700 tabular-nums privacy-blur">{formatRupiah(a.nominal_bunga)}</td>
+                                                                <td className="py-1.5 px-2.5 text-right font-semibold text-slate-800 tabular-nums privacy-blur">{formatRupiah(a.total_bayar)}</td>
+                                                                <td className="py-1.5 px-2.5 text-center text-slate-600 whitespace-nowrap">{a.tanggal_jatuh_tempo}</td>
+                                                            </tr>
+                                                        ))}
+                                                        {p.jadwal_angsuran.length > 6 && (
+                                                            <tr className="text-center text-slate-500 bg-[#F8FAFC]">
+                                                                <td colSpan={5} className="py-2 text-xs">+{p.jadwal_angsuran.length - 6} angsuran lagi...</td>
+                                                            </tr>
+                                                        )}
+                                                    </tbody>
+                                                </table>
+                                            </div>
                                         )}
                                     </div>
-                                )}
-                                <label className="block text-sm font-semibold text-slate-600 mb-2">
+                                ))}
+                            </div>
+                        )}
+                    </DrawerSection>
+                )}
+
+                {pengajuan.pinjaman_pending && (
+                    <DrawerSection title="Pinjaman Sedang Diproses" icon={Clock} tone="amber">
+                        <p className="text-sm text-slate-700">
+                            Nominal: <strong className="privacy-blur tabular-nums">{formatRupiah(pengajuan.pinjaman_pending.nominal)}</strong> &bull; Status:{' '}
+                            <strong>{pengajuan.pinjaman_pending.status === 'diajukan' ? 'Menunggu Bendahara' : 'Menunggu Ketua'}</strong>
+                        </p>
+                        <p className="text-xs text-amber-700 mt-1">
+                            Pengajuan ini akan mempengaruhi limit tersedia jika disetujui.
+                        </p>
+                    </DrawerSection>
+                )}
+
+                {errors.keputusan && (
+                    <div className="flex items-start gap-2.5 bg-rose-50/50 border border-rose-200/80 rounded-xl p-3.5">
+                        <AlertCircle size={17} className="text-rose-500 shrink-0 mt-0.5" />
+                        <p className="text-sm font-medium text-rose-700">{errors.keputusan}</p>
+                    </div>
+                )}
+
+                {bisaDiproses && aksi && (
+                    <DrawerSection
+                        ref={formRef}
+                        title={aksi === 'approve' ? 'Otorisasi Limit Baru Final' : 'Konfirmasi Penolakan'}
+                        icon={aksi === 'approve' ? CheckCircle2 : XCircle}
+                        tone={aksi === 'reject' ? 'rose' : 'emerald'}
+                    >
+                        <form id={formId} onSubmit={submit} className="space-y-3.5">
+                            {aksi === 'approve' && (
+                                <div>
+                                    <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1">
+                                        Total Limit Baru Final yang Disetujui
+                                    </label>
+                                    <p className="text-xs text-slate-500 mb-2">
+                                        Isi total limit baru secara keseluruhan (bukan nilai selisih). Wajib &gt;{' '}
+                                        <span className="privacy-blur font-semibold text-slate-700">{formatRupiah(pengajuan.limit_saat_ini)}</span>.
+                                    </p>
+                                    <div className="relative">
+                                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-500">Rp</span>
+                                        <input
+                                            type="number"
+                                            min={pengajuan.limit_saat_ini + 1}
+                                            value={data.limit_disetujui}
+                                            onChange={(e) => setData('limit_disetujui', e.target.value)}
+                                            className="w-full pl-10 pr-4 py-2 text-base font-bold rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors privacy-blur tabular-nums"
+                                            autoFocus
+                                        />
+                                    </div>
+                                    <ChipNominal grup="limit_baru" nilai={data.limit_disetujui} onPilih={(n) => setData('limit_disetujui', n)} />
+                                    {Number(data.limit_disetujui) > pengajuan.limit_saat_ini && (
+                                        <p className="text-xs font-semibold text-brand-green-dark mt-1.5 privacy-blur tabular-nums">
+                                            Penambahan limit: +{formatRupiah(Number(data.limit_disetujui) - pengajuan.limit_saat_ini)}
+                                        </p>
+                                    )}
+                                    {errors.limit_disetujui && <p className="text-xs sm:text-sm font-medium text-red-600 mt-1.5">{errors.limit_disetujui}</p>}
+                                    {diBawahSaatIni && (
+                                        <p className="text-xs sm:text-sm text-red-600 font-semibold mt-1.5">
+                                            Nominal di bawah limit saat ini (<span className="privacy-blur">{formatRupiah(pengajuan.limit_saat_ini)}</span>). Masukkan total limit baru yang lebih besar.
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">
                                     Catatan {aksi === 'approve' ? 'Persetujuan' : 'Penolakan'}
                                 </label>
                                 <textarea
@@ -347,32 +354,72 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                                     onChange={(e) => setData('catatan', e.target.value)}
                                     rows={3}
                                     placeholder={aksi === 'approve' ? 'Contoh: Limit dinaikkan sesuai permintaan, memenuhi ketentuan.' : 'Contoh: Belum memenuhi syarat keanggotaan minimal.'}
-                                    className="w-full px-4 py-2.5 text-base rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
-                                    autoFocus
+                                    className="w-full px-3.5 py-2.5 text-base sm:text-sm rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
+                                    autoFocus={aksi !== 'approve'}
                                 />
-                                {errors.catatan && <p className="text-sm text-red-600 mt-1.5">{errors.catatan}</p>}
+                                {errors.catatan && <p className="text-xs sm:text-sm font-medium text-red-600 mt-1.5">{errors.catatan}</p>}
+                            </div>
+                        </form>
+                    </DrawerSection>
+                )}
+            </DrawerBody>
 
-                                <div className="flex items-center gap-3 mt-4">
-                                    <Button
-                                        type="submit"
-                                        variant={aksi === 'approve' ? 'primary' : 'danger'}
-                                        disabled={processing}
-                                    >
-                                        {processing ? 'Memproses...' : `Konfirmasi ${aksi === 'approve' ? 'Setujui' : 'Tolak'}`}
-                                    </Button>
-                                    <Button type="button" variant="ghost" onClick={() => setAksi(null)}>
-                                        Batal
-                                    </Button>
-                                </div>
-                            </form>
-                        )}
-                    </>
+            <DrawerFooter>
+                {bisaDiproses ? (
+                    !aksi ? (
+                        <div className="grid grid-cols-2 gap-2.5 sm:flex sm:items-center sm:justify-between">
+                            <Button
+                                type="button"
+                                variant="dangerSoft"
+                                size="drawer"
+                                onClick={() => setAksi('reject')}
+                            >
+                                <X size={16} />
+                                Tolak
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="primary"
+                                size="drawer"
+                                onClick={() => setAksi('approve')}
+                            >
+                                <Check size={16} />
+                                Setujui
+                            </Button>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-2 gap-2.5 sm:flex sm:items-center sm:justify-between">
+                            <Button
+                                type="button"
+                                variant="neutral"
+                                size="drawer"
+                                onClick={() => setAksi(null)}
+                                disabled={processing}
+                            >
+                                <ArrowLeft size={16} />
+                                Batal
+                            </Button>
+                            <Button
+                                type="submit"
+                                form={formId}
+                                variant={aksi === 'approve' ? 'primary' : 'danger'}
+                                size="drawer"
+                                disabled={processing}
+                            >
+                                {aksi === 'approve' ? <Check size={16} /> : <X size={16} />}
+                                {processing ? 'Memproses...' : `Konfirmasi ${aksi === 'approve' ? 'Setujui' : 'Tolak'}`}
+                            </Button>
+                        </div>
+                    )
                 ) : (
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-between gap-3">
                         <StatusBadge status={pengajuan.status} />
+                        <Button type="button" variant="neutral" size="drawer" onClick={onClose}>
+                            Tutup
+                        </Button>
                     </div>
                 )}
-            </div>
-        </div>
+            </DrawerFooter>
+        </>
     );
 }

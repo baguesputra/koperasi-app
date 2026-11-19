@@ -273,7 +273,13 @@ export default function Index({ anggota, statistik, filters, daftarCabang = [] }
 
             <Pagination links={anggota.links} />
 
-            <Drawer show={drawerOpen} title={editAnggota?.nama ?? 'Ubah Anggota'} onClose={() => setDrawerOpen(false)}>
+            <Drawer
+                show={drawerOpen}
+                layout="split"
+                title={editAnggota?.nama ?? 'Ubah Anggota'}
+                badge={editAnggota ? <StatusBadge status={editAnggota.status} /> : null}
+                onClose={() => setDrawerOpen(false)}
+            >
                 {editAnggota && (
                     <EditDrawer
                         key={editAnggota.id}
@@ -283,7 +289,14 @@ export default function Index({ anggota, statistik, filters, daftarCabang = [] }
                 )}
             </Drawer>
 
-            <Drawer show={resignDrawerOpen} title={`Resign ${resignAnggota?.nama ?? ''}`} onClose={() => { setResignDrawerOpen(false); setResignAnggota(null); }} maxWidth="2xl">
+            <Drawer
+                show={resignDrawerOpen}
+                layout="split"
+                title={`Resign — ${resignAnggota?.nama ?? ''}`}
+                badge={resignAnggota ? <StatusBadge status={resignAnggota.status} /> : null}
+                onClose={() => { setResignDrawerOpen(false); setResignAnggota(null); }}
+                maxWidth="2xl"
+            >
                 {resignAnggota && (
                     <ResignDrawer
                         key={resignAnggota.id}

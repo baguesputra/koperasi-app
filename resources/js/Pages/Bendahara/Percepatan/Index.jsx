@@ -145,7 +145,14 @@ export default function Index({ menunggu, riwayat }) {
                 </div>
             </Card>
 
-            <Drawer show={drawerOpen} title={`Tinjau Pengajuan - ${detailPengajuan?.anggota?.nama ?? 'Anggota'}`} onClose={tutupDetail} maxWidth="3xl">
+            <Drawer
+                show={drawerOpen}
+                layout="split"
+                title={`Tinjau Perubahan Tenor — ${detailPengajuan?.anggota?.nama ?? 'Anggota'}`}
+                badge={detailPengajuan ? <StatusBadge status={detailPengajuan.status === 'aktif' ? 'disetujui' : detailPengajuan.status} /> : null}
+                onClose={tutupDetail}
+                maxWidth="3xl"
+            >
                 {detailPengajuan && (
                     <KeputusanDrawer
                         key={detailPengajuan.id}

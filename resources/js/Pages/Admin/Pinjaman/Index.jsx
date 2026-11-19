@@ -146,7 +146,14 @@ export default function Index({ menungguTinjauan, riwayat, ringkasanKas }) {
                 </div>
             </Card>
 
-            <Drawer show={drawerOpen} title={`Verifikasi Pinjaman - ${detailPinjaman?.anggota?.nama ?? 'Anggota'}`} onClose={tutupDetail} maxWidth="3xl">
+            <Drawer
+                show={drawerOpen}
+                layout="split"
+                title={`Verifikasi Pinjaman — ${detailPinjaman?.anggota?.nama ?? 'Anggota'}`}
+                badge={detailPinjaman ? <StatusBadge status={detailPinjaman.status} /> : null}
+                onClose={tutupDetail}
+                maxWidth="3xl"
+            >
                 {detailPinjaman && (
                     <KeputusanDrawer
                         key={detailPinjaman.id}

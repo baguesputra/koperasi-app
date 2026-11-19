@@ -347,7 +347,7 @@ export default function TryConsoleDrawer({
                     leaveFrom="opacity-100"
                     leaveTo="opacity-0"
                 >
-                    <div className="absolute inset-0 bg-brand-navy/60 backdrop-blur-[1px]" />
+                    <div className="absolute inset-0 bg-brand-navy/45 backdrop-blur-[2px]" />
                 </TransitionChild>
 
                 <div className="fixed inset-0 flex justify-end">
@@ -359,9 +359,9 @@ export default function TryConsoleDrawer({
                         leaveFrom="translate-x-0"
                         leaveTo="translate-x-full"
                     >
-                        <DialogPanel className="relative flex h-full w-full max-w-2xl flex-col bg-white shadow-2xl">
+                        <DialogPanel className="relative flex h-full w-full max-w-2xl flex-col bg-[#F5F7FA] border-l border-slate-200/80 shadow-[-12px_0_40px_-10px_rgba(15,30,54,0.18)]">
                             {/* Header Konsol */}
-                            <div className="flex items-center justify-between border-b border-white/10 bg-brand-navy px-5 py-4 text-white">
+                            <div className="shrink-0 flex items-center justify-between border-b border-white/10 bg-brand-navy px-5 py-3.5 text-white">
                                 <div className="flex min-w-0 items-center gap-3">
                                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-green/20 text-emerald-300 ring-1 ring-brand-green/40">
                                         <Terminal className="h-4 w-4" aria-hidden="true" />
@@ -401,11 +401,12 @@ export default function TryConsoleDrawer({
 
                             {/* Isi Konsol */}
                             <form
+                                id="api-try-console-form"
                                 onSubmit={handleSendRequest}
-                                className="flex-1 space-y-5 overflow-y-auto p-5"
+                                className="flex-1 min-h-0 space-y-3.5 overflow-y-auto p-4 sm:p-5"
                             >
                                 {/* Bearer Token Manager */}
-                                <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3.5">
+                                <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_3px_rgba(15,30,54,0.04)]">
                                     <div className="mb-2 flex items-center justify-between gap-2">
                                         <label
                                             htmlFor="console-bearer-token"
@@ -418,7 +419,7 @@ export default function TryConsoleDrawer({
                                             <button
                                                 type="button"
                                                 onClick={() => setShowToken((prev) => !prev)}
-                                                className="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-600 hover:bg-slate-100"
+                                                className="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
                                             >
                                                 {showToken ? (
                                                     <>
@@ -460,7 +461,7 @@ export default function TryConsoleDrawer({
                                 </div>
 
                                 {/* Method + Path */}
-                                <div>
+                                <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_3px_rgba(15,30,54,0.04)]">
                                     <label className="mb-1.5 block text-xs font-semibold text-slate-700">
                                         Method &amp; Endpoint URL
                                     </label>
@@ -485,7 +486,7 @@ export default function TryConsoleDrawer({
                                             className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-xs text-slate-900 focus:border-brand-green focus:outline-none focus:ring-2 focus:ring-brand-green/20"
                                         />
                                     </div>
-                                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500">
+                                    <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500">
                                         <span>Target URL:</span>
                                         <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-slate-800">
                                             {finalUrl}
@@ -495,7 +496,7 @@ export default function TryConsoleDrawer({
 
                                 {/* Dynamic Path Params */}
                                 {pathParams.length > 0 && (
-                                    <div className="rounded-xl border border-slate-200 p-3.5">
+                                    <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_3px_rgba(15,30,54,0.04)]">
                                         <p className="mb-2.5 text-xs font-semibold text-slate-700">
                                             Parameter Path ({pathParams.length})
                                         </p>
@@ -512,7 +513,7 @@ export default function TryConsoleDrawer({
                                                         >
                                                             <span className="font-mono">{`{${paramName}}`}</span>
                                                             {specParam?.type && (
-                                                                <span className="text-[10px] text-slate-400">
+                                                                <span className="text-[10px] text-slate-500">
                                                                     {specParam.type}
                                                                 </span>
                                                             )}
@@ -536,70 +537,71 @@ export default function TryConsoleDrawer({
                                     </div>
                                 )}
 
-                                {/* Query String */}
-                                <div>
-                                    <label
-                                        htmlFor="console-query-string"
-                                        className="mb-1.5 block text-xs font-semibold text-slate-700"
-                                    >
-                                        Query String (opsional, tanpa tanda ?)
-                                    </label>
-                                    <input
-                                        id="console-query-string"
-                                        type="text"
-                                        value={queryString}
-                                        onChange={(e) => setQueryString(e.target.value)}
-                                        placeholder="contoh: status=aktif&per_page=10"
-                                        className="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs text-slate-900 placeholder:text-slate-400 focus:border-brand-green focus:outline-none focus:ring-2 focus:ring-brand-green/20"
-                                    />
-                                </div>
-
-                                {/* Idempotency-Key */}
-                                {(endpoint?.idempotent || ['POST', 'PUT', 'DELETE'].includes(method)) && (
+                                {/* Query String & Idempotency-Key */}
+                                <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_3px_rgba(15,30,54,0.04)] space-y-3.5">
                                     <div>
-                                        <div className="mb-1.5 flex items-center justify-between gap-2">
-                                            <label
-                                                htmlFor="console-idempotency-key"
-                                                className="text-xs font-semibold text-slate-700"
-                                            >
-                                                Idempotency-Key (UUID v4{' '}
-                                                {endpoint?.idempotent ? 'didukung route ini' : 'opsional'})
-                                            </label>
-                                            <div className="flex items-center gap-1.5">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setIdempotencyKey(generateUuidV4())}
-                                                    className="inline-flex items-center gap-1 rounded border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-700 hover:bg-slate-100"
-                                                >
-                                                    <RefreshCw className="h-3 w-3" />
-                                                    <span>Generate UUID</span>
-                                                </button>
-                                                {idempotencyKey && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setIdempotencyKey('')}
-                                                        className="rounded border border-slate-200 px-2 py-0.5 text-[11px] text-slate-500 hover:bg-slate-100"
-                                                    >
-                                                        Kosongkan
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
+                                        <label
+                                            htmlFor="console-query-string"
+                                            className="mb-1.5 block text-xs font-semibold text-slate-700"
+                                        >
+                                            Query String (opsional, tanpa tanda ?)
+                                        </label>
                                         <input
-                                            id="console-idempotency-key"
+                                            id="console-query-string"
                                             type="text"
-                                            value={idempotencyKey}
-                                            onChange={(e) => setIdempotencyKey(e.target.value)}
-                                            placeholder="UUID v4 untuk mencegah eksekusi ganda"
+                                            value={queryString}
+                                            onChange={(e) => setQueryString(e.target.value)}
+                                            placeholder="contoh: status=aktif&per_page=10"
                                             className="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs text-slate-900 placeholder:text-slate-400 focus:border-brand-green focus:outline-none focus:ring-2 focus:ring-brand-green/20"
                                         />
                                     </div>
-                                )}
+
+                                    {(endpoint?.idempotent || ['POST', 'PUT', 'DELETE'].includes(method)) && (
+                                        <div className="pt-3 border-t border-slate-100">
+                                            <div className="mb-1.5 flex items-center justify-between gap-2">
+                                                <label
+                                                    htmlFor="console-idempotency-key"
+                                                    className="text-xs font-semibold text-slate-700"
+                                                >
+                                                    Idempotency-Key (UUID v4{' '}
+                                                    {endpoint?.idempotent ? 'didukung route ini' : 'opsional'})
+                                                </label>
+                                                <div className="flex items-center gap-1.5">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setIdempotencyKey(generateUuidV4())}
+                                                        className="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-700 hover:bg-slate-50"
+                                                    >
+                                                        <RefreshCw className="h-3 w-3" />
+                                                        <span>Generate UUID</span>
+                                                    </button>
+                                                    {idempotencyKey && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setIdempotencyKey('')}
+                                                            className="rounded border border-slate-200 px-2 py-0.5 text-[11px] text-slate-600 hover:bg-slate-50"
+                                                        >
+                                                            Kosongkan
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <input
+                                                id="console-idempotency-key"
+                                                type="text"
+                                                value={idempotencyKey}
+                                                onChange={(e) => setIdempotencyKey(e.target.value)}
+                                                placeholder="UUID v4 untuk mencegah eksekusi ganda"
+                                                className="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs text-slate-900 placeholder:text-slate-400 focus:border-brand-green focus:outline-none focus:ring-2 focus:ring-brand-green/20"
+                                            />
+                                        </div>
+                                    )}
+                                </div>
 
                                 {/* JSON Request Body */}
                                 {['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) && (
-                                    <div>
-                                        <div className="mb-1.5 flex items-center justify-between">
+                                    <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_3px_rgba(15,30,54,0.04)]">
+                                        <div className="mb-2 flex items-center justify-between">
                                             <label
                                                 htmlFor="console-json-body"
                                                 className="text-xs font-semibold text-slate-700"
@@ -609,7 +611,7 @@ export default function TryConsoleDrawer({
                                             <button
                                                 type="button"
                                                 onClick={handleFormatJson}
-                                                className="rounded border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-600 hover:bg-slate-100"
+                                                className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
                                             >
                                                 Rapikan JSON
                                             </button>
@@ -627,7 +629,7 @@ export default function TryConsoleDrawer({
 
                                 {/* Alert Error */}
                                 {errorMsg && (
-                                    <div className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs text-rose-700">
+                                    <div className="flex items-start gap-2 rounded-xl border border-rose-200/80 bg-rose-50/50 px-3.5 py-2.5 text-xs text-rose-700">
                                         <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                                         <span>{errorMsg}</span>
                                     </div>
@@ -635,7 +637,7 @@ export default function TryConsoleDrawer({
 
                                 {/* Token Captured Notice */}
                                 {tokenCapturedNotice && (
-                                    <div className="flex items-start gap-2 rounded-lg border border-brand-green/30 bg-brand-green-light px-3.5 py-2.5 text-xs text-brand-green-dark">
+                                    <div className="flex items-start gap-2 rounded-xl border border-emerald-200/80 bg-emerald-50/50 px-3.5 py-2.5 text-xs text-brand-green-dark">
                                         <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
                                         <span>
                                             Token Sanctum dari respons berhasil disimpan otomatis ke konsol &amp; sessionStorage.
@@ -643,31 +645,9 @@ export default function TryConsoleDrawer({
                                     </div>
                                 )}
 
-                                {/* Tombol Aksi */}
-                                <div className="flex flex-wrap items-center gap-2.5">
-                                    <button
-                                        type="submit"
-                                        disabled={loading}
-                                        className="inline-flex items-center gap-2 rounded-lg bg-brand-green px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-brand-green-dark disabled:cursor-not-allowed disabled:opacity-60"
-                                    >
-                                        <Play className="h-3.5 w-3.5 fill-current" />
-                                        <span>{loading ? 'Mengirim Request...' : 'Kirim Request'}</span>
-                                    </button>
-                                    {endpoint?.statusCode === 302 && (
-                                        <a
-                                            href={finalUrl}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
-                                        >
-                                            Buka URL di Tab Baru
-                                        </a>
-                                    )}
-                                </div>
-
                                 {/* Hasil Respons */}
                                 {result && (
-                                    <div className="space-y-2.5 border-t border-slate-200 pt-4">
+                                    <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_3px_rgba(15,30,54,0.04)] space-y-3">
                                         <div className="flex flex-wrap items-center justify-between gap-2">
                                             <div className="flex flex-wrap items-center gap-2">
                                                 <span
@@ -711,6 +691,40 @@ export default function TryConsoleDrawer({
                                     </div>
                                 )}
                             </form>
+
+                            {/* Sticky Action Footer */}
+                            <div className="shrink-0 bg-white border-t border-slate-200/80 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:px-5 sm:py-3.5 shadow-[0_-4px_16px_-4px_rgba(15,30,54,0.06)]">
+                                <div className="flex flex-wrap items-center justify-between gap-2.5">
+                                    {endpoint?.statusCode === 302 && (
+                                        <a
+                                            href={finalUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 min-h-[40px] text-xs sm:text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                                        >
+                                            Buka URL di Tab Baru
+                                        </a>
+                                    )}
+                                    <div className={`flex items-center justify-between gap-2.5 ${endpoint?.statusCode === 302 ? 'ml-auto' : 'w-full'}`}>
+                                        <button
+                                            type="button"
+                                            onClick={onClose}
+                                            className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 sm:px-5 min-h-[44px] sm:min-h-[40px] text-sm font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 hover:border-slate-400 hover:text-slate-900"
+                                        >
+                                            Tutup
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            form="api-try-console-form"
+                                            disabled={loading}
+                                            className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-brand-green to-brand-green-dark px-4 sm:px-5 min-h-[44px] sm:min-h-[40px] text-sm font-semibold text-white shadow-xs transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+                                        >
+                                            <Play className="h-3.5 w-3.5 fill-current" />
+                                            <span>{loading ? 'Mengirim Request...' : 'Kirim Request'}</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </DialogPanel>
                     </TransitionChild>
                 </div>

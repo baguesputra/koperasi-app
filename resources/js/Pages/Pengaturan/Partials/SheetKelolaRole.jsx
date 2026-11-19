@@ -89,10 +89,11 @@ export default function SheetKelolaRole({ roleList, semuaPermission }) {
     }
 
     const headerKecil = (children) => (
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
             <button
                 onClick={() => setView('list')}
-                className="inline-flex items-center gap-1 text-sm font-semibold text-slate-500 hover:text-brand-navy transition-colors"
+                aria-label="Kembali ke daftar role"
+                className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-sm font-semibold text-slate-500 hover:text-brand-navy hover:bg-slate-100 transition-colors"
             >
                 <ArrowLeft size={16} />
             </button>
@@ -102,18 +103,19 @@ export default function SheetKelolaRole({ roleList, semuaPermission }) {
 
     if (view === 'tambah') {
         return (
-            <div>
+            <div className="rounded-xl bg-white border border-slate-200/80 shadow-[0_1px_3px_rgba(15,30,54,0.04)] p-4">
                 {headerKecil('Tambah Role')}
                 <form onSubmit={submitBuat}>
                     <FormField label="Nama Role" error={buat.errors.name} hint="Gunakan tanda hubung untuk kata terpisah, contoh: sekretaris-cabang">
                         <TextField size="sm" value={buat.data.name} onChange={(e) => buat.setData('name', e.target.value)} autoFocus />
                     </FormField>
-                    <div className="flex items-center gap-3">
-                        <Button type="submit" variant="primary" disabled={buat.processing}>
-                            {buat.processing ? 'Menyimpan...' : 'Buat Role'}
-                        </Button>
-                        <Button type="button" variant="ghost" onClick={() => setView('list')}>
+                    <div className="flex items-center justify-between gap-2.5 pt-3.5 border-t border-slate-100">
+                        <Button type="button" variant="neutral" size="drawer" onClick={() => setView('list')}>
+                            <ArrowLeft size={16} />
                             Batal
+                        </Button>
+                        <Button type="submit" variant="primary" size="drawer" disabled={buat.processing}>
+                            {buat.processing ? 'Menyimpan...' : 'Buat Role'}
                         </Button>
                     </div>
                 </form>
@@ -123,38 +125,43 @@ export default function SheetKelolaRole({ roleList, semuaPermission }) {
 
     if (view === 'akses') {
         return (
-            <div>
-                <div className="flex items-center gap-2 mb-1">
-                    <button
-                        onClick={() => setView('list')}
-                        className="inline-flex items-center gap-1 text-sm font-semibold text-slate-500 hover:text-brand-navy transition-colors"
-                    >
-                        <ArrowLeft size={16} />
-                    </button>
-                    <h3 className="text-base font-bold text-slate-800 capitalize flex items-center gap-2">
-                        {target?.name.replace('_', ' ')}
-                        {target?.dilindungi && <Lock size={14} className="text-slate-300" />}
-                    </h3>
+            <div className="space-y-3.5">
+                <div className="rounded-xl bg-white border border-slate-200/80 shadow-[0_1px_3px_rgba(15,30,54,0.04)] p-4">
+                    <div className="flex items-center gap-2 mb-1">
+                        <button
+                            onClick={() => setView('list')}
+                            aria-label="Kembali ke daftar role"
+                            className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-sm font-semibold text-slate-500 hover:text-brand-navy hover:bg-slate-100 transition-colors"
+                        >
+                            <ArrowLeft size={16} />
+                        </button>
+                        <h3 className="text-base font-bold text-slate-800 capitalize flex items-center gap-2">
+                            {target?.name.replace('_', ' ')}
+                            {target?.dilindungi && <Lock size={14} className="text-slate-400" />}
+                        </h3>
+                    </div>
+                    <p className="text-xs sm:text-sm text-slate-500 pl-10">
+                        Pilih hak akses yang dimiliki role ini. {target?.jumlah_user} pengguna memakai role ini.
+                    </p>
                 </div>
-                <p className="text-sm text-slate-400 mb-4">
-                    Pilih hak akses yang dimiliki role ini. {target?.jumlah_user} pengguna memakai role ini.
-                </p>
 
-                <form onSubmit={submitAkses}>
-                    <div className="space-y-4 mb-4 max-h-[55vh] overflow-y-auto pr-1">
+                <form onSubmit={submitAkses} className="space-y-3.5">
+                    <div className="space-y-3 max-h-[55vh] overflow-y-auto pr-1">
                         {Object.entries(semuaPermission).map(([kelompok, items]) => (
-                            <div key={kelompok} className="border border-slate-100 rounded-xl p-4">
-                                <p className="text-sm font-bold text-slate-700 mb-2.5">
-                                    {kelompokLabel[kelompok] ?? kelompok}
-                                </p>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
+                            <div key={kelompok} className="bg-white border border-slate-200/80 rounded-xl shadow-[0_1px_3px_rgba(15,30,54,0.04)] overflow-hidden">
+                                <div className="px-4 py-2.5 border-b border-slate-100">
+                                    <p className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                                        {kelompokLabel[kelompok] ?? kelompok}
+                                    </p>
+                                </div>
+                                <div className="p-3.5 sm:p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5">
                                     {items.map((permission) => (
                                         <label key={permission.name} className="flex items-center gap-2.5 cursor-pointer">
                                             <input
                                                 type="checkbox"
                                                 checked={akses.data.permissions.includes(permission.name)}
                                                 onChange={() => togglePermission(permission.name)}
-                                                className="w-5 h-5 rounded border-slate-300 text-brand-green focus:ring-brand-green/30"
+                                                className="w-4 h-4 rounded border-slate-300 text-brand-green focus:ring-brand-green/30"
                                             />
                                             <span className="text-sm text-slate-700">
                                                 {permissionLabel[permission.name] ?? permission.name}
@@ -167,15 +174,16 @@ export default function SheetKelolaRole({ roleList, semuaPermission }) {
                     </div>
 
                     {akses.errors.permissions && (
-                        <p className="text-sm font-medium text-red-600 mb-3">{akses.errors.permissions}</p>
+                        <p className="text-sm font-medium text-red-600">{akses.errors.permissions}</p>
                     )}
 
-                    <div className="flex items-center gap-3">
-                        <Button type="submit" variant="primary" disabled={akses.processing}>
-                            {akses.processing ? 'Menyimpan...' : 'Simpan Hak Akses'}
-                        </Button>
-                        <Button type="button" variant="ghost" onClick={() => setView('list')}>
+                    <div className="flex items-center justify-between gap-2.5 bg-white rounded-xl border border-slate-200/80 px-4 py-3 shadow-[0_1px_3px_rgba(15,30,54,0.04)]">
+                        <Button type="button" variant="neutral" size="drawer" onClick={() => setView('list')}>
+                            <ArrowLeft size={16} />
                             Batal
+                        </Button>
+                        <Button type="submit" variant="primary" size="drawer" disabled={akses.processing}>
+                            {akses.processing ? 'Menyimpan...' : 'Simpan Hak Akses'}
                         </Button>
                     </div>
                 </form>
@@ -192,23 +200,23 @@ export default function SheetKelolaRole({ roleList, semuaPermission }) {
                 </Button>
             </div>
 
-            <div className="divide-y divide-slate-100 border border-slate-100 rounded-xl overflow-hidden">
+            <div className="divide-y divide-slate-100 border border-slate-200/80 rounded-xl overflow-hidden bg-white shadow-[0_1px_3px_rgba(15,30,54,0.04)]">
                 {roleList.length === 0 ? (
-                    <p className="text-sm text-slate-400 text-center py-8">Belum ada role.</p>
+                    <p className="text-sm text-slate-500 text-center py-8">Belum ada role.</p>
                 ) : (
                     roleList.map((role) => (
-                        <div key={role.id} className="flex items-center gap-3 px-4 py-3 bg-white">
+                        <div key={role.id} className="flex items-center gap-3 px-4 py-3 bg-white hover:bg-brand-green-light/25 transition-colors">
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm font-semibold text-slate-800 capitalize flex items-center gap-2">
                                     {role.name.replace('_', ' ')}
-                                    {role.dilindungi && <Lock size={13} className="text-slate-300" />}
+                                    {role.dilindungi && <Lock size={13} className="text-slate-400" />}
                                 </p>
-                                <p className="text-xs text-slate-400">{role.jumlah_user} pengguna</p>
+                                <p className="text-xs text-slate-500">{role.jumlah_user} pengguna</p>
                             </div>
                             <div className="flex items-center gap-1 shrink-0">
                                 <button
                                     onClick={() => bukaAkses(role)}
-                                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-semibold text-brand-navy hover:bg-slate-100 transition-colors"
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-semibold text-brand-navy hover:bg-brand-navy/5 transition-colors"
                                 >
                                     <Pencil size={14} />
                                     Atur Akses
@@ -217,7 +225,7 @@ export default function SheetKelolaRole({ roleList, semuaPermission }) {
                                     <button
                                         onClick={() => hapus(role)}
                                         title="Hapus"
-                                        className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-slate-100"
+                                        className="p-1.5 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors"
                                     >
                                         <Trash2 size={15} />
                                     </button>
