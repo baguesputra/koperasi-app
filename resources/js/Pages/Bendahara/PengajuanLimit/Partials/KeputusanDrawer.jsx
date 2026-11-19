@@ -8,6 +8,7 @@ import {
     DrawerField,
     DrawerFieldGrid,
     DrawerFooter,
+    DrawerFooterActions,
     DrawerHero,
     DrawerNoteCallout,
     DrawerSection,
@@ -238,7 +239,7 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
             <DrawerFooter>
                 {bisaDiproses ? (
                     !aksi ? (
-                        <div className="grid grid-cols-2 gap-2.5 sm:flex sm:items-center sm:justify-between">
+                        <DrawerFooterActions>
                             <Button
                                 type="button"
                                 variant="dangerSoft"
@@ -257,9 +258,9 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                                 <Check size={16} />
                                 Setujui
                             </Button>
-                        </div>
+                        </DrawerFooterActions>
                     ) : (
-                        <div className="grid grid-cols-2 gap-2.5 sm:flex sm:items-center sm:justify-between">
+                        <DrawerFooterActions>
                             <Button
                                 type="button"
                                 variant="neutral"
@@ -280,7 +281,7 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                                 {aksi === 'approve' ? <Check size={16} /> : <X size={16} />}
                                 {processing ? 'Memproses...' : `Konfirmasi ${aksi === 'approve' ? 'Setujui' : 'Tolak'}`}
                             </Button>
-                        </div>
+                        </DrawerFooterActions>
                     )
                 ) : (
                     <div className="flex items-center justify-between gap-3">

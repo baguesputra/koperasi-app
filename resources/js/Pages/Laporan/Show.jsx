@@ -47,10 +47,10 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
     const tampilCell = (i, cell) => (hasil.rataKanan.includes(i) && typeof cell === 'number' ? formatRupiah(cell) : cell);
 
     const gayaBaris = (ri) => (hasil.gayaBaris?.[ri] === 'section'
-        ? 'bg-slate-100'
+        ? 'bg-[#F1F5F9]'
         : hasil.gayaBaris?.[ri] === 'subtotal'
-            ? 'bg-slate-50 font-bold'
-            : 'border-b border-slate-50 last:border-0 hover:bg-slate-50 transition-colors');
+            ? 'bg-[#F7F9FC] font-bold border-y border-slate-200/70'
+            : 'border-b border-slate-100 last:border-0 hover:bg-[#F2FBF5] transition-colors');
 
     return (
         <AppLayout>
@@ -205,16 +205,16 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
             </Card>
 
             {/* Hasil */}
-            <Card padding="none" className="shadow-md border-slate-200/70">
+            <Card padding="none" className="shadow-md border-slate-200/70 overflow-hidden">
                 <div className="px-4 py-3 border-b border-slate-100 flex flex-wrap items-baseline justify-between gap-2">
                     <h2 className="text-sm font-bold text-slate-800 tabular-nums">{hasil.rows.length} baris data</h2>
-                    <p className="text-xs text-slate-400">Periode: <span className="font-bold text-slate-600">{periodeLabel}</span></p>
+                    <p className="text-xs text-slate-500">Periode: <span className="font-bold text-slate-700">{periodeLabel}</span></p>
                 </div>
 
                 {hasil.rows.length === 0 ? (
                     <div className="text-center py-12 px-4">
                         <p className="text-sm font-semibold text-slate-600">Tidak ada data pada periode ini.</p>
-                        <p className="text-sm text-slate-400 mt-1">Coba perlebar rentang periode atau ubah filter.</p>
+                        <p className="text-sm text-slate-500 mt-1">Coba perlebar rentang periode atau ubah filter.</p>
                         <Link
                             href={route('laporan.show', laporan.slug)}
                             className="inline-flex items-center justify-center gap-2 mt-3 px-4 py-2 text-sm font-semibold rounded-full text-brand-navy border-2 border-brand-navy hover:bg-slate-50 transition-colors"
@@ -226,22 +226,21 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
                 ) : (
                     <div className={`overflow-x-auto transition-opacity ${memuat ? 'opacity-50' : ''}`} aria-busy={memuat}>
                         <table className="w-full text-sm table-sticky-first">
-                            {/* .table-sticky-first thead th memaksa background putih (app.css), jadi header tanpa gradient. */}
                             <thead>
-                                <tr className="text-left border-b border-slate-200/80">
+                                <tr className="text-left border-b border-slate-200/80 bg-[#F8FAFC]">
                                     {hasil.kolom.map((label, i) => (
-                                        <th key={i} scope="col" className={`px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap ${sel(i)}`}>{label}</th>
+                                        <th key={i} scope="col" className={`px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap ${sel(i)}`}>{label}</th>
                                     ))}
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody className="bg-white">
                                 {hasil.rows.map((row, ri) => (
                                     hasil.gayaBaris?.[ri] === 'section' ? (
-                                        <tr key={ri} className="bg-slate-100">
-                                            <td colSpan={hasil.kolom.length} className="px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-600">{row[0]}</td>
+                                        <tr key={ri} data-row-tone="section" className="bg-[#F1F5F9]">
+                                            <td colSpan={hasil.kolom.length} className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-brand-navy/80">{row[0]}</td>
                                         </tr>
                                     ) : (
-                                        <tr key={ri} className={gayaBaris(ri)}>
+                                        <tr key={ri} data-row-tone={hasil.gayaBaris?.[ri] || undefined} className={gayaBaris(ri)}>
                                             {row.map((cell, ci) => (
                                                 <td key={ci} className={`px-4 py-2.5 text-slate-700 ${sel(ci)}`}>{tampilCell(ci, cell)}</td>
                                             ))}
@@ -251,7 +250,7 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
                             </tbody>
                             {hasil.totals && (
                                 <tfoot>
-                                    <tr className="border-t-2 border-slate-200 bg-gradient-to-r from-slate-50 to-white">
+                                    <tr className="border-t-2 border-slate-200/90 bg-[#F7F9FC]">
                                         {hasil.totals.map((cell, i) => (
                                             <td key={i} className={`px-4 py-3 font-bold text-slate-800 ${sel(i)}`}>{cell == null ? '' : tampilCell(i, cell)}</td>
                                         ))}

@@ -21,6 +21,7 @@ import {
     DrawerField,
     DrawerFieldGrid,
     DrawerFooter,
+    DrawerFooterActions,
     DrawerHero,
     DrawerNoteCallout,
     DrawerSection,
@@ -168,23 +169,23 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-xs sm:text-sm">
                                         <thead>
-                                            <tr className="text-left text-slate-600 bg-gradient-to-r from-[#f4f7fb] via-[#f8fafc] to-[#f1faf4] border-b border-slate-200/80">
-                                                <th className="py-2 px-3 w-12 text-center font-semibold">Ke</th>
-                                                <th className="py-2 px-3 text-right font-semibold">Pokok</th>
-                                                <th className="py-2 px-3 text-right font-semibold">Bunga</th>
-                                                <th className="py-2 px-3 text-right font-semibold">Total Bayar</th>
+                                            <tr className="text-left text-[11px] font-bold uppercase tracking-wider text-slate-500 bg-[#F8FAFC] border-b border-slate-200/80">
+                                                <th className="py-2 px-3 w-12 text-center whitespace-nowrap">Ke</th>
+                                                <th className="py-2 px-3 text-right whitespace-nowrap">Pokok</th>
+                                                <th className="py-2 px-3 text-right whitespace-nowrap">Bunga</th>
+                                                <th className="py-2 px-3 text-right whitespace-nowrap">Total Bayar</th>
                                             </tr>
                                         </thead>
-                                        <tbody>
+                                        <tbody className="divide-y divide-slate-100 bg-white">
                                             {preview.jadwal.map((a) => (
-                                                <tr key={a.cicilan_ke} className="border-b border-slate-100 hover:bg-brand-green-light/25 transition-colors">
+                                                <tr key={a.cicilan_ke} className="hover:bg-[#F2FBF5] transition-colors">
                                                     <td className="py-2 px-3 text-center font-medium text-slate-700 tabular-nums">{a.cicilan_ke}</td>
                                                     <td className="py-2 px-3 text-right text-slate-700 tabular-nums privacy-blur">{formatRupiah(a.nominal_pokok)}</td>
                                                     <td className="py-2 px-3 text-right text-amber-700 tabular-nums privacy-blur">{formatRupiah(a.nominal_bunga)}</td>
                                                     <td className="py-2 px-3 text-right font-semibold text-slate-800 tabular-nums privacy-blur">{formatRupiah(a.total_bayar)}</td>
                                                 </tr>
                                             ))}
-                                            <tr className="font-bold bg-[#F4F7FB] border-t-2 border-slate-200">
+                                            <tr className="font-bold bg-[#F7F9FC] border-t-2 border-slate-200/90 text-slate-800">
                                                 <td className="py-2 px-3">Total</td>
                                                 <td className="py-2 px-3 text-right tabular-nums privacy-blur">{formatRupiah(preview.jadwal.reduce((s, a) => s + a.nominal_pokok, 0))}</td>
                                                 <td className="py-2 px-3 text-right text-amber-700 tabular-nums privacy-blur">{formatRupiah(preview.jadwal.reduce((s, a) => s + a.nominal_bunga, 0))}</td>
@@ -219,17 +220,17 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                             <div className="overflow-x-auto">
                                 <table className="w-full text-xs sm:text-sm">
                                     <thead>
-                                        <tr className="text-left text-slate-600 bg-gradient-to-r from-[#f4f7fb] via-[#f8fafc] to-[#f1faf4] border-b border-slate-200/80">
-                                            <th className="py-2 px-3 w-12 text-center font-semibold">Ke</th>
-                                            <th className="py-2 px-3 text-right font-semibold">Pokok</th>
-                                            <th className="py-2 px-3 text-right font-semibold">Bunga</th>
-                                            <th className="py-2 px-3 text-right font-semibold">Total Bayar</th>
-                                            <th className="py-2 px-3 text-center font-semibold">Jatuh Tempo</th>
+                                        <tr className="text-left text-[11px] font-bold uppercase tracking-wider text-slate-500 bg-[#F8FAFC] border-b border-slate-200/80">
+                                            <th className="py-2 px-3 w-12 text-center whitespace-nowrap">Ke</th>
+                                            <th className="py-2 px-3 text-right whitespace-nowrap">Pokok</th>
+                                            <th className="py-2 px-3 text-right whitespace-nowrap">Bunga</th>
+                                            <th className="py-2 px-3 text-right whitespace-nowrap">Total Bayar</th>
+                                            <th className="py-2 px-3 text-center whitespace-nowrap">Jatuh Tempo</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody className="divide-y divide-slate-100 bg-white">
                                         {angsuranBaru.map((a) => (
-                                            <tr key={a.id} className="border-b border-slate-100 hover:bg-brand-green-light/25 transition-colors">
+                                            <tr key={a.id} className="hover:bg-[#F2FBF5] transition-colors">
                                                 <td className="py-2 px-3 text-center font-medium text-slate-700 tabular-nums">{a.cicilan_ke}</td>
                                                 <td className="py-2 px-3 text-right text-slate-700 tabular-nums privacy-blur">{formatRupiah(a.nominal_pokok)}</td>
                                                 <td className="py-2 px-3 text-right text-amber-700 tabular-nums privacy-blur">{formatRupiah(a.nominal_bunga)}</td>
@@ -240,7 +241,7 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                                             </tr>
                                         ))}
                                     </tbody>
-                                    <tfoot className="bg-[#F4F7FB] border-t-2 border-slate-200">
+                                    <tfoot className="bg-[#F7F9FC] border-t-2 border-slate-200/90">
                                         <tr className="font-bold text-slate-800">
                                             <td className="py-2 px-3">Total</td>
                                             <td className="py-2 px-3 text-right tabular-nums privacy-blur">{formatRupiah(angsuranBaru.reduce((sum, a) => sum + a.nominal_pokok, 0))}</td>
@@ -298,7 +299,7 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
             <DrawerFooter>
                 {bisaDiproses ? (
                     !aksi ? (
-                        <div className="grid grid-cols-2 gap-2.5 sm:flex sm:items-center sm:justify-between">
+                        <DrawerFooterActions>
                             <Button
                                 type="button"
                                 variant="dangerSoft"
@@ -317,9 +318,9 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                                 <Check size={16} />
                                 Setujui
                             </Button>
-                        </div>
+                        </DrawerFooterActions>
                     ) : (
-                        <div className="grid grid-cols-2 gap-2.5 sm:flex sm:items-center sm:justify-between">
+                        <DrawerFooterActions>
                             <Button
                                 type="button"
                                 variant="neutral"
@@ -340,7 +341,7 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                                 {aksi === 'approve' ? <Check size={16} /> : <X size={16} />}
                                 {processing ? 'Memproses...' : `Konfirmasi ${aksi === 'approve' ? 'Setujui' : 'Tolak'}`}
                             </Button>
-                        </div>
+                        </DrawerFooterActions>
                     )
                 ) : (
                     <div className="flex items-center justify-between gap-3">

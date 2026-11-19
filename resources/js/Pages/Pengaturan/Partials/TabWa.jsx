@@ -125,28 +125,28 @@ export default function TabWa() {
             {data.logs.length === 0 ? (
                 <p className="text-sm text-slate-400">Belum ada notifikasi terkirim.</p>
             ) : (
-                <div className="overflow-x-auto border border-slate-100 rounded-xl">
+                <div className="overflow-x-auto border border-slate-200/80 rounded-xl bg-white">
                     <table className="w-full text-sm">
                         <thead>
-                            <tr className="bg-slate-50 text-left text-slate-500">
-                                <th className="px-3 py-2 font-semibold">Waktu</th>
-                                <th className="px-3 py-2 font-semibold">Tujuan</th>
-                                <th className="px-3 py-2 font-semibold">Event</th>
-                                <th className="px-3 py-2 font-semibold">Pesan</th>
-                                <th className="px-3 py-2 font-semibold">Status</th>
+                            <tr className="bg-[#F8FAFC] border-b border-slate-200/80 text-left text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                                <th className="px-3.5 py-2.5 whitespace-nowrap">Waktu</th>
+                                <th className="px-3.5 py-2.5 whitespace-nowrap">Tujuan</th>
+                                <th className="px-3.5 py-2.5 whitespace-nowrap">Event</th>
+                                <th className="px-3.5 py-2.5 whitespace-nowrap">Pesan</th>
+                                <th className="px-3.5 py-2.5 whitespace-nowrap">Status</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100">
+                        <tbody className="divide-y divide-slate-100 bg-white">
                             {data.logs.map((log) => (
-                                <tr key={log.id} className="align-top">
-                                    <td className="px-3 py-2 whitespace-nowrap text-slate-600">{log.waktu}</td>
-                                    <td className="px-3 py-2 whitespace-nowrap text-slate-600">{log.penerima}</td>
-                                    <td className="px-3 py-2 whitespace-nowrap text-slate-600">{log.event}</td>
-                                    <td className="px-3 py-2 max-w-md">
+                                <tr key={log.id} className="align-top hover:bg-slate-50/60 transition-colors">
+                                    <td className="px-3.5 py-2.5 whitespace-nowrap text-slate-600">{log.waktu}</td>
+                                    <td className="px-3.5 py-2.5 whitespace-nowrap text-slate-600">{log.penerima}</td>
+                                    <td className="px-3.5 py-2.5 whitespace-nowrap text-slate-600">{log.event}</td>
+                                    <td className="px-3.5 py-2.5 max-w-md">
                                         <span title={log.pesan} className="line-clamp-2 text-slate-600">{log.pesan}</span>
                                         {log.error && <span className="block text-xs text-red-500">{log.error}</span>}
                                     </td>
-                                    <td className="px-3 py-2">
+                                    <td className="px-3.5 py-2.5">
                                         <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold capitalize ${STATUS_LOG[log.status] || 'bg-slate-100 text-slate-600'}`}>
                                             {log.status}
                                         </span>

@@ -207,7 +207,7 @@ export default function Index({ pengeluaran, filters = {}, tipeList = {}, akunLi
                 </Card>
             )}
 
-            <Card padding="sm" className="shadow-md border-slate-200/70 mb-4">
+            <Card padding="sm" className="shadow-md border-slate-200/70 mb-4 overflow-hidden">
                 <div className="pb-3 mb-1 border-b border-slate-100">
                     <div className="flex flex-col md:flex-row md:items-center gap-2">
                         <div className="flex-1 relative group">
@@ -265,21 +265,21 @@ export default function Index({ pengeluaran, filters = {}, tipeList = {}, akunLi
                 <div className="overflow-x-auto">
                     <table className="w-full table-sticky-first table-head-static text-sm">
                         <thead>
-                            <tr className="text-left bg-gradient-to-r from-slate-50 to-white border-b border-slate-200/80">
-                                <th className="px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap">Tanggal</th>
-                                <th className="px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-500">Keterangan</th>
-                                <th className="px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap">Tipe</th>
-                                <th className="hidden sm:table-cell px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap">Sumber</th>
-                                <th className="hidden sm:table-cell px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap">Dicatat Oleh</th>
-                                <th className="px-4 py-2.5 text-right text-xs font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap">Jumlah</th>
+                            <tr className="text-left bg-[#F8FAFC] border-b border-slate-200/80">
+                                <th className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Tanggal</th>
+                                <th className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Keterangan</th>
+                                <th className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Tipe</th>
+                                <th className="hidden sm:table-cell px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Sumber</th>
+                                <th className="hidden sm:table-cell px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Dicatat Oleh</th>
+                                <th className="px-4 py-2.5 text-right text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Jumlah</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-slate-100 bg-white">
                             {pengeluaran.data.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="px-4 py-10 text-center">
                                         <p className="text-sm font-semibold text-slate-600">Belum ada pengeluaran tercatat</p>
-                                        <p className="text-sm text-slate-400 mt-1">Coba ubah kata kunci atau bulan.</p>
+                                        <p className="text-sm text-slate-500 mt-1">Coba ubah kata kunci atau bulan.</p>
                                         {filterAktif && (
                                             <Button type="button" variant="outline" size="sm" className="mt-3 rounded-full" onClick={resetFilter}>
                                                 Tampilkan semua
@@ -289,7 +289,7 @@ export default function Index({ pengeluaran, filters = {}, tipeList = {}, akunLi
                                 </tr>
                             ) : (
                                 pengeluaran.data.map((p) => (
-                                    <tr key={p.id} className="border-b border-slate-50 last:border-0 hover:bg-gradient-to-r hover:from-rose-50/60 hover:to-transparent transition-all">
+                                    <tr key={p.id} className="hover:bg-slate-50/60 transition-colors">
                                         <td className="px-4 py-2.5 whitespace-nowrap">
                                             <p className="text-sm font-semibold text-slate-700">{p.tanggal}</p>
                                             <p className="text-xs text-slate-400">{p.hari}</p>

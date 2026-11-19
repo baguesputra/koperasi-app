@@ -11,6 +11,10 @@ export default {
             fontFamily: {
                 sans: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
             },
+            boxShadow: {
+                '2xs': '0 1px 1px 0 rgba(15, 23, 42, 0.04)',
+                xs: '0 1px 2px 0 rgba(15, 23, 42, 0.06)',
+            },
             colors: {
                 brand: {
                     navy: {

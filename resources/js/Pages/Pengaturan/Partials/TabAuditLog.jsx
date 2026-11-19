@@ -29,13 +29,13 @@ function DataDiff({ dataLama, dataBaru }) {
     const semuaKunci = [...new Set([...Object.keys(dataLama ?? {}), ...Object.keys(dataBaru ?? {})])];
 
     return (
-        <div className="overflow-hidden rounded-xl border border-slate-200 shadow-xs">
+        <div className="overflow-hidden rounded-xl border border-slate-200/80 shadow-xs bg-white">
             <table className="w-full text-xs">
                 <thead>
-                    <tr className="bg-slate-50 text-left text-slate-500 border-b border-slate-200">
-                        <th className="py-2.5 px-3.5 font-semibold w-1/4">Field / Properti</th>
-                        <th className="py-2.5 px-3.5 font-semibold w-3/8 text-red-600 bg-red-50/50">Sebelum</th>
-                        <th className="py-2.5 px-3.5 font-semibold w-3/8 text-brand-green-dark bg-emerald-50/50">Sesudah</th>
+                    <tr className="bg-[#F8FAFC] text-left text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/80">
+                        <th className="py-2.5 px-3.5 w-1/4">Field / Properti</th>
+                        <th className="py-2.5 px-3.5 w-3/8 text-rose-700 bg-rose-50/60">Sebelum</th>
+                        <th className="py-2.5 px-3.5 w-3/8 text-brand-green-dark bg-emerald-50/60">Sesudah</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
@@ -47,7 +47,7 @@ function DataDiff({ dataLama, dataBaru }) {
                         if (!berubah && punya(dataLama) && punya(dataBaru)) return null;
 
                         return (
-                            <tr key={kunci} className={berubah ? 'bg-amber-50/40 hover:bg-amber-50/70' : 'hover:bg-slate-50'}>
+                            <tr key={kunci} className={berubah ? 'bg-amber-50/40 hover:bg-amber-50/70' : 'hover:bg-[#F2FBF5]'}>
                                 <td className="py-2 px-3.5 font-mono text-slate-600 font-medium break-all">{kunci}</td>
                                 <td className="py-2 px-3.5 text-slate-500 break-all line-through decoration-red-300 bg-red-50/20">
                                     {formatNilai(lama)}

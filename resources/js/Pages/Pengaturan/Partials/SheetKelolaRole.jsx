@@ -109,7 +109,7 @@ export default function SheetKelolaRole({ roleList, semuaPermission }) {
                     <FormField label="Nama Role" error={buat.errors.name} hint="Gunakan tanda hubung untuk kata terpisah, contoh: sekretaris-cabang">
                         <TextField size="sm" value={buat.data.name} onChange={(e) => buat.setData('name', e.target.value)} autoFocus />
                     </FormField>
-                    <div className="flex items-center justify-between gap-2.5 pt-3.5 border-t border-slate-100">
+                    <div className="grid grid-cols-2 gap-2.5 sm:gap-3 pt-3.5 border-t border-slate-100">
                         <Button type="button" variant="neutral" size="drawer" onClick={() => setView('list')}>
                             <ArrowLeft size={16} />
                             Batal
@@ -177,7 +177,7 @@ export default function SheetKelolaRole({ roleList, semuaPermission }) {
                         <p className="text-sm font-medium text-red-600">{akses.errors.permissions}</p>
                     )}
 
-                    <div className="flex items-center justify-between gap-2.5 bg-white rounded-xl border border-slate-200/80 px-4 py-3 shadow-[0_1px_3px_rgba(15,30,54,0.04)]">
+                    <div className="grid grid-cols-2 gap-2.5 sm:gap-3 bg-white rounded-xl border border-slate-200/80 px-4 py-3 shadow-[0_1px_3px_rgba(15,30,54,0.04)]">
                         <Button type="button" variant="neutral" size="drawer" onClick={() => setView('list')}>
                             <ArrowLeft size={16} />
                             Batal

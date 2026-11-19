@@ -694,35 +694,33 @@ export default function TryConsoleDrawer({
 
                             {/* Sticky Action Footer */}
                             <div className="shrink-0 bg-white border-t border-slate-200/80 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:px-5 sm:py-3.5 shadow-[0_-4px_16px_-4px_rgba(15,30,54,0.06)]">
-                                <div className="flex flex-wrap items-center justify-between gap-2.5">
+                                <div className={`grid gap-2.5 sm:gap-3 ${endpoint?.statusCode === 302 ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-2'}`}>
                                     {endpoint?.statusCode === 302 && (
                                         <a
                                             href={finalUrl}
                                             target="_blank"
                                             rel="noreferrer"
-                                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 min-h-[40px] text-xs sm:text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                                            className="inline-flex items-center justify-center gap-1.5 rounded-xl sm:rounded-lg border border-slate-300 bg-white px-3.5 min-h-[44px] sm:min-h-[40px] text-sm font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 hover:border-slate-400 hover:text-slate-900"
                                         >
                                             Buka URL di Tab Baru
                                         </a>
                                     )}
-                                    <div className={`flex items-center justify-between gap-2.5 ${endpoint?.statusCode === 302 ? 'ml-auto' : 'w-full'}`}>
-                                        <button
-                                            type="button"
-                                            onClick={onClose}
-                                            className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 sm:px-5 min-h-[44px] sm:min-h-[40px] text-sm font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 hover:border-slate-400 hover:text-slate-900"
-                                        >
-                                            Tutup
-                                        </button>
-                                        <button
-                                            type="submit"
-                                            form="api-try-console-form"
-                                            disabled={loading}
-                                            className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-brand-green to-brand-green-dark px-4 sm:px-5 min-h-[44px] sm:min-h-[40px] text-sm font-semibold text-white shadow-xs transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
-                                        >
-                                            <Play className="h-3.5 w-3.5 fill-current" />
-                                            <span>{loading ? 'Mengirim Request...' : 'Kirim Request'}</span>
-                                        </button>
-                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={onClose}
+                                        className="inline-flex items-center justify-center rounded-xl sm:rounded-lg border border-slate-300 bg-white px-4 sm:px-5 min-h-[44px] sm:min-h-[40px] text-sm font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 hover:border-slate-400 hover:text-slate-900"
+                                    >
+                                        Tutup
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        form="api-try-console-form"
+                                        disabled={loading}
+                                        className="inline-flex items-center justify-center gap-2 rounded-xl sm:rounded-lg bg-gradient-to-b from-brand-green to-brand-green-dark px-4 sm:px-5 min-h-[44px] sm:min-h-[40px] text-sm font-semibold text-white shadow-[0_1px_2px_rgba(23,138,62,0.28),inset_0_1px_0_rgba(255,255,255,0.16)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                        <Play className="h-3.5 w-3.5 fill-current" />
+                                        <span>{loading ? 'Mengirim Request...' : 'Kirim Request'}</span>
+                                    </button>
                                 </div>
                             </div>
                         </DialogPanel>

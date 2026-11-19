@@ -17,6 +17,7 @@ import Drawer from '@/Components/ui/Drawer';
 import {
     DrawerBody,
     DrawerFooter,
+    DrawerFooterActions,
     DrawerKeyValue,
     DrawerSection,
 } from '@/Components/ui/DrawerSection';
@@ -1096,26 +1097,26 @@ export default function Index({
                         <div className="overflow-x-auto">
                             <table className="hidden md:table w-full text-sm border-collapse">
                                 <thead>
-                                    <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-b border-slate-200/80 bg-gradient-to-r from-brand-navy/[0.04] via-slate-50/40 to-brand-green-light/25">
-                                        <th scope="col" className="py-2.5 pr-2 font-semibold w-24">Tgl</th>
-                                        <th scope="col" className="py-2.5 pr-2 font-semibold w-32">No. Bukti</th>
-                                        <th scope="col" className="py-2.5 pr-2 font-semibold">Keterangan</th>
-                                        <th scope="col" className="py-2.5 pr-2 font-semibold w-24">Akun</th>
-                                        <th scope="col" className="py-2.5 pr-2 font-semibold text-right w-36">Masuk</th>
-                                        <th scope="col" className="py-2.5 pr-2 font-semibold text-right w-36">Keluar</th>
-                                        <th scope="col" className="py-2.5 font-semibold text-right w-40">Saldo</th>
+                                    <tr className="text-left text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/80 bg-[#F8FAFC]">
+                                        <th scope="col" className="py-2.5 pl-3 pr-2 w-24 whitespace-nowrap">Tgl</th>
+                                        <th scope="col" className="py-2.5 pr-2 w-32 whitespace-nowrap">No. Bukti</th>
+                                        <th scope="col" className="py-2.5 pr-2 whitespace-nowrap">Keterangan</th>
+                                        <th scope="col" className="py-2.5 pr-2 w-24 whitespace-nowrap">Akun</th>
+                                        <th scope="col" className="py-2.5 pr-2 text-right w-36 whitespace-nowrap">Masuk</th>
+                                        <th scope="col" className="py-2.5 pr-2 text-right w-36 whitespace-nowrap">Keluar</th>
+                                        <th scope="col" className="py-2.5 pr-3 text-right w-40 whitespace-nowrap">Saldo</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {/* Baris Saldo Awal */}
-                                    <tr className="border-b border-slate-200/70 bg-gradient-to-r from-brand-navy/[0.04] to-transparent">
-                                        <td colSpan={4} className="py-2 pr-2 text-xs font-bold text-slate-600">
+                                    <tr className="border-b border-slate-200/70 bg-[#F7F9FC]">
+                                        <td colSpan={4} className="py-2 pl-3 pr-2 text-xs font-bold text-slate-600">
                                             Saldo awal{labelAkunSaldo} {labelBulan}
                                         </td>
-                                        <td colSpan={2} className="py-2 pr-2 text-right text-xs text-slate-400">
+                                        <td colSpan={2} className="py-2 pr-2 text-right text-xs text-slate-500">
                                             {saldoValid ? '' : 'saldo terbatas filter'}
                                         </td>
-                                        <td className="py-2 text-right font-bold tabular-nums text-slate-700 privacy-blur">
+                                        <td className="py-2 pr-3 text-right font-bold tabular-nums text-slate-700 privacy-blur">
                                             {saldoValid ? formatRupiah(saldoAwal) : '—'}
                                         </td>
                                     </tr>
@@ -1133,9 +1134,9 @@ export default function Index({
                                             }}
                                             tabIndex={0}
                                             title={bisaTopup && r.bisa_dibatalkan ? 'Klik baris untuk rincian atau batalkan transaksi' : 'Klik baris untuk rincian transaksi'}
-                                            className="group border-b border-slate-50 hover:bg-brand-green-light/30 transition-colors align-top cursor-pointer focus-visible:outline-none focus-visible:bg-brand-green-light/40"
+                                            className="group border-b border-slate-100 hover:bg-[#F2FBF5] transition-colors align-top cursor-pointer focus-visible:outline-none focus-visible:bg-[#F2FBF5]"
                                         >
-                                            <td className="py-2.5 pr-2 text-xs text-slate-500 whitespace-nowrap tabular-nums">
+                                            <td className="py-2.5 pl-3 pr-2 text-xs text-slate-500 whitespace-nowrap tabular-nums">
                                                 {r.tanggal}
                                             </td>
                                             <td className="py-2.5 pr-2 text-xs text-slate-500 whitespace-nowrap tabular-nums font-mono">
@@ -1165,15 +1166,15 @@ export default function Index({
                                                     <span className="text-slate-300">—</span>
                                                 )}
                                             </td>
-                                            <td className="py-2.5 text-right whitespace-nowrap tabular-nums font-medium text-slate-700 privacy-blur">
+                                            <td className="py-2.5 pr-3 text-right whitespace-nowrap tabular-nums font-medium text-slate-700 privacy-blur">
                                                 {saldoValid ? formatRupiah(r.saldo_gabungan_setelah ?? r.saldo_setelah) : '—'}
                                             </td>
                                         </tr>
                                     ))}
 
                                     {/* Baris Total Mutasi */}
-                                    <tr className="border-t-2 border-brand-navy/15 bg-gradient-to-r from-brand-navy/[0.04] via-white to-brand-green-light/20">
-                                        <td colSpan={4} className="py-2.5 pr-2 text-xs font-bold text-slate-700">
+                                    <tr className="border-t-2 border-slate-200/90 bg-[#F7F9FC]">
+                                        <td colSpan={4} className="py-2.5 pl-3 pr-2 text-xs font-bold text-slate-700">
                                             Total {labelBulan}
                                         </td>
                                         <td className="py-2.5 pr-2 text-right font-bold tabular-nums text-emerald-700 privacy-blur">
@@ -1182,18 +1183,18 @@ export default function Index({
                                         <td className="py-2.5 pr-2 text-right font-bold tabular-nums text-rose-600 privacy-blur">
                                             - {formatRupiah(ringkasanPeriode?.total_keluar ?? 0)}
                                         </td>
-                                        <td className="py-2.5 text-right font-bold tabular-nums text-slate-800 privacy-blur">
+                                        <td className="py-2.5 pr-3 text-right font-bold tabular-nums text-slate-800 privacy-blur">
                                             {saldoValid ? formatRupiah(saldoAkhir) : '—'}
                                         </td>
                                     </tr>
 
                                     {/* Baris Saldo Akhir */}
                                     {saldoValid && (
-                                        <tr className="bg-gradient-to-r from-brand-navy/[0.04] via-white to-brand-green-light/20 -mt-px">
-                                            <td colSpan={6} className="py-1 pr-2 text-xs text-slate-500 text-right">
+                                        <tr className="bg-[#F7F9FC] -mt-px">
+                                            <td colSpan={6} className="py-1.5 pr-2 text-xs text-slate-500 text-right">
                                                 Saldo akhir{labelAkunSaldo} {labelBulan}
                                             </td>
-                                            <td className="py-1 text-right text-xs font-bold tabular-nums text-slate-900 privacy-blur">
+                                            <td className="py-1.5 pr-3 text-right text-xs font-bold tabular-nums text-slate-900 privacy-blur">
                                                 {formatRupiah(saldoAkhir)}
                                             </td>
                                         </tr>
@@ -1532,7 +1533,7 @@ export default function Index({
                     </DrawerBody>
 
                     <DrawerFooter>
-                        <div className="grid grid-cols-2 gap-2.5 sm:flex sm:items-center sm:justify-between">
+                        <DrawerFooterActions>
                             <Button type="button" variant="neutral" size="drawer" onClick={() => setShowDrawer(false)}>
                                 <ArrowLeft size={16} />
                                 Batal
@@ -1556,7 +1557,7 @@ export default function Index({
                                     ? pengeluaranForm.processing ? 'Menyimpan...' : 'Simpan Pengeluaran'
                                     : sisihForm.processing ? 'Menyimpan...' : 'Sisih Sekarang'}
                             </Button>
-                        </div>
+                        </DrawerFooterActions>
                     </DrawerFooter>
                 </Drawer>
             )}
@@ -1717,7 +1718,7 @@ export default function Index({
                         </DrawerBody>
 
                         <DrawerFooter>
-                            <div className={`flex flex-col-reverse sm:flex-row sm:items-center gap-2.5 ${bisaTopup && jurnalBatal.bisa_dibatalkan ? 'sm:justify-between' : 'sm:justify-end'}`}>
+                            <DrawerFooterActions cols={bisaTopup && jurnalBatal.bisa_dibatalkan ? 2 : 1} stackOnMobile>
                                 <Button type="button" variant="neutral" size="drawer" onClick={() => setJurnalBatal(null)}>
                                     Tutup
                                 </Button>
@@ -1733,7 +1734,7 @@ export default function Index({
                                         {batalForm.processing ? 'Memproses...' : 'Terbitkan Jurnal Pembalik'}
                                     </Button>
                                 )}
-                            </div>
+                            </DrawerFooterActions>
                         </DrawerFooter>
                     </>
                 )}

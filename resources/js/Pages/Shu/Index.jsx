@@ -145,12 +145,12 @@ export default function Index({ periode = [], filters = {}, persenDefault = {}, 
                             ))}
                         </div>
                         {errors.komponen_custom && <p className="text-sm text-red-600 mb-2">{errors.komponen_custom}</p>}
-                        <div className="flex gap-2">
+                        <div className="flex items-center gap-2.5">
+                            <Button type="button" variant="neutral" onClick={() => setShowForm(false)}>
+                                Batal
+                            </Button>
                             <Button type="submit" disabled={processing}>
                                 {processing ? 'Menyimpan...' : 'Simpan Periode'}
-                            </Button>
-                            <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>
-                                Batal
                             </Button>
                         </div>
                     </form>

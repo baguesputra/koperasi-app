@@ -25,6 +25,7 @@ import {
     DrawerField,
     DrawerFieldGrid,
     DrawerFooter,
+    DrawerFooterActions,
     DrawerHero,
     DrawerKeyValue,
     DrawerNoteCallout,
@@ -248,18 +249,18 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                                         {p.jadwal_angsuran && p.jadwal_angsuran.length > 0 && (
                                             <div className="overflow-x-auto rounded-lg border border-slate-200/80">
                                                 <table className="w-full text-xs">
-                                                    <thead className="bg-gradient-to-r from-[#f4f7fb] via-[#f8fafc] to-[#f1faf4] text-slate-600 border-b border-slate-200/80">
+                                                    <thead className="bg-[#F8FAFC] text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/80">
                                                         <tr>
-                                                            <th className="py-2 px-2.5 w-10 text-center font-semibold">Ke</th>
-                                                            <th className="py-2 px-2.5 text-right font-semibold">Pokok</th>
-                                                            <th className="py-2 px-2.5 text-right font-semibold">Bunga</th>
-                                                            <th className="py-2 px-2.5 text-right font-semibold">Total</th>
-                                                            <th className="py-2 px-2.5 text-center font-semibold">Jatuh Tempo</th>
+                                                            <th className="py-2 px-2.5 w-10 text-center whitespace-nowrap">Ke</th>
+                                                            <th className="py-2 px-2.5 text-right whitespace-nowrap">Pokok</th>
+                                                            <th className="py-2 px-2.5 text-right whitespace-nowrap">Bunga</th>
+                                                            <th className="py-2 px-2.5 text-right whitespace-nowrap">Total</th>
+                                                            <th className="py-2 px-2.5 text-center whitespace-nowrap">Jatuh Tempo</th>
                                                         </tr>
                                                     </thead>
-                                                    <tbody>
+                                                    <tbody className="divide-y divide-slate-100 bg-white">
                                                         {p.jadwal_angsuran.slice(0, 6).map((a) => (
-                                                            <tr key={a.cicilan_ke} className="border-b border-slate-100 last:border-0 hover:bg-brand-green-light/25 transition-colors">
+                                                            <tr key={a.cicilan_ke} className="hover:bg-[#F2FBF5] transition-colors">
                                                                 <td className="py-1.5 px-2.5 text-center font-medium text-slate-700 tabular-nums">{a.cicilan_ke}</td>
                                                                 <td className="py-1.5 px-2.5 text-right text-slate-700 tabular-nums privacy-blur">{formatRupiah(a.nominal_pokok)}</td>
                                                                 <td className="py-1.5 px-2.5 text-right text-amber-700 tabular-nums privacy-blur">{formatRupiah(a.nominal_bunga)}</td>
@@ -367,7 +368,7 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
             <DrawerFooter>
                 {bisaDiproses ? (
                     !aksi ? (
-                        <div className="grid grid-cols-2 gap-2.5 sm:flex sm:items-center sm:justify-between">
+                        <DrawerFooterActions>
                             <Button
                                 type="button"
                                 variant="dangerSoft"
@@ -386,9 +387,9 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                                 <Check size={16} />
                                 Setujui
                             </Button>
-                        </div>
+                        </DrawerFooterActions>
                     ) : (
-                        <div className="grid grid-cols-2 gap-2.5 sm:flex sm:items-center sm:justify-between">
+                        <DrawerFooterActions>
                             <Button
                                 type="button"
                                 variant="neutral"
@@ -409,7 +410,7 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                                 {aksi === 'approve' ? <Check size={16} /> : <X size={16} />}
                                 {processing ? 'Memproses...' : `Konfirmasi ${aksi === 'approve' ? 'Setujui' : 'Tolak'}`}
                             </Button>
-                        </div>
+                        </DrawerFooterActions>
                     )
                 ) : (
                     <div className="flex items-center justify-between gap-3">

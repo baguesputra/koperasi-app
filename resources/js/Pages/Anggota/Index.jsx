@@ -141,7 +141,7 @@ export default function Index({ anggota, statistik, filters, daftarCabang = [] }
                 <StatWidget compact label="Resign" value={statistik.resign} icon={UserMinus} tone="rose" />
             </div>
 
-            <Card padding="sm" className="shadow-md border-slate-200/70 mb-4">
+            <Card padding="sm" className="shadow-md border-slate-200/70 mb-4 overflow-hidden">
                 <div className="pb-3 mb-1 border-b border-slate-100">
                     <div className="flex flex-col md:flex-row md:items-center gap-2">
                         <div className="flex-1 relative group">
@@ -203,23 +203,23 @@ export default function Index({ anggota, statistik, filters, daftarCabang = [] }
                 <div className="overflow-x-auto">
                     <table className="w-full table-sticky-first table-head-static text-sm">
                         <thead>
-                            <tr className="text-left bg-gradient-to-r from-brand-navy/[0.04] via-white to-brand-green-light/35 border-b border-slate-200/80">
-                                <th className="px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap">Anggota</th>
-                                <th className="px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap">Cabang</th>
-                                <th className="hidden lg:table-cell px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-500">Jabatan</th>
-                                <th className="hidden lg:table-cell px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap">Lama</th>
-                                <th className="px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-500">Status</th>
+                            <tr className="text-left bg-[#F8FAFC] border-b border-slate-200/80">
+                                <th className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Anggota</th>
+                                <th className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Cabang</th>
+                                <th className="hidden lg:table-cell px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Jabatan</th>
+                                <th className="hidden lg:table-cell px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Lama</th>
+                                <th className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Status</th>
                                 {canResign && (
-                                    <th className="px-4 py-2.5 text-right text-xs font-bold uppercase tracking-wide text-slate-500"><span className="sr-only">Aksi resign</span></th>
+                                    <th className="px-4 py-2.5 text-right text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap"><span className="sr-only">Aksi resign</span></th>
                                 )}
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-slate-100 bg-white">
                             {anggota.data.length === 0 ? (
                                 <tr>
                                     <td colSpan={canResign ? 6 : 5} className="px-4 py-10 text-center">
                                         <p className="text-sm font-semibold text-slate-600">Tidak ada data ditemukan</p>
-                                        <p className="text-sm text-slate-400 mt-1">Coba ubah kata kunci atau filter.</p>
+                                        <p className="text-sm text-slate-500 mt-1">Coba ubah kata kunci atau filter.</p>
                                         {filterAktif && (
                                             <Button type="button" variant="outline" size="sm" className="mt-3 rounded-full" onClick={resetFilter}>
                                                 Tampilkan semua anggota
@@ -229,7 +229,7 @@ export default function Index({ anggota, statistik, filters, daftarCabang = [] }
                                 </tr>
                             ) : (
                                 anggota.data.map((a) => (
-                                    <tr key={a.id} onClick={() => bukaEdit(a)} onKeyDown={(e) => { if (e.key === 'Enter') bukaEdit(a); }} tabIndex={0} title="Klik untuk ubah" className="group border-b border-slate-50 last:border-0 hover:bg-gradient-to-r hover:from-brand-green-light/40 hover:to-transparent transition-all cursor-pointer focus-visible:outline-none focus-visible:bg-brand-green-light/50">
+                                    <tr key={a.id} onClick={() => bukaEdit(a)} onKeyDown={(e) => { if (e.key === 'Enter') bukaEdit(a); }} tabIndex={0} title="Klik untuk ubah" className="group hover:bg-[#F2FBF5] transition-colors cursor-pointer focus-visible:outline-none focus-visible:bg-[#F2FBF5]">
                                         <td className="px-4 py-2.5">
                                             <div className="flex items-center gap-2.5 min-w-0">
                                                 <FotoAnggota nama={a.nama} fotoUrl={a.foto_url} ukuran="sm" />

@@ -165,27 +165,27 @@ export default function BayarTab({ periode, ringkasan, komponenBayar = [], akun,
                 </div>
 
                 {komponenBayar.length === 0 ? (
-                    <p className="text-sm text-slate-400 py-4 text-center">Belum ada komponen alokasi non-anggota.</p>
+                    <p className="text-sm text-slate-500 py-4 text-center">Belum ada komponen alokasi non-anggota.</p>
                 ) : (
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto rounded-xl border border-slate-200/75 bg-white">
                         <table className="w-full text-sm">
                             <thead>
-                                <tr className="text-left text-xs uppercase tracking-wide text-slate-400 border-b border-slate-100">
-                                    <th className="py-2.5 pr-3">Komponen & Rincian</th>
-                                    <th className="py-2.5 px-3 text-right">Nominal Total</th>
-                                    <th className="py-2.5 px-3">Status Pembayaran</th>
-                                    <th className="py-2.5 pl-3 text-right">Aksi</th>
+                                <tr className="text-left text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/80 bg-[#F8FAFC]">
+                                    <th className="py-2.5 pl-3.5 pr-3 whitespace-nowrap">Komponen & Rincian</th>
+                                    <th className="py-2.5 px-3 text-right whitespace-nowrap">Nominal Total</th>
+                                    <th className="py-2.5 px-3 whitespace-nowrap">Status Pembayaran</th>
+                                    <th className="py-2.5 pl-3 pr-3.5 text-right whitespace-nowrap">Aksi</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-50">
+                            <tbody className="divide-y divide-slate-100 bg-white">
                                 {komponenBayar.map((k) => {
                                     const sudah = k.status_bayar === 'sudah';
                                     const adaRincian = Array.isArray(k.rincian) && k.rincian.length > 0;
                                     const isOpen = Boolean(bukaRincian[k.id]);
 
                                     return (
-                                        <tr key={k.id} className="align-top hover:bg-brand-green-light/25 transition-colors">
-                                            <td className="py-3 pr-3">
+                                        <tr key={k.id} className="align-top hover:bg-[#F2FBF5] transition-colors">
+                                            <td className="py-3 pl-3.5 pr-3">
                                                 <div className="flex items-baseline gap-2 flex-wrap">
                                                     <p className="font-semibold text-slate-800">{k.nama_komponen}</p>
                                                     {adaRincian && (
@@ -250,7 +250,7 @@ export default function BayarTab({ periode, ringkasan, komponenBayar = [], akun,
                                                     </span>
                                                 )}
                                             </td>
-                                            <td className="py-3 pl-3 text-right whitespace-nowrap">
+                                            <td className="py-3 pl-3 pr-3.5 text-right whitespace-nowrap">
                                                 {!sudah && k.nominal > 0 ? (
                                                     bisaKelola ? (
                                                         <button
@@ -274,12 +274,12 @@ export default function BayarTab({ periode, ringkasan, komponenBayar = [], akun,
                                 })}
                             </tbody>
                             <tfoot>
-                                <tr className="border-t-2 border-brand-navy/15 bg-gradient-to-r from-brand-navy/[0.04] via-white to-brand-green-light/25 font-bold">
-                                    <td className="py-2.5 pr-3 text-slate-700">Total Komponen yang Disalurkan</td>
+                                <tr className="border-t-2 border-slate-200/90 bg-[#F7F9FC] font-bold">
+                                    <td className="py-2.5 pl-3.5 pr-3 text-slate-700">Total Komponen yang Disalurkan</td>
                                     <td className="py-2.5 px-3 text-right tabular-nums text-slate-800">
                                         {formatRupiah(ringkasan.total_komponen_bayar ?? 0)}
                                     </td>
-                                    <td colSpan={2} className="py-2.5 px-3 text-right text-xs text-slate-500 font-normal">
+                                    <td colSpan={2} className="py-2.5 pl-3 pr-3.5 text-right text-xs text-slate-500 font-normal">
                                         * Sesuai sel O15 Excel, Jumlah sisa dana yg tidak di serahkan ({formatRupiah(ringkasan.sisa_dana?.total ?? 0)}) serta Cadangan ({formatRupiah(ringkasan.komponen?.cadangan ?? 0)}) tidak ditarik kas keluar dan tetap berada di kas koperasi.
                                     </td>
                                 </tr>

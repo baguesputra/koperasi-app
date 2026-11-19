@@ -83,9 +83,9 @@ export default function SidebarLayout({ children }) {
                         leaveFrom="translate-x-0"
                         leaveTo="-translate-x-full"
                     >
-                        <aside className="relative w-60 h-full bg-white border-r border-slate-200 shadow-xl flex flex-col overflow-hidden">
-                            <Sidebar collapsed={false} expanding={false} onToggle={toggleSidebar} />
-                        </aside>
+                        <div className="relative w-64 max-w-[82vw] h-full bg-white border-r border-slate-200 shadow-xl flex flex-col overflow-hidden">
+                            <Sidebar mobile collapsed={false} expanding={false} onToggle={toggleSidebar} />
+                        </div>
                     </Transition.Child>
                 </div>
             </Transition>

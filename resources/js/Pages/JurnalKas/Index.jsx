@@ -279,31 +279,31 @@ export default function Index({ filters = {}, bulanFilter, kantongOptions = {}, 
                         {/* Desktop: tabel */}
                         <table className="hidden md:table w-full text-sm border-collapse">
                             <thead>
-                                <tr className="text-left text-[11px] uppercase tracking-wide text-slate-400 border-b border-slate-200">
-                                    <th scope="col" className="py-2 pr-2 font-semibold w-24">Tgl</th>
-                                    <th scope="col" className="py-2 pr-2 font-semibold w-32">No. Bukti</th>
-                                    <th scope="col" className="py-2 pr-2 font-semibold">Keterangan</th>
-                                    <th scope="col" className="py-2 pr-2 font-semibold w-28">Akun</th>
-                                    <th scope="col" className="py-2 pr-2 font-semibold text-right w-36">Masuk</th>
-                                    <th scope="col" className="py-2 pr-2 font-semibold text-right w-36">Keluar</th>
-                                    <th scope="col" className={`py-2 font-semibold text-right ${kolomSaldo ? 'w-40' : 'w-16'}`}>Saldo</th>
+                                <tr className="text-left text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/80 bg-[#F8FAFC]">
+                                    <th scope="col" className="py-2.5 pl-3 pr-2 w-24 whitespace-nowrap">Tgl</th>
+                                    <th scope="col" className="py-2.5 pr-2 w-32 whitespace-nowrap">No. Bukti</th>
+                                    <th scope="col" className="py-2.5 pr-2 whitespace-nowrap">Keterangan</th>
+                                    <th scope="col" className="py-2.5 pr-2 w-28 whitespace-nowrap">Akun</th>
+                                    <th scope="col" className="py-2.5 pr-2 text-right w-36 whitespace-nowrap">Masuk</th>
+                                    <th scope="col" className="py-2.5 pr-2 text-right w-36 whitespace-nowrap">Keluar</th>
+                                    <th scope="col" className={`py-2.5 pr-3 text-right whitespace-nowrap ${kolomSaldo ? 'w-40' : 'w-16'}`}>Saldo</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr className="border-b border-slate-100 bg-slate-50/70">
-                                    <td colSpan={4} className="py-2 pr-2 text-xs font-bold text-slate-500">
+                                <tr className="border-b border-slate-200/70 bg-[#F7F9FC]">
+                                    <td colSpan={4} className="py-2 pl-3 pr-2 text-xs font-bold text-slate-600">
                                         Saldo awal{akunLabel} {labelBulan}
                                     </td>
-                                    <td colSpan={2} className="py-2 pr-2 text-right text-xs text-slate-400">
+                                    <td colSpan={2} className="py-2 pr-2 text-right text-xs text-slate-500">
                                         {saldoValid ? '' : 'saldo terbatas filter'}
                                     </td>
-                                    <td className="py-2 text-right font-bold tabular-nums text-slate-600">
+                                    <td className="py-2 pr-3 text-right font-bold tabular-nums text-slate-700">
                                         {saldoValid ? formatRupiah(saldoAwal) : '—'}
                                     </td>
                                 </tr>
                                 {riwayat.map((r) => (
-                                    <tr key={r.id} className="border-b border-slate-50 hover:bg-gradient-to-r hover:from-slate-50 hover:to-transparent transition-all align-top">
-                                        <td className="py-2.5 pr-2 text-xs text-slate-500 whitespace-nowrap tabular-nums">{r.tanggal}</td>
+                                    <tr key={r.id} className="border-b border-slate-100 hover:bg-[#F2FBF5] transition-colors align-top">
+                                        <td className="py-2.5 pl-3 pr-2 text-xs text-slate-500 whitespace-nowrap tabular-nums">{r.tanggal}</td>
                                         <td className="py-2.5 pr-2 text-xs text-slate-500 whitespace-nowrap tabular-nums font-mono">{r.no_bukti ?? '—'}</td>
                                         <td className="py-2.5 pr-2">{barisKeterangan(r)}</td>
                                         <td className="py-2.5 pr-2">{badgeAkun(r)}</td>
@@ -317,27 +317,27 @@ export default function Index({ filters = {}, bulanFilter, kantongOptions = {}, 
                                                 ? <span className="font-bold text-red-600">- {formatRupiah(r.jumlah)}</span>
                                                 : <span className="text-slate-300">—</span>}
                                         </td>
-                                        <td className="py-2.5 text-right whitespace-nowrap tabular-nums text-slate-600 privacy-blur">
+                                        <td className="py-2.5 pr-3 text-right whitespace-nowrap tabular-nums text-slate-600 privacy-blur">
                                             {kolomSaldo ? formatRupiah(r.saldo_setelah) : '—'}
                                         </td>
                                     </tr>
                                 ))}
-                                <tr className="border-t-2 border-slate-200 bg-slate-50/70">
-                                    <td colSpan={4} className="py-2.5 pr-2 text-xs font-bold text-slate-600">
+                                <tr className="border-t-2 border-slate-200/90 bg-[#F7F9FC]">
+                                    <td colSpan={4} className="py-2.5 pl-3 pr-2 text-xs font-bold text-slate-700">
                                         Total {labelBulan}
                                     </td>
                                     <td className="py-2.5 pr-2 text-right font-bold tabular-nums text-brand-green-dark privacy-blur">+ {formatRupiah(ringkasanPeriode.total_masuk)}</td>
                                     <td className="py-2.5 pr-2 text-right font-bold tabular-nums text-red-600 privacy-blur">- {formatRupiah(ringkasanPeriode.total_keluar)}</td>
-                                    <td className="py-2.5 text-right font-bold tabular-nums text-slate-700 privacy-blur">
+                                    <td className="py-2.5 pr-3 text-right font-bold tabular-nums text-slate-800 privacy-blur">
                                         {saldoValid ? formatRupiah(saldoAkhir) : '—'}
                                     </td>
                                 </tr>
                                 {saldoValid && (
-                                    <tr className="bg-slate-50/70 -mt-px">
-                                        <td colSpan={6} className="py-1 pr-2 text-xs text-slate-400 text-right">
+                                    <tr className="bg-[#F7F9FC] -mt-px">
+                                        <td colSpan={6} className="py-1.5 pr-2 text-xs text-slate-500 text-right">
                                             Saldo akhir{akunLabel} {labelBulan}
                                         </td>
-                                        <td className="py-1 text-right text-xs font-bold tabular-nums text-slate-700 privacy-blur">
+                                        <td className="py-1.5 pr-3 text-right text-xs font-bold tabular-nums text-slate-900 privacy-blur">
                                             {formatRupiah(saldoAkhir)}
                                         </td>
                                     </tr>

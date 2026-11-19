@@ -63,13 +63,13 @@ export default function DistribusiTable({ periode, detail, sums = {}, filters = 
     }
 
     function thClass(kunci) {
-        if (kunci === 'nama') return 'px-4 py-2.5';
-        if (kunci === 'no') return 'px-4 py-2.5 w-12';
-        return 'px-4 py-2.5 text-right';
+        if (kunci === 'nama') return 'px-4 py-2.5 whitespace-nowrap';
+        if (kunci === 'no') return 'px-4 py-2.5 w-12 whitespace-nowrap';
+        return 'px-4 py-2.5 text-right whitespace-nowrap';
     }
 
     return (
-        <Card padding="none">
+        <Card padding="none" className="overflow-hidden">
             {/* Rekapitulasi Distribusi SHU Anggota (Format Excel Baris 247-248) */}
             {(detail.data.length > 0 || (ringkasan?.anggota ?? 0) > 0) && (
                 <div className="p-4 border-b border-slate-200/75 bg-gradient-to-r from-brand-navy/[0.04] via-white to-brand-green-light/25">
@@ -151,19 +151,19 @@ export default function DistribusiTable({ periode, detail, sums = {}, filters = 
             <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                     <thead>
-                        <tr className="text-center text-xs uppercase tracking-wide text-slate-400 border-b border-slate-100">
-                            <th colSpan={2} className="py-1.5" />
-                            <th colSpan={4} className="py-1.5 border-x border-slate-100">Partisipasi Anggota</th>
-                            <th colSpan={2} className="py-1.5 border-x border-slate-100">SHU Anggota</th>
-                            <th colSpan={bisaBayar ? 4 : 3} className="py-1.5" />
+                        <tr className="text-center text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/70 bg-[#F8FAFC]">
+                            <th colSpan={2} className="py-2" />
+                            <th colSpan={4} className="py-2 border-x border-slate-200/70">Partisipasi Anggota</th>
+                            <th colSpan={2} className="py-2 border-x border-slate-200/70">SHU Anggota</th>
+                            <th colSpan={bisaBayar ? 4 : 3} className="py-2" />
                         </tr>
-                        <tr className="text-left text-xs uppercase tracking-wide text-slate-400 border-b border-slate-100">
+                        <tr className="text-left text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/80 bg-[#F8FAFC]">
                             {KOLOM_SORT.map((k) => (
                                 <th key={k.kunci} className={thClass(k.kunci)}>
                                     <button
                                         type="button"
                                         onClick={() => klikSort(k.kunci)}
-                                        className="uppercase tracking-wide hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/40 rounded"
+                                        className="uppercase tracking-wider hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/40 rounded"
                                         aria-label={`Urut ${k.label}`}
                                     >
                                         {k.label}
@@ -171,11 +171,11 @@ export default function DistribusiTable({ periode, detail, sums = {}, filters = 
                                     </button>
                                 </th>
                             ))}
-                            <th className="px-4 py-2.5">Status</th>
-                            {bisaBayar && <th className="px-4 py-2.5"><span className="sr-only">Aksi</span></th>}
+                            <th className="px-4 py-2.5 whitespace-nowrap">Status</th>
+                            {bisaBayar && <th className="px-4 py-2.5 whitespace-nowrap"><span className="sr-only">Aksi</span></th>}
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-50">
+                    <tbody className="divide-y divide-slate-100 bg-white">
                         {detail.data.map((d) => {
                             const liveRow = live
                                 ? barisLive(d.modal, d.transaksi, live.totalModal, live.totalTransaksi, live.poolSimpanan, live.poolTransaksi)
@@ -187,7 +187,7 @@ export default function DistribusiTable({ periode, detail, sums = {}, filters = 
                             const beda = liveRow && Math.abs(bersih - d.shu_bersih) >= 1;
                             const angkaLive = `px-4 py-2.5 text-right tabular-nums privacy-blur${beda ? ' text-amber-700' : ''}`;
                             return (
-                                <tr key={d.id} className="hover:bg-brand-green-light/30 transition-colors">
+                                <tr key={d.id} className="hover:bg-[#F2FBF5] transition-colors">
                                     <td className="px-4 py-2.5 tabular-nums text-slate-500">{d.no}</td>
                                     <td className="px-4 py-2.5">
                                         <p className="font-semibold text-slate-800">{d.nama}</p>
@@ -224,7 +224,7 @@ export default function DistribusiTable({ periode, detail, sums = {}, filters = 
                         })}
                     </tbody>
                     <tfoot>
-                        <tr className="border-t-2 border-brand-navy/15 bg-gradient-to-r from-brand-navy/[0.04] via-white to-brand-green-light/25 font-bold">
+                        <tr className="border-t-2 border-slate-200/90 bg-[#F7F9FC] font-bold text-slate-800">
                             <td colSpan={2} className="px-4 py-2.5">Total{detail.total > detail.data.length ? ` (${detail.total} anggota)` : ''}</td>
                             <td className="px-4 py-2.5 text-right tabular-nums privacy-blur">{formatRupiah(sums.wajib ?? 0)}</td>
                             <td className="px-4 py-2.5 text-right tabular-nums privacy-blur">{formatRupiah(sums.pokok ?? 0)}</td>

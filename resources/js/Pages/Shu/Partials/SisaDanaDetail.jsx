@@ -43,21 +43,21 @@ export default function SisaDanaDetail({ sisaDana, className = '' }) {
                 </div>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-xl border border-slate-200/75 bg-white">
                 <table className="w-full text-sm">
                     <thead>
-                        <tr className="text-left text-xs uppercase tracking-wide text-slate-400 border-b border-slate-100">
-                            <th className="py-2 pr-3">Komponen</th>
-                            <th className="py-2 px-3 text-right">Saldo yg Dialokasikan</th>
-                            <th className="py-2 px-3 text-right">Saldo yg Dibagikan</th>
-                            <th className="py-2 pl-3 text-right">Sisa Dana</th>
+                        <tr className="text-left text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/80 bg-[#F8FAFC]">
+                            <th className="py-2.5 pl-3.5 pr-3 whitespace-nowrap">Komponen</th>
+                            <th className="py-2.5 px-3 text-right whitespace-nowrap">Saldo yg Dialokasikan</th>
+                            <th className="py-2.5 px-3 text-right whitespace-nowrap">Saldo yg Dibagikan</th>
+                            <th className="py-2.5 pl-3 pr-3.5 text-right whitespace-nowrap">Sisa Dana</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-100 bg-white">
                         <tr>
-                            <td className="py-2.5 pr-3">
+                            <td className="py-2.5 pl-3.5 pr-3">
                                 <p className="font-semibold text-slate-700">SHU Anggota</p>
-                                <p className="text-xs text-slate-400">
+                                <p className="text-xs text-slate-500">
                                     Sisa dana yg tidak di bagi (pembulatan FLOOR 1.000 — sheet Distribusi SHU sel J247/J248)
                                 </p>
                             </td>
@@ -67,14 +67,14 @@ export default function SisaDanaDetail({ sisaDana, className = '' }) {
                             <td className="py-2.5 px-3 text-right tabular-nums text-slate-600">
                                 {formatRupiah((sisaDana.total_bersih ?? 0) || '-')}
                             </td>
-                            <td className="py-2.5 pl-3 text-right tabular-nums font-bold text-emerald-700">
+                            <td className="py-2.5 pl-3 pr-3.5 text-right tabular-nums font-bold text-emerald-700">
                                 {formatRupiah(anggota)}
                             </td>
                         </tr>
                         <tr>
-                            <td className="py-2.5 pr-3">
+                            <td className="py-2.5 pl-3.5 pr-3">
                                 <p className="font-semibold text-slate-700">SHU Pengurus Koperasi</p>
-                                <p className="text-xs text-slate-400">
+                                <p className="text-xs text-slate-500">
                                     sel H15: saldo yg di alokasikan − sel H16: saldo yg di bagikan = sel H17: sisa dana
                                 </p>
                             </td>
@@ -84,14 +84,14 @@ export default function SisaDanaDetail({ sisaDana, className = '' }) {
                             <td className="py-2.5 px-3 text-right tabular-nums text-slate-600">
                                 {formatRupiah(sisaDana.dibagikan_pengurus ?? 0)}
                             </td>
-                            <td className="py-2.5 pl-3 text-right tabular-nums font-bold text-emerald-700">
+                            <td className="py-2.5 pl-3 pr-3.5 text-right tabular-nums font-bold text-emerald-700">
                                 {formatRupiah(pengurus)}
                             </td>
                         </tr>
                         <tr>
-                            <td className="py-2.5 pr-3">
+                            <td className="py-2.5 pl-3.5 pr-3">
                                 <p className="font-semibold text-slate-700">SHU Pengawas</p>
-                                <p className="text-xs text-slate-400">
+                                <p className="text-xs text-slate-500">
                                     sel M9: saldo yg di alokasikan − sel M10: saldo yg di bagikan = sel M11: sisa dana
                                 </p>
                             </td>
@@ -101,20 +101,20 @@ export default function SisaDanaDetail({ sisaDana, className = '' }) {
                             <td className="py-2.5 px-3 text-right tabular-nums text-slate-600">
                                 {formatRupiah(sisaDana.dibagikan_pengawas ?? 0)}
                             </td>
-                            <td className="py-2.5 pl-3 text-right tabular-nums font-bold text-emerald-700">
+                            <td className="py-2.5 pl-3 pr-3.5 text-right tabular-nums font-bold text-emerald-700">
                                 {formatRupiah(pengawas)}
                             </td>
                         </tr>
                     </tbody>
                     <tfoot>
-                        <tr className="border-t-2 border-emerald-200 bg-emerald-50/40 font-bold">
-                            <td colSpan={3} className="py-2.5 pr-3">
+                        <tr className="border-t-2 border-slate-200/90 bg-[#F7F9FC] font-bold">
+                            <td colSpan={3} className="py-2.5 pl-3.5 pr-3">
                                 <p className="text-slate-800">Jumlah sisa dana yg tidak di serahkan</p>
                                 <p className="text-xs font-normal text-slate-500">
                                     Rumus Excel sel O15: O11 (Pengawas) + K17 (Pengurus) + J247 (Sisa dana yg tidak di bagi)
                                 </p>
                             </td>
-                            <td className="py-2.5 pl-3 text-right tabular-nums text-emerald-800 text-base">
+                            <td className="py-2.5 pl-3 pr-3.5 text-right tabular-nums text-emerald-800 text-base">
                                 {formatRupiah(total)}
                             </td>
                         </tr>

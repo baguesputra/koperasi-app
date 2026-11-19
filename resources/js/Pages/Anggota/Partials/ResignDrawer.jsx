@@ -5,6 +5,7 @@ import Button from '@/Components/ui/Button';
 import {
     DrawerBody,
     DrawerFooter,
+    DrawerFooterActions,
     DrawerKeyValue,
     DrawerSection,
 } from '@/Components/ui/DrawerSection';
@@ -175,7 +176,7 @@ export default function ResignDrawer({ anggota, onClose }) {
             </DrawerBody>
 
             <DrawerFooter>
-                <div className={`flex flex-col-reverse sm:flex-row sm:items-center gap-2.5 ${!loading && !fetchError && ringkasan ? 'sm:justify-between' : 'sm:justify-end'}`}>
+                <DrawerFooterActions cols={!loading && !fetchError && ringkasan ? 2 : 1} stackOnMobile>
                     <Button type="button" variant="neutral" size="drawer" onClick={onClose} disabled={processing}>
                         <ArrowLeft size={16} />
                         Batal
@@ -190,7 +191,7 @@ export default function ResignDrawer({ anggota, onClose }) {
                             {processing ? 'Memproses...' : cukup ? 'Konfirmasi Resign' : 'Resign + Jadwalkan Cicilan Akhir'}
                         </Button>
                     )}
-                </div>
+                </DrawerFooterActions>
             </DrawerFooter>
         </form>
     );

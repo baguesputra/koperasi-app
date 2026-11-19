@@ -8,6 +8,7 @@ import {
     DrawerField,
     DrawerFieldGrid,
     DrawerFooter,
+    DrawerFooterActions,
     DrawerHero,
     DrawerNoteCallout,
     DrawerSection,
@@ -249,67 +250,63 @@ export default function KeputusanDrawer({ pinjaman, onClose }) {
             <DrawerFooter>
                 {bisaDiproses ? (
                     !aksi ? (
-                        <div className="grid grid-cols-2 gap-2.5 sm:flex sm:items-center sm:justify-between">
-                            {bisaApprove ? (
-                                <>
+                        bisaApprove ? (
+                            <DrawerFooterActions cols={bisaCair ? 3 : 2}>
+                                <Button
+                                    type="button"
+                                    variant="dangerSoft"
+                                    size="drawer"
+                                    onClick={() => setAksi('reject')}
+                                >
+                                    <X size={16} />
+                                    Tolak
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="primary"
+                                    size="drawer"
+                                    onClick={() => setAksi('approve')}
+                                >
+                                    <Check size={16} />
+                                    Setujui &amp; Usulkan
+                                </Button>
+                                {bisaCair && (
                                     <Button
                                         type="button"
-                                        variant="dangerSoft"
+                                        variant="primary"
                                         size="drawer"
-                                        onClick={() => setAksi('reject')}
+                                        onClick={() => setAksi('cair')}
                                     >
-                                        <X size={16} />
-                                        Tolak
+                                        <Check size={16} />
+                                        Cairkan Pinjaman (Mandiri Ketua)
                                     </Button>
-                                    <div className="flex items-center justify-end gap-2.5 flex-wrap">
-                                        <Button
-                                            type="button"
-                                            variant="primary"
-                                            className="w-full sm:w-auto" size="drawer"
-                                            onClick={() => setAksi('approve')}
-                                        >
-                                            <Check size={16} />
-                                            Setujui &amp; Usulkan
-                                        </Button>
-                                        {bisaCair && (
-                                            <Button
-                                                type="button"
-                                                variant="primary"
-                                                className="w-full sm:w-auto" size="drawer"
-                                                onClick={() => setAksi('cair')}
-                                            >
-                                                <Check size={16} />
-                                                Cairkan Pinjaman (Mandiri Ketua)
-                                            </Button>
-                                        )}
-                                    </div>
-                                </>
-                            ) : (
-                                <>
+                                )}
+                            </DrawerFooterActions>
+                        ) : (
+                            <DrawerFooterActions cols={bisaCair ? 2 : 1}>
+                                <Button
+                                    type="button"
+                                    variant="neutral"
+                                    size="drawer"
+                                    onClick={onClose}
+                                >
+                                    Tutup
+                                </Button>
+                                {bisaCair && (
                                     <Button
                                         type="button"
-                                        variant="neutral"
+                                        variant="primary"
                                         size="drawer"
-                                        onClick={onClose}
+                                        onClick={() => setAksi('cair')}
                                     >
-                                        Tutup
+                                        <Check size={16} />
+                                        Cairkan Pinjaman (Mandiri Ketua)
                                     </Button>
-                                    {bisaCair && (
-                                        <Button
-                                            type="button"
-                                            variant="primary"
-                                            size="drawer"
-                                            onClick={() => setAksi('cair')}
-                                        >
-                                            <Check size={16} />
-                                            Cairkan Pinjaman (Mandiri Ketua)
-                                        </Button>
-                                    )}
-                                </>
-                            )}
-                        </div>
+                                )}
+                            </DrawerFooterActions>
+                        )
                     ) : (
-                        <div className="grid grid-cols-2 gap-2.5 sm:flex sm:items-center sm:justify-between">
+                        <DrawerFooterActions>
                             <Button
                                 type="button"
                                 variant="neutral"
@@ -334,7 +331,7 @@ export default function KeputusanDrawer({ pinjaman, onClose }) {
                                     ? 'Konfirmasi Pencairan'
                                     : `Konfirmasi ${aksi === 'approve' ? 'Setujui' : 'Tolak'}`}
                             </Button>
-                        </div>
+                        </DrawerFooterActions>
                     )
                 ) : (
                     <div className="flex items-center justify-between gap-3">

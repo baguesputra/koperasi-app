@@ -133,38 +133,38 @@ export default function RingkasanShu({ periode, persen, custom = [], preview, ri
                     </ResponsiveContainer>
                 </div>
 
-                <div className="overflow-x-auto mt-2">
+                <div className="overflow-x-auto mt-2 rounded-xl border border-slate-200/75 bg-white">
                     <table className="w-full text-sm">
                         <thead>
-                                <tr className="text-left text-xs uppercase tracking-wide text-slate-400 border-b border-slate-100">
-                                    <th className="py-2 pr-2">Komponen</th>
-                                    <th className="py-2 px-2 text-right">Besaran Persentase</th>
-                                    <th className="py-2 pl-2 text-right">Nilainya</th>
-                                </tr>
+                            <tr className="text-left text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/80 bg-[#F8FAFC]">
+                                <th className="py-2.5 pl-3.5 pr-2 whitespace-nowrap">Komponen</th>
+                                <th className="py-2.5 px-2 text-right whitespace-nowrap">Besaran Persentase</th>
+                                <th className="py-2.5 pl-2 pr-3.5 text-right whitespace-nowrap">Nilainya</th>
+                            </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-50">
+                        <tbody className="divide-y divide-slate-100 bg-white">
                             {KOMPONEN_ORDER.map((k) => (
-                                <tr key={k}>
-                                    <td className="py-2 pr-2">
+                                <tr key={k} className="hover:bg-slate-50/60 transition-colors">
+                                    <td className="py-2 pl-3.5 pr-2">
                                         <span className="inline-block w-2.5 h-2.5 rounded-sm mr-2" style={{ backgroundColor: warna(k) }} aria-hidden="true" />
                                         {KOMPONEN_LABEL[k]}
                                     </td>
                                     <td className="py-2 px-2 text-right tabular-nums">
                                         {Math.round((persen?.[PCT_COL[k]] ?? 0) * 10000) / 100}%
                                     </td>
-                                    <td className="py-2 pl-2 text-right tabular-nums font-semibold">{formatRupiah(komponen[k] ?? 0)}</td>
+                                    <td className="py-2 pl-2 pr-3.5 text-right tabular-nums font-semibold">{formatRupiah(komponen[k] ?? 0)}</td>
                                 </tr>
                             ))}
                             {customList.map((c) => (
-                                <tr key={c.slug}>
-                                    <td className="py-2 pr-2">
+                                <tr key={c.slug} className="hover:bg-slate-50/60 transition-colors">
+                                    <td className="py-2 pl-3.5 pr-2">
                                         <span className="inline-block w-2.5 h-2.5 rounded-sm mr-2" style={{ backgroundColor: warna(c.slug) }} aria-hidden="true" />
-                                        {c.label} <span className="text-xs text-slate-400">(tambahan)</span>
+                                        {c.label} <span className="text-xs text-slate-500">(tambahan)</span>
                                     </td>
                                     <td className="py-2 px-2 text-right tabular-nums">
                                         {Math.round((c.persen ?? 0) * 10000) / 100}%
                                     </td>
-                                    <td className="py-2 pl-2 text-right tabular-nums font-semibold">{formatRupiah(c.nominal ?? komponen[c.slug] ?? 0)}</td>
+                                    <td className="py-2 pl-2 pr-3.5 text-right tabular-nums font-semibold">{formatRupiah(c.nominal ?? komponen[c.slug] ?? 0)}</td>
                                 </tr>
                             ))}
                         </tbody>

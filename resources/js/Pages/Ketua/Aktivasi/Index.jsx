@@ -6,6 +6,7 @@ import {
     CreditCard, ShieldCheck, MapPin, MessageSquareText, X, XCircle
 } from 'lucide-react';
 import Card from '@/Components/ui/Card';
+import CountBadge from '@/Components/ui/CountBadge';
 import FotoAnggota from '@/Components/ui/FotoAnggota';
 import StatusBadge from '@/Components/ui/StatusBadge';
 import PageHeader from '@/Components/ui/PageHeader';
@@ -15,6 +16,7 @@ import {
     DrawerField,
     DrawerFieldGrid,
     DrawerFooter,
+    DrawerFooterActions,
     DrawerHero,
     DrawerNoteCallout,
     DrawerSection,
@@ -24,8 +26,8 @@ import { formatRupiah } from '@/Utils/formatCurrency';
 import { withIdempotencyKey } from '@/Utils/idempotency';
 
 const tabDasar = 'inline-flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl transition-all duration-150';
-const tabAktif = `${tabDasar} bg-gradient-to-b from-white to-brand-green-light/30 border border-brand-green/40 text-brand-navy shadow-sm`;
-const tabNonAktif = `${tabDasar} text-slate-600 hover:bg-white/80 hover:text-brand-navy`;
+const tabAktif = `${tabDasar} bg-brand-green-light/45 border border-brand-green/35 text-brand-navy`;
+const tabNonAktif = `${tabDasar} text-slate-600 hover:bg-slate-100/70 hover:text-brand-navy`;
 
 function KeputusanDrawer({ pengajuan, ketentuanFinansial, onClose }) {
     const [aksi, setAksi] = useState(null);
@@ -250,7 +252,7 @@ function KeputusanDrawer({ pengajuan, ketentuanFinansial, onClose }) {
             <DrawerFooter>
                 {bisaDiproses ? (
                     !aksi ? (
-                        <div className="grid grid-cols-2 gap-2.5 sm:flex sm:items-center sm:justify-between">
+                        <DrawerFooterActions>
                             <Button
                                 type="button"
                                 variant="dangerSoft"
@@ -269,9 +271,9 @@ function KeputusanDrawer({ pengajuan, ketentuanFinansial, onClose }) {
                                 <Check size={16} />
                                 Setujui Aktivasi
                             </Button>
-                        </div>
+                        </DrawerFooterActions>
                     ) : (
-                        <div className="grid grid-cols-2 gap-2.5 sm:flex sm:items-center sm:justify-between">
+                        <DrawerFooterActions>
                             <Button
                                 type="button"
                                 variant="neutral"
@@ -292,7 +294,7 @@ function KeputusanDrawer({ pengajuan, ketentuanFinansial, onClose }) {
                                 {aksi === 'approve' ? <Check size={16} /> : <X size={16} />}
                                 {processing ? 'Memproses...' : `Konfirmasi ${aksi === 'approve' ? 'Setujui' : 'Tolak'}`}
                             </Button>
-                        </div>
+                        </DrawerFooterActions>
                     )
                 ) : (
                     <div className="flex items-center justify-between gap-3">
@@ -320,15 +322,11 @@ export default function Index({ menunggu, riwayat, ketentuanFinansial }) {
             <Head title="Aktivasi Anggota" />
             <PageHeader title="Pengajuan Aktivasi Anggota" subtitle={`${menunggu.length} pengajuan menunggu keputusan`} />
 
-            <Card padding="none">
-                <div className="flex flex-wrap items-center gap-1.5 px-3.5 py-2.5 bg-gradient-to-r from-[#f4f7fb] via-[#f8fafc] to-[#f0faf4] border-b border-slate-200/80">
+            <Card padding="none" className="overflow-hidden">
+                <div className="flex flex-wrap items-center gap-1.5 px-3.5 py-2.5 bg-white border-b border-slate-200/80">
                     <button onClick={() => setTab('baru')} className={tab === 'baru' ? tabAktif : tabNonAktif}>
                         Menunggu Keputusan
-                        {menunggu.length > 0 && (
-                            <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[11px] font-bold">
-                                {menunggu.length}
-                            </span>
-                        )}
+                        <CountBadge count={menunggu.length} context="tab" />
                     </button>
                     <button onClick={() => setTab('riwayat')} className={tab === 'riwayat' ? tabAktif : tabNonAktif}>
                         Riwayat
@@ -336,20 +334,20 @@ export default function Index({ menunggu, riwayat, ketentuanFinansial }) {
                 </div>
 
                 <div className="overflow-x-auto">
-                    <table className="w-full table-sticky-first">
+                    <table className="w-full table-sticky-first text-sm">
                         <thead>
-                            <tr className="text-left sticky top-0 bg-gradient-to-r from-[#f4f7fb] via-[#f8fafc] to-[#f1faf4] border-b border-slate-200/80 z-10">
-                                <th className="px-5 py-3 text-sm font-semibold text-slate-500">Pemohon</th>
-                                <th className="hidden md:table-cell px-5 py-3 text-sm font-semibold text-slate-500">Cabang</th>
-                                <th className="px-5 py-3 text-sm font-semibold text-slate-500">Tanggal</th>
-                                <th className="px-5 py-3 text-sm font-semibold text-slate-500">Status</th>
-                                <th className="w-10" aria-label="Buka detail" />
+                            <tr className="text-left bg-[#F8FAFC] border-b border-slate-200/80">
+                                <th className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Pemohon</th>
+                                <th className="hidden md:table-cell px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Cabang</th>
+                                <th className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Tanggal</th>
+                                <th className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Status</th>
+                                <th className="w-10 px-3 py-2.5" aria-label="Buka detail" />
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-slate-100 bg-white">
                             {(tab === 'baru' ? menunggu : riwayat).length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="px-5 py-8 text-center text-base text-slate-400">
+                                    <td colSpan={5} className="px-4 py-8 text-center text-sm font-medium text-slate-500">
                                         {tab === 'baru' ? 'Tidak ada pengajuan yang menunggu keputusan.' : 'Belum ada riwayat keputusan.'}
                                     </td>
                                 </tr>
@@ -361,21 +359,21 @@ export default function Index({ menunggu, riwayat, ketentuanFinansial }) {
                                         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); buka(p); } }}
                                         tabIndex={0}
                                         title="Klik untuk mereview"
-                                        className="group border-t border-slate-100/80 hover:bg-brand-green-light/35 transition-colors cursor-pointer focus-visible:outline-none focus-visible:bg-brand-green-light/45"
+                                        className="group hover:bg-[#F2FBF5] transition-colors cursor-pointer focus-visible:outline-none focus-visible:bg-[#F2FBF5]"
                                     >
-                                        <td className="px-5 py-3">
+                                        <td className="px-4 py-2.5">
                                             <div className="flex items-center gap-3">
                                                 <FotoAnggota nama={p.anggota.nama} fotoUrl={p.anggota.foto_url} ukuran="sm" />
                                                 <div className="min-w-0">
                                                     <p className="text-sm font-semibold text-slate-800 truncate">{p.anggota.nama}</p>
-                                                    <p className="text-xs text-slate-400">{p.anggota.no_karyawan}</p>
+                                                    <p className="text-xs text-slate-500">{p.anggota.no_karyawan}</p>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="hidden md:table-cell px-5 py-3 text-sm text-slate-600">{p.anggota.cabang}</td>
-                                        <td className="px-5 py-3 text-sm text-slate-600">{p.tanggal_pengajuan}</td>
-                                        <td className="px-5 py-3"><StatusBadge status={p.status === 'diajukan' ? 'pending' : p.status} /></td>
-                                        <td className="px-3 py-3 text-right" aria-hidden="true">
+                                        <td className="hidden md:table-cell px-4 py-2.5 text-sm text-slate-600">{p.anggota.cabang}</td>
+                                        <td className="px-4 py-2.5 text-sm text-slate-600">{p.tanggal_pengajuan}</td>
+                                        <td className="px-4 py-2.5"><StatusBadge status={p.status === 'diajukan' ? 'pending' : p.status} /></td>
+                                        <td className="px-3 py-2.5 text-right" aria-hidden="true">
                                             <ChevronRight size={18} className="ml-auto text-slate-300 group-hover:text-brand-green group-hover:translate-x-0.5 transition-all" />
                                         </td>
                                     </tr>

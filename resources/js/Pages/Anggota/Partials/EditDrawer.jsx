@@ -6,6 +6,7 @@ import {
     DrawerField,
     DrawerFieldGrid,
     DrawerFooter,
+    DrawerFooterActions,
     DrawerHero,
     DrawerSection,
 } from '@/Components/ui/DrawerSection';
@@ -112,7 +113,7 @@ export default function EditDrawer({ anggota, onClose }) {
             </DrawerBody>
 
             <DrawerFooter>
-                <div className="grid grid-cols-2 gap-2.5 sm:flex sm:items-center sm:justify-between">
+                <DrawerFooterActions>
                     <Button type="button" variant="neutral" size="drawer" onClick={onClose}>
                         <ArrowLeft size={16} />
                         Batal
@@ -121,7 +122,7 @@ export default function EditDrawer({ anggota, onClose }) {
                         <Check size={16} />
                         {processing ? 'Menyimpan...' : 'Simpan Perubahan'}
                     </Button>
-                </div>
+                </DrawerFooterActions>
             </DrawerFooter>
         </form>
     );

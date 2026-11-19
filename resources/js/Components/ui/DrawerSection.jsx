@@ -20,6 +20,30 @@ export function DrawerFooter({ children, className = '' }) {
     );
 }
 
+export function DrawerFooterActions({ cols = 2, stackOnMobile = false, children, className = '' }) {
+    if (cols === 1) {
+        return (
+            <div className={`flex items-center justify-end ${className}`}>
+                {children}
+            </div>
+        );
+    }
+
+    if (cols === 3) {
+        return (
+            <div className={`grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 ${className}`}>
+                {children}
+            </div>
+        );
+    }
+
+    const base = stackOnMobile
+        ? 'flex flex-col-reverse gap-2 sm:grid sm:grid-cols-2 sm:gap-3'
+        : 'grid grid-cols-2 gap-2.5 sm:gap-3';
+
+    return <div className={`${base} ${className}`}>{children}</div>;
+}
+
 export function DrawerHero({ children, className = '' }) {
     return (
         <div

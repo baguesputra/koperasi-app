@@ -13,6 +13,7 @@ import Drawer from '@/Components/ui/Drawer';
 import {
     DrawerBody,
     DrawerFooter,
+    DrawerFooterActions,
     DrawerKeyValue,
     DrawerSection,
 } from '@/Components/ui/DrawerSection';
@@ -602,7 +603,7 @@ export default function Index({
                         </DrawerBody>
 
                         <DrawerFooter>
-                            <div className={`flex flex-col-reverse sm:flex-row sm:items-center gap-2.5 ${itemBatal.bisa_dibatalkan ? 'sm:justify-between' : 'sm:justify-end'}`}>
+                            <DrawerFooterActions cols={itemBatal.bisa_dibatalkan ? 2 : 1} stackOnMobile>
                                 <Button type="button" variant="neutral" size="drawer" onClick={() => setItemBatal(null)}>
                                     Tutup
                                 </Button>
@@ -612,7 +613,7 @@ export default function Index({
                                         {batalForm.processing ? 'Memproses...' : 'Batalkan Konfirmasi Angsuran'}
                                     </Button>
                                 )}
-                            </div>
+                            </DrawerFooterActions>
                         </DrawerFooter>
                     </>
                 )}

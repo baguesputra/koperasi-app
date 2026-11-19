@@ -1,6 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import { useEffect, useRef } from 'react';
 import { usePrivacy } from '@/Contexts/PrivacyContext';
+import CountBadge, { CountDot } from '@/Components/ui/CountBadge';
 import PrivacyIcon from '@/Components/ui/PrivacyIcon';
 import {
     LayoutDashboard, Users, PiggyBank, HandCoins,
@@ -51,7 +52,7 @@ const menuGroups = [
     },
 ];
 
-export default function Sidebar({ collapsed = false, expanding = false, onToggle }) {
+export default function Sidebar({ collapsed = false, expanding = false, mobile = false, onToggle }) {
     const { auth, notifications } = usePage().props;
     const { isPrivacyActive, togglePrivacy } = usePrivacy();
     const url = usePage().url;
@@ -110,9 +111,13 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
         }))
         .filter((group) => group.items.length > 0);
 
+    const asideClass = mobile
+        ? 'w-full h-full bg-white flex flex-col overflow-hidden'
+        : `${tertutup ? 'w-16' : 'w-60'} h-full bg-white border border-slate-200/80 rounded-2xl flex flex-col transition-all duration-300 overflow-hidden ${expanding ? 'relative z-50 shadow-2xl' : 'shadow-[0_10px_28px_-6px_rgba(15,30,54,0.10),0_2px_8px_-2px_rgba(15,30,54,0.05)]'}`;
+
     return (
-        <aside className={`${tertutup ? 'w-16' : 'w-60'} h-full bg-gradient-to-b from-white via-white to-slate-50/70 border border-slate-200/80 rounded-2xl flex flex-col transition-all duration-300 overflow-hidden ${expanding ? 'relative z-50 shadow-2xl' : 'shadow-[0_10px_28px_-6px_rgba(15,30,54,0.10),0_2px_8px_-2px_rgba(15,30,54,0.05)]'}`}>
-            <div className={`h-13 sm:h-[50px] flex items-center shrink-0 border-b border-slate-100/80 ${tertutup ? 'justify-center px-2' : 'justify-between px-3.5'}`}>
+        <aside className={asideClass}>
+            <div className={`h-[50px] flex items-center shrink-0 border-b border-slate-100/80 ${tertutup ? 'justify-center px-2' : 'justify-between px-3.5'}`}>
                 {tertutup ? (
                     <button
                         type="button"
@@ -158,7 +163,7 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
             <nav className="flex-1 px-3 py-3 space-y-4 overflow-y-auto scrollbar-hide">
                 {visibleGroups.map((group) => (
                     <div key={group.label}>
-                        <p className={`px-2 mb-1 text-[11px] font-bold uppercase tracking-wider text-slate-400 ${tertutup ? 'hidden' : ''}`}>
+                        <p className={`px-2 mb-1 text-[11px] font-bold uppercase tracking-wider text-slate-500 ${tertutup ? 'hidden' : ''}`}>
                             {group.label}
                         </p>
                         <div className="space-y-0.5">
@@ -186,7 +191,7 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
                                         key={item.label + group.label}
                                         href={href}
                                         ref={isActive ? tautanAktif : undefined}
-                                        title={tertutup ? item.label : undefined}
+                                        title={tertutup ? (badge > 0 ? `${item.label} (${badge} menunggu)` : item.label) : undefined}
                                         className={`group flex items-center ${tertutup ? 'gap-0 justify-center' : 'gap-3'} px-2.5 py-1.5 rounded-xl text-sm font-semibold transition-all duration-150 ${
                                             isActive
                                                 ? 'bg-gradient-to-r from-brand-navy via-brand-navy to-brand-navy-light text-white shadow-md shadow-brand-navy/20 ring-1 ring-white/10'
@@ -195,17 +200,14 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
                                     >
                                         <span className="relative shrink-0">
                                             <Icon size={18} strokeWidth={2} className={isActive ? 'text-brand-green' : 'text-slate-400 group-hover:text-brand-green transition-colors'} />
-                                            {badge > 0 && (
-                                                tertutup ? (
-                                                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-red-500" />
-                                                ) : (
-                                                    <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white flex items-center justify-center text-[10px] font-bold">
-                                                        {badge}
-                                                    </span>
-                                                )
+                                            {badge > 0 && tertutup && (
+                                                <CountDot active={isActive} className="absolute -top-0.5 -right-0.5" />
                                             )}
                                         </span>
-                                        <span className={`flex-1 truncate transition-all duration-300 whitespace-nowrap overflow-hidden ${tertutup ? 'opacity-0 max-w-0' : 'opacity-100 max-w-[170px]'}`}>{item.label}</span>
+                                        <span className={`flex-1 truncate transition-all duration-300 whitespace-nowrap overflow-hidden ${tertutup ? 'opacity-0 max-w-0' : 'opacity-100 max-w-[170px] min-w-0'}`}>{item.label}</span>
+                                        {badge > 0 && !tertutup && (
+                                            <CountBadge count={badge} active={isActive} context="sidebar" className="ml-auto" />
+                                        )}
                                     </Link>
                                 );
                             })}
@@ -232,7 +234,7 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
             ) : (
                 <div
                     key="kaki-buka"
-                    className="border-t border-slate-200/70 bg-gradient-to-r from-slate-50/50 to-brand-green-light/15 px-3 py-2 shrink-0 flex items-center gap-1 animate-sidebar-fade"
+                    className="border-t border-slate-100 bg-[#F8FAFC] px-3 py-2 shrink-0 flex items-center gap-1 animate-sidebar-fade"
                 >
                     <Link
                         href={route('profile.edit')}
@@ -244,7 +246,7 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
                         </span>
                         <span className="min-w-0 leading-tight">
                             <span className="block text-sm font-semibold text-slate-800 truncate">{auth.user?.name}</span>
-                            <span className="block text-xs text-slate-400 capitalize truncate">
+                            <span className="block text-xs text-slate-500 capitalize truncate">
                                 {auth.user?.roles?.[0] === 'super_admin'
                                     ? 'Super Admin'
                                     : ['admin', 'sekretaris'].includes(auth.user?.roles?.[0])
@@ -275,27 +277,29 @@ export default function Sidebar({ collapsed = false, expanding = false, onToggle
                 </div>
             )}
 
-            {!tertutup ? (
-                <div className="px-3.5 py-2.5 border-t border-slate-100 text-xs text-slate-400 shrink-0 flex items-center justify-between">
-                    <span className="truncate max-w-[135px]">Koperasi App</span>
+            {!mobile && (
+                !tertutup ? (
+                    <div className="px-3.5 py-2.5 border-t border-slate-100 text-xs text-slate-500 shrink-0 flex items-center justify-between">
+                        <span className="truncate max-w-[135px]">Koperasi App</span>
+                        <button
+                            type="button"
+                            onClick={onToggle}
+                            title={expanding ? 'Semuhkan sidebar (konten ikut menyesuaikan)' : 'Ciutkan sidebar'}
+                            className="text-slate-400 hover:text-brand-navy transition-colors shrink-0 p-1"
+                        >
+                            <ChevronLeft size={17} />
+                        </button>
+                    </div>
+                ) : (
                     <button
                         type="button"
                         onClick={onToggle}
-                        title={expanding ? 'Semuhkan sidebar (konten ikut menyesuaikan)' : 'Ciutkan sidebar'}
-                        className="text-slate-400 hover:text-brand-navy transition-colors shrink-0 p-1"
+                        title="Buka sidebar"
+                        className="mx-auto mb-2 flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-brand-navy hover:bg-brand-green-light/60 transition-all shrink-0"
                     >
-                        <ChevronLeft size={17} />
+                        <ChevronRight size={17} />
                     </button>
-                </div>
-            ) : (
-                <button
-                    type="button"
-                    onClick={onToggle}
-                    title="Buka sidebar"
-                    className="mx-auto mb-2 flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-brand-navy hover:bg-brand-green-light/60 transition-all shrink-0"
-                >
-                    <ChevronRight size={17} />
-                </button>
+                )
             )}
         </aside>
     );

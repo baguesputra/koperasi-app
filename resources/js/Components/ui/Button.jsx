@@ -1,12 +1,12 @@
-export const buttonBase = 'inline-flex items-center justify-center gap-2 font-semibold rounded-xl sm:rounded-lg transition-all duration-150 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed';
+export const buttonBase = 'inline-flex items-center justify-center gap-2 font-semibold rounded-xl sm:rounded-lg transition-all duration-150 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/40 focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed';
 
 export const buttonVariants = {
-    primary: 'bg-gradient-to-b from-brand-green to-brand-green-dark text-white shadow-xs hover:brightness-105 active:brightness-95',
-    secondary: 'bg-gradient-to-b from-brand-navy-light to-brand-navy text-white shadow-xs hover:brightness-110',
+    primary: 'bg-gradient-to-b from-brand-green to-brand-green-dark text-white shadow-[0_1px_2px_rgba(23,138,62,0.28),inset_0_1px_0_rgba(255,255,255,0.16)] hover:brightness-105 active:brightness-95',
+    secondary: 'bg-gradient-to-b from-brand-navy-light to-brand-navy text-white shadow-[0_1px_2px_rgba(15,30,54,0.25),inset_0_1px_0_rgba(255,255,255,0.12)] hover:brightness-110',
     outline: 'border-2 border-brand-navy/80 text-brand-navy bg-white hover:bg-brand-navy/5 hover:border-brand-navy',
     neutral: 'border border-slate-300 bg-white text-slate-700 shadow-2xs hover:bg-slate-50 hover:border-slate-400 hover:text-slate-900 active:bg-slate-100',
     ghost: 'text-brand-navy hover:bg-brand-navy/6',
-    danger: 'bg-gradient-to-b from-red-500 to-red-600 text-white shadow-xs hover:brightness-105',
+    danger: 'bg-gradient-to-b from-red-500 to-red-600 text-white shadow-[0_1px_2px_rgba(220,38,38,0.28),inset_0_1px_0_rgba(255,255,255,0.14)] hover:brightness-105',
     dangerSoft: 'border border-rose-200 bg-rose-50/70 text-rose-700 hover:bg-rose-100/80 hover:border-rose-300 hover:text-rose-800 active:bg-rose-100',
 };
 

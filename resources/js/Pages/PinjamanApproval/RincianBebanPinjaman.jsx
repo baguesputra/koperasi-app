@@ -116,18 +116,18 @@ export default function RincianBebanPinjaman({ pinjaman }) {
                 <div className="border-t border-slate-200/80 bg-white">
                     <div className="overflow-x-auto max-h-64 overflow-y-auto">
                         <table className="w-full text-xs">
-                            <thead className="bg-gradient-to-r from-[#f4f7fb] via-[#f8fafc] to-[#f1faf4] text-slate-600 sticky top-0 border-b border-slate-200/80">
+                            <thead className="bg-[#F8FAFC] text-[11px] font-bold uppercase tracking-wider text-slate-500 sticky top-0 border-b border-slate-200/80">
                                 <tr>
-                                    <th className="py-2 px-3 text-center font-semibold">Bln</th>
-                                    <th className="py-2 px-3 text-right font-semibold">Pokok</th>
-                                    <th className="py-2 px-3 text-right font-semibold">Bunga</th>
-                                    <th className="py-2 px-3 text-right font-semibold">Total Bayar</th>
-                                    <th className="py-2 px-3 text-center font-semibold">Jatuh Tempo</th>
+                                    <th className="py-2 px-3 text-center whitespace-nowrap">Bln</th>
+                                    <th className="py-2 px-3 text-right whitespace-nowrap">Pokok</th>
+                                    <th className="py-2 px-3 text-right whitespace-nowrap">Bunga</th>
+                                    <th className="py-2 px-3 text-right whitespace-nowrap">Total Bayar</th>
+                                    <th className="py-2 px-3 text-center whitespace-nowrap">Jatuh Tempo</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody className="divide-y divide-slate-100 bg-white">
                                 {jadwal.map((a) => (
-                                    <tr key={a.cicilan_ke} className="border-b border-slate-100 hover:bg-brand-green-light/25 transition-colors">
+                                    <tr key={a.cicilan_ke} className="hover:bg-[#F2FBF5] transition-colors">
                                         <td className="py-1.5 px-3 text-center font-medium text-slate-600 tabular-nums">{a.cicilan_ke}</td>
                                         <td className="py-1.5 px-3 text-right text-slate-700 tabular-nums">
                                             <PrivacyWrapper>{formatRupiah(a.nominal_pokok)}</PrivacyWrapper>
@@ -144,7 +144,7 @@ export default function RincianBebanPinjaman({ pinjaman }) {
                                     </tr>
                                 ))}
                             </tbody>
-                            <tfoot className="bg-[#F4F7FB] border-t-2 border-slate-200 font-bold text-slate-800 sticky bottom-0">
+                            <tfoot className="bg-[#F7F9FC] border-t-2 border-slate-200/90 font-bold text-slate-800 sticky bottom-0">
                                 <tr>
                                     <td className="py-2 px-3 text-center">Total</td>
                                     <td className="py-2 px-3 text-right tabular-nums">

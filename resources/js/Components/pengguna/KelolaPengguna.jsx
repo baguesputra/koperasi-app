@@ -201,12 +201,12 @@ export default function KelolaPengguna({
                         <TextField size="sm" type="email" value={tambah.data.email} onChange={(e) => tambah.setData('email', e.target.value)} placeholder="budi@koperasi.test" />
                     </FormField>
                     <p className="-mt-2 mb-3 text-xs text-slate-500">Akun baru login via SSO — tanpa password lokal.</p>
-                    <div className="flex items-center justify-between gap-2.5 pt-3.5 border-t border-slate-100">
-                        <Button type="button" variant="neutral" size="drawer" className="rounded-full" onClick={() => setView('list')}>
+                    <div className="grid grid-cols-2 gap-2.5 sm:gap-3 pt-3.5 border-t border-slate-100">
+                        <Button type="button" variant="neutral" size="drawer" onClick={() => setView('list')}>
                             <ArrowLeft size={16} />
                             Batal
                         </Button>
-                        <Button type="submit" size="drawer" disabled={tambah.processing} className="rounded-full shadow-md shadow-brand-green/25">
+                        <Button type="submit" size="drawer" disabled={tambah.processing}>
                             {tambah.processing ? 'Menyimpan...' : 'Simpan Pengguna'}
                         </Button>
                     </div>
@@ -246,12 +246,12 @@ export default function KelolaPengguna({
                         </Select>
                     </FormField>
                     {edit.errors.pengguna && <p className="text-xs font-medium text-red-600 mb-3">{edit.errors.pengguna}</p>}
-                    <div className="flex items-center justify-between gap-2.5 pt-3.5 border-t border-slate-100">
-                        <Button type="button" variant="neutral" size="drawer" className="rounded-full" onClick={() => setView('list')}>
+                    <div className="grid grid-cols-2 gap-2.5 sm:gap-3 pt-3.5 border-t border-slate-100">
+                        <Button type="button" variant="neutral" size="drawer" onClick={() => setView('list')}>
                             <ArrowLeft size={16} />
                             Batal
                         </Button>
-                        <Button type="submit" size="drawer" disabled={edit.processing || target?.dilindungi} className="rounded-full shadow-md shadow-brand-green/25">
+                        <Button type="submit" size="drawer" disabled={edit.processing || target?.dilindungi}>
                             {edit.processing ? 'Menyimpan...' : 'Simpan Perubahan'}
                         </Button>
                     </div>
@@ -294,12 +294,12 @@ export default function KelolaPengguna({
                             </span>
                         </span>
                     </label>
-                    <div className="flex items-center justify-between gap-2.5 pt-3.5 border-t border-slate-100">
-                        <Button type="button" variant="neutral" size="drawer" className="rounded-full" onClick={() => setView('list')}>
+                    <div className="grid grid-cols-2 gap-2.5 sm:gap-3 pt-3.5 border-t border-slate-100">
+                        <Button type="button" variant="neutral" size="drawer" onClick={() => setView('list')}>
                             <ArrowLeft size={16} />
                             Batal
                         </Button>
-                        <Button type="submit" size="drawer" disabled={reset.processing} className="rounded-full shadow-md shadow-brand-green/25">
+                        <Button type="submit" size="drawer" disabled={reset.processing}>
                             {reset.processing ? 'Menyimpan...' : 'Reset Password'}
                         </Button>
                     </div>
