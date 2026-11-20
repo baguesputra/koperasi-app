@@ -217,6 +217,7 @@ class DashboardController extends Controller
             'angsuranBerikutnya' => $angsuranBerikutnya,
             'bisaAjukan' => $cekEligibilitas['boleh'],
             'alasanTidakBisa' => $cekEligibilitas['alasan'],
+            'syaratMasaKeanggotaan' => $cekEligibilitas['syarat_masa_keanggotaan'] ?? null,
             'bolehAjukanLimit' => $cekTambahLimit['boleh'],
             'pesanTerkunciLimit' => $cekTambahLimit['alasan'],
             'statusLimitBadge' => $cekTambahLimit['status_badge'],

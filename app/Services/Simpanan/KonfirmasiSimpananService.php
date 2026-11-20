@@ -8,6 +8,8 @@ use App\Models\JurnalKas;
 use App\Models\SettingSimpanan;
 use App\Models\Simpanan;
 use App\Services\Keuangan\JurnalKasService;
+use App\Services\Pinjaman\EligibilitasPinjamanService;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -287,5 +289,253 @@ class KonfirmasiSimpananService
                 userId: $userId,
             );
         });
+    }
+
+    /**
+     * Daftar anggota aktif dengan masa keanggotaan < 6 bulan yang simpanan wajibnya
+     * belum genap 6 bulan, beserta rincian kekurangan & periode berikutnya.
+     */
+    public function anggotaBaruBelumGenapEnamBulan(?string $cabang = null, ?string $mulaiBulan = null): Collection
+    {
+        $minBulan = EligibilitasPinjamanService::MIN_BULAN_KEANGGOTAAN;
+        $batasEnamBulan = now()->startOfDay()->subMonths($minBulan);
+
+        $daftarAnggota = Anggota::where('status', 'aktif')
+            ->where(function ($q) use ($batasEnamBulan) {
+                $q->whereNull('tanggal_jadi_anggota')
+                    ->orWhere('tanggal_jadi_anggota', '>', $batasEnamBulan);
+            })
+            ->when($cabang, fn ($q) => $q->where('cabang', $cabang))
+            ->orderBy('nama')
+            ->get();
+
+        if ($daftarAnggota->isEmpty()) {
+            return collect();
+        }
+
+        $simpananPerAnggota = Simpanan::whereIn('anggota_id', $daftarAnggota->pluck('id'))
+            ->where('jenis', 'wajib')
+            ->get(['anggota_id', 'bulan_periode'])
+            ->groupBy('anggota_id');
+
+        $nominalWajib = (float) (SettingSimpanan::where('jenis', 'wajib')->value('nominal') ?? 45_000);
+        $nominalDanaSosial = (float) (SettingSimpanan::where('jenis', 'dana_sosial')->value('nominal') ?? 5_000);
+        $nominalPerBulan = $nominalWajib + $nominalDanaSosial;
+        $eligibilitas = app(EligibilitasPinjamanService::class);
+
+        $hasil = collect();
+
+        foreach ($daftarAnggota as $a) {
+            $masaBulan = $eligibilitas->masaKeanggotaanBulan($a);
+            if ($masaBulan >= $minBulan) {
+                continue;
+            }
+
+            $periodeSudahAda = ($simpananPerAnggota->get($a->id) ?? collect())
+                ->pluck('bulan_periode')
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+
+            $bulanTerbayar = count($periodeSudahAda);
+            $kekurangan = max(0, $minBulan - $bulanTerbayar);
+
+            if ($kekurangan === 0) {
+                continue;
+            }
+
+            $hasil->push([
+                'id' => $a->id,
+                'nama' => $a->nama,
+                'no_anggota' => $a->no_anggota,
+                'no_karyawan' => $a->no_karyawan,
+                'cabang' => $a->cabang,
+                'foto_url' => $a->foto_url,
+                'tanggal_jadi_anggota' => $a->tanggal_jadi_anggota?->format('d M Y'),
+                'masa_bulan' => $masaBulan,
+                'bulan_terbayar' => $bulanTerbayar,
+                'kekurangan_bulan' => $kekurangan,
+                'nominal_wajib' => $nominalWajib,
+                'nominal_dana_sosial' => $nominalDanaSosial,
+                'nominal_per_bulan' => $nominalPerBulan,
+                'total_pelunasan' => (float) ($kekurangan * $nominalPerBulan),
+                'periode_berikutnya' => $this->periodeBerikutnyaBelumBayar($periodeSudahAda, $kekurangan, $mulaiBulan),
+            ]);
+        }
+
+        return $hasil->values();
+    }
+
+    /**
+     * Catat pembayaran simpanan wajib + dana sosial di muka untuk melengkapi
+     * kekurangan syarat 6 bulan keanggotaan.
+     *
+     * @return array{
+     *     anggota_nama: string,
+     *     jumlah_bulan: int,
+     *     periode: array<int, string>,
+     *     total_wajib: float,
+     *     total_dana_sosial: float,
+     *     total_nominal: float
+     * }
+     */
+    public function bayarDiMuka(int $anggotaId, int $jumlahBulan, int $inputByUserId, ?string $mulaiBulan = null): array
+    {
+        $minBulan = EligibilitasPinjamanService::MIN_BULAN_KEANGGOTAAN;
+
+        if ($jumlahBulan < 1 || $jumlahBulan > $minBulan) {
+            throw new RuntimeException("Jumlah bulan pembayaran di muka harus antara 1 sampai {$minBulan} bulan.");
+        }
+
+        $nominalWajib = (float) (SettingSimpanan::where('jenis', 'wajib')->value('nominal') ?? 45_000);
+        $nominalDanaSosial = (float) (SettingSimpanan::where('jenis', 'dana_sosial')->value('nominal') ?? 5_000);
+
+        return DB::transaction(function () use ($anggotaId, $jumlahBulan, $inputByUserId, $mulaiBulan, $minBulan, $nominalWajib, $nominalDanaSosial) {
+            $anggota = Anggota::lockForUpdate()->findOrFail($anggotaId);
+
+            if ($anggota->status !== 'aktif') {
+                throw new RuntimeException("Anggota {$anggota->nama} berstatus '{$anggota->status}', tidak dapat melakukan pembayaran simpanan di muka.");
+            }
+
+            $periodeSudahAda = Simpanan::where('anggota_id', $anggotaId)
+                ->where('jenis', 'wajib')
+                ->lockForUpdate()
+                ->pluck('bulan_periode')
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+
+            $kekurangan = max(0, $minBulan - count($periodeSudahAda));
+
+            if ($kekurangan === 0) {
+                throw new RuntimeException('Anggota ini sudah melunasi minimal 6 bulan simpanan wajib.');
+            }
+
+            if ($jumlahBulan > $kekurangan) {
+                throw new RuntimeException("Kekurangan simpanan wajib anggota ini hanya {$kekurangan} bulan.");
+            }
+
+            $daftarPeriode = $this->periodeBerikutnyaBelumBayar($periodeSudahAda, $jumlahBulan, $mulaiBulan);
+
+            $sekarang = now();
+            $tanggalJurnal = $sekarang->format('Y-m-d');
+            $barisWajib = [];
+            $barisSosial = [];
+
+            foreach ($daftarPeriode as $periode) {
+                $barisWajib[] = [
+                    'anggota_id' => $anggotaId,
+                    'jenis' => 'wajib',
+                    'jumlah' => $nominalWajib,
+                    'bulan_periode' => $periode,
+                    'tanggal_input' => $sekarang,
+                    'input_by' => $inputByUserId,
+                    'created_at' => $sekarang,
+                    'updated_at' => $sekarang,
+                ];
+
+                $barisSosial[] = [
+                    'anggota_id' => $anggotaId,
+                    'jenis' => 'dana_sosial',
+                    'jumlah' => $nominalDanaSosial,
+                    'bulan_periode' => $periode,
+                    'tanggal_input' => $sekarang,
+                    'input_by' => $inputByUserId,
+                    'created_at' => $sekarang,
+                    'updated_at' => $sekarang,
+                ];
+            }
+
+            Simpanan::insert($barisWajib);
+            Simpanan::insert($barisSosial);
+
+            foreach ($daftarPeriode as $periode) {
+                $this->jurnalKas->catat(
+                    tipe: 'masuk',
+                    kategori: 'dana_sosial_bulanan',
+                    kantong: 'dana_sosial',
+                    jumlah: $nominalDanaSosial,
+                    keterangan: "Dana sosial bulan {$periode}",
+                    referensiId: $anggotaId,
+                    tanggal: $tanggalJurnal,
+                    userId: $inputByUserId,
+                );
+
+                $this->jurnalKas->catat(
+                    tipe: 'masuk',
+                    kategori: 'simpanan_wajib_masuk',
+                    kantong: 'simpanan',
+                    jumlah: $nominalWajib,
+                    keterangan: "Simpanan wajib bulan {$periode}",
+                    referensiId: $anggotaId,
+                    tanggal: $tanggalJurnal,
+                    userId: $inputByUserId,
+                    subJudul: 'Simpanan wajib masuk',
+                );
+            }
+
+            $jumlahTercatat = count($daftarPeriode);
+            $totalWajib = (float) ($jumlahTercatat * $nominalWajib);
+            $totalDanaSosial = (float) ($jumlahTercatat * $nominalDanaSosial);
+            $totalNominal = $totalWajib + $totalDanaSosial;
+
+            AuditLog::catat(
+                aksi: 'simpanan_bayar_dimuka',
+                keterangan: "Pembayaran simpanan di muka {$anggota->nama} sebanyak {$jumlahTercatat} bulan (".implode(', ', $daftarPeriode).') — total Rp '.number_format($totalNominal, 0, ',', '.'),
+                dataLama: [
+                    'anggota_id' => $anggotaId,
+                    'bulan_terbayar_sebelum' => count($periodeSudahAda),
+                    'periode_sebelum' => $periodeSudahAda,
+                ],
+                dataBaru: [
+                    'anggota_id' => $anggotaId,
+                    'jumlah_bulan' => $jumlahTercatat,
+                    'periode' => $daftarPeriode,
+                    'total_wajib' => $totalWajib,
+                    'total_dana_sosial' => $totalDanaSosial,
+                    'total_nominal' => $totalNominal,
+                ],
+                userId: $inputByUserId,
+            );
+
+            return [
+                'anggota_nama' => $anggota->nama,
+                'jumlah_bulan' => $jumlahTercatat,
+                'periode' => $daftarPeriode,
+                'total_wajib' => $totalWajib,
+                'total_dana_sosial' => $totalDanaSosial,
+                'total_nominal' => $totalNominal,
+            ];
+        });
+    }
+
+    /**
+     * Hasilkan daftar periode YYYY-MM berikutnya yang belum pernah dibayar anggota.
+     *
+     * @param  array<int, string>  $periodeSudahAda
+     * @return array<int, string>
+     */
+    private function periodeBerikutnyaBelumBayar(array $periodeSudahAda, int $jumlahBulan, ?string $mulaiBulan = null): array
+    {
+        $sudah = array_flip($periodeSudahAda);
+        $cursor = $mulaiBulan
+            ? Carbon::createFromFormat('Y-m', $mulaiBulan)->startOfMonth()
+            : now()->startOfMonth();
+
+        $hasil = [];
+        $iterasi = 0;
+
+        while (count($hasil) < $jumlahBulan && $iterasi < 60) {
+            $kode = $cursor->format('Y-m');
+            if (! isset($sudah[$kode])) {
+                $hasil[] = $kode;
+            }
+            $cursor->addMonthNoOverflow();
+            $iterasi++;
+        }
+
+        return $hasil;
     }
 }

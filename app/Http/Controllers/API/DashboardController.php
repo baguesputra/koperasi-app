@@ -159,6 +159,7 @@ class DashboardController extends Controller
                 'limit_tersedia' => (float) $cek['limit_tersedia'],
                 'boleh' => (bool) $cek['boleh'],
                 'alasan' => $cek['alasan'],
+                'syarat_masa_keanggotaan' => $cek['syarat_masa_keanggotaan'] ?? null,
                 'sisa_angsuran' => (int) $cek['sisa_angsuran'],
                 'cicilan_pokok' => (float) $cek['cicilan_pokok'],
                 'boleh_tambah_limit' => (bool) $cekLimit['boleh'],

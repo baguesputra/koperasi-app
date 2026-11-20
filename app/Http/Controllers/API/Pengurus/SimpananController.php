@@ -142,6 +142,39 @@ class SimpananController extends Controller
         ]);
     }
 
+    /**
+     * Catat pembayaran simpanan wajib + dana sosial di muka untuk anggota < 6 bulan.
+     */
+    public function bayarDiMuka(Request $request, Anggota $anggota): JsonResponse
+    {
+        if (! $request->user()->can('simpanan.konfirmasi')) {
+            abort(response()->json([
+                'message' => 'Anda tidak memiliki akses konfirmasi simpanan.',
+            ], 403));
+        }
+
+        $request->validate([
+            'jumlah_bulan' => ['required', 'integer', 'min:1', 'max:6'],
+            'mulai_bulan' => ['nullable', 'date_format:Y-m'],
+        ]);
+
+        try {
+            $hasil = $this->konfirmasi->bayarDiMuka(
+                anggotaId: $anggota->id,
+                jumlahBulan: (int) $request->jumlah_bulan,
+                inputByUserId: (int) $request->user()->id,
+                mulaiBulan: $request->input('mulai_bulan'),
+            );
+        } catch (RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => "Simpanan di muka {$hasil['anggota_nama']} ({$hasil['jumlah_bulan']} bulan) berhasil dicatat.",
+            'data' => $hasil,
+        ]);
+    }
+
     private function nominalPerAnggota(): float
     {
         $wajib = (float) Cache::remember('setting_simpanan_wajib', 600, fn () => SettingSimpanan::where('jenis', 'wajib')->value('nominal') ?? 0);

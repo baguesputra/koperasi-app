@@ -230,6 +230,7 @@ export default function Dashboard({
     angsuranBerikutnya,
     bisaAjukan,
     alasanTidakBisa,
+    syaratMasaKeanggotaan = null,
     bolehAjukanLimit: propBolehAjukanLimit,
     pesanTerkunciLimit: propPesanTerkunciLimit,
     statusLimitBadge: propStatusLimitBadge,
@@ -276,6 +277,8 @@ export default function Dashboard({
     // =========================================================
     // BUSINESS ELIGIBILITY RULES
     // =========================================================
+    const belumGenapEnamBulan = Boolean(syaratMasaKeanggotaan && !syaratMasaKeanggotaan.terpenuhi);
+
     // 1. Ajukan Pinjaman: hanya bisa jika eligibel, tidak ada pengajuan pinjaman/limit berjalan, limit tersedia > 0, dan tidak ada resign shortfall.
     const bolehAjukanPinjaman = Boolean(
         bisaAjukan &&
@@ -706,6 +709,8 @@ export default function Dashboard({
                                             ? 'Limit sedang diproses'
                                             : limitTersedia <= 0
                                             ? 'Limit pinjaman habis'
+                                            : belumGenapEnamBulan
+                                            ? `Minimal 6 bln (${syaratMasaKeanggotaan.bulan_simpanan_wajib}/6)`
                                             : 'Belum memenuhi syarat'}
                                     </span>
                                 </span>
@@ -911,20 +916,41 @@ export default function Dashboard({
                                 <StatusRow
                                     tone="warn"
                                     icon={Info}
-                                    title="Pengajuan pinjaman belum memenuhi ketentuan"
+                                    title={
+                                        belumGenapEnamBulan
+                                            ? 'Syarat pinjaman & tambah limit: minimal 6 bulan keanggotaan'
+                                            : 'Pengajuan pinjaman belum memenuhi ketentuan'
+                                    }
                                     body={
-                                        <>
-                                            {alasanTidakBisa ||
-                                                'Anda belum dapat mengajukan pinjaman saat ini sesuai ketentuan koperasi.'}
-                                            {sisaAngsuranAktif > 2 && limitTersedia > 0 ? (
-                                                <>
-                                                    {' '}
-                                                    Sisa limit yang belum terpakai{' '}
-                                                    <Nominal nilai={limitTersedia} tampil={nominalTampil} /> baru
-                                                    dapat dipakai setelah angsuran tersisa maksimal 2 bulan.
-                                                </>
-                                            ) : null}
-                                        </>
+                                        belumGenapEnamBulan ? (
+                                            <>
+                                                Masa keanggotaan Anda baru{' '}
+                                                <strong>{syaratMasaKeanggotaan.masa_bulan} bulan</strong> (simpanan
+                                                wajib tercatat{' '}
+                                                <strong>{syaratMasaKeanggotaan.bulan_simpanan_wajib}/6 bulan</strong>).
+                                                Untuk mengajukan pinjaman atau tambah limit lebih cepat, Anda dapat
+                                                melunasi simpanan wajib + dana sosial di muka sebanyak{' '}
+                                                <strong>{syaratMasaKeanggotaan.kekurangan_bulan} bulan</strong> (
+                                                <Nominal
+                                                    nilai={syaratMasaKeanggotaan.estimasi_pelunasan_dimuka}
+                                                    tampil={nominalTampil}
+                                                />
+                                                ) melalui Bendahara Koperasi.
+                                            </>
+                                        ) : (
+                                            <>
+                                                {alasanTidakBisa ||
+                                                    'Anda belum dapat mengajukan pinjaman saat ini sesuai ketentuan koperasi.'}
+                                                {sisaAngsuranAktif > 2 && limitTersedia > 0 ? (
+                                                    <>
+                                                        {' '}
+                                                        Sisa limit yang belum terpakai{' '}
+                                                        <Nominal nilai={limitTersedia} tampil={nominalTampil} /> baru
+                                                        dapat dipakai setelah angsuran tersisa maksimal 2 bulan.
+                                                    </>
+                                                ) : null}
+                                            </>
+                                        )
                                     }
                                 />
                             )}

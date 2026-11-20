@@ -94,7 +94,10 @@ class PengajuanAktivasiService
             }
 
             $pengajuan->update(['status' => 'disetujui', 'catatan_ketua' => $catatan]);
-            $anggota->update(['status' => 'aktif']);
+            $anggota->update([
+                'status' => 'aktif',
+                'tanggal_jadi_anggota' => now(),
+            ]);
 
             if ($anggota->user_id) {
                 User::where('id', $anggota->user_id)->update(['status' => 'aktif']);
@@ -118,7 +121,7 @@ class PengajuanAktivasiService
             'aktivasi_disetujui',
             WaPesan::susun($pengajuan->anggota->nama, $pengajuan->anggota->no_karyawan,
                 "Dengan hormat,\n\nPengajuan aktivasi keanggotaan Bapak/Ibu telah *DISETUJUI* oleh Ketua Koperasi.\n\n"
-                .'Simpanan Pokok telah tercatat. Bapak/Ibu kini dapat menggunakan seluruh layanan koperasi, termasuk pengajuan pinjaman. Terima kasih atas kepercayaan Bapak/Ibu.')
+                .'Simpanan Pokok telah tercatat. Pengajuan pinjaman akan terbuka setelah genap 6 bulan keanggotaan atau setelah melunasi simpanan wajib 6 bulan di muka melalui Bendahara. Terima kasih atas kepercayaan Bapak/Ibu.')
         );
     }
 

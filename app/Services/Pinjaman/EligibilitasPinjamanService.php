@@ -6,20 +6,129 @@ use App\Models\Anggota;
 use App\Models\PengajuanLimit;
 use App\Models\Pinjaman;
 use App\Models\SettingLimitPinjaman;
+use App\Models\SettingSimpanan;
+use App\Models\Simpanan;
 use App\Models\TabelTenor;
 
 class EligibilitasPinjamanService
 {
+    public const MIN_BULAN_KEANGGOTAAN = 6;
+
     /** Memo seluruh setting limit terurut selama request (ganti query berulang). */
     private static ?array $semuaLimitCache = null;
 
     /** Memo tabel tenor selama request (ganti query berulang per pinjaman). */
     private static ?array $tabelTenorCache = null;
 
+    /** Memo tarif simpanan wajib & dana sosial selama request. */
+    private static ?array $tarifSimpananCache = null;
+
     public static function resetCache(): void
     {
         self::$semuaLimitCache = null;
         self::$tabelTenorCache = null;
+        self::$tarifSimpananCache = null;
+    }
+
+    /** Tarif iuran bulanan (simpanan wajib + dana sosial) dengan fallback aman. */
+    private function tarifSimpanan(): array
+    {
+        if (self::$tarifSimpananCache === null) {
+            $rows = SettingSimpanan::whereIn('jenis', ['wajib', 'dana_sosial'])
+                ->pluck('nominal', 'jenis');
+
+            self::$tarifSimpananCache = [
+                'wajib' => (float) ($rows['wajib'] ?? 45_000),
+                'dana_sosial' => (float) ($rows['dana_sosial'] ?? 5_000),
+            ];
+        }
+
+        return self::$tarifSimpananCache;
+    }
+
+    /** Hitung masa keanggotaan penuh dalam bulan kalender sejak tanggal_jadi_anggota. */
+    public function masaKeanggotaanBulan(Anggota $anggota): int
+    {
+        if (! $anggota->tanggal_jadi_anggota) {
+            return 0;
+        }
+
+        $mulai = $anggota->tanggal_jadi_anggota->copy()->startOfDay();
+        $sekarang = now()->startOfDay();
+
+        if ($mulai->greaterThan($sekarang)) {
+            return 0;
+        }
+
+        return (int) $mulai->diffInMonths($sekarang);
+    }
+
+    /**
+     * Cek syarat minimal 6 bulan keanggotaan atau pelunasan simpanan di muka 6 bulan.
+     * Anggota dengan masa >= 6 bulan langsung lolos tanpa query tabel simpanan.
+     *
+     * @return array{
+     *     terpenuhi: bool,
+     *     masa_bulan: int,
+     *     min_bulan: int,
+     *     bulan_simpanan_wajib: int,
+     *     kekurangan_bulan: int,
+     *     nominal_wajib_per_bulan: float,
+     *     nominal_dana_sosial_per_bulan: float,
+     *     nominal_per_bulan: float,
+     *     estimasi_pelunasan_dimuka: float,
+     *     alasan: ?string
+     * }
+     */
+    public function cekSyaratMasaKeanggotaan(Anggota $anggota): array
+    {
+        $masaBulan = $this->masaKeanggotaanBulan($anggota);
+
+        if ($masaBulan >= self::MIN_BULAN_KEANGGOTAAN) {
+            return [
+                'terpenuhi' => true,
+                'masa_bulan' => $masaBulan,
+                'min_bulan' => self::MIN_BULAN_KEANGGOTAAN,
+                'bulan_simpanan_wajib' => self::MIN_BULAN_KEANGGOTAAN,
+                'kekurangan_bulan' => 0,
+                'nominal_wajib_per_bulan' => 0.0,
+                'nominal_dana_sosial_per_bulan' => 0.0,
+                'nominal_per_bulan' => 0.0,
+                'estimasi_pelunasan_dimuka' => 0.0,
+                'alasan' => null,
+            ];
+        }
+
+        $bulanWajib = (int) Simpanan::where('anggota_id', $anggota->id)
+            ->where('jenis', 'wajib')
+            ->distinct('bulan_periode')
+            ->count('bulan_periode');
+
+        $tarif = $this->tarifSimpanan();
+        $tarifWajib = (float) $tarif['wajib'];
+        $tarifSosial = (float) $tarif['dana_sosial'];
+        $nominalPerBulan = $tarifWajib + $tarifSosial;
+
+        $kekurangan = max(0, self::MIN_BULAN_KEANGGOTAAN - $bulanWajib);
+        $terpenuhi = $kekurangan === 0;
+        $estimasi = (float) ($kekurangan * $nominalPerBulan);
+
+        $alasan = $terpenuhi
+            ? null
+            : "Masa keanggotaan Anda masih di bawah 6 bulan ({$masaBulan} bulan, simpanan wajib tercatat {$bulanWajib}/6 bulan). Pengajuan dibuka setelah 6 bulan keanggotaan, atau bayar simpanan di muka sebanyak {$kekurangan} bulan lagi (Rp ".number_format($estimasi, 0, ',', '.').') melalui Bendahara.';
+
+        return [
+            'terpenuhi' => $terpenuhi,
+            'masa_bulan' => $masaBulan,
+            'min_bulan' => self::MIN_BULAN_KEANGGOTAAN,
+            'bulan_simpanan_wajib' => $bulanWajib,
+            'kekurangan_bulan' => $kekurangan,
+            'nominal_wajib_per_bulan' => $tarifWajib,
+            'nominal_dana_sosial_per_bulan' => $tarifSosial,
+            'nominal_per_bulan' => $nominalPerBulan,
+            'estimasi_pelunasan_dimuka' => $estimasi,
+            'alasan' => $alasan,
+        ];
     }
 
     /** Semua baris tabel tenor terurut nominal_min menaik. */
@@ -76,6 +185,19 @@ class EligibilitasPinjamanService
                 'limit_tersedia' => 0.0,
                 'sisa_angsuran' => 0,
                 'cicilan_pokok' => 0.0,
+                'syarat_masa_keanggotaan' => null,
+            ];
+        }
+
+        $syaratMasa = $this->cekSyaratMasaKeanggotaan($anggota);
+        if (! $syaratMasa['terpenuhi']) {
+            return [
+                'boleh' => false,
+                'alasan' => $syaratMasa['alasan'],
+                'limit_tersedia' => $this->limitMaksimal($anggota),
+                'sisa_angsuran' => 0,
+                'cicilan_pokok' => 0.0,
+                'syarat_masa_keanggotaan' => $syaratMasa,
             ];
         }
 
@@ -91,6 +213,7 @@ class EligibilitasPinjamanService
                 'limit_tersedia' => $limit,
                 'sisa_angsuran' => 0,
                 'cicilan_pokok' => 0.0,
+                'syarat_masa_keanggotaan' => $syaratMasa,
             ];
         }
 
@@ -110,6 +233,7 @@ class EligibilitasPinjamanService
                 'limit_tersedia' => $limitTersedia,
                 'sisa_angsuran' => $sisaAngsuran,
                 'cicilan_pokok' => $cicilanPokok,
+                'syarat_masa_keanggotaan' => $syaratMasa,
             ];
         }
 
@@ -123,6 +247,7 @@ class EligibilitasPinjamanService
                 'limit_tersedia' => $limitTersedia,
                 'sisa_angsuran' => $sisaAngsuran,
                 'cicilan_pokok' => $cicilanPokok,
+                'syarat_masa_keanggotaan' => $syaratMasa,
             ];
         }
 
@@ -140,6 +265,7 @@ class EligibilitasPinjamanService
                 'limit_tersedia' => $limitTersedia,
                 'sisa_angsuran' => $sisaAngsuran,
                 'cicilan_pokok' => $cicilanPokok,
+                'syarat_masa_keanggotaan' => $syaratMasa,
             ];
         }
 
@@ -149,6 +275,7 @@ class EligibilitasPinjamanService
             'limit_tersedia' => $limitTersedia,
             'sisa_angsuran' => $sisaAngsuran,
             'cicilan_pokok' => $cicilanPokok,
+            'syarat_masa_keanggotaan' => $syaratMasa,
         ];
     }
 
@@ -234,6 +361,19 @@ class EligibilitasPinjamanService
                 'alasan' => $alasan,
                 'status_badge' => 'terkunci',
                 'state_label' => 'Belum memenuhi',
+                'limit_saat_ini' => $limitSaatIni,
+                'plafon_koperasi' => $plafonMaksimalKoperasi,
+            ];
+        }
+
+        // 1b. Minimal 6 bulan keanggotaan atau pelunasan simpanan wajib 6 bulan di muka
+        $syaratMasa = $this->cekSyaratMasaKeanggotaan($anggota);
+        if (! $syaratMasa['terpenuhi']) {
+            return [
+                'boleh' => false,
+                'alasan' => "Pengajuan kenaikan limit belum tersedia. {$syaratMasa['alasan']}",
+                'status_badge' => 'terkunci',
+                'state_label' => "Minimal 6 bln ({$syaratMasa['bulan_simpanan_wajib']}/6)",
                 'limit_saat_ini' => $limitSaatIni,
                 'plafon_koperasi' => $plafonMaksimalKoperasi,
             ];

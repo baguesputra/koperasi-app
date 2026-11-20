@@ -327,6 +327,7 @@ Route::middleware('auth')->prefix('bendahara')->name('bendahara.')->group(functi
     Route::middleware('permission:simpanan.konfirmasi')->group(function () {
         Route::get('/simpanan', [BendaharaSimpananController::class, 'index'])->name('simpanan.index');
         Route::post('/simpanan/konfirmasi', [BendaharaSimpananController::class, 'konfirmasi'])->name('simpanan.konfirmasi')->middleware('idempotent');
+        Route::post('/simpanan/{anggota}/bayar-dimuka', [BendaharaSimpananController::class, 'bayarDiMuka'])->name('simpanan.bayar-dimuka')->middleware('idempotent');
         Route::post('/simpanan/{anggota}/batalkan', [BendaharaSimpananController::class, 'batalkan'])->name('simpanan.batalkan')->middleware('idempotent');
     });
 });

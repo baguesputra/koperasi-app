@@ -1,7 +1,7 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, router, useForm } from '@inertiajs/react';
 import { useEffect, useId, useMemo, useState } from 'react';
-import { HeartHandshake, Check, ChevronLeft, ChevronRight, ChevronDown, Search, X, RefreshCw, Users, Wallet, MapPin, Calendar, RotateCcw, AlertCircle } from 'lucide-react';
+import { HeartHandshake, Check, ChevronLeft, ChevronRight, ChevronDown, Search, X, RefreshCw, Users, Wallet, MapPin, Calendar, RotateCcw, AlertCircle, Clock } from 'lucide-react';
 import Card from '@/Components/ui/Card';
 import FotoAnggota from '@/Components/ui/FotoAnggota';
 import StatWidget from '@/Components/ui/StatWidget';
@@ -27,6 +27,7 @@ export default function Index({
     belumSimpanan = [],
     sudahSimpanan = [],
     totalSudahSimpanan = 0,
+    anggotaBelumGenapEnamBulan = [],
     cabangAktif = '',
     daftarCabang = [],
     ringkasanCabang = {},
@@ -40,17 +41,24 @@ export default function Index({
     const [rincianTerbuka, setRincianTerbuka] = useState(false);
     const [tabStatus, setTabStatus] = useState('belum');
     const [itemBatal, setItemBatal] = useState(null);
+    const [itemDimuka, setItemDimuka] = useState(null);
     const batalFormId = useId();
+    const dimukaFormId = useId();
 
     const batalForm = useForm({
         bulan_periode: bulan,
         alasan: '',
     });
 
+    const dimukaForm = useForm({
+        jumlah_bulan: 6,
+    });
+
     useEffect(() => {
         setCari('');
         setTerpilih([]);
         setItemBatal(null);
+        setItemDimuka(null);
         batalForm.setData('bulan_periode', bulan);
     }, [bulan, cabangAktif]);
 
@@ -84,6 +92,9 @@ export default function Index({
     const kataCari = cari.trim().toLowerCase();
     const dataBelumSimpanan = Array.isArray(belumSimpanan) ? belumSimpanan : Object.values(belumSimpanan ?? {});
     const dataSudahSimpanan = Array.isArray(sudahSimpanan) ? sudahSimpanan : Object.values(sudahSimpanan ?? {});
+    const dataBelumGenap = Array.isArray(anggotaBelumGenapEnamBulan)
+        ? anggotaBelumGenapEnamBulan
+        : Object.values(anggotaBelumGenapEnamBulan ?? {});
     const tampil = useMemo(
         () => dataBelumSimpanan.filter((a) =>
             !kataCari || a.nama.toLowerCase().includes(kataCari) || (a.no_karyawan ?? '').toLowerCase().includes(kataCari)
@@ -95,6 +106,12 @@ export default function Index({
             !kataCari || a.nama.toLowerCase().includes(kataCari) || (a.no_karyawan ?? '').toLowerCase().includes(kataCari)
         ),
         [dataSudahSimpanan, kataCari]
+    );
+    const tampilBelumGenap = useMemo(
+        () => dataBelumGenap.filter((a) =>
+            !kataCari || a.nama.toLowerCase().includes(kataCari) || (a.no_karyawan ?? '').toLowerCase().includes(kataCari)
+        ),
+        [dataBelumGenap, kataCari]
     );
 
     const semuaTampilTerpilih = tampil.length > 0 && tampil.every((a) => terpilih.includes(a.id));
@@ -138,6 +155,26 @@ export default function Index({
                 onSuccess: () => {
                     batalForm.reset('alasan');
                     setItemBatal(null);
+                },
+            })
+        );
+    }
+
+    function bukaModalDimuka(a) {
+        dimukaForm.clearErrors();
+        dimukaForm.setData('jumlah_bulan', a.kekurangan_bulan ?? 6);
+        setItemDimuka(a);
+    }
+
+    function submitDimuka(e) {
+        e.preventDefault();
+        if (!itemDimuka) return;
+        dimukaForm.post(
+            route('bendahara.simpanan.bayar-dimuka', itemDimuka.id),
+            withIdempotencyKey({
+                preserveScroll: true,
+                onSuccess: () => {
+                    setItemDimuka(null);
                 },
             })
         );
@@ -237,7 +274,7 @@ export default function Index({
             <Card padding="sm" className="shadow-md border-slate-200/70 mb-4">
                 <div className="pb-3 mb-1 border-b border-slate-100">
                     {/* Segmented Status Switcher */}
-                    <div className="inline-flex items-center p-1 rounded-xl bg-gradient-to-r from-brand-navy/[0.04] to-brand-green-light/20 border border-slate-200/80 mb-3">
+                    <div className="inline-flex flex-wrap items-center p-1 rounded-xl bg-gradient-to-r from-brand-navy/[0.04] to-brand-green-light/20 border border-slate-200/80 mb-3">
                         <button
                             type="button"
                             onClick={() => setTabStatus('belum')}
@@ -260,17 +297,50 @@ export default function Index({
                         >
                             Sudah Dikonfirmasi ({dataSudahSimpanan.length})
                         </button>
+                        <button
+                            type="button"
+                            onClick={() => setTabStatus('dimuka')}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${fokusRing} ${
+                                tabStatus === 'dimuka'
+                                    ? 'bg-white text-amber-800 border border-amber-200/80 shadow-xs'
+                                    : 'text-slate-600 hover:text-brand-navy border border-transparent'
+                            }`}
+                        >
+                            Belum Genap 6 Bln ({dataBelumGenap.length})
+                        </button>
                     </div>
 
                     <div className="flex flex-col md:flex-row md:items-center gap-2">
                         <div className="flex items-center gap-1.5 min-w-0">
                             <p className="text-sm text-slate-500 truncate">
-                                {tabStatus === 'belum' ? 'Belum konfirmasi' : 'Sudah konfirmasi'}{' '}
-                                <span className="font-bold text-slate-800">{labelBulan}</span>
+                                {tabStatus === 'belum'
+                                    ? 'Belum konfirmasi'
+                                    : tabStatus === 'sudah'
+                                    ? 'Sudah konfirmasi'
+                                    : 'Belum genap 6 bulan keanggotaan'}{' '}
+                                {tabStatus !== 'dimuka' && (
+                                    <span className="font-bold text-slate-800">{labelBulan}</span>
+                                )}
                                 <span className="text-slate-400">
-                                    {' '}• {tabStatus === 'belum' ? tampil.length : tampilSudah.length}
-                                    {kataCari && (tabStatus === 'belum' ? dataBelumSimpanan.length : dataSudahSimpanan.length) > 0
-                                        ? ` dari ${tabStatus === 'belum' ? dataBelumSimpanan.length : dataSudahSimpanan.length}`
+                                    {' '}•{' '}
+                                    {tabStatus === 'belum'
+                                        ? tampil.length
+                                        : tabStatus === 'sudah'
+                                        ? tampilSudah.length
+                                        : tampilBelumGenap.length}
+                                    {kataCari &&
+                                    (tabStatus === 'belum'
+                                        ? dataBelumSimpanan.length
+                                        : tabStatus === 'sudah'
+                                        ? dataSudahSimpanan.length
+                                        : dataBelumGenap.length) > 0
+                                        ? ` dari ${
+                                              tabStatus === 'belum'
+                                                  ? dataBelumSimpanan.length
+                                                  : tabStatus === 'sudah'
+                                                  ? dataSudahSimpanan.length
+                                                  : dataBelumGenap.length
+                                          }`
                                         : ''}{' '}
                                     anggota
                                 </span>
@@ -414,29 +484,78 @@ export default function Index({
                             })}
                         </ul>
                     )
-                ) : dataSudahSimpanan.length === 0 ? (
+                ) : tabStatus === 'sudah' ? (
+                    dataSudahSimpanan.length === 0 ? (
+                        <div className="text-center py-12 px-4">
+                            <Users size={28} aria-hidden="true" className="mx-auto text-slate-300 mb-3" />
+                            <p className="text-sm font-semibold text-slate-600">Belum ada simpanan yang dikonfirmasi untuk {labelBulan}.</p>
+                        </div>
+                    ) : tampilSudah.length === 0 ? (
+                        <p className="text-sm text-slate-400 text-center py-10">
+                            Tidak ada yang cocok dengan pencarian &ldquo;{cari}&rdquo;.
+                        </p>
+                    ) : (
+                        <ul className="divide-y divide-slate-50">
+                            {tampilSudah.map((a) => (
+                                <li
+                                    key={a.id}
+                                    onClick={() => bukaModalBatal(a)}
+                                    onKeyDown={(e) => {
+                                        if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+                                            e.preventDefault();
+                                            bukaModalBatal(a);
+                                        }
+                                    }}
+                                    tabIndex={0}
+                                    title="Klik untuk rincian atau rollback konfirmasi simpanan"
+                                    className="group flex items-center gap-3 px-2 py-3 rounded-xl cursor-pointer hover:bg-brand-green-light/30 transition-all focus-visible:outline-none focus-visible:bg-brand-green-light/40"
+                                >
+                                    <span className="hidden sm:inline-flex shrink-0">
+                                        <FotoAnggota nama={a.nama} fotoUrl={a.foto_url} ukuran="sm" />
+                                    </span>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                            <p className="text-sm font-semibold text-slate-800 group-hover:text-brand-navy truncate">{a.nama}</p>
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-2xs">
+                                                Terkonfirmasi
+                                            </span>
+                                            <ChevronRight size={14} className="text-slate-300 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all" aria-hidden="true" />
+                                        </div>
+                                        <p className="text-xs text-slate-400 mt-0.5 truncate">
+                                            {a.no_karyawan} • {a.cabang}{a.tanggal_input ? ` • Dikonfirmasi ${a.tanggal_input}` : ''}
+                                        </p>
+                                    </div>
+                                    <div className="text-right shrink-0 pl-2">
+                                        <p className="text-sm font-bold text-slate-800 whitespace-nowrap tabular-nums privacy-blur">{formatRupiah(a.nominal_total)}</p>
+                                        <p className="text-[11px] text-slate-400">wajib + dansos</p>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    )
+                ) : dataBelumGenap.length === 0 ? (
                     <div className="text-center py-12 px-4">
-                        <Users size={28} aria-hidden="true" className="mx-auto text-slate-300 mb-3" />
-                        <p className="text-sm font-semibold text-slate-600">Belum ada simpanan yang dikonfirmasi untuk {labelBulan}.</p>
+                        <Check size={28} aria-hidden="true" className="mx-auto text-brand-green mb-3" />
+                        <p className="text-sm font-semibold text-slate-600">Tidak ada anggota aktif di bawah 6 bulan yang masih memiliki kekurangan simpanan wajib.</p>
                     </div>
-                ) : tampilSudah.length === 0 ? (
+                ) : tampilBelumGenap.length === 0 ? (
                     <p className="text-sm text-slate-400 text-center py-10">
                         Tidak ada yang cocok dengan pencarian &ldquo;{cari}&rdquo;.
                     </p>
                 ) : (
                     <ul className="divide-y divide-slate-50">
-                        {tampilSudah.map((a) => (
+                        {tampilBelumGenap.map((a) => (
                             <li
                                 key={a.id}
-                                onClick={() => bukaModalBatal(a)}
+                                onClick={() => bukaModalDimuka(a)}
                                 onKeyDown={(e) => {
                                     if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
                                         e.preventDefault();
-                                        bukaModalBatal(a);
+                                        bukaModalDimuka(a);
                                     }
                                 }}
                                 tabIndex={0}
-                                title="Klik untuk rincian atau rollback konfirmasi simpanan"
+                                title="Klik untuk mencatat pembayaran simpanan di muka hingga genap 6 bulan"
                                 className="group flex items-center gap-3 px-2 py-3 rounded-xl cursor-pointer hover:bg-brand-green-light/30 transition-all focus-visible:outline-none focus-visible:bg-brand-green-light/40"
                             >
                                 <span className="hidden sm:inline-flex shrink-0">
@@ -445,17 +564,20 @@ export default function Index({
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-1.5 flex-wrap">
                                         <p className="text-sm font-semibold text-slate-800 group-hover:text-brand-navy truncate">{a.nama}</p>
-                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-2xs">
-                                            Terkonfirmasi
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200/80 shadow-2xs">
+                                            {a.bulan_terbayar}/6 bln
+                                        </span>
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200/80">
+                                            Kurang {a.kekurangan_bulan} bln
                                         </span>
                                         <ChevronRight size={14} className="text-slate-300 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all" aria-hidden="true" />
                                     </div>
                                     <p className="text-xs text-slate-400 mt-0.5 truncate">
-                                        {a.no_karyawan} • {a.cabang}{a.tanggal_input ? ` • Dikonfirmasi ${a.tanggal_input}` : ''}
+                                        {a.no_karyawan} • {a.cabang}{a.tanggal_jadi_anggota ? ` • Gabung ${a.tanggal_jadi_anggota}` : ''}
                                     </p>
                                 </div>
                                 <div className="text-right shrink-0 pl-2">
-                                    <p className="text-sm font-bold text-slate-800 whitespace-nowrap tabular-nums privacy-blur">{formatRupiah(a.nominal_total)}</p>
+                                    <p className="text-sm font-bold text-slate-800 whitespace-nowrap tabular-nums privacy-blur">{formatRupiah(a.total_pelunasan)}</p>
                                     <p className="text-[11px] text-slate-400">wajib + dansos</p>
                                 </div>
                             </li>
@@ -572,6 +694,121 @@ export default function Index({
                         </DrawerFooter>
                     </>
                 )}
+            </Drawer>
+
+            <Drawer
+                show={Boolean(itemDimuka)}
+                layout="split"
+                onClose={() => setItemDimuka(null)}
+                title="Bayar Simpanan di Muka (Syarat 6 Bulan)"
+                description="Catat pelunasan simpanan wajib + dana sosial ke depan agar anggota di bawah 6 bulan langsung memenuhi syarat pinjaman."
+                badge={
+                    itemDimuka && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full border text-xs font-semibold bg-amber-50 text-amber-800 border-amber-200/80">
+                            {itemDimuka.bulan_terbayar}/6 bulan
+                        </span>
+                    )
+                }
+            >
+                {itemDimuka && (() => {
+                    const jumlahBulanDipilih = Math.min(
+                        Math.max(1, Number(dimukaForm.data.jumlah_bulan || itemDimuka.kekurangan_bulan || 1)),
+                        itemDimuka.kekurangan_bulan || 1
+                    );
+                    const totalWajibDimuka = jumlahBulanDipilih * (itemDimuka.nominal_wajib || 0);
+                    const totalDansosDimuka = jumlahBulanDipilih * (itemDimuka.nominal_dana_sosial || 0);
+                    const totalBayarDimuka = jumlahBulanDipilih * (itemDimuka.nominal_per_bulan || 0);
+                    const periodePreview = (itemDimuka.periode_berikutnya ?? []).slice(0, jumlahBulanDipilih);
+
+                    return (
+                        <>
+                            <DrawerBody>
+                                <DrawerSection padding="sm">
+                                    <div className="flex items-center gap-3">
+                                        <FotoAnggota nama={itemDimuka.nama} fotoUrl={itemDimuka.foto_url} ukuran="md" className="shrink-0" />
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-sm font-bold text-slate-900 truncate">{itemDimuka.nama}</p>
+                                            <p className="text-xs text-slate-500 truncate mt-0.5">
+                                                <span className="font-mono">{itemDimuka.no_karyawan}</span> • {itemDimuka.cabang}
+                                                {itemDimuka.tanggal_jadi_anggota ? ` • Gabung ${itemDimuka.tanggal_jadi_anggota}` : ''}
+                                            </p>
+                                        </div>
+                                        <div className="text-right shrink-0">
+                                            <p className="text-[11px] text-slate-500">Total di Muka</p>
+                                            <p className="text-base sm:text-lg font-extrabold text-brand-green-dark tabular-nums privacy-blur">
+                                                {formatRupiah(totalBayarDimuka)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </DrawerSection>
+
+                                <DrawerSection title="Pembayaran di Muka" icon={Calendar}>
+                                    <form id={dimukaFormId} onSubmit={submitDimuka} className="space-y-3">
+                                        <FormField
+                                            label="Jumlah Bulan Dibayar"
+                                            error={dimukaForm.errors.jumlah_bulan}
+                                            required
+                                            hint={`Kekurangan saat ini ${itemDimuka.kekurangan_bulan} bulan untuk genap 6 bulan keanggotaan.`}
+                                        >
+                                            <TextField
+                                                as="select"
+                                                size="sm"
+                                                value={jumlahBulanDipilih}
+                                                onChange={(e) => dimukaForm.setData('jumlah_bulan', Number(e.target.value))}
+                                            >
+                                                {Array.from({ length: itemDimuka.kekurangan_bulan }, (_, i) => i + 1).map((n) => (
+                                                    <option key={n} value={n}>
+                                                        {n} bulan{n === itemDimuka.kekurangan_bulan ? ' (Genap 6 bulan — buka pinjaman)' : ''}
+                                                    </option>
+                                                ))}
+                                            </TextField>
+                                        </FormField>
+
+                                        {periodePreview.length > 0 && (
+                                            <div>
+                                                <p className="text-xs font-semibold text-slate-600 mb-1.5">Periode yang akan dicatat</p>
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {periodePreview.map((p) => (
+                                                        <span
+                                                            key={p}
+                                                            className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold font-mono bg-emerald-50 text-emerald-800 border border-emerald-200/80"
+                                                        >
+                                                            {p}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </form>
+                                </DrawerSection>
+
+                                <DrawerSection title="Rincian Komponen" icon={Wallet}>
+                                    <DrawerKeyValue
+                                        rows={[
+                                            { label: 'Progres Simpanan Wajib', value: `${itemDimuka.bulan_terbayar}/6 bulan` },
+                                            { label: 'Periode Dibayar', value: `${jumlahBulanDipilih} bulan (${periodePreview.join(', ')})` },
+                                            { label: 'Simpanan Wajib', value: formatRupiah(totalWajibDimuka), privacy: true },
+                                            { label: 'Dana Sosial', value: formatRupiah(totalDansosDimuka), privacy: true },
+                                            { label: 'Total Masuk Kas', value: formatRupiah(totalBayarDimuka), emphasize: true, privacy: true },
+                                        ]}
+                                    />
+                                </DrawerSection>
+                            </DrawerBody>
+
+                            <DrawerFooter>
+                                <DrawerFooterActions cols={2} stackOnMobile>
+                                    <Button type="button" variant="neutral" size="drawer" onClick={() => setItemDimuka(null)}>
+                                        Batal
+                                    </Button>
+                                    <Button type="submit" form={dimukaFormId} variant="primary" size="drawer" disabled={dimukaForm.processing}>
+                                        <Check size={16} aria-hidden="true" />
+                                        {dimukaForm.processing ? 'Memproses...' : 'Konfirmasi Bayar di Muka'}
+                                    </Button>
+                                </DrawerFooterActions>
+                            </DrawerFooter>
+                        </>
+                    );
+                })()}
             </Drawer>
         </AppLayout>
     );

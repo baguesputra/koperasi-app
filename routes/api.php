@@ -113,6 +113,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
             Route::post('/pengurus/kas/sisihkan', [PengurusKasController::class, 'sisihkan'])->name('api.pengurus.kas.sisihkan');
             Route::post('/pengurus/kas/{jurnalKas}/batalkan', [PengurusKasController::class, 'batalkan'])->name('api.pengurus.kas.batalkan');
             Route::post('/pengurus/simpanan/konfirmasi', [PengurusSimpananController::class, 'konfirmasi'])->name('api.pengurus.simpanan.konfirmasi');
+            Route::post('/pengurus/simpanan/{anggota}/bayar-dimuka', [PengurusSimpananController::class, 'bayarDiMuka'])->name('api.pengurus.simpanan.bayar-dimuka');
             Route::post('/pengurus/simpanan/{anggota}/batalkan', [PengurusSimpananController::class, 'batalkan'])->name('api.pengurus.simpanan.batalkan');
             Route::post('/notifications/{id}/read', [NotificationController::class, 'read'])->where('id', '[0-9a-f]{32}')->name('api.notifications.read');
             Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])->name('api.notifications.read-all');

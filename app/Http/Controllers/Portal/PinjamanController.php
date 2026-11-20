@@ -69,8 +69,16 @@ class PinjamanController extends Controller
             ], 422);
         }
 
+        $cek = $this->eligibilitas->cek($anggota);
+        if (! $cek['boleh']) {
+            return response()->json([
+                'valid' => false,
+                'pesan' => $cek['alasan'],
+            ], 422);
+        }
+
         $nominal = (float) $request->nominal;
-        $limitTersedia = $this->eligibilitas->limitTersedia($anggota);
+        $limitTersedia = (float) $cek['limit_tersedia'];
 
         if ($nominal > $limitTersedia) {
             return response()->json([

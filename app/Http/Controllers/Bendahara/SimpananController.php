@@ -56,12 +56,17 @@ class SimpananController extends Controller
         $daftarCabang = Cache::remember('daftar_cabang', 600, fn () => Anggota::query()->whereNotNull('cabang')->distinct()->orderBy('cabang')->pluck('cabang')->values()->all());
 
         $totalDanaSosialTerkumpul = Simpanan::where('jenis', 'dana_sosial')->sum('jumlah');
+        $anggotaBelumGenapEnamBulan = $this->konfirmasi->anggotaBaruBelumGenapEnamBulan(
+            $cabangAktif->isNotEmpty() ? $cabangAktif->value() : null,
+            $bulan,
+        );
 
         return Inertia::render('Bendahara/Simpanan/Index', [
             'bulan' => $bulan,
             'belumSimpanan' => $belumSimpanan,
             'sudahSimpanan' => $sudahSimpanan,
             'totalSudahSimpanan' => (float) $semuaSudahSimpanan->sum('nominal_total'),
+            'anggotaBelumGenapEnamBulan' => $anggotaBelumGenapEnamBulan,
             'cabangAktif' => $cabangAktif->value(),
             'daftarCabang' => $daftarCabang,
             'ringkasanCabang' => $ringkasanCabang,
@@ -85,6 +90,30 @@ class SimpananController extends Controller
         );
 
         return back()->with('status', "Simpanan wajib {$jumlah} anggota berhasil dikonfirmasi.");
+    }
+
+    public function bayarDiMuka(Request $request, Anggota $anggota)
+    {
+        $request->validate([
+            'jumlah_bulan' => ['required', 'integer', 'min:1', 'max:6'],
+            'mulai_bulan' => ['nullable', 'date_format:Y-m'],
+        ]);
+
+        try {
+            $hasil = $this->konfirmasi->bayarDiMuka(
+                anggotaId: $anggota->id,
+                jumlahBulan: (int) $request->jumlah_bulan,
+                inputByUserId: auth()->id(),
+                mulaiBulan: $request->input('mulai_bulan'),
+            );
+        } catch (RuntimeException $e) {
+            return back()->withErrors(['jumlah_bulan' => $e->getMessage()]);
+        }
+
+        return back()->with(
+            'status',
+            "Simpanan di muka {$hasil['anggota_nama']} ({$hasil['jumlah_bulan']} bulan: ".implode(', ', $hasil['periode']).') sebesar Rp '.number_format($hasil['total_nominal'], 0, ',', '.').' berhasil dicatat.'
+        );
     }
 
     public function batalkan(Request $request, Anggota $anggota)
