@@ -13,9 +13,9 @@ const {
 
 const PORT = Number(process.env.PORT || 3000)
 // ponytail: TOKEN wajib; tanpa fallback default. Mati saat boot bila kosong.
-const TOKEN = process.env.TOKEN
+const TOKEN = (process.env.TOKEN || process.env.BAILEYS_TOKEN || '').trim()
 if (!TOKEN) {
-    console.error('[baileys-service] FATAL: env TOKEN kosong. Isi BAILEYS_TOKEN.')
+    console.error('[baileys-service] FATAL: env TOKEN kosong. Isi TOKEN di baileys-service/.env.')
     process.exit(1)
 }
 const SESSION_DIR = path.join(process.cwd(), 'session')
@@ -23,6 +23,10 @@ const SESSION_DIR = path.join(process.cwd(), 'session')
 let sock = null
 let latestQr = null
 let connected = false
+let sedangKirim = false
+let starting = false
+let reconnectTimer = null
+let reconnectDelayMs = 3000
 
 const JEDA_KIRIM_MS = Number(process.env.SEND_INTERVAL_MS || 2000)
 // ponytail: antrean in-memory, "terkirim" tercatat saat masuk antrean; kalau kehilangan
@@ -30,14 +34,45 @@ const JEDA_KIRIM_MS = Number(process.env.SEND_INTERVAL_MS || 2000)
 const antrean = []
 
 setInterval(async () => {
-    if (!antrean.length || !connected || !sock) return
+    if (sedangKirim || !antrean.length || !connected || !sock) return
+    sedangKirim = true
     const tugas = antrean.shift()
     try {
         await tugas()
     } catch (e) {
         console.error('[wa] kirim gagal:', e?.message)
+    } finally {
+        sedangKirim = false
     }
 }, JEDA_KIRIM_MS)
+
+function pastikanSessionDir() {
+    fs.mkdirSync(SESSION_DIR, { recursive: true })
+}
+
+// Hapus hanya isi di dalam SESSION_DIR agar Docker bind-mount /app/session tidak memicu EBUSY.
+function hapusIsiSession() {
+    pastikanSessionDir()
+    for (const entry of fs.readdirSync(SESSION_DIR)) {
+        try {
+            fs.rmSync(path.join(SESSION_DIR, entry), { recursive: true, force: true })
+        } catch (e) {
+            console.error(`[wa] gagal hapus ${entry}:`, e?.message)
+        }
+    }
+}
+
+function jadwalkanReconnect(delayMs = reconnectDelayMs) {
+    if (reconnectTimer) return
+    reconnectTimer = setTimeout(() => {
+        reconnectTimer = null
+        start().catch((e) => {
+            console.error('[wa] gagal start:', e?.message || e)
+            reconnectDelayMs = Math.min(reconnectDelayMs * 2, 30000)
+            jadwalkanReconnect(reconnectDelayMs)
+        })
+    }, delayMs)
+}
 
 function jid(nomor) {
     return String(nomor).includes('@') ? nomor : `${nomor}@s.whatsapp.net`
@@ -48,50 +83,93 @@ function json(res, status, body) {
     res.end(JSON.stringify(body))
 }
 
-function bacaBody(req) {
+function bacaBody(req, maxBytes = 22 * 1024 * 1024) {
     return new Promise((resolve, reject) => {
-        let data = ''
-        req.on('data', (c) => (data += c))
+        const chunks = []
+        let totalBytes = 0
+        let aborted = false
+        req.on('data', (chunk) => {
+            if (aborted) return
+            totalBytes += chunk.length
+            if (totalBytes > maxBytes) {
+                aborted = true
+                const err = new Error('Payload terlalu besar')
+                err.statusCode = 413
+                req.destroy()
+                reject(err)
+                return
+            }
+            chunks.push(chunk)
+        })
         req.on('end', () => {
+            if (aborted) return
             try {
-                resolve(data ? JSON.parse(data) : {})
+                const raw = Buffer.concat(chunks).toString('utf8')
+                resolve(raw ? JSON.parse(raw) : {})
             } catch {
-                reject(new Error('JSON tidak valid'))
+                const err = new Error('JSON tidak valid')
+                err.statusCode = 400
+                reject(err)
             }
         })
-        req.on('error', reject)
+        req.on('error', (err) => {
+            if (!aborted) reject(err)
+        })
     })
 }
 
 async function start() {
-    const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR)
-    const { version } = await fetchLatestBaileysVersion()
+    if (starting) return
+    starting = true
+    try {
+        pastikanSessionDir()
+        const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR)
+        const { version } = await fetchLatestBaileysVersion()
 
-    sock = makeWASocket({ version, auth: state })
+        const s = makeWASocket({ version, auth: state })
+        sock = s
 
-    sock.ev.on('creds.update', saveCreds)
+        s.ev.on('creds.update', saveCreds)
 
-    sock.ev.on('connection.update', ({ connection, lastDisconnect, qr }) => {
-        if (qr) latestQr = qr
-        if (connection === 'open') {
-            connected = true
-            latestQr = null
-            console.log('[wa] terhubung')
-        }
-        if (connection === 'close') {
-            connected = false
-            const code = lastDisconnect?.error?.output?.statusCode
-            if (code === DisconnectReason.loggedOut) {
-                fs.rmSync(SESSION_DIR, { recursive: true, force: true })
-                console.log('[wa] logged out, sesi dihapus')
+        s.ev.on('connection.update', ({ connection, lastDisconnect, qr }) => {
+            if (sock !== s) return
+            try {
+                if (qr) latestQr = qr
+                if (connection === 'open') {
+                    connected = true
+                    latestQr = null
+                    reconnectDelayMs = 3000
+                    console.log('[wa] terhubung')
+                }
+                if (connection === 'close') {
+                    connected = false
+                    const code = lastDisconnect?.error?.output?.statusCode
+                    if (code === DisconnectReason.loggedOut) {
+                        latestQr = null
+                        hapusIsiSession()
+                        console.log('[wa] logged out, isi sesi dihapus')
+                    }
+                    console.log(`[wa] terputus (${code}), reconnect ${reconnectDelayMs / 1000}s`)
+                    jadwalkanReconnect(reconnectDelayMs)
+                }
+            } catch (e) {
+                console.error('[wa] error connection.update:', e?.message || e)
+                jadwalkanReconnect(reconnectDelayMs)
             }
-            console.log(`[wa] terputus (${code}), reconnect 3s`)
-            setTimeout(() => start().catch((e) => console.error('[wa]', e)), 3000)
-        }
-    })
+        })
+    } finally {
+        starting = false
+    }
 }
 
-start().catch((e) => console.error('[wa] gagal start:', e))
+start().catch((e) => {
+    console.error('[wa] gagal start awal:', e?.message || e)
+    jadwalkanReconnect(reconnectDelayMs)
+})
+
+process.on('unhandledRejection', (err) => {
+    console.error('[wa] unhandledRejection:', err)
+})
 
 const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, 'http://localhost')
@@ -139,23 +217,43 @@ const server = http.createServer(async (req, res) => {
         }
 
         if (req.method === 'POST' && url.pathname === '/logout') {
-            try {
-                await sock?.logout()
-            } catch {}
-            fs.rmSync(SESSION_DIR, { recursive: true, force: true })
+            const currentSock = sock
+            sock = null
             connected = false
             latestQr = null
             try {
-                sock?.end()
+                await currentSock?.logout()
             } catch {}
+            try {
+                currentSock?.end()
+            } catch {}
+            hapusIsiSession()
+            reconnectDelayMs = 3000
+            jadwalkanReconnect(1500)
             return json(res, 200, { ok: true })
         }
 
         return json(res, 404, { error: 'not found' })
     } catch (e) {
         console.error('[http]', e.message)
-        return json(res, 502, { error: e.message })
+        return json(res, e.statusCode || 502, { error: e.message })
     }
 })
+
+function shutdown(signal) {
+    console.log(`[baileys-service] menerima ${signal}, menutup server...`)
+    if (reconnectTimer) {
+        clearTimeout(reconnectTimer)
+        reconnectTimer = null
+    }
+    try {
+        sock?.end()
+    } catch {}
+    server.close(() => process.exit(0))
+    setTimeout(() => process.exit(0), 5000).unref()
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'))
+process.on('SIGINT', () => shutdown('SIGINT'))
 
 server.listen(PORT, () => console.log(`[baileys-service] listening on :${PORT}`))
