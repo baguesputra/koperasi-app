@@ -6,6 +6,7 @@ use App\Http\Controllers\API\DashboardController;
 use App\Http\Controllers\API\LaporanController;
 use App\Http\Controllers\API\NotificationController;
 use App\Http\Controllers\API\PengajuanLimitController;
+use App\Http\Controllers\API\Pengurus\AktivasiController as PengurusAktivasiController;
 use App\Http\Controllers\API\Pengurus\AngsuranController as PengurusAngsuranController;
 use App\Http\Controllers\API\Pengurus\KasController as PengurusKasController;
 use App\Http\Controllers\API\Pengurus\LimitController as PengurusLimitController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\API\Pengurus\SimpananController as PengurusSimpananCont
 use App\Http\Controllers\API\PercepatanController;
 use App\Http\Controllers\API\PinjamanController;
 use App\Http\Controllers\API\RekeningController;
+use App\Http\Controllers\API\SecurityPinController;
 use App\Http\Controllers\Auth\MobileSsoController;
 use Illuminate\Support\Facades\Route;
 
@@ -31,6 +33,13 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout'])->name('api.logout');
         Route::get('/user', [AuthController::class, 'user']);
         Route::get('/me', [AuthController::class, 'me'])->name('api.me');
+
+        // Security 6-digit PIN (mobile)
+        Route::get('/security/pin/status', [SecurityPinController::class, 'status'])->name('api.security.pin.status');
+        Route::middleware('throttle:pin')->group(function () {
+            Route::post('/security/pin/setup', [SecurityPinController::class, 'setup'])->name('api.security.pin.setup');
+            Route::post('/security/pin/verify', [SecurityPinController::class, 'verify'])->name('api.security.pin.verify');
+        });
 
         Route::get('/dashboard', [DashboardController::class, 'dashboard'])->name('api.dashboard');
         Route::get('/pengurus/ringkasan', [DashboardController::class, 'ringkasan'])->name('api.pengurus.ringkasan');
@@ -61,19 +70,21 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         Route::get('/pengajuan-limit', [PengajuanLimitController::class, 'index'])->name('api.pengajuan-limit.index');
         Route::get('/percepatan', [PercepatanController::class, 'index'])->name('api.percepatan.index');
 
-        // Staff queues: loan reviews, limit reviews, tenor-change reviews (batch 5: mobile contract)
+        // Staff queues: loan reviews, limit reviews, tenor-change reviews, member activations
         Route::get('/pengurus/pinjaman', [PengurusPinjamanController::class, 'index'])->name('api.pengurus.pinjaman.index');
         Route::get('/pengurus/pengajuan-limit', [PengurusLimitController::class, 'index'])->name('api.pengurus.pengajuan-limit.index');
         Route::get('/pengurus/percepatan', [PengurusPercepatanController::class, 'index'])->name('api.pengurus.percepatan.index');
+        Route::get('/pengurus/aktivasi', [PengurusAktivasiController::class, 'index'])->name('api.pengurus.aktivasi.index');
 
         // Staff confirmations: angsuran & simpanan queues (batch 6: mobile contract)
         Route::get('/pengurus/angsuran', [PengurusAngsuranController::class, 'index'])->name('api.pengurus.angsuran.index');
         Route::get('/pengurus/simpanan', [PengurusSimpananController::class, 'index'])->name('api.pengurus.simpanan.index');
 
-        // Staff data lists: all loans + member savings (batch 6: mobile contract)
+        // Staff data lists: all loans + member savings + members
         Route::get('/pengurus/list-pinjaman', [PengurusListController::class, 'pinjaman'])->name('api.pengurus.list-pinjaman');
         Route::get('/pengurus/list-simpanan', [PengurusListController::class, 'simpanan'])->name('api.pengurus.list-simpanan');
         Route::get('/pengurus/list-simpanan/{anggota}', [PengurusListController::class, 'simpananDetail'])->name('api.pengurus.list-simpanan.detail');
+        Route::get('/pengurus/list-anggota', [PengurusListController::class, 'anggota'])->name('api.pengurus.list-anggota');
 
         // Tabular reports for mobile download (batch 6: mobile contract)
         Route::get('/laporan', [LaporanController::class, 'index'])->name('api.laporan.index');
@@ -91,13 +102,18 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
             Route::post('/pengurus/pengajuan-limit/{pengajuan}/reject', [PengurusLimitController::class, 'reject'])->name('api.pengurus.pengajuan-limit.reject');
             Route::post('/pengurus/percepatan/{pengajuan}/approve', [PengurusPercepatanController::class, 'approve'])->name('api.pengurus.percepatan.approve');
             Route::post('/pengurus/percepatan/{pengajuan}/reject', [PengurusPercepatanController::class, 'reject'])->name('api.pengurus.percepatan.reject');
+            Route::post('/pengurus/aktivasi/{aktivasi}/approve', [PengurusAktivasiController::class, 'approve'])->name('api.pengurus.aktivasi.approve');
+            Route::post('/pengurus/aktivasi/{aktivasi}/reject', [PengurusAktivasiController::class, 'reject'])->name('api.pengurus.aktivasi.reject');
 
-            // Staff confirmations + notification reads (batch 6: mobile contract)
+            // Staff confirmations, cancellations (storno), & notification reads
             Route::post('/pengurus/angsuran/konfirmasi', [PengurusAngsuranController::class, 'konfirmasi'])->name('api.pengurus.angsuran.konfirmasi');
+            Route::post('/pengurus/angsuran/{item}/batalkan', [PengurusAngsuranController::class, 'batalkan'])->name('api.pengurus.angsuran.batalkan');
             Route::post('/pengurus/kas/topup', [PengurusKasController::class, 'topup'])->name('api.pengurus.kas.topup');
             Route::post('/pengurus/kas/pengeluaran', [PengurusKasController::class, 'pengeluaran'])->name('api.pengurus.kas.pengeluaran');
             Route::post('/pengurus/kas/sisihkan', [PengurusKasController::class, 'sisihkan'])->name('api.pengurus.kas.sisihkan');
+            Route::post('/pengurus/kas/{jurnalKas}/batalkan', [PengurusKasController::class, 'batalkan'])->name('api.pengurus.kas.batalkan');
             Route::post('/pengurus/simpanan/konfirmasi', [PengurusSimpananController::class, 'konfirmasi'])->name('api.pengurus.simpanan.konfirmasi');
+            Route::post('/pengurus/simpanan/{anggota}/batalkan', [PengurusSimpananController::class, 'batalkan'])->name('api.pengurus.simpanan.batalkan');
             Route::post('/notifications/{id}/read', [NotificationController::class, 'read'])->where('id', '[0-9a-f]{32}')->name('api.notifications.read');
             Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])->name('api.notifications.read-all');
         });

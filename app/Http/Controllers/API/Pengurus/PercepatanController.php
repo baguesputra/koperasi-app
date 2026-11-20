@@ -28,13 +28,27 @@ class PercepatanController extends Controller
             ], 403));
         }
 
-        $rows = PengajuanPercepatan::with(['pinjaman.anggota'])
-            ->whereIn('status', ['diajukan', 'approved_bendahara'])
-            ->orderByDesc('tanggal_pengajuan')
-            ->orderByDesc('id')
-            ->get();
+        $tab = (string) $request->input('tab', 'menunggu');
+        if (! in_array($tab, ['menunggu', 'riwayat'], true)) {
+            return response()->json(['message' => 'Tab tidak dikenal. Gunakan: menunggu, riwayat.'], 422);
+        }
+
+        $query = PengajuanPercepatan::with(['pinjaman.anggota', 'angsuranBaru']);
+        if ($tab === 'riwayat') {
+            $rows = $query->whereIn('status', ['aktif', 'ditolak'])
+                ->latest('updated_at')
+                ->latest('id')
+                ->take(20)
+                ->get();
+        } else {
+            $rows = $query->whereIn('status', ['diajukan', 'approved_bendahara'])
+                ->orderByDesc('tanggal_pengajuan')
+                ->orderByDesc('id')
+                ->get();
+        }
 
         return response()->json([
+            'tab' => $tab,
             'data' => PengajuanPercepatanResource::collection($rows)->resolve(),
             'total' => $rows->count(),
         ]);

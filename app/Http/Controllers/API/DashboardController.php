@@ -8,7 +8,9 @@ use App\Http\Resources\PinjamanRingkasResource;
 use App\Http\Resources\SessionUserResource;
 use App\Models\Anggota;
 use App\Models\Angsuran;
+use App\Models\JurnalKas;
 use App\Models\KasKoperasi;
+use App\Models\PengajuanAktivasi;
 use App\Models\PengajuanLimit;
 use App\Models\PengajuanPercepatan;
 use App\Models\Pinjaman;
@@ -19,6 +21,8 @@ use App\Services\Pinjaman\EligibilitasPinjamanService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -45,6 +49,7 @@ class DashboardController extends Controller
     public function dashboard(Request $request): JsonResponse
     {
         $anggota = $this->anggotaOrFail($request);
+        $anggota->loadMissing(['user:id,email', 'perusahaan:id,nama']);
 
         $simpananAgg = $anggota->simpanan()
             ->selectRaw('
@@ -55,6 +60,7 @@ class DashboardController extends Controller
             ->first();
 
         $cek = $this->eligibilitas->cek($anggota);
+        $cekLimit = $this->eligibilitas->cekEligibilitasTambahLimit($anggota);
         $limitMaksimal = $this->eligibilitas->limitMaksimal($anggota);
 
         $pinjamanAktif = $anggota->pinjamanAktifList();
@@ -100,6 +106,7 @@ class DashboardController extends Controller
             $terdekat = $pinjaman->angsuranBelumBayar()->orderBy('cicilan_ke')->first();
             if ($terdekat && ($this->terdekatLebihAwal($terdekat, $angsuranBerikutnya))) {
                 $angsuranBerikutnya = [
+                    'pinjaman_id' => $pinjaman->id,
                     'cicilan_ke' => $terdekat->cicilan_ke,
                     'total_bayar' => (float) $terdekat->total_bayar,
                     'tanggal_jatuh_tempo' => $terdekat->tanggal_jatuh_tempo?->format('Y-m-d'),
@@ -154,6 +161,11 @@ class DashboardController extends Controller
                 'alasan' => $cek['alasan'],
                 'sisa_angsuran' => (int) $cek['sisa_angsuran'],
                 'cicilan_pokok' => (float) $cek['cicilan_pokok'],
+                'boleh_tambah_limit' => (bool) $cekLimit['boleh'],
+                'alasan_terkunci_limit' => $cekLimit['alasan'],
+                'status_limit_badge' => $cekLimit['status_badge'],
+                'state_limit_label' => $cekLimit['state_label'],
+                'plafon_kebijakan' => (float) $cekLimit['plafon_koperasi'],
             ],
             'pinjaman_aktif' => PinjamanRingkasResource::collection($pinjamanAktif)->resolve(),
             'pengajuan_berjalan' => $pengajuanBerjalan ? (new PinjamanResource($pengajuanBerjalan))->resolve() : null,
@@ -174,6 +186,10 @@ class DashboardController extends Controller
                     'label' => $s->label,
                     'nominal' => (float) $s->nominal,
                 ])->values()->all(),
+            'syarat_pinjaman' => [
+                'versi' => config('syarat_pinjaman.versi'),
+                'poin' => config('syarat_pinjaman.poin'),
+            ],
         ]);
     }
 
@@ -188,7 +204,8 @@ class DashboardController extends Controller
         $izinPengurus = [
             'pinjaman.tinjau-admin', 'pinjaman.tinjau-bendahara', 'pinjaman.approve-ketua',
             'pinjaman.lihat', 'limit.tinjau-bendahara', 'limit.approve-ketua',
-            'angsuran.konfirmasi', 'simpanan.konfirmasi', 'simpanan.lihat', 'kas.lihat',
+            'aktivasi.approve-ketua', 'angsuran.konfirmasi', 'simpanan.konfirmasi',
+            'simpanan.lihat', 'kas.lihat', 'anggota.lihat', 'laporan.lihat',
         ];
 
         if (! $user->hasAnyPermission($izinPengurus)) {
@@ -219,6 +236,8 @@ class DashboardController extends Controller
             ->groupBy('status')
             ->pluck('jumlah', 'status');
 
+        $aktivasiAntre = PengajuanAktivasi::where('status', 'diajukan')->count();
+
         $angsuranBelumBayar = Angsuran::where('status', 'belum_bayar')
             ->whereHas('pinjaman', fn ($q) => $q->where('status', 'aktif'))
             ->count();
@@ -235,23 +254,167 @@ class DashboardController extends Controller
             if ($row) {
                 $saldoBank = (float) $row->saldo_bank;
                 $saldoKasKecil = (float) $row->saldo_kas_kecil;
+                $kasOperasional = $saldoBank + $saldoKasKecil;
+                $simpananOutstanding = (float) Simpanan::whereIn('simpanan.jenis', ['pokok', 'wajib'])
+                    ->join('anggota', 'simpanan.anggota_id', '=', 'anggota.id')
+                    ->where('anggota.status', 'aktif')
+                    ->sum('simpanan.jumlah');
                 $awalBulan = now()->startOfMonth()->startOfDay()->toDateTimeString();
                 $akhirBulan = now()->endOfMonth()->endOfDay()->toDateTimeString();
                 $kas = [
                     'saldo_bank' => $saldoBank,
                     'saldo_kas_kecil' => $saldoKasKecil,
-                    'kas_operasional' => $saldoBank + $saldoKasKecil,
+                    'kas_operasional' => $kasOperasional,
+                    'saldo_dana_sosial' => (float) ($row->saldo_dana_sosial ?? 0),
+                    'total_keseluruhan' => $kasOperasional + $simpananOutstanding,
                     'pinjaman_outstanding' => (float) Pinjaman::where('status', 'aktif')->sum('nominal'),
-                    'simpanan_outstanding' => (float) Simpanan::whereIn('simpanan.jenis', ['pokok', 'wajib'])
-                        ->join('anggota', 'simpanan.anggota_id', '=', 'anggota.id')
-                        ->where('anggota.status', 'aktif')
-                        ->sum('simpanan.jumlah'),
+                    'simpanan_outstanding' => $simpananOutstanding,
                     'pendapatan_bunga_bulan_ini' => (float) Angsuran::where('status', 'lunas')
                         ->whereBetween('tanggal_konfirmasi_bayar', [$awalBulan, $akhirBulan])
                         ->sum('nominal_bunga'),
                 ];
             }
         }
+
+        $isSqlite = DB::connection()->getDriverName() === 'sqlite';
+        $exprTahunBulan = fn (string $kolom) => $isSqlite
+            ? "strftime('%Y', {$kolom}) as tahun, CAST(strftime('%m', {$kolom}) AS INTEGER) as bulan"
+            : "YEAR({$kolom}) as tahun, MONTH({$kolom}) as bulan";
+
+        $bangunTren = function () use ($exprTahunBulan): array {
+            $awalPeriode = now()->subMonths(5)->startOfMonth();
+
+            $simpananPerBulan = Simpanan::selectRaw("{$exprTahunBulan('tanggal_input')}, SUM(jumlah) as total")
+                ->where('tanggal_input', '>=', $awalPeriode)
+                ->groupBy('tahun', 'bulan')
+                ->get()
+                ->keyBy(fn ($r) => sprintf('%04d-%02d', $r->tahun, $r->bulan));
+
+            $pinjamanPerBulan = Pinjaman::selectRaw("{$exprTahunBulan('tanggal_pencairan')}, SUM(nominal) as total")
+                ->whereNotNull('tanggal_pencairan')
+                ->where('tanggal_pencairan', '>=', $awalPeriode)
+                ->groupBy('tahun', 'bulan')
+                ->get()
+                ->keyBy(fn ($r) => sprintf('%04d-%02d', $r->tahun, $r->bulan));
+
+            $data = [];
+            for ($i = 5; $i >= 0; $i--) {
+                $bulan = now()->subMonths($i);
+                $key = $bulan->format('Y-m');
+                $data[] = [
+                    'bulan' => $bulan->translatedFormat('M Y'),
+                    'simpanan' => (float) ($simpananPerBulan[$key]->total ?? 0),
+                    'pinjaman' => (float) ($pinjamanPerBulan[$key]->total ?? 0),
+                ];
+            }
+
+            return $data;
+        };
+
+        $grafikTren = app()->runningUnitTests()
+            ? $bangunTren()
+            : Cache::remember('api_dashboard_grafik_tren_6m', 60, $bangunTren);
+
+        $grafikKas = [];
+        if ($user->can('kas.lihat')) {
+            $bangunKas = function () use ($exprTahunBulan): array {
+                $awalPeriode = now()->subMonths(5)->startOfMonth();
+
+                $kasPerBulan = JurnalKas::selectRaw("{$exprTahunBulan('tanggal')}, kategori, tipe, SUM(jumlah) as total")
+                    ->where('tanggal', '>=', $awalPeriode)
+                    ->whereIn('kategori', ['topup_bulanan', 'pembayaran_angsuran', 'pencairan_pinjaman'])
+                    ->whereNull('dibatalkan_pada')
+                    ->whereNull('koreksi_dari_id')
+                    ->groupBy('tahun', 'bulan', 'kategori', 'tipe')
+                    ->get()
+                    ->groupBy(fn ($r) => sprintf('%04d-%02d', $r->tahun, $r->bulan));
+
+                $danaSosialPerBulan = Simpanan::selectRaw("{$exprTahunBulan('tanggal_input')}, SUM(jumlah) as total")
+                    ->where('jenis', 'dana_sosial')
+                    ->where('tanggal_input', '>=', $awalPeriode)
+                    ->groupBy('tahun', 'bulan')
+                    ->get()
+                    ->keyBy(fn ($r) => sprintf('%04d-%02d', $r->tahun, $r->bulan));
+
+                $data = [];
+                for ($i = 5; $i >= 0; $i--) {
+                    $bulan = now()->subMonths($i);
+                    $key = $bulan->format('Y-m');
+
+                    $topup = 0.0;
+                    $angsuran = 0.0;
+                    $pencairan = 0.0;
+
+                    if (isset($kasPerBulan[$key])) {
+                        foreach ($kasPerBulan[$key] as $row) {
+                            $jumlah = (float) $row->total;
+                            if ($row->kategori === 'topup_bulanan' && $row->tipe === 'masuk') {
+                                $topup += $jumlah;
+                            } elseif ($row->kategori === 'pembayaran_angsuran' && $row->tipe === 'masuk') {
+                                $angsuran += $jumlah;
+                            } elseif ($row->kategori === 'pencairan_pinjaman' && $row->tipe === 'keluar') {
+                                $pencairan += $jumlah;
+                            }
+                        }
+                    }
+
+                    $data[] = [
+                        'bulan' => $bulan->translatedFormat('M Y'),
+                        'topup' => $topup,
+                        'angsuran' => $angsuran,
+                        'pencairan' => $pencairan,
+                        'dana_sosial' => (float) ($danaSosialPerBulan[$key]->total ?? 0),
+                    ];
+                }
+
+                return $data;
+            };
+
+            $grafikKas = app()->runningUnitTests()
+                ? $bangunKas()
+                : Cache::remember('api_dashboard_grafik_kas_6m', 60, $bangunKas);
+        }
+
+        $aktivitasPinjaman = Pinjaman::with('anggota:id,nama')
+            ->latest('tanggal_pengajuan')
+            ->latest('id')
+            ->take(5)
+            ->get()
+            ->map(fn ($p) => [
+                'tipe' => 'pinjaman',
+                'nama' => $p->anggota?->nama ?? '-',
+                'keterangan' => 'Mengajukan pinjaman '.number_format((float) $p->nominal, 0, ',', '.'),
+                'status' => $p->status,
+                'tanggal' => $p->tanggal_pengajuan,
+            ]);
+
+        $aktivitasAngsuran = Angsuran::with(['pinjaman.anggota:id,nama'])
+            ->where('status', 'lunas')
+            ->latest('tanggal_konfirmasi_bayar')
+            ->latest('id')
+            ->take(5)
+            ->get()
+            ->map(fn ($a) => [
+                'tipe' => 'angsuran',
+                'nama' => $a->pinjaman?->anggota?->nama ?? '-',
+                'keterangan' => "Membayar cicilan ke-{$a->cicilan_ke}",
+                'status' => 'lunas',
+                'tanggal' => $a->tanggal_konfirmasi_bayar,
+            ]);
+
+        $aktivitasTerbaru = $aktivitasPinjaman->concat($aktivitasAngsuran)
+            ->sortByDesc(fn ($item) => $item['tanggal']?->timestamp ?? 0)
+            ->take(6)
+            ->values()
+            ->map(fn ($item) => [
+                'tipe' => $item['tipe'],
+                'nama' => $item['nama'],
+                'keterangan' => $item['keterangan'],
+                'status' => $item['status'],
+                'tanggal_format' => $item['tanggal']?->translatedFormat('d M Y') ?? '-',
+                'tanggal_iso' => $item['tanggal']?->toDateString(),
+            ])
+            ->all();
 
         return response()->json([
             'user' => new SessionUserResource($user),
@@ -264,10 +427,14 @@ class DashboardController extends Controller
                 'limit_ketua' => (int) ($limitAntre['approved_bendahara'] ?? 0),
                 'percepatan_bendahara' => (int) ($percepatanAntre['diajukan'] ?? 0),
                 'percepatan_ketua' => (int) ($percepatanAntre['approved_bendahara'] ?? 0),
+                'aktivasi_anggota' => (int) $aktivasiAntre,
                 'angsuran_belum_bayar' => (int) $angsuranBelumBayar,
                 'simpanan_belum_konfirmasi' => (int) $simpananBelumKonfirmasi,
             ],
             'kas' => $kas,
+            'grafik_tren' => $grafikTren,
+            'grafik_kas' => $grafikKas,
+            'aktivitas_terbaru' => $aktivitasTerbaru,
         ]);
     }
 
@@ -276,6 +443,8 @@ class DashboardController extends Controller
      */
     private function anggotaPenuh(Anggota $anggota, ?array $resignMenunggu): array
     {
+        $tglAnggota = $anggota->tanggal_jadi_anggota ?? $anggota->tanggal_mulai_kerja;
+
         return [
             'id' => $anggota->id,
             'no_anggota' => $anggota->no_anggota,
@@ -283,6 +452,7 @@ class DashboardController extends Controller
             'nama' => $anggota->nama,
             'jabatan' => $anggota->jabatan,
             'cabang' => $anggota->cabang,
+            'perusahaan' => $anggota->getRelationValue('perusahaan')?->nama,
             'unit_bisnis' => $anggota->unit_bisnis,
             'department' => $anggota->department,
             'divisi' => $anggota->divisi,
@@ -290,10 +460,36 @@ class DashboardController extends Controller
             'email' => $anggota->user?->email,
             'status' => $anggota->status,
             'foto_url' => $anggota->foto_url,
-            'tanggal_masuk' => ($anggota->tanggal_jadi_anggota ?? $anggota->tanggal_mulai_kerja)?->format('Y-m-d'),
+            'tanggal_masuk' => $tglAnggota?->format('Y-m-d'),
+            'tanggal_mulai_kerja' => $anggota->tanggal_mulai_kerja?->format('Y-m-d'),
+            'tanggal_jadi_anggota' => $anggota->tanggal_jadi_anggota?->format('Y-m-d'),
+            'lama_keanggotaan_label' => $this->formatLamaKeanggotaan($tglAnggota),
             'limit_custom' => $anggota->limit_custom !== null ? (float) $anggota->limit_custom : null,
             'resign_menunggu' => $resignMenunggu,
         ];
+    }
+
+    private function formatLamaKeanggotaan($tanggal): string
+    {
+        if (! $tanggal) {
+            return '-';
+        }
+
+        $sekarang = now();
+        $tahun = (int) $tanggal->diffInYears($sekarang);
+        $bulan = (int) $tanggal->copy()->addYears($tahun)->diffInMonths($sekarang);
+
+        if ($tahun === 0 && $bulan === 0) {
+            return 'Baru bergabung';
+        }
+        if ($tahun === 0) {
+            return "{$bulan} bulan";
+        }
+        if ($bulan === 0) {
+            return "{$tahun} tahun";
+        }
+
+        return "{$tahun} tahun {$bulan} bulan";
     }
 
     /**

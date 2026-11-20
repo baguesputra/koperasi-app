@@ -176,9 +176,19 @@ class AnggotaController extends Controller
             ->selectRaw('
                 SUM(CASE WHEN jenis IN ("pokok","wajib") THEN jumlah ELSE 0 END) as total,
                 SUM(CASE WHEN jenis = "pokok" THEN jumlah ELSE 0 END) as pokok,
-                SUM(CASE WHEN jenis = "wajib" THEN jumlah ELSE 0 END) as wajib
+                SUM(CASE WHEN jenis = "wajib" THEN jumlah ELSE 0 END) as wajib,
+                SUM(CASE WHEN jenis = "dana_sosial" THEN jumlah ELSE 0 END) as dana_sosial
             ')
             ->first();
+
+        $daftarBulan = $anggota->simpanan()
+            ->whereIn('jenis', ['pokok', 'wajib'])
+            ->whereNotNull('bulan_periode')
+            ->distinct()
+            ->orderByDesc('bulan_periode')
+            ->pluck('bulan_periode')
+            ->values()
+            ->all();
 
         $query = $anggota->simpanan()
             ->whereIn('jenis', ['pokok', 'wajib'])
@@ -200,7 +210,9 @@ class AnggotaController extends Controller
                 'total' => (float) ($agg->total ?? 0),
                 'pokok' => (float) ($agg->pokok ?? 0),
                 'wajib' => (float) ($agg->wajib ?? 0),
+                'dana_sosial' => (float) ($agg->dana_sosial ?? 0),
             ],
+            'daftar_bulan_tersedia' => $daftarBulan,
             'data' => $data,
         ]);
     }

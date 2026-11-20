@@ -27,6 +27,7 @@ class KasController extends Controller
             'bulan' => ['nullable', 'date_format:Y-m'],
             'kanal' => ['nullable', 'in:bank,kas_kecil'],
             'tipe' => ['nullable', 'in:masuk,keluar'],
+            'cari' => ['nullable', 'string', 'max:100'],
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
@@ -34,7 +35,9 @@ class KasController extends Controller
         $bulan = $request->input('bulan', now()->format('Y-m'));
         $awal = Carbon::createFromFormat('Y-m', $bulan)->startOfMonth();
         $akhir = $awal->copy()->endOfMonth();
-        $query = JurnalKas::with('pengeluaran:id,tipe')
+        $cari = trim((string) $request->input('cari', ''));
+
+        $query = JurnalKas::with(['pengeluaran:id,tipe', 'koreksiDari:id,no_bukti'])
             ->whereBetween('tanggal', [$awal, $akhir]);
 
         if ($request->input('kanal') === 'kas_kecil') {
@@ -44,6 +47,13 @@ class KasController extends Controller
         }
         if ($request->filled('tipe')) {
             $query->where('tipe', $request->input('tipe'));
+        }
+        if ($cari !== '') {
+            $query->where(function ($q) use ($cari) {
+                $q->where('keterangan', 'like', "%{$cari}%")
+                    ->orWhere('sub_judul', 'like', "%{$cari}%")
+                    ->orWhere('no_bukti', 'like', "%{$cari}%");
+            });
         }
 
         $page = $query->orderByDesc('tanggal')->orderByDesc('id')
@@ -60,16 +70,25 @@ class KasController extends Controller
             'ringkasan' => ['total_masuk' => (float) $agregat->total_masuk, 'total_keluar' => (float) $agregat->total_keluar],
             'data' => $page->getCollection()->map(fn (JurnalKas $j) => [
                 'id' => $j->id,
+                'no_bukti' => $j->no_bukti,
                 'tipe' => $j->tipe,
                 'kategori' => $j->kategori,
                 'kantong' => $j->kantong,
                 'kanal' => $j->kantong === 'kas_kecil' ? 'kas_kecil' : 'bank',
                 'jumlah' => (float) $j->jumlah,
+                'saldo_setelah' => (float) $j->saldo_setelah,
                 'keterangan' => $j->keterangan,
                 'sub_judul' => $j->sub_judul,
                 'sumber_topup' => $j->sumber_topup,
                 'tipe_pengeluaran' => $j->pengeluaran?->tipe,
                 'tanggal' => $j->tanggal->format('Y-m-d'),
+                'dibatalkan_pada' => $j->dibatalkan_pada?->format('Y-m-d H:i:s'),
+                'alasan_batal' => $j->alasan_batal,
+                'koreksi_dari_id' => $j->koreksi_dari_id,
+                'koreksi_dari_no_bukti' => $j->koreksiDari?->no_bukti,
+                'bisa_dibatalkan' => $j->dibatalkan_pada === null
+                    && $j->koreksi_dari_id === null
+                    && in_array($j->kategori, JurnalKasService::KATEGORI_BISA_DIBATALKAN, true),
             ])->values(),
             'meta' => [
                 'current_page' => $page->currentPage(),
@@ -130,6 +149,26 @@ class KasController extends Controller
         }
 
         return response()->json(['message' => 'Kas kecil berhasil disisihkan.']);
+    }
+
+    public function batalkan(Request $request, JurnalKas $jurnalKas): JsonResponse
+    {
+        $this->pastikanBisaMencatat($request);
+        $data = $request->validate([
+            'alasan' => ['required', 'string', 'min:3', 'max:255'],
+        ]);
+
+        try {
+            $this->jurnalKas->batalkan(
+                jurnalAsal: $jurnalKas,
+                alasan: trim((string) $data['alasan']),
+                userId: (int) $request->user()->id,
+            );
+        } catch (RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json(['message' => 'Transaksi berhasil dibatalkan dengan jurnal pembalik (storno).']);
     }
 
     private function pastikanBisaMencatat(Request $request): void

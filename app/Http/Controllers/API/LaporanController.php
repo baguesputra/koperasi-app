@@ -11,6 +11,21 @@ use Illuminate\Http\Request;
 
 class LaporanController extends Controller
 {
+    private const SLUGS_MOBILE = [
+        'arus-kas',
+        'neraca',
+        'pendapatan-bunga',
+        'laba-rugi',
+        'pinjaman-per-status',
+        'perubahan-tenor',
+        'simpanan-per-anggota',
+        'setoran-bulanan',
+        'anggota-daftar',
+        'pengeluaran-rekap',
+        'dana-sosial',
+        'iuran-pinjaman-rekap',
+    ];
+
     private function tolakBilaTanpaIzin(Request $request): void
     {
         if (! $request->user()->can('laporan.lihat')) {
@@ -21,8 +36,7 @@ class LaporanController extends Controller
     }
 
     /**
-     * Daftar laporan untuk tab pengurus mobile (2 laporan tabular siap unduh).
-     * Mirror string filter LaporanRegistry ke enum kontrak mobile (rentang|tahun).
+     * Daftar 12 laporan resmi untuk tab pengurus mobile.
      *
      * @response 200 {"data": [{"slug": "pinjaman-per-status"}]}
      */
@@ -31,7 +45,7 @@ class LaporanController extends Controller
         $this->tolakBilaTanpaIzin($request);
 
         $data = collect(LaporanRegistry::semua())
-            ->only(['pinjaman-per-status', 'setoran-bulanan'])
+            ->only(self::SLUGS_MOBILE)
             ->map(function ($def, $slug) {
                 return [
                     'slug' => $slug,
@@ -39,7 +53,7 @@ class LaporanController extends Controller
                     'deskripsi' => $def['deskripsi'],
                     'kategori' => $def['kategori'],
                     'ikon' => $def['ikon'],
-                    'filter' => $def['filter']['tipe'] === 'tahun' ? 'tahun' : 'rentang',
+                    'filter' => $def['filter']['tipe'] ?? 'rentang',
                 ];
             })->values();
 
@@ -47,17 +61,14 @@ class LaporanController extends Controller
     }
 
     /**
-     * Data tabular satu laporan untuk render PDF di perangkat.
-     * Mirror web LaporanController@show + normalisasi filter mobile.
-     *
-     * @response 200 {"judul": "Rekap Pinjaman per Status", "periode": "2026-01", "kolom": [], "angka": [], "baris": [], "total": []}
+     * Data tabular satu laporan untuk pratinjau di app & render PDF.
      */
     public function show(Request $request, string $slug): JsonResponse
     {
         $this->tolakBilaTanpaIzin($request);
         abort_unless(LaporanRegistry::ada($slug), response()->json(['message' => 'Laporan tidak ditemukan.'], 404));
         abort_unless(
-            in_array($slug, ['pinjaman-per-status', 'setoran-bulanan'], true),
+            in_array($slug, self::SLUGS_MOBILE, true),
             response()->json(['message' => 'Laporan tidak tersedia di aplikasi mobile.'], 404)
         );
 
@@ -65,6 +76,11 @@ class LaporanController extends Controller
             'dari' => ['nullable', 'date_format:Y-m'],
             'sampai' => ['nullable', 'date_format:Y-m'],
             'tahun' => ['nullable', 'integer', 'min:2000', 'max:2100'],
+            'bulan' => ['nullable', 'date_format:Y-m'],
+            'tanggal' => ['nullable', 'date_format:Y-m-d'],
+            'cabang' => ['nullable', 'string', 'max:100'],
+            'kantong' => ['nullable', 'string', 'max:50'],
+            'status_anggota' => ['nullable', 'in:aktif,resign'],
         ]);
 
         $this->normalisasiFilter($request, $slug);
@@ -78,19 +94,21 @@ class LaporanController extends Controller
             'angka' => $hasil['rataKanan'],
             'baris' => $hasil['rows'],
             'total' => $hasil['totals'] ?? [],
+            'ringkasan' => $hasil['ringkasan'] ?? [],
+            'catatan' => $hasil['catatan'] ?? null,
+            'gaya_baris' => $hasil['gayaBaris'] ?? [],
         ]);
     }
 
     /**
-     * Unduh PDF langsung (dipakai tombol Unduh saat USE_MOCK=false).
-     * Mirror web LaporanController@pdf, dibatasi 2 laporan mobile.
+     * Unduh PDF langsung.
      */
     public function pdf(Request $request, string $slug)
     {
         $this->tolakBilaTanpaIzin($request);
         abort_unless(LaporanRegistry::ada($slug), response()->json(['message' => 'Laporan tidak ditemukan.'], 404));
         abort_unless(
-            in_array($slug, ['pinjaman-per-status', 'setoran-bulanan'], true),
+            in_array($slug, self::SLUGS_MOBILE, true),
             response()->json(['message' => 'Laporan tidak tersedia di aplikasi mobile.'], 404)
         );
 
@@ -98,6 +116,11 @@ class LaporanController extends Controller
             'dari' => ['nullable', 'date_format:Y-m'],
             'sampai' => ['nullable', 'date_format:Y-m'],
             'tahun' => ['nullable', 'integer', 'min:2000', 'max:2100'],
+            'bulan' => ['nullable', 'date_format:Y-m'],
+            'tanggal' => ['nullable', 'date_format:Y-m-d'],
+            'cabang' => ['nullable', 'string', 'max:100'],
+            'kantong' => ['nullable', 'string', 'max:50'],
+            'status_anggota' => ['nullable', 'in:aktif,resign'],
         ]);
 
         $this->normalisasiFilter($request, $slug);
@@ -116,8 +139,7 @@ class LaporanController extends Controller
     }
 
     /**
-     * Normalkan filter mobile ke bentuk Registry: rentang pakai dari/sampai (Y-m),
-     * tahun pakai tahun (+ dari/sampai setahun penuh). Default = periodeDefault Registry.
+     * Normalkan semua 5 tipe filter mobile (rentang|tahun|bulan|tanggal|tanpa_periode) ke bentuk Registry.
      */
     private function normalisasiFilter(Request $request, string $slug): void
     {
@@ -128,6 +150,14 @@ class LaporanController extends Controller
         if ($tipe === 'tahun') {
             $tahun = (int) ($request->input('tahun') ?? $default->get(0, now()->format('Y')));
             $request->merge(['tahun' => $tahun, 'dari' => $tahun.'-01', 'sampai' => $tahun.'-12']);
+        } elseif ($tipe === 'bulan') {
+            $bulan = (string) ($request->input('bulan') ?? $default->get(0, now()->format('Y-m')));
+            $request->merge(['bulan' => $bulan, 'dari' => $bulan, 'sampai' => $bulan]);
+        } elseif ($tipe === 'tanggal') {
+            $tanggal = (string) ($request->input('tanggal') ?? $default->get(0, now()->format('Y-m-d')));
+            $request->merge(['tanggal' => $tanggal]);
+        } elseif ($tipe === 'tanpa_periode') {
+            $request->merge(['dari' => null, 'sampai' => null]);
         } else {
             $request->merge([
                 'dari' => $request->input('dari', $default->get(0)),
@@ -139,10 +169,23 @@ class LaporanController extends Controller
     private function periodeLabel(Request $request, string $slug): string
     {
         $def = LaporanRegistry::ambil($slug);
-
         $tipe = $def['filter']['tipe'] ?? 'rentang';
+
         if ($tipe === 'tahun') {
             return 'Tahun '.$request->input('tahun');
+        }
+        if ($tipe === 'bulan') {
+            $bulan = $request->input('bulan');
+
+            return $bulan ? Carbon::parse($bulan.'-01')->translatedFormat('F Y') : 'Bulan Berjalan';
+        }
+        if ($tipe === 'tanggal') {
+            $tanggal = $request->input('tanggal');
+
+            return $tanggal ? Carbon::parse($tanggal)->translatedFormat('d F Y') : 'Hari Ini';
+        }
+        if ($tipe === 'tanpa_periode') {
+            return 'Semua Periode';
         }
 
         $dari = $request->input('dari');

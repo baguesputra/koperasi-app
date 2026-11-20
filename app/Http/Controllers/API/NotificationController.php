@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Anggota;
 use App\Models\Angsuran;
 use App\Models\AuditLog;
+use App\Models\PengajuanAktivasi;
 use App\Models\PengajuanLimit;
 use App\Models\PengajuanPercepatan;
 use App\Models\Pinjaman;
@@ -212,26 +213,54 @@ class NotificationController extends Controller
 
         $antrean = [];
         if ($boleh('pinjaman.tinjau-admin')) {
-            $antrean['verifikasi Sekretaris'] = Pinjaman::where('status', 'diajukan')->count();
+            $antrean['verifikasi Sekretaris'] = [
+                'jumlah' => Pinjaman::where('status', 'diajukan')->count(),
+                'ref' => 'pinjaman',
+            ];
         }
         if ($boleh('pinjaman.tinjau-bendahara')) {
-            $antrean['verifikasi Bendahara'] = Pinjaman::where('status', 'approved_admin')->count();
-            $antrean['perubahan tenor Bendahara'] = PengajuanPercepatan::where('status', 'diajukan')->count();
-            $antrean['limit Bendahara'] = PengajuanLimit::where('status', 'diajukan')->count();
+            $antrean['verifikasi Bendahara'] = [
+                'jumlah' => Pinjaman::where('status', 'approved_admin')->count(),
+                'ref' => 'pinjaman',
+            ];
+            $antrean['perubahan tenor Bendahara'] = [
+                'jumlah' => PengajuanPercepatan::where('status', 'diajukan')->count(),
+                'ref' => 'percepatan',
+            ];
+            $antrean['limit Bendahara'] = [
+                'jumlah' => PengajuanLimit::where('status', 'diajukan')->count(),
+                'ref' => 'limit',
+            ];
         }
         if ($boleh('pinjaman.approve-ketua')) {
-            $antrean['persetujuan Ketua'] = Pinjaman::where('status', 'approved_bendahara')->where('cair_oleh_bendahara', false)->count();
-            $antrean['perubahan tenor Ketua'] = PengajuanPercepatan::where('status', 'approved_bendahara')->count();
+            $antrean['persetujuan Ketua'] = [
+                'jumlah' => Pinjaman::where('status', 'approved_bendahara')->where('cair_oleh_bendahara', false)->count(),
+                'ref' => 'pinjaman',
+            ];
+            $antrean['perubahan tenor Ketua'] = [
+                'jumlah' => PengajuanPercepatan::where('status', 'approved_bendahara')->count(),
+                'ref' => 'percepatan',
+            ];
         }
         if ($boleh('limit.approve-ketua')) {
-            $antrean['limit Ketua'] = PengajuanLimit::where('status', 'approved_bendahara')->count();
+            $antrean['limit Ketua'] = [
+                'jumlah' => PengajuanLimit::where('status', 'approved_bendahara')->count(),
+                'ref' => 'limit',
+            ];
+        }
+        if ($boleh('aktivasi.approve-ketua')) {
+            $antrean['aktivasi anggota'] = [
+                'jumlah' => PengajuanAktivasi::where('status', 'diajukan')->count(),
+                'ref' => 'aktivasi',
+            ];
         }
 
-        foreach ($antrean as $label => $jumlah) {
+        foreach ($antrean as $label => $item) {
+            $jumlah = $item['jumlah'];
             if ($jumlah > 0) {
                 $rows[] = $this->kolomSumber('pengajuan_baru', "{$jumlah} pengajuan menunggu {$label}",
                     "Ada {$jumlah} pengajuan menunggu tahap {$label}. Buka antrean untuk menindaklanjuti.",
-                    null, null, now()->format('Y-m-d H:i:s'));
+                    $item['ref'], 0, now()->format('Y-m-d H:i:s'));
             }
         }
 

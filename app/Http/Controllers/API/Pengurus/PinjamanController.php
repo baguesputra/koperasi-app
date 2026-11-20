@@ -62,6 +62,36 @@ class PinjamanController extends Controller
     public function index(Request $request): JsonResponse
     {
         $tahap = $this->tahapOrFail($request);
+        $tab = (string) $request->input('tab', 'menunggu');
+        if (! in_array($tab, ['menunggu', 'riwayat'], true)) {
+            return response()->json(['message' => 'Tab tidak dikenal. Gunakan: menunggu, riwayat.'], 422);
+        }
+
+        if ($tab === 'riwayat') {
+            $query = Pinjaman::with(['anggota', 'pengaju'])
+                ->latest('updated_at')
+                ->latest('id');
+
+            if ($tahap === 'admin') {
+                $query->whereNotNull('catatan_admin')
+                    ->whereIn('status', ['approved_admin', 'approved_bendahara', 'approved_ketua', 'aktif', 'lunas', 'ditolak']);
+            } elseif ($tahap === 'bendahara' || $tahap === 'pencairan') {
+                $query->whereNotNull('catatan_bendahara')
+                    ->whereIn('status', ['approved_bendahara', 'approved_ketua', 'aktif', 'lunas', 'ditolak']);
+            } else {
+                $query->whereNotNull('catatan_ketua')
+                    ->whereIn('status', ['approved_ketua', 'aktif', 'lunas', 'ditolak']);
+            }
+
+            $rows = $query->take(20)->get();
+
+            return response()->json([
+                'tahap' => $tahap,
+                'tab' => $tab,
+                'data' => PinjamanResource::collection($rows)->resolve(),
+                'total' => $rows->count(),
+            ]);
+        }
 
         $query = Pinjaman::with(['anggota', 'pengaju'])
             ->where('status', self::TAHAP_STATUS[$tahap])
@@ -80,6 +110,7 @@ class PinjamanController extends Controller
 
         return response()->json([
             'tahap' => $tahap,
+            'tab' => $tab,
             'data' => PinjamanResource::collection($rows)->resolve(),
             'total' => $rows->count(),
         ]);

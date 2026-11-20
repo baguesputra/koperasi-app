@@ -3,14 +3,16 @@ import laravel from 'laravel-vite-plugin';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
+const vitePort = Number(process.env.VITE_PORT) || 5173;
+
 export default defineConfig({
     server: {
         host: '127.0.0.1',
-        port: 5173,
+        port: vitePort,
         strictPort: true,
         hmr: {
             host: '127.0.0.1',
-            port: 5173,
+            port: vitePort,
         },
     },
     plugins: [

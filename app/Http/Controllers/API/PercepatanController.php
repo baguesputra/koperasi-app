@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PengajuanPercepatanResource;
 use App\Models\PengajuanPercepatan;
+use App\Models\Pinjaman;
 use App\Services\Pinjaman\PercepatanPinjamanService;
 use App\Services\Pinjaman\PerhitunganBungaService;
 use Illuminate\Http\JsonResponse;
@@ -45,7 +46,7 @@ class PercepatanController extends Controller
         }
 
         $rows = PengajuanPercepatan::where('pinjaman_id', $pinjaman->id)
-            ->with(['pinjaman.anggota'])
+            ->with(['pinjaman.anggota', 'angsuranBaru'])
             ->orderByDesc('tanggal_pengajuan')
             ->orderByDesc('id')
             ->get();
@@ -55,7 +56,7 @@ class PercepatanController extends Controller
                 'id' => $pinjaman->id,
                 'nominal' => (float) $pinjaman->nominal,
                 'tenor_bulan' => (int) $pinjaman->tenor_bulan,
-                'sisa_angsuran' => $pinjaman->sisaAngsuran(),
+                'sisa_angsuran' => $pinjaman->sisaCicilanAktif(),
                 'sudah_pakai_percepatan' => (bool) $pinjaman->sudah_pakai_percepatan,
             ],
             'data' => PengajuanPercepatanResource::collection($rows)->resolve(),
@@ -63,7 +64,7 @@ class PercepatanController extends Controller
     }
 
     /**
-     * Preview simulasi percepatan. Mirror logika mock router.ts baris 451-500.
+     * Preview simulasi percepatan memakai PercepatanPinjamanService::preview().
      *
      * @response 200 {"tipe": "percepat", "tenor_baru": 3, "cicilan_lama": 520000, "cicilan_baru": 0, "sisa_pokok": 2000000, "total_bayar_baru": 0, "total_bunga_baru": 0, "jadwal_baru": [], "pelunasan_sekarang": null}
      */
@@ -74,32 +75,38 @@ class PercepatanController extends Controller
             'tenor_baru' => ['required_if:tipe,percepat,perpanjang', 'nullable', 'integer', 'min:1'],
         ]);
 
-        [, $pinjaman] = $this->pinjamanAktifOrFail($request);
+        [$anggota, $pinjaman] = $this->pinjamanAktifOrFail($request);
 
         if (! $pinjaman) {
             return response()->json(['message' => 'Anda tidak memiliki pinjaman aktif.'], 422);
         }
 
+        if ($this->hasLoanApplicationInProgress($anggota->id)) {
+            return response()->json(['message' => 'Pengajuan pinjaman sedang diproses.'], 422);
+        }
+
         $tipe = $request->tipe;
         $tenorBaru = $request->tenor_baru !== null ? (int) $request->tenor_baru : null;
-        $sisaPokok = (float) $pinjaman->angsuranBelumBayar()->sum('nominal_pokok');
 
         $cicilanBelum = $pinjaman->angsuranBelumBayar()->orderBy('cicilan_ke')->get(['total_bayar']);
         $cicilanLama = $cicilanBelum->isNotEmpty()
             ? (int) round($cicilanBelum->sum('total_bayar') / $cicilanBelum->count())
             : 0;
 
+        $sim = $this->service->preview($pinjaman, $tipe, $tenorBaru);
+        $sisaPokok = (float) ($sim['sisa_pokok'] ?? 0);
+
         if ($tipe === 'lunas_total') {
-            $pelunasan = (int) round($sisaPokok + ($sisaPokok * (float) $pinjaman->persentase_bunga) / 100);
+            $pelunasan = (int) round((float) ($sim['total_bayar'] ?? 0));
 
             return response()->json([
                 'tipe' => $tipe,
                 'tenor_baru' => null,
                 'cicilan_lama' => $cicilanLama,
                 'cicilan_baru' => 0,
-                'sisa_pokok' => (float) $sisaPokok,
+                'sisa_pokok' => $sisaPokok,
                 'total_bayar_baru' => (float) $pelunasan,
-                'total_bunga_baru' => (float) ($pelunasan - $sisaPokok),
+                'total_bunga_baru' => (float) ($sim['bunga'] ?? ($pelunasan - $sisaPokok)),
                 'jadwal_baru' => [],
                 'pelunasan_sekarang' => $pelunasan,
             ]);
@@ -112,7 +119,7 @@ class PercepatanController extends Controller
             'tenor_baru' => $tenorBaru,
             'cicilan_lama' => $cicilanLama,
             'cicilan_baru' => (float) ($jadwalBaru[0]['total_bayar'] ?? 0),
-            'sisa_pokok' => (float) $sisaPokok,
+            'sisa_pokok' => $sisaPokok,
             'total_bayar_baru' => (float) array_sum(array_column($jadwalBaru, 'total_bayar')),
             'total_bunga_baru' => (float) array_sum(array_column($jadwalBaru, 'nominal_bunga')),
             'jadwal_baru' => array_values(array_slice($jadwalBaru, 0, 12)),
@@ -121,7 +128,7 @@ class PercepatanController extends Controller
     }
 
     /**
-     * Ajukan percepatan/perpanjangan/pelunasan. Mirror validasi mock router.ts baris 1131-1174.
+     * Ajukan percepatan/perpanjangan/pelunasan.
      *
      * @response 201 {"message": "Pengajuan perubahan tenor berhasil dikirim.", "data": {"id": 1}}
      */
@@ -153,17 +160,18 @@ class PercepatanController extends Controller
 
         $tipe = $request->tipe;
         $tenorBaru = $request->tenor_baru !== null ? (int) $request->tenor_baru : null;
+        $sisaAngsuran = $pinjaman->sisaCicilanAktif();
 
-        if ($tipe === 'percepat' && $tenorBaru >= $pinjaman->tenor_bulan) {
+        if ($tipe === 'percepat' && $tenorBaru >= $sisaAngsuran) {
             return response()->json([
-                'message' => 'Tenor baru harus lebih pendek dari tenor saat ini.',
-                'errors' => ['tenor_baru' => ['Tenor baru harus lebih pendek.']],
+                'message' => "Tenor baru harus lebih pendek dari sisa angsuran ({$sisaAngsuran} bulan).",
+                'errors' => ['tenor_baru' => ['Tenor baru harus lebih pendek dari sisa angsuran.']],
             ], 422);
         }
 
-        if ($tipe === 'perpanjang' && $tenorBaru <= $pinjaman->tenor_bulan) {
+        if ($tipe === 'perpanjang' && $tenorBaru <= $sisaAngsuran) {
             return response()->json([
-                'message' => 'Tenor baru harus lebih panjang dari tenor saat ini.',
+                'message' => 'Tenor baru harus lebih panjang dari sisa angsuran saat ini.',
                 'errors' => ['tenor_baru' => ['Tenor baru harus lebih panjang.']],
             ], 422);
         }
@@ -174,11 +182,18 @@ class PercepatanController extends Controller
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
-        $pengajuan->loadMissing(['pinjaman.anggota']);
+        $pengajuan->loadMissing(['pinjaman.anggota', 'angsuranBaru']);
 
         return response()->json([
             'message' => 'Pengajuan perubahan tenor berhasil dikirim.',
             'data' => (new PengajuanPercepatanResource($pengajuan))->resolve(),
         ], 201);
+    }
+
+    private function hasLoanApplicationInProgress(int $anggotaId): bool
+    {
+        return Pinjaman::where('anggota_id', $anggotaId)
+            ->whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara'])
+            ->exists();
     }
 }

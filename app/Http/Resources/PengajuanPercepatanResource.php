@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Services\Pinjaman\PercepatanPinjamanService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -23,20 +24,50 @@ class PengajuanPercepatanResource extends JsonResource
         $ditolakKetua = $this->status === 'ditolak' && $this->catatan_ketua;
         $namaAnggota = $this->pinjaman?->anggota?->nama;
 
+        $preview = null;
+        if ($this->pinjaman && in_array($this->status, ['diajukan', 'approved_bendahara'], true)) {
+            $preview = app(PercepatanPinjamanService::class)->preview(
+                $this->pinjaman,
+                $this->tipe,
+                $this->tenor_baru !== null ? (int) $this->tenor_baru : null
+            );
+        }
+
+        $angsuranBaru = [];
+        if ($this->status === 'aktif') {
+            $this->resource->loadMissing('angsuranBaru');
+            $angsuranBaru = $this->angsuranBaru
+                ->sortBy('cicilan_ke')
+                ->values()
+                ->map(fn ($a) => [
+                    'id' => $a->id,
+                    'cicilan_ke' => (int) $a->cicilan_ke,
+                    'nominal_pokok' => (float) $a->nominal_pokok,
+                    'nominal_bunga' => (float) $a->nominal_bunga,
+                    'total_bayar' => (float) $a->total_bayar,
+                    'status' => $a->status,
+                    'tanggal_jatuh_tempo' => $a->tanggal_jatuh_tempo?->format('Y-m-d'),
+                ])->all();
+        }
+
         return [
             'id' => $this->id,
             'pinjaman_id' => $this->pinjaman_id,
             'pinjaman_nominal' => (float) ($this->pinjaman->nominal ?? 0),
             'pinjaman_tenor' => (int) ($this->pinjaman->tenor_bulan ?? 0),
+            'pinjaman_sisa_angsuran' => $this->pinjaman ? $this->pinjaman->sisaCicilanAktif() : 0,
             'tipe' => $this->tipe,
             'tenor_lama' => (int) $this->tenor_lama,
             'tenor_baru' => $this->tenor_baru !== null ? (int) $this->tenor_baru : null,
+            'nominal_final' => $this->nominal_final !== null ? (float) $this->nominal_final : null,
             'keterangan' => $this->keterangan,
             'status' => $this->status,
             'catatan_bendahara' => $this->catatan_bendahara,
             'catatan_ketua' => $this->catatan_ketua,
             'tanggal_pengajuan' => $this->tanggal_pengajuan?->format('Y-m-d'),
             'berlaku_mulai' => $this->bulan_berlaku,
+            'preview' => $preview,
+            'angsuran_baru' => $angsuranBaru,
             'anggota' => $this->pinjaman?->anggota ? [
                 'id' => $this->pinjaman->anggota->id,
                 'no_anggota' => $this->pinjaman->anggota->no_anggota,
@@ -49,6 +80,7 @@ class PengajuanPercepatanResource extends JsonResource
                 'divisi' => $this->pinjaman->anggota->divisi,
                 'no_hp' => $this->pinjaman->anggota->no_hp,
                 'status' => $this->pinjaman->anggota->status,
+                'foto_url' => $this->pinjaman->anggota->foto_url,
             ] : null,
             'tahapan' => [
                 [

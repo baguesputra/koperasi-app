@@ -17,12 +17,16 @@ class SessionUserResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $this->resource->loadMissing(['anggota', 'roles', 'permissions']);
+
         return [
             'id' => $this->id,
             'name' => $this->name,
             'no_karyawan' => $this->no_karyawan,
             'email' => $this->email,
             'foto_url' => $this->anggota?->foto_url,
+            'has_pin' => (bool) $this->hasPin(),
+            'anggota_status' => $this->anggota?->status,
             'roles' => $this->getRoleNames()->values()->all(),
             'permissions' => $this->getAllPermissions()->pluck('name')->values()->all(),
             'is_anggota' => $this->hasRole('anggota'),

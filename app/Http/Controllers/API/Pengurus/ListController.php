@@ -166,6 +166,101 @@ class ListController extends Controller
         ]);
     }
 
+    /**
+     * Daftar seluruh anggota beserta info kepegawaian & rekap status.
+     */
+    public function anggota(Request $request): JsonResponse
+    {
+        if (! $request->user()->can('anggota.lihat')) {
+            abort(response()->json([
+                'message' => 'Anda tidak memiliki akses ke data anggota.',
+            ], 403));
+        }
+
+        $request->validate([
+            'cari' => ['nullable', 'string', 'max:100'],
+            'status' => ['nullable', 'in:semua,aktif,nonaktif,resign,resign_menunggu'],
+            'cabang' => ['nullable', 'string', 'max:100'],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $cari = trim((string) $request->input('cari', ''));
+        $status = (string) $request->input('status', '');
+        $cabang = trim((string) $request->input('cabang', ''));
+
+        $query = Anggota::with(['user:id,email', 'perusahaan:id,nama'])->orderBy('nama');
+
+        if ($cari !== '') {
+            $query->where(fn ($q) => $q
+                ->where('nama', 'like', "%{$cari}%")
+                ->orWhere('no_karyawan', 'like', "%{$cari}%")
+                ->orWhere('no_anggota', 'like', "%{$cari}%"));
+        }
+        if ($cabang !== '') {
+            $query->where('cabang', $cabang);
+        }
+        if ($status !== '' && $status !== 'semua') {
+            if ($status === 'resign') {
+                $query->whereIn('status', ['resign', 'resign_menunggu']);
+            } else {
+                $query->where('status', $status);
+            }
+        }
+
+        $halaman = $query->paginate($request->integer('per_page', 15), ['*'], 'page', $request->integer('page', 1));
+
+        $statistik = Anggota::query()
+            ->selectRaw("
+                COUNT(*) as total,
+                SUM(CASE WHEN status = 'aktif' THEN 1 ELSE 0 END) as aktif,
+                SUM(CASE WHEN status = 'nonaktif' THEN 1 ELSE 0 END) as nonaktif,
+                SUM(CASE WHEN status IN ('resign', 'resign_menunggu') THEN 1 ELSE 0 END) as resign
+            ")
+            ->first();
+
+        $data = $halaman->getCollection()->map(function (Anggota $a) {
+            $tgl = $a->tanggal_jadi_anggota ?? $a->tanggal_mulai_kerja;
+
+            return [
+                'id' => $a->id,
+                'no_anggota' => $a->no_anggota,
+                'no_karyawan' => $a->no_karyawan,
+                'nama' => $a->nama,
+                'jabatan' => $a->jabatan,
+                'cabang' => $a->cabang,
+                'perusahaan' => $a->getRelationValue('perusahaan')?->nama,
+                'unit_bisnis' => $a->unit_bisnis,
+                'department' => $a->department,
+                'divisi' => $a->divisi,
+                'no_hp' => $a->no_hp,
+                'email' => $a->getRelationValue('user')?->email,
+                'status' => $a->status,
+                'foto_url' => $a->foto_url,
+                'tanggal_mulai_kerja' => $a->tanggal_mulai_kerja?->format('Y-m-d'),
+                'tanggal_jadi_anggota' => $a->tanggal_jadi_anggota?->format('Y-m-d'),
+                'lama_keanggotaan_tahun' => $tgl ? round($tgl->diffInDays(now()) / 365, 1) : 0.0,
+                'limit_custom' => $a->limit_custom !== null ? (float) $a->limit_custom : null,
+            ];
+        })->values();
+
+        return response()->json([
+            'data' => $data,
+            'meta' => [
+                'current_page' => $halaman->currentPage(),
+                'last_page' => $halaman->lastPage(),
+                'per_page' => $halaman->perPage(),
+                'total' => $halaman->total(),
+            ],
+            'rekap' => [
+                'total' => (int) ($statistik->total ?? 0),
+                'aktif' => (int) ($statistik->aktif ?? 0),
+                'nonaktif' => (int) ($statistik->nonaktif ?? 0),
+                'resign' => (int) ($statistik->resign ?? 0),
+            ],
+        ]);
+    }
+
     private function barisSimpanan(Anggota $a): array
     {
         $pokok = (float) ($a->agregat_pokok

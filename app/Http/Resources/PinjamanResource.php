@@ -2,6 +2,10 @@
 
 namespace App\Http\Resources;
 
+use App\Helpers\TerbilangHelper;
+use App\Models\KasKoperasi;
+use App\Services\Pinjaman\EligibilitasPinjamanService;
+use App\Services\Pinjaman\PerhitunganBungaService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -23,11 +27,37 @@ class PinjamanResource extends JsonResource
         $jadwal = $this->jadwalAktif();
         $berikutnya = $jadwal->where('status', 'belum_bayar')->sortBy('cicilan_ke')->first();
 
+        $sedangReview = in_array($this->status, ['diajukan', 'approved_admin', 'approved_bendahara'], true);
+        $eligibilitas = app(EligibilitasPinjamanService::class);
+
+        $barisBeban = $jadwal->isNotEmpty()
+            ? $jadwal->map(fn ($a) => [
+                'nominal_pokok' => (float) $a->nominal_pokok,
+                'nominal_bunga' => (float) $a->nominal_bunga,
+                'total_bayar' => (float) $a->total_bayar,
+            ])->values()->all()
+            : app(PerhitunganBungaService::class)->buatJadwal(
+                (float) $this->nominal,
+                max(1, (int) $this->tenor_bulan),
+                (float) $this->persentase_bunga
+            );
+
+        $totalPokokBeban = array_sum(array_column($barisBeban, 'nominal_pokok'));
+        $totalBungaBeban = array_sum(array_column($barisBeban, 'nominal_bunga'));
+        $totalAngsuranBeban = array_sum(array_column($barisBeban, 'total_bayar'));
+        $jumlahCicilanBeban = count($barisBeban);
+
+        $tglAnggota = $this->anggota?->tanggal_jadi_anggota ?? $this->anggota?->tanggal_mulai_kerja;
+        $lamaKeanggotaanTahun = $tglAnggota ? round($tglAnggota->diffInDays(now()) / 365, 1) : 0.0;
+        $saldoBankSekarang = $sedangReview ? (float) (KasKoperasi::query()->value('saldo_bank') ?? 0) : null;
+
         return [
             'id' => $this->id,
             'nomor_dokumen' => $this->nomor_dokumen,
             'nominal' => (float) $this->nominal,
+            'terbilang' => TerbilangHelper::angkaKeTerbilang((float) $this->nominal),
             'nominal_diminta' => $this->nominal_diminta !== null ? (float) $this->nominal_diminta : null,
+            'tenor_diminta' => $this->tenor_diminta !== null ? (int) $this->tenor_diminta : (int) $this->tenor_bulan,
             'tenor_bulan' => (int) $this->tenor_bulan,
             'persentase_bunga' => (float) $this->persentase_bunga,
             'status' => $this->status,
@@ -40,10 +70,29 @@ class PinjamanResource extends JsonResource
             'catatan_ketua' => $this->catatan_ketua,
             'nominal_disetujui_bendahara' => $this->nominal_disetujui_bendahara !== null ? (float) $this->nominal_disetujui_bendahara : null,
             'tenor_disetujui_bendahara' => $this->tenor_disetujui_bendahara !== null ? (int) $this->tenor_disetujui_bendahara : null,
+            'nominal_disetujui' => $this->nominal_disetujui !== null ? (float) $this->nominal_disetujui : null,
+            'tenor_disetujui' => $this->tenor_disetujui !== null ? (int) $this->tenor_disetujui : null,
+            'limit_tersedia' => ($this->anggota && $sedangReview) ? (float) $eligibilitas->limitTersedia($this->anggota) : null,
+            'tenor_maksimal_diminta' => $eligibilitas->tenorMaksimal((float) ($this->nominal_diminta ?? $this->nominal)),
+            'sudah_pakai_privilege_reloan' => (bool) ($this->sudah_pakai_privilege_reloan ?? false),
             'cair_oleh_bendahara' => (bool) $this->cair_oleh_bendahara,
             'snapshot_bank' => $this->snapshot_bank,
             'snapshot_no_rekening' => $this->snapshot_no_rekening,
             'snapshot_atas_nama' => $this->snapshot_atas_nama,
+            'kas' => [
+                'saldo_sekarang' => $saldoBankSekarang,
+                'saldo_bendahara' => $this->kas_saldo_bendahara !== null ? (float) $this->kas_saldo_bendahara : null,
+                'saldo_ketua' => $this->kas_saldo_ketua !== null ? (float) $this->kas_saldo_ketua : null,
+                'sisa_ketua' => $this->kas_sisa_ketua !== null ? (float) $this->kas_sisa_ketua : null,
+            ],
+            'beban_angsuran' => [
+                'cicilan_pertama' => (float) ($barisBeban[0]['total_bayar'] ?? 0),
+                'cicilan_terakhir' => (float) ($jumlahCicilanBeban > 0 ? $barisBeban[$jumlahCicilanBeban - 1]['total_bayar'] : 0),
+                'cicilan_rata_rata' => $jumlahCicilanBeban > 0 ? round($totalAngsuranBeban / $jumlahCicilanBeban, 2) : 0.0,
+                'total_pokok_angsuran' => (float) $totalPokokBeban,
+                'total_bunga_angsuran' => (float) $totalBungaBeban,
+                'total_angsuran' => (float) $totalAngsuranBeban,
+            ],
             'sisa_angsuran' => $agg['sisa'],
             'total_angsuran' => $agg['total'],
             'sisa_total_bayar' => (float) $agg['sisa_bayar'],
@@ -77,6 +126,8 @@ class PinjamanResource extends JsonResource
                 'divisi' => $this->anggota->divisi,
                 'no_hp' => $this->anggota->no_hp,
                 'status' => $this->anggota->status,
+                'foto_url' => $this->anggota->foto_url,
+                'lama_keanggotaan_tahun' => $lamaKeanggotaanTahun,
             ] : null,
             'pengaju' => $this->pengaju ? [
                 'nama' => $this->pengaju->name,

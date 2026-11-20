@@ -156,11 +156,13 @@ class PinSecurityService
             }
         }
 
-        // Cabut semua token API + sesi web: lockout wajib tendang semua perangkat.
+        // Cabut semua token API + sesi web (bila tersedia): lockout wajib tendang semua perangkat.
         $user->tokens()->delete();
-        Auth::guard('web')->logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        if ($request->hasSession()) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
     }
 }
 
