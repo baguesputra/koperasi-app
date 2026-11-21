@@ -4,13 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Anggota;
 use App\Models\Angsuran;
-use App\Models\PengajuanAktivasi;
 use App\Models\JurnalKas;
 use App\Models\KasKoperasi;
+use App\Models\PengajuanAktivasi;
 use App\Models\PengajuanLimit;
 use App\Models\PengajuanPercepatan;
 use App\Models\Pinjaman;
 use App\Models\Simpanan;
+use App\Services\Keuangan\JurnalKasService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -26,15 +27,11 @@ class DashboardController extends Controller
         }
 
         $kas = KasKoperasi::first();
-        $jurnal = app(\App\Services\Keuangan\JurnalKasService::class);
+        $jurnal = app(JurnalKasService::class);
         $kasOperasional = $jurnal->saldoOperasional($kas);
 
         $awalBulanIni = now()->startOfMonth()->startOfDay()->toDateTimeString();
         $akhirBulanIni = now()->endOfMonth()->endOfDay()->toDateTimeString();
-
-        $pendapatanBungaBulanIni = Angsuran::where('status', 'lunas')
-            ->whereBetween('tanggal_konfirmasi_bayar', [$awalBulanIni, $akhirBulanIni])
-            ->sum('nominal_bunga');
 
         // Outstanding: simpanan anggota aktif saja. Gross: akumulasi semua (indexed join).
         $totalSimpananOutstanding = (float) Simpanan::whereIn('simpanan.jenis', ['pokok', 'wajib'])
@@ -45,10 +42,7 @@ class DashboardController extends Controller
 
         $saldoDanaPinjaman = $kas->saldo_pinjaman;
 
-        // Total = operasional gabungan + outstanding (transit dikecualikan, samakan halaman Kas).
-        $totalKeseluruhan = $kasOperasional + $totalSimpananOutstanding;
-
-        $saldoDanaSosial = $kas->saldo_dana_sosial;
+        $saldoDanaSosial = $jurnal->saldoDanaSosial($kas);
 
         // Actionable items - 1 query agregat per tabel (bukan 2x count)
         $hitungStatus = fn (string $model) => $model::whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara'])
@@ -230,8 +224,6 @@ class DashboardController extends Controller
                 'pinjaman_outstanding' => (float) Pinjaman::where('status', 'aktif')->sum('nominal'),
                 'saldo_dana_pinjaman' => (float) $saldoDanaPinjaman,
                 'saldo_pengembalian_simpanan' => (float) $kas->saldo_pengembalian_simpanan,
-                'total_keseluruhan' => (float) $totalKeseluruhan,
-                'pendapatan_bunga_bulan_ini' => (float) $pendapatanBungaBulanIni,
                 'saldo_dana_sosial' => (float) $saldoDanaSosial,
                 'kas_operasional' => (float) $kasOperasional,
                 'saldo_simpanan' => (float) $kas->saldo_simpanan,

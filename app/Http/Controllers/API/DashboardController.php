@@ -17,6 +17,7 @@ use App\Models\Pinjaman;
 use App\Models\SettingSimpanan;
 use App\Models\Simpanan;
 use App\Models\TabelTenor;
+use App\Services\Keuangan\JurnalKasService;
 use App\Services\Pinjaman\EligibilitasPinjamanService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -266,7 +267,7 @@ class DashboardController extends Controller
                     'saldo_bank' => $saldoBank,
                     'saldo_kas_kecil' => $saldoKasKecil,
                     'kas_operasional' => $kasOperasional,
-                    'saldo_dana_sosial' => (float) ($row->saldo_dana_sosial ?? 0),
+                    'saldo_dana_sosial' => app(JurnalKasService::class)->saldoDanaSosial($row),
                     'total_keseluruhan' => $kasOperasional + $simpananOutstanding,
                     'pinjaman_outstanding' => (float) Pinjaman::where('status', 'aktif')->sum('nominal'),
                     'simpanan_outstanding' => $simpananOutstanding,

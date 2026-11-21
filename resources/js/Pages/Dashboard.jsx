@@ -2,14 +2,13 @@ import { Suspense, lazy } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, Link, usePage } from '@inertiajs/react';
 import {
-    Users, PiggyBank, HandCoins, Wallet, TrendingUp, Landmark,
+    Users, PiggyBank, HandCoins, Wallet, HeartHandshake, Landmark,
     ClipboardCheck, FileClock, Gauge,
     ChevronRight,
     HandCoins as PinjamanIcon, CheckCircle2,
 } from 'lucide-react';
 import Card from '@/Components/ui/Card';
 import StatWidget from '@/Components/ui/StatWidget';
-import PageHeader from '@/Components/ui/PageHeader';
 import DashboardClock from '@/Components/ui/DashboardClock';
 import PrivacyWrapper from '@/Components/ui/PrivacyWrapper';
 import { usePrivacy } from '@/Contexts/PrivacyContext';
@@ -54,12 +53,12 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
 
     const labelBulan = new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(new Date());
     const widgets = [
-        { label: 'Kas Operasional Gabungan', value: formatRupiah(stats.kas_operasional ?? stats.total_keseluruhan), icon: Wallet, tone: 'navy', caption: 'Saldo bank + kas kecil' },
+        { label: 'Kas Operasional Gabungan', value: formatRupiah(stats.kas_operasional ?? 0), icon: Wallet, tone: 'navy', caption: 'Saldo bank + kas kecil' },
         { label: 'Saldo Bank', value: formatRupiah(stats.saldo_bank ?? 0), icon: Landmark, tone: 'navy', caption: 'Rekening bank operasional' },
         { label: 'Kas Kecil', value: formatRupiah(stats.saldo_kas_kecil ?? 0), icon: Wallet, tone: 'amber', caption: 'Uang tunai operasional' },
         { label: 'Total Simpanan (Aktif)', value: formatRupiah(stats.total_simpanan_outstanding), icon: PiggyBank, tone: 'green', caption: 'Pokok + wajib anggota aktif' },
-        { label: 'Pinjaman Outstanding', value: formatRupiah(stats.pinjaman_outstanding), icon: HandCoins, tone: 'amber', caption: 'Pinjaman berstatus aktif' },
-        { label: 'Pendapatan Bunga', value: formatRupiah(stats.pendapatan_bunga_bulan_ini), icon: TrendingUp, tone: 'green', caption: `Periode ${labelBulan}` },
+        { label: 'Total Pinjaman', value: formatRupiah(stats.pinjaman_outstanding), icon: HandCoins, tone: 'amber', caption: 'Pinjaman berstatus aktif' },
+        { label: 'Saldo Dana Sosial', value: formatRupiah(stats.saldo_dana_sosial ?? 0), icon: HeartHandshake, tone: 'green', caption: 'Dana sosial tersedia' },
     ];
 
     const grupAksi = [
@@ -123,45 +122,39 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
         <AppLayout>
             <Head title="Dashboard" />
 
-            <PageHeader title="Dashboard" subtitle={`Ringkasan posisi keuangan & operasional koperasi • ${labelBulan}`}>
-                <DashboardClock />
-            </PageHeader>
-
-            {/* 1. Ringkasan Posisi Keuangan (Hero Card di Kiri + 6 KPI Cards di Kanan) */}
-            <section aria-label="Ringkasan posisi keuangan" className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-3.5 mb-5">
-                {/* Hero Card: Saldo Total */}
-                <div className="lg:col-span-4 relative overflow-hidden rounded-xl bg-gradient-to-br from-[#0B1527] via-[#0F1E36] to-[#0A2E1A] border border-slate-800/80 p-4 sm:p-5 text-white flex flex-col justify-between shadow-xs before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/25 before:to-transparent">
-                    <div>
-                        <div className="flex items-center justify-between gap-2">
-                            <div className="w-8 h-8 rounded-lg bg-white/10 border border-white/10 text-emerald-400 flex items-center justify-center shrink-0">
-                                <Landmark size={16} />
-                            </div>
-                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold tracking-wide bg-emerald-500/10 text-emerald-300 border border-emerald-400/20">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                Dana Koperasi
-                            </span>
-                        </div>
-
-                        <p className="text-xs font-medium text-slate-300/90 mt-3.5">Saldo Total</p>
-                        <p className="text-xl sm:text-2xl font-extrabold tracking-tight tabular-nums mt-0.5 leading-tight truncate">
-                            <PrivacyWrapper>{formatRupiah(stats.total_keseluruhan)}</PrivacyWrapper>
-                        </p>
-                        <p className="text-[11px] text-slate-300/75 mt-0.5 leading-normal">
-                            Kas operasional gabungan + simpanan anggota aktif
-                        </p>
-                    </div>
-
-                    <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between gap-3">
+            {/* 1. Banner Sambutan Pengurus (Clean White, lebar penuh) */}
+            <section
+                aria-label="Sambutan pengurus koperasi"
+                className="rounded-xl bg-gradient-to-r from-white via-white to-brand-green-light/35 border border-slate-200/80 shadow-[0_2px_10px_-3px_rgba(15,30,54,0.06),0_1px_2px_rgba(15,30,54,0.03)] p-4 sm:px-5 sm:py-4 mb-3.5 sm:mb-4"
+            >
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 sm:gap-4">
+                    <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
+                        <img
+                            src="/images/logo-hero.webp"
+                            alt="Logo Koperasi Karya Mandiri"
+                            width="76"
+                            height="76"
+                            className="w-14 h-14 sm:w-[72px] sm:h-[72px] lg:w-[76px] lg:h-[76px] object-contain shrink-0"
+                        />
                         <div className="min-w-0">
-                            <p className="text-[11px] text-slate-300/75">Saldo Dana Sosial</p>
-                            <p className="text-xs sm:text-sm font-bold text-emerald-300 tabular-nums mt-0.5 truncate">
-                                <PrivacyWrapper>{formatRupiah(stats.saldo_dana_sosial ?? 0)}</PrivacyWrapper>
+                            <p className="text-[11px] font-semibold uppercase tracking-wider text-brand-green-dark">
+                                Koperasi Karyawan • Duta Mall Banjarmasin
+                            </p>
+                            <h1 className="text-lg sm:text-xl lg:text-[22px] font-extrabold text-brand-navy tracking-tight leading-snug mt-0.5">
+                                Selamat Datang, Pengurus Koperasi Karya Mandiri
+                            </h1>
+                            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+                                Ringkasan posisi keuangan &amp; operasional koperasi • {labelBulan}
                             </p>
                         </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 shrink-0">
+                        <DashboardClock />
                         {bisaAkses('kas.lihat') && (
                             <Link
                                 href={route('kas-koperasi.index')}
-                                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-xs font-semibold text-white transition-colors shrink-0 ${focusRing}`}
+                                className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-brand-navy hover:bg-brand-navy-light text-white text-xs font-semibold shadow-sm transition-colors shrink-0 ${focusRing}`}
                             >
                                 Buku Kas
                                 <ChevronRight size={13} aria-hidden="true" />
@@ -169,21 +162,21 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                         )}
                     </div>
                 </div>
+            </section>
 
-                {/* 6 KPI Metric Widgets */}
-                <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5 sm:gap-3">
-                    {widgets.map((w) => (
-                        <StatWidget
-                            compact
-                            key={w.label}
-                            label={w.label}
-                            value={w.value}
-                            icon={w.icon}
-                            tone={w.tone}
-                            caption={w.caption}
-                        />
-                    ))}
-                </div>
+            {/* 2. Ringkasan Posisi Keuangan (6 KPI Cards penuh 3x2) */}
+            <section aria-label="Ringkasan posisi keuangan" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3 mb-5">
+                {widgets.map((w) => (
+                    <StatWidget
+                        compact
+                        key={w.label}
+                        label={w.label}
+                        value={w.value}
+                        icon={w.icon}
+                        tone={w.tone}
+                        caption={w.caption}
+                    />
+                ))}
             </section>
 
             {/* 2. Perlu Ditindaklanjuti (Actionable Queue) */}

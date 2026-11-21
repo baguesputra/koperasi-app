@@ -454,4 +454,32 @@ class JurnalKasService
 
         return (float) $kas->saldo_bank + (float) $kas->saldo_kas_kecil;
     }
+
+    /**
+     * Saldo dana sosial live: neto kantong `dana_sosial` di `jurnal_kas`
+     * (masuk − keluar, mengecualikan baris dibatalkan & jurnal pembalik storno),
+     * selaras dengan Laporan Neraca & Rekap Dana Sosial.
+     * Fallback ke kolom `kas_koperasi.saldo_dana_sosial` bila belum ada jurnal dana sosial.
+     */
+    public function saldoDanaSosial(?KasKoperasi $kas = null): float
+    {
+        $agregat = JurnalKas::where('kantong', 'dana_sosial')
+            ->selectRaw("
+                COUNT(*) as semua_baris,
+                COALESCE(SUM(CASE
+                    WHEN dibatalkan_pada IS NULL AND koreksi_dari_id IS NULL AND tipe = 'masuk' THEN jumlah
+                    WHEN dibatalkan_pada IS NULL AND koreksi_dari_id IS NULL THEN -jumlah
+                    ELSE 0
+                END), 0) as total
+            ")
+            ->first();
+
+        if ((int) ($agregat->semua_baris ?? 0) > 0) {
+            return (float) $agregat->total;
+        }
+
+        $kas ??= KasKoperasi::first();
+
+        return (float) ($kas?->saldo_dana_sosial ?? 0);
+    }
 }
