@@ -20,7 +20,7 @@ class SettingChipNominal extends Model
     public const GRUP_LABEL = [
         'pengeluaran' => 'Pengeluaran',
         'topup' => 'Topup Bank',
-        'sisih' => 'Sisih Kas Kecil',
+        'sisih' => 'Transfer Dana',
         'pinjaman_usulan' => 'Usulan Pinjaman (Bendahara/Ketua)',
         'limit_baru' => 'Limit Baru (Bendahara/Ketua)',
     ];

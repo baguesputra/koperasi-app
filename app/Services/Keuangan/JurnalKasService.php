@@ -181,7 +181,7 @@ class JurnalKasService
 
             if ((float) $kas->saldo_bank < $jumlah) {
                 throw new RuntimeException(
-                    'Saldo Bank tidak mencukupi untuk sisih kas kecil. Saldo saat ini: Rp '.number_format((float) $kas->saldo_bank, 0, ',', '.')
+                    'Saldo Bank tidak mencukupi untuk transfer dana. Saldo saat ini: Rp '.number_format((float) $kas->saldo_bank, 0, ',', '.')
                 );
             }
 
@@ -197,7 +197,7 @@ class JurnalKasService
                 'jumlah' => $jumlah,
                 'saldo_setelah' => $kas->saldo_bank,
                 'keterangan' => $keterangan,
-                'sub_judul' => 'Sisih kas kecil',
+                'sub_judul' => 'Transfer dana',
                 'referensi_id' => null,
                 'tanggal' => $tanggal,
                 'created_by' => $userId,
@@ -211,7 +211,7 @@ class JurnalKasService
                 'jumlah' => $jumlah,
                 'saldo_setelah' => $kas->saldo_kas_kecil,
                 'keterangan' => $keterangan,
-                'sub_judul' => 'Sisih kas kecil',
+                'sub_judul' => 'Transfer dana',
                 'referensi_id' => null,
                 'tanggal' => $tanggal,
                 'created_by' => $userId,
@@ -238,12 +238,12 @@ class JurnalKasService
             if (in_array($asal->kategori, ['sisih_kas_kecil', 'terima_sisih_kas_kecil'], true)) {
                 $pasangan = $this->cariPasanganSisih($asal);
                 if (! $pasangan) {
-                    throw new RuntimeException('Pasangan jurnal sisih kas kecil tidak ditemukan.');
+                    throw new RuntimeException('Pasangan jurnal transfer dana tidak ditemukan.');
                 }
 
                 if ((float) $kas->saldo_kas_kecil < $jumlah) {
                     throw new RuntimeException(
-                        'Saldo Kas kecil tidak mencukupi untuk membatalkan sisih kas kecil. Saldo saat ini: Rp '.number_format((float) $kas->saldo_kas_kecil, 0, ',', '.')
+                        'Saldo Kas kecil tidak mencukupi untuk membatalkan transfer dana. Saldo saat ini: Rp '.number_format((float) $kas->saldo_kas_kecil, 0, ',', '.')
                     );
                 }
 

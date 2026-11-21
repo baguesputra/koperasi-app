@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Laporan\LaporanRegistry;
 use App\Models\JurnalKas;
 use App\Models\KasKoperasi;
 use App\Models\Pengeluaran;
@@ -88,7 +89,7 @@ class KasKoperasiController extends Controller
             $query->where('tipe', $tipeFilter);
         }
 
-        if ($kategoriFilter !== '' && isset(\App\Laporan\LaporanRegistry::KATEGORI_LABEL[$kategoriFilter])) {
+        if ($kategoriFilter !== '' && isset(LaporanRegistry::KATEGORI_LABEL[$kategoriFilter])) {
             $query->where('kategori', $kategoriFilter);
         }
 
@@ -236,6 +237,7 @@ class KasKoperasiController extends Controller
 
         $ambilKas = function () {
             static $kas = null;
+
             return $kas ??= KasKoperasi::firstOrFail();
         };
 
@@ -257,7 +259,7 @@ class KasKoperasiController extends Controller
             'tipePengeluaranList' => Pengeluaran::TIPE_LABEL,
             'akunPengeluaranList' => Pengeluaran::AKUN_LABEL,
             'kantongOptions' => JurnalKasService::KANTONG_LABEL,
-            'kategoriOptions' => \App\Laporan\LaporanRegistry::KATEGORI_LABEL,
+            'kategoriOptions' => LaporanRegistry::KATEGORI_LABEL,
             'ringkasanPeriode' => [
                 'total_masuk' => $totalMasuk,
                 'total_keluar' => $totalKeluar,
@@ -364,7 +366,7 @@ class KasKoperasiController extends Controller
         try {
             $this->jurnalKas->sisihKasKecil(
                 jumlah: (float) $request->jumlah,
-                keterangan: $request->keterangan ?: 'Sisihkan kas kecil dari bank',
+                keterangan: $request->keterangan ?: 'Transfer dana dari bank ke kas kecil',
                 tanggal: now()->format('Y-m-d'),
                 userId: auth()->id(),
             );
@@ -372,7 +374,7 @@ class KasKoperasiController extends Controller
             return back()->withErrors(['jumlah' => $e->getMessage()]);
         }
 
-        return back()->with('status', 'Kas kecil berhasil disisihkan.');
+        return back()->with('status', 'Transfer dana berhasil dicatat.');
     }
 
     public function batalkan(Request $request, JurnalKas $jurnalKas)

@@ -1343,7 +1343,7 @@ export const ENDPOINT_GROUPS = [
     {
         id: 'pengurus-kas',
         name: 'Pengurus: Kas Koperasi',
-        description: 'Pemantauan mutasi bank & kas kecil serta pencatatan topup modal, pengeluaran operasional, dan penyisihan dana.',
+        description: 'Pemantauan mutasi bank & kas kecil serta pencatatan topup modal, pengeluaran operasional, dan transfer dana.',
         endpoints: [
             {
                 id: 'pengurus-kas-index',
@@ -1441,22 +1441,22 @@ export const ENDPOINT_GROUPS = [
                 id: 'pengurus-kas-sisihkan',
                 method: 'POST',
                 path: '/pengurus/kas/sisihkan',
-                summary: 'Sisihkan saldo bank ke kas kecil / dana cadangan',
-                description: 'Memindahkan dana sebesar nominal tertentu sesuai prosedur penyisihan kas.',
+                summary: 'Transfer dana dari saldo bank ke kas kecil',
+                description: 'Memindahkan dana sebesar nominal tertentu dari Bank ke Kas Kecil.',
                 auth: 'Bearer Token',
                 permission: 'kas.topup',
                 idempotent: true,
                 statusCode: 200,
                 params: [
-                    { name: 'jumlah', in: 'body', type: 'number (min:1)', required: true, description: 'Nominal yang disisihkan.' },
-                    { name: 'keterangan', in: 'body', type: 'string (max:255)', required: false, description: 'Keterangan penyisihan dana.' },
+                    { name: 'jumlah', in: 'body', type: 'number (min:1)', required: true, description: 'Nominal dana yang ditransfer.' },
+                    { name: 'keterangan', in: 'body', type: 'string (max:255)', required: false, description: 'Keterangan transfer dana.' },
                 ],
                 body: {
                     jumlah: 2000000,
                     keterangan: 'Pengisian kas kecil operasional bulanan',
                 },
                 returns: {
-                    message: 'Dana kas berhasil disisihkan.',
+                    message: 'Transfer dana berhasil dicatat.',
                 },
             },
         ],
@@ -1511,6 +1511,8 @@ export const ENDPOINT_GROUPS = [
                     { name: 'dari', in: 'query', type: 'string (Y-m)', required: false, description: 'Bulan awal untuk laporan filter=rentang.' },
                     { name: 'sampai', in: 'query', type: 'string (Y-m)', required: false, description: 'Bulan akhir untuk laporan filter=rentang.' },
                     { name: 'tahun', in: 'query', type: 'integer (2000-2100)', required: false, description: 'Tahun laporan untuk filter=tahun.' },
+                    { name: 'status_pinjaman', in: 'query', type: 'string', required: false, description: 'Filter status untuk pinjaman-per-status (diajukan|approved_admin|approved_bendahara|aktif|lunas|ditolak).' },
+                    { name: 'semua_periode', in: 'query', type: 'boolean (1|0)', required: false, description: 'Tarik pinjaman lintas tahun pengajuan pada pinjaman-per-status.' },
                 ],
                 query: {
                     dari: '2026-01',
@@ -1540,6 +1542,8 @@ export const ENDPOINT_GROUPS = [
                     { name: 'dari', in: 'query', type: 'string (Y-m)', required: false, description: 'Bulan awal (opsional).' },
                     { name: 'sampai', in: 'query', type: 'string (Y-m)', required: false, description: 'Bulan akhir (opsional).' },
                     { name: 'tahun', in: 'query', type: 'integer (2000-2100)', required: false, description: 'Tahun laporan (opsional).' },
+                    { name: 'status_pinjaman', in: 'query', type: 'string', required: false, description: 'Filter status untuk pinjaman-per-status (diajukan|approved_admin|approved_bendahara|aktif|lunas|ditolak).' },
+                    { name: 'semua_periode', in: 'query', type: 'boolean (1|0)', required: false, description: 'Tarik pinjaman lintas tahun pengajuan pada pinjaman-per-status.' },
                 ],
                 query: {
                     tahun: 2026,

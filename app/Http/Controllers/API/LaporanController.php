@@ -81,6 +81,8 @@ class LaporanController extends Controller
             'cabang' => ['nullable', 'string', 'max:100'],
             'kantong' => ['nullable', 'string', 'max:50'],
             'status_anggota' => ['nullable', 'in:aktif,resign'],
+            'status_pinjaman' => ['nullable', 'in:diajukan,approved_admin,approved_bendahara,aktif,lunas,ditolak'],
+            'semua_periode' => ['nullable', 'boolean'],
         ]);
 
         $this->normalisasiFilter($request, $slug);
@@ -121,6 +123,8 @@ class LaporanController extends Controller
             'cabang' => ['nullable', 'string', 'max:100'],
             'kantong' => ['nullable', 'string', 'max:50'],
             'status_anggota' => ['nullable', 'in:aktif,resign'],
+            'status_pinjaman' => ['nullable', 'in:diajukan,approved_admin,approved_bendahara,aktif,lunas,ditolak'],
+            'semua_periode' => ['nullable', 'boolean'],
         ]);
 
         $this->normalisasiFilter($request, $slug);
@@ -169,6 +173,11 @@ class LaporanController extends Controller
     private function periodeLabel(Request $request, string $slug): string
     {
         $def = LaporanRegistry::ambil($slug);
+        $ekstraNama = collect($def['filter']['ekstra'] ?? [])->map(fn ($e) => is_array($e) ? $e['nama'] : $e)->all();
+        if ($request->boolean('semua_periode') && in_array('semua_periode', $ekstraNama, true)) {
+            return 'Semua Periode';
+        }
+
         $tipe = $def['filter']['tipe'] ?? 'rentang';
 
         if ($tipe === 'tahun') {
@@ -177,12 +186,12 @@ class LaporanController extends Controller
         if ($tipe === 'bulan') {
             $bulan = $request->input('bulan');
 
-            return $bulan ? Carbon::parse($bulan.'-01')->translatedFormat('F Y') : 'Bulan Berjalan';
+            return $bulan ? Carbon::parse($bulan.'-01')->locale('id')->translatedFormat('F Y') : 'Bulan Berjalan';
         }
         if ($tipe === 'tanggal') {
             $tanggal = $request->input('tanggal');
 
-            return $tanggal ? Carbon::parse($tanggal)->translatedFormat('d F Y') : 'Hari Ini';
+            return $tanggal ? Carbon::parse($tanggal)->locale('id')->translatedFormat('d F Y') : 'Hari Ini';
         }
         if ($tipe === 'tanpa_periode') {
             return 'Semua Periode';
@@ -192,9 +201,9 @@ class LaporanController extends Controller
         $sampai = $request->input('sampai');
 
         if ($dari && $sampai && $dari !== $sampai) {
-            return Carbon::parse($dari.'-01')->translatedFormat('M Y').' s.d. '.Carbon::parse($sampai.'-01')->translatedFormat('M Y');
+            return Carbon::parse($dari.'-01')->locale('id')->translatedFormat('M Y').' s.d. '.Carbon::parse($sampai.'-01')->locale('id')->translatedFormat('M Y');
         }
 
-        return $dari ? Carbon::parse($dari.'-01')->translatedFormat('F Y') : 'Semua Periode';
+        return $dari ? Carbon::parse($dari.'-01')->locale('id')->translatedFormat('F Y') : 'Semua Periode';
     }
 }

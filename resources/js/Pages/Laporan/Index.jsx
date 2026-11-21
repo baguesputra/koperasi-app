@@ -99,8 +99,8 @@ export default function Index({ kelompok }) {
                 {grupTampil.map(([kategori, items]) => (
                     <section key={kategori}>
                         <div className="flex items-center gap-2 mb-3">
-                            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">{kategori}</h2>
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-500 tabular-nums">
+                            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">{kategori}</h2>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 tabular-nums">
                                 {items.length}
                             </span>
                         </div>
@@ -120,7 +120,7 @@ export default function Index({ kelompok }) {
                                             <ChevronRight size={16} aria-hidden="true" className="text-slate-300 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-brand-green transition-all mt-1" />
                                         </div>
                                         <p className="text-base font-bold text-slate-800 group-hover:text-brand-navy transition-colors">{l.judul}</p>
-                                        <p className="text-sm text-slate-400 mt-1 leading-snug">{l.deskripsi}</p>
+                                        <p className="text-sm text-slate-500 mt-1 leading-snug">{l.deskripsi}</p>
                                     </Link>
                                 );
                             })}

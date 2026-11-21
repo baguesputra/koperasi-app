@@ -84,7 +84,7 @@ class LaporanController extends Controller
             ...$rowsExcel,
         ];
         if ($hasil['totals']) {
-            $baris[] = array_map(fn ($v) => is_string($v) ? $v : (string) $v, $hasil['totals']);
+            $baris[] = array_map(fn ($v) => $v === null ? '' : $v, $hasil['totals']);
         }
 
         return Excel::download(new ArrayExport($baris), $this->namaFile($def['judul'], $periodeLabel).'.xlsx');
@@ -117,7 +117,7 @@ class LaporanController extends Controller
                 $b = $this->periodeValid($request->input('bulan'), 'Y-m', $default->get(0) ?? now()->format('Y-m'));
                 $filter = ['bulan' => $b];
                 $request->merge(['dari' => $b, 'sampai' => $b]);
-                $periodeLabel = Carbon::parse($b.'-01')->translatedFormat('F Y');
+                $periodeLabel = Carbon::parse($b.'-01')->locale('id')->translatedFormat('F Y');
                 break;
 
             case 'tahun':
@@ -137,7 +137,7 @@ class LaporanController extends Controller
                 $filter = ['tanggal' => $d];
                 // M-10: tulis balik nilai tervalidasi agar closure data membaca tanggal yang aman.
                 $request->merge(['tanggal' => $d]);
-                $periodeLabel = Carbon::parse($d)->translatedFormat('d F Y');
+                $periodeLabel = Carbon::parse($d)->locale('id')->translatedFormat('d F Y');
                 break;
 
             default: // rentang / tanpa_periode
@@ -149,8 +149,8 @@ class LaporanController extends Controller
                     $dari = $this->periodeValid($request->input('dari'), 'Y-m', $dari);
                     $sampai = $this->periodeValid($request->input('sampai'), 'Y-m', $sampai);
                     $filter = ['dari' => $dari, 'sampai' => $sampai];
-                    $labelDari = $dari ? Carbon::parse($dari.'-01')->translatedFormat('M Y') : null;
-                    $labelSampai = $sampai ? Carbon::parse($sampai.'-01')->translatedFormat('M Y') : null;
+                    $labelDari = $dari ? Carbon::parse($dari.'-01')->locale('id')->translatedFormat('M Y') : null;
+                    $labelSampai = $sampai ? Carbon::parse($sampai.'-01')->locale('id')->translatedFormat('M Y') : null;
                     $periodeLabel = $labelSampai && $labelSampai !== $labelDari
                         ? "{$labelDari} – {$labelSampai}"
                         : ($labelDari ?? 'Semua Periode');
@@ -164,6 +164,22 @@ class LaporanController extends Controller
         foreach ($def['filter']['ekstra'] ?? [] as $ekstra) {
             $nama = is_array($ekstra) ? $ekstra['nama'] : $ekstra;
             $filter[$nama] = $request->input($nama, is_array($ekstra) ? ($ekstra['default'] ?? '') : '');
+        }
+
+        if (array_key_exists('semua_periode', $filter)) {
+            $aktifSemua = $request->boolean('semua_periode');
+            $filter['semua_periode'] = $aktifSemua ? '1' : '';
+            if ($aktifSemua) {
+                $periodeLabel = 'Semua Periode';
+            }
+        }
+
+        if (array_key_exists('status_pinjaman', $filter)) {
+            $statusVal = $filter['status_pinjaman'];
+            if (! is_string($statusVal) || ($statusVal !== '' && ! isset(LaporanRegistry::STATUS_PINJAMAN[$statusVal]))) {
+                $filter['status_pinjaman'] = '';
+                $request->merge(['status_pinjaman' => '']);
+            }
         }
 
         return [$filter, $periodeLabel];
@@ -189,12 +205,17 @@ class LaporanController extends Controller
     {
         $perluCabang = false;
         $perluKantong = false;
+        $perluStatusPinjaman = false;
         foreach ($def['filter']['ekstra'] ?? [] as $e) {
-            if ((is_array($e) ? $e['nama'] : $e) === 'cabang') {
+            $nama = is_array($e) ? $e['nama'] : $e;
+            if ($nama === 'cabang') {
                 $perluCabang = true;
             }
-            if ((is_array($e) ? $e['nama'] : $e) === 'kantong') {
+            if ($nama === 'kantong') {
                 $perluKantong = true;
+            }
+            if ($nama === 'status_pinjaman') {
+                $perluStatusPinjaman = true;
             }
         }
 
@@ -207,9 +228,10 @@ class LaporanController extends Controller
                     'pinjaman' => 'Dana Pinjaman',
                     'dana_sosial' => 'Dana Sosial',
                     'simpanan' => 'Simpanan Anggota',
-                    'pengembalian_simpanan' => 'Pengembalian Simpanan (transit)',
+                    'pengembalian_simpanan' => 'Pengembalian Simpanan',
                 ]
                 : null,
+            'status_pinjaman' => $perluStatusPinjaman ? LaporanRegistry::STATUS_PINJAMAN : null,
         ];
     }
 

@@ -5,8 +5,11 @@ namespace Tests\Feature;
 use App\Laporan\LaporanRegistry;
 use App\Models\Anggota;
 use App\Models\Angsuran;
+use App\Models\AngsuranPercepatan;
 use App\Models\JurnalKas;
+use App\Models\PengajuanPercepatan;
 use App\Models\Pinjaman;
+use App\Models\ShuPeriode;
 use App\Models\Simpanan;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
@@ -106,7 +109,7 @@ class LaporanTest extends TestCase
                 ->where('hasil.ringkasan.2.1', 'Rp 400.000')
                 ->where('hasil.ringkasan.3.1', 'Rp 2.600.000')
                 ->where('hasil.ringkasan.4.1', 'Rp 7.600.000')
-                ->where('hasil.rows', fn ($rows) => collect($rows)->flatten()->contains('Saldo akhir aktual (buku kas)')));
+                ->where('hasil.rows', fn ($rows) => collect($rows)->flatten()->contains('Saldo Akhir Aktual (Buku Kas)')));
     }
 
     public function test_arus_kas_filter_kantong_sebagai_label(): void
@@ -222,7 +225,7 @@ class LaporanTest extends TestCase
         ]);
 
         // Buat ShuPeriode final tahun lalu (2025)
-        $periode2025 = \App\Models\ShuPeriode::create([
+        $periode2025 = ShuPeriode::create([
             'tahun_buku' => 2025,
             'total_shu' => 10_000_000,
             'pct_cadangan' => 0.10, // 1.000.000 (tidak dibagi)
@@ -400,5 +403,196 @@ class LaporanTest extends TestCase
         // PDF & export juga harus tahan input invalid.
         $this->get(route('laporan.pdf', ['jenis' => 'neraca', 'tanggal' => 'bukan-tanggal']))->assertOk();
         $this->get(route('laporan.export', ['jenis' => 'arus-kas', 'dari' => 'xx', 'sampai' => 'yy']))->assertOk();
+    }
+
+    public function test_pinjaman_per_status_filter_status_semua_periode_dan_cicilan_belum_bayar(): void
+    {
+        $this->loginSebagai('BEN-000001');
+        $hariIni = now()->format('Y-m-d');
+        $duaTahunLalu = now()->subYears(2)->format('Y-m-d');
+
+        $buatAnggota = fn (string $no, string $nama) => Anggota::create([
+            'user_id' => null, 'no_anggota' => $no, 'nama' => $nama,
+            'cabang' => 'Banjarmasin', 'unit_bisnis' => 'Ops', 'jabatan' => 'staff',
+            'tanggal_mulai_kerja' => now()->subYears(3), 'tanggal_jadi_anggota' => now()->subYears(3),
+            'status' => 'aktif',
+        ]);
+
+        // Pinjaman A: aktif lintas tahun (2 tahun lalu), cicilan 1 & 3 lunas, 2/4/5 belum bayar.
+        $anggotaA = $buatAnggota('ANG-PJM-A', 'Anggota Lintas Tahun');
+        $pinjamanA = Pinjaman::create([
+            'anggota_id' => $anggotaA->id, 'nominal' => 1_000_000, 'tenor_bulan' => 5,
+            'persentase_bunga' => 1, 'status' => 'aktif', 'tanggal_pengajuan' => $duaTahunLalu,
+            'tanggal_pencairan' => $duaTahunLalu,
+        ]);
+        foreach (range(1, 5) as $ke) {
+            $lunas = in_array($ke, [1, 3], true);
+            Angsuran::create([
+                'pinjaman_id' => $pinjamanA->id, 'cicilan_ke' => $ke,
+                'nominal_pokok' => 200_000, 'nominal_bunga' => 10_000, 'total_bayar' => 210_000,
+                'tanggal_jatuh_tempo' => now()->subMonths(5 - $ke)->format('Y-m-d'),
+                'tanggal_konfirmasi_bayar' => $lunas ? $hariIni : null,
+                'status' => $lunas ? 'lunas' : 'belum_bayar',
+            ]);
+        }
+
+        // Pinjaman B: aktif bulan ini dengan pengajuan pelunasan total aktif.
+        $anggotaB = $buatAnggota('ANG-PJM-B', 'Anggota Percepatan Aktif');
+        $pinjamanB = Pinjaman::create([
+            'anggota_id' => $anggotaB->id, 'nominal' => 1_000_000, 'tenor_bulan' => 2,
+            'persentase_bunga' => 1, 'status' => 'aktif', 'tanggal_pengajuan' => $hariIni,
+            'tanggal_pencairan' => $hariIni,
+        ]);
+        Angsuran::create([
+            'pinjaman_id' => $pinjamanB->id, 'cicilan_ke' => 1,
+            'nominal_pokok' => 500_000, 'nominal_bunga' => 10_000, 'total_bayar' => 510_000,
+            'tanggal_jatuh_tempo' => $hariIni, 'tanggal_konfirmasi_bayar' => $hariIni, 'status' => 'lunas',
+        ]);
+        Angsuran::create([
+            'pinjaman_id' => $pinjamanB->id, 'cicilan_ke' => 2,
+            'nominal_pokok' => 500_000, 'nominal_bunga' => 10_000, 'total_bayar' => 510_000,
+            'tanggal_jatuh_tempo' => now()->addMonth()->format('Y-m-d'), 'status' => 'digantikan',
+        ]);
+        $percepatan = PengajuanPercepatan::create([
+            'pinjaman_id' => $pinjamanB->id, 'tipe' => 'lunas_total',
+            'tenor_lama' => 2, 'tenor_baru' => null,
+            'sisa_pokok_saat_approval' => 500_000, 'nominal_final' => 505_000,
+            'bulan_berlaku' => 'bulan_ini', 'keterangan' => 'Pelunasan cepat',
+            'status' => 'aktif', 'tanggal_pengajuan' => $hariIni,
+        ]);
+        AngsuranPercepatan::create([
+            'pengajuan_percepatan_id' => $percepatan->id, 'cicilan_ke' => 1,
+            'nominal_pokok' => 500_000, 'nominal_bunga' => 5_000, 'total_bayar' => 505_000,
+            'tanggal_jatuh_tempo' => $hariIni, 'status' => 'belum_bayar',
+        ]);
+
+        // Pinjaman C: lunas bulan ini.
+        $anggotaC = $buatAnggota('ANG-PJM-C', 'Anggota Sudah Lunas');
+        Pinjaman::create([
+            'anggota_id' => $anggotaC->id, 'nominal' => 500_000, 'tenor_bulan' => 2,
+            'persentase_bunga' => 1, 'status' => 'lunas', 'tanggal_pengajuan' => $hariIni,
+        ]);
+
+        // Pinjaman D: disetujui sekretaris bulan ini.
+        $anggotaD = $buatAnggota('ANG-PJM-D', 'Anggota Disetujui Sekretaris');
+        Pinjaman::create([
+            'anggota_id' => $anggotaD->id, 'nominal' => 750_000, 'tenor_bulan' => 3,
+            'persentase_bunga' => 1, 'status' => 'approved_admin', 'tanggal_pengajuan' => $hariIni,
+        ]);
+
+        // 1. Default (rentang tahun berjalan, semua status): A tidak masuk; B, C, D masuk.
+        $this->get(route('laporan.show', 'pinjaman-per-status'))
+            ->assertOk()
+            ->assertInertia(function ($page) {
+                $page->where('opsi.status_pinjaman.approved_admin', 'Disetujui Sekretaris')
+                    ->where('opsi.status_pinjaman.aktif', 'Aktif')
+                    ->has('hasil.rows', 3);
+
+                $rows = collect($page->toArray()['props']['hasil']['rows']);
+                $this->assertNull($rows->firstWhere(fn ($r) => $r[1] === 'Anggota Lintas Tahun'));
+
+                $rowC = $rows->firstWhere(fn ($r) => $r[1] === 'Anggota Sudah Lunas');
+                $this->assertSame('Lunas', $rowC[5]);
+                $this->assertSame('-', $rowC[7]);
+                $this->assertSame('-', $rowC[8]);
+                $this->assertSame('-', $rowC[9]);
+
+                $rowD = $rows->firstWhere(fn ($r) => $r[1] === 'Anggota Disetujui Sekretaris');
+                $this->assertSame('Disetujui Sekretaris', $rowD[5]);
+                $this->assertSame('-', $rowD[7]);
+            });
+
+        // 2. Filter status aktif pada rentang default: hanya B tampil.
+        $this->get(route('laporan.show', ['jenis' => 'pinjaman-per-status', 'status_pinjaman' => 'aktif']))
+            ->assertOk()
+            ->assertInertia(function ($page) {
+                $page->has('hasil.rows', 1)
+                    ->where('hasil.rows.0.1', 'Anggota Percepatan Aktif')
+                    ->where('hasil.rows.0.7', '1x')
+                    ->where('hasil.rows.0.8', 'Pelunasan Total')
+                    ->where('hasil.rows.0.9', 505000);
+            });
+
+        // 3. Filter status aktif + semua_periode=1: A dan B tampil.
+        $this->get(route('laporan.show', ['jenis' => 'pinjaman-per-status', 'status_pinjaman' => 'aktif', 'semua_periode' => 1]))
+            ->assertOk()
+            ->assertInertia(function ($page) {
+                $page->where('periodeLabel', 'Semua Periode')
+                    ->where('filter.semua_periode', '1')
+                    ->has('hasil.rows', 2)
+                    ->where('hasil.rows.0.1', 'Anggota Lintas Tahun')
+                    ->where('hasil.rows.0.7', '3x')
+                    ->where('hasil.rows.0.8', 'Cicilan ke-2')
+                    ->where('hasil.rows.0.9', 630000)
+                    ->where('hasil.totals.7', '4x')
+                    ->where('hasil.totals.9', 1135000);
+            });
+
+        // 4. Filter status approved_admin.
+        $this->get(route('laporan.show', ['jenis' => 'pinjaman-per-status', 'status_pinjaman' => 'approved_admin']))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('hasil.rows', 1)
+                ->where('hasil.rows.0.1', 'Anggota Disetujui Sekretaris'));
+
+        // 5. Status tidak valid fallback bersih ke semua status.
+        $this->get(route('laporan.show', ['jenis' => 'pinjaman-per-status', 'status_pinjaman' => 'tidak_valid']))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('filter.status_pinjaman', '')
+                ->has('hasil.rows', 3));
+
+        // 6. Export Excel & PDF dengan filter aktif + semua_periode=1 berjalan mulus.
+        $this->get(route('laporan.pdf', ['jenis' => 'pinjaman-per-status', 'status_pinjaman' => 'aktif', 'semua_periode' => 1]))
+            ->assertOk();
+        $this->get(route('laporan.export', ['jenis' => 'pinjaman-per-status', 'status_pinjaman' => 'aktif', 'semua_periode' => 1]))
+            ->assertOk();
+    }
+
+    public function test_redaksi_dan_keterbacaan_data_laporan_akunting(): void
+    {
+        $this->loginSebagai('BEN-000001');
+
+        Anggota::create([
+            'user_id' => null, 'no_anggota' => 'ANG-RDK-001', 'no_karyawan' => 'KRY-RDK-001',
+            'nama' => 'Anggota Masa Kerja', 'cabang' => 'Banjarmasin', 'unit_bisnis' => 'Ops',
+            'jabatan' => 'Staff', 'tanggal_mulai_kerja' => now()->subMonths(2),
+            'tanggal_jadi_anggota' => now()->subMonths(2), 'status' => 'aktif',
+        ]);
+        Anggota::create([
+            'user_id' => null, 'no_anggota' => 'ANG-RDK-002', 'no_karyawan' => 'KRY-RDK-002',
+            'nama' => 'Anggota Oktober', 'cabang' => 'Banjarmasin', 'unit_bisnis' => 'Ops',
+            'jabatan' => 'Staff', 'tanggal_mulai_kerja' => '2025-10-15',
+            'tanggal_jadi_anggota' => '2025-10-15', 'status' => 'aktif',
+        ]);
+
+        // 1. Daftar Anggota: Lama Keanggotaan rapi & tanggal berbahasa Indonesia.
+        $daftar = LaporanRegistry::ambil('anggota-daftar')['data'](request());
+        $baris = collect($daftar['rows'])->firstWhere(fn ($r) => $r[1] === 'Anggota Masa Kerja');
+        $this->assertNotNull($baris);
+        $this->assertMatchesRegularExpression('/^(\d+ thn( \d+ bln)?|\d+ bln|< 1 bln)$/', $baris[6]);
+
+        $barisOktober = collect($daftar['rows'])->firstWhere(fn ($r) => $r[1] === 'Anggota Oktober');
+        $this->assertNotNull($barisOktober);
+        $this->assertSame('15 Okt 2025', $barisOktober[5]);
+
+        // 2. Neraca & Laba Rugi: catatan bebas istilah teknis sistem.
+        $neraca = LaporanRegistry::ambil('neraca')['data'](request());
+        $this->assertStringNotContainsString('neraca.xls', (string) $neraca['catatan']);
+        $this->assertStringNotContainsString('20.409.831', (string) $neraca['catatan']);
+
+        $labaRugiDef = LaporanRegistry::ambil('laba-rugi');
+        $this->assertSame('Laporan Laba Rugi', $labaRugiDef['judul']);
+        $labaRugi = $labaRugiDef['data'](request());
+        $this->assertStringNotContainsString('bunga_bank', (string) $labaRugi['catatan']);
+        $this->assertStringNotContainsString('tipe tak dikenal', (string) $labaRugi['catatan']);
+
+        // 3. Setoran Bulanan: header kolom jumlah anggota.
+        $setoran = LaporanRegistry::ambil('setoran-bulanan')['data'](request());
+        $this->assertSame('Jumlah Anggota', $setoran['kolom'][1]);
+
+        // 4. Arus Kas: catatan bebas kata "Kantong".
+        $arusKas = LaporanRegistry::ambil('arus-kas')['data'](request());
+        $this->assertStringNotContainsString('Kantong', (string) $arusKas['catatan']);
     }
 }

@@ -14,6 +14,7 @@ const fokusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible
 
 export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
     const tipeFilter = 'bulan' in filter ? 'bulan' : 'tahun' in filter ? 'tahun' : 'tanggal' in filter ? 'tanggal' : 'dari' in filter ? 'rentang' : null;
+    const semuaPeriodeAktif = 'semua_periode' in filter && String(filter.semua_periode) === '1';
     const [memuat, setMemuat] = useState(false);
     const [tahun, setTahun] = useState(String(filter.tahun ?? ''));
 
@@ -44,7 +45,17 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
 
     const sel = (i) => (hasil.rataKanan.includes(i) ? 'text-right whitespace-nowrap tabular-nums privacy-blur' : '');
 
-    const tampilCell = (i, cell) => (hasil.rataKanan.includes(i) && typeof cell === 'number' ? formatRupiah(cell) : cell);
+    const tampilCell = (i, cell, isSummary = false) => {
+        if (hasil.rataKanan.includes(i) && typeof cell === 'number') {
+            if (!isSummary && cell === 0) {
+                return <span className="text-slate-300">-</span>;
+            }
+
+            return formatRupiah(cell);
+        }
+
+        return cell;
+    };
 
     const gayaBaris = (ri) => (hasil.gayaBaris?.[ri] === 'section'
         ? 'bg-[#F1F5F9]'
@@ -65,7 +76,7 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
                         className={`inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-full text-slate-600 hover:bg-slate-100 transition-colors ${fokusRing}`}
                     >
                         <RotateCcw size={16} aria-hidden="true" />
-                        Reset periode
+                        Reset Filter
                     </Link>
                     <a
                         href={`${route('laporan.export', laporan.slug)}?${queryString()}`}
@@ -128,7 +139,20 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
                             />
                         </FormField>
                     )}
-                    {tipeFilter === 'rentang' && (
+                    {'semua_periode' in filter && (
+                        <FormField label="Periode">
+                            <Select
+                                size="sm"
+                                value={String(filter.semua_periode ?? '')}
+                                onChange={(e) => terapkan({ semua_periode: e.target.value })}
+                                className="md:w-52 rounded-full border-slate-200 bg-slate-50/60"
+                            >
+                                <option value="">Rentang Tanggal</option>
+                                <option value="1">Semua Periode (Lintas Tahun)</option>
+                            </Select>
+                        </FormField>
+                    )}
+                    {tipeFilter === 'rentang' && !semuaPeriodeAktif && (
                         <>
                             <FormField label="Dari">
                                 <TextField
@@ -153,6 +177,19 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
                             </FormField>
                         </>
                     )}
+                    {'status_pinjaman' in filter && opsi.status_pinjaman && (
+                        <FormField label="Status Pinjaman">
+                            <Select
+                                size="sm"
+                                value={filter.status_pinjaman}
+                                onChange={(e) => terapkan({ status_pinjaman: e.target.value })}
+                                className="md:w-44 rounded-full border-slate-200 bg-slate-50/60"
+                            >
+                                <option value="">Semua Status</option>
+                                {Object.entries(opsi.status_pinjaman).map(([nilai, label]) => <option key={nilai} value={nilai}>{label}</option>)}
+                            </Select>
+                        </FormField>
+                    )}
                     {'cabang' in filter && opsi.cabang && (
                         <FormField label="Cabang">
                             <Select
@@ -167,14 +204,14 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
                         </FormField>
                     )}
                     {'kantong' in filter && opsi.kantong && (
-                        <FormField label="Kantong">
+                        <FormField label="Pos Dana">
                             <Select
                                 size="sm"
                                 value={filter.kantong}
                                 onChange={(e) => terapkan({ kantong: e.target.value })}
                                 className="md:w-44 rounded-full border-slate-200 bg-slate-50/60"
                             >
-                                <option value="">Semua Kantong</option>
+                                <option value="">Semua Pos Dana</option>
                                 {Object.entries(opsi.kantong).map(([nilai, label]) => <option key={nilai} value={nilai}>{label}</option>)}
                             </Select>
                         </FormField>
@@ -220,7 +257,7 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
                             className="inline-flex items-center justify-center gap-2 mt-3 px-4 py-2 text-sm font-semibold rounded-full text-brand-navy border-2 border-brand-navy hover:bg-slate-50 transition-colors"
                         >
                             <RotateCcw size={14} aria-hidden="true" />
-                            Kembali ke periode default
+                            Reset Filter
                         </Link>
                     </div>
                 ) : (
@@ -242,7 +279,7 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
                                     ) : (
                                         <tr key={ri} data-row-tone={hasil.gayaBaris?.[ri] || undefined} className={gayaBaris(ri)}>
                                             {row.map((cell, ci) => (
-                                                <td key={ci} className={`px-4 py-2.5 text-slate-700 ${sel(ci)}`}>{tampilCell(ci, cell)}</td>
+                                                <td key={ci} className={`px-4 py-2.5 text-slate-700 ${sel(ci)}`}>{tampilCell(ci, cell, hasil.gayaBaris?.[ri] === 'subtotal')}</td>
                                             ))}
                                         </tr>
                                     )
@@ -252,7 +289,7 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
                                 <tfoot>
                                     <tr className="border-t-2 border-slate-200/90 bg-[#F7F9FC]">
                                         {hasil.totals.map((cell, i) => (
-                                            <td key={i} className={`px-4 py-3 font-bold text-slate-800 ${sel(i)}`}>{cell == null ? '' : tampilCell(i, cell)}</td>
+                                            <td key={i} className={`px-4 py-3 font-bold text-slate-800 ${sel(i)}`}>{cell == null ? '' : tampilCell(i, cell, true)}</td>
                                         ))}
                                     </tr>
                                 </tfoot>
@@ -267,13 +304,13 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
                             <dl className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-2">
                                 {hasil.ringkasan?.map(([label, nilai]) => (
                                     <div key={label} className="rounded-xl bg-slate-50/80 border border-slate-100 px-3 py-2">
-                                        <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{label}</dt>
+                                        <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{label}</dt>
                                         <dd className="text-sm font-bold text-slate-800 tabular-nums mt-0.5">{nilai}</dd>
                                     </div>
                                 ))}
                             </dl>
                         )}
-                        {hasil.catatan && <p className="text-xs italic text-slate-400">{hasil.catatan}</p>}
+                        {hasil.catatan && <p className="text-xs italic text-slate-500">{hasil.catatan}</p>}
                     </div>
                 )}
             </Card>

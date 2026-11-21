@@ -2,8 +2,9 @@
 @php
     $rupiah = fn ($n) => is_numeric($n) ? 'Rp '.number_format((float) $n, 0, ',', '.') : $n;
     $landscape = count($hasil['kolom']) > 6;
+    $padat = count($hasil['kolom']) > 8;
     $kopNama = config('koperasi.nama', 'KOPERASI KARYAWAN');
-    $tglCetak = \Carbon\Carbon::now()->translatedFormat('d F Y H:i');
+    $tglCetak = \Carbon\Carbon::now()->locale('id')->translatedFormat('d F Y H:i');
 @endphp
 <!DOCTYPE html>
 <html>
@@ -41,8 +42,8 @@
         .kop-judul { text-align: center; margin-bottom: 18px; }
         .dok-title { font-size: 14pt; font-weight: 700; margin: 0 0 4px 0; text-transform: uppercase; letter-spacing: 1.6px; text-decoration: underline; }
         .dok-number { font-size: 10pt; margin: 0; font-style: italic; }
-        table.laporan { width: 100%; border-collapse: collapse; font-size: {{ $landscape ? '9.5pt' : '11pt' }}; }
-        table.laporan th, table.laporan td { border: 1px solid #000; padding: 6px 8px; }
+        table.laporan { width: 100%; border-collapse: collapse; font-size: {{ $padat ? '8.5pt' : ($landscape ? '9.5pt' : '11pt') }}; }
+        table.laporan th, table.laporan td { border: 1px solid #000; padding: {{ $padat ? '4px 6px' : '6px 8px' }}; }
         table.laporan th { text-transform: uppercase; font-size: 9.5pt; letter-spacing: 0.5px; background: #f0f0f0; }
         table.laporan td.text-right, table.laporan th.text-right { text-align: right; }
         table.laporan td.text-center { text-align: center; }
@@ -55,7 +56,7 @@
         .lbl { width: 60%; color: #333; }
         .titik { width: 3%; }
         .val { width: 37%; font-weight: 700; text-align: right; }
-        .notes { border-left: 3px solid #000; padding: 8px 0 8px 14px; font-size: 10.5pt; font-style: italic; line-height: 1.6; margin-top: 12px; }
+        .notes { border-top: 1px solid #d1d5db; padding-top: 8px; font-size: 9.5pt; color: #374151; font-style: italic; line-height: 1.5; margin-top: 12px; }
         .kosong { text-align: center; font-style: italic; margin-top: 24px; }
         .footer-note { text-align: center; margin-top: 20px; padding-top: 8px; border-top: 1px solid #000; font-size: 9pt; font-style: italic; }
     </style>
@@ -86,9 +87,20 @@
                             <td colspan="{{ count($hasil['kolom']) }}">{{ $row[0] }}</td>
                         </tr>
                     @else
-                        <tr class="{{ ($hasil['gayaBaris'][$ri] ?? null) === 'subtotal' ? 'subtotal' : '' }}">
+                        @php $isSubtotal = ($hasil['gayaBaris'][$ri] ?? null) === 'subtotal'; @endphp
+                        <tr class="{{ $isSubtotal ? 'subtotal' : '' }}">
                             @foreach ($row as $i => $cell)
-                                <td class="{{ in_array($i, $hasil['rataKanan']) ? 'text-right' : '' }}">{{ $cell === null ? '' : (is_numeric($cell) && in_array($i, $hasil['rataKanan']) ? $rupiah($cell) : $cell) }}</td>
+                                @php
+                                    $rataKanan = in_array($i, $hasil['rataKanan']);
+                                    if ($cell === null) {
+                                        $tampil = '';
+                                    } elseif ($rataKanan && is_numeric($cell)) {
+                                        $tampil = (! $isSubtotal && (float) $cell == 0.0) ? '-' : $rupiah($cell);
+                                    } else {
+                                        $tampil = $cell;
+                                    }
+                                @endphp
+                                <td class="{{ $rataKanan ? 'text-right' : '' }}">{{ $tampil }}</td>
                             @endforeach
                         </tr>
                     @endif

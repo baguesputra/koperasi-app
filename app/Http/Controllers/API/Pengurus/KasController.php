@@ -143,12 +143,12 @@ class KasController extends Controller
         ]);
 
         try {
-            $this->jurnalKas->sisihKasKecil((float) $data['jumlah'], $data['keterangan'] ?? 'Sisihkan kas kecil dari bank', now()->format('Y-m-d'), $request->user()->id);
+            $this->jurnalKas->sisihKasKecil((float) $data['jumlah'], $data['keterangan'] ?? 'Transfer dana dari bank ke kas kecil', now()->format('Y-m-d'), $request->user()->id);
         } catch (RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
-        return response()->json(['message' => 'Kas kecil berhasil disisihkan.']);
+        return response()->json(['message' => 'Transfer dana berhasil dicatat.']);
     }
 
     public function batalkan(Request $request, JurnalKas $jurnalKas): JsonResponse

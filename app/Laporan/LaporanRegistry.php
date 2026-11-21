@@ -26,17 +26,17 @@ class LaporanRegistry
 {
     public const KATEGORI_LABEL = [
         'saldo_awal' => 'Saldo Awal',
-        'topup_bulanan' => 'Topup Saldo',
+        'topup_bulanan' => 'Penambahan Saldo Kas',
         'pencairan_pinjaman' => 'Pencairan Pinjaman',
         'pembayaran_angsuran' => 'Pembayaran Angsuran',
         'dana_sosial_bulanan' => 'Dana Sosial Bulanan',
         'pengeluaran_koperasi' => 'Pengeluaran Koperasi',
         'pengeluaran_dana_sosial' => 'Pengeluaran Dana Sosial',
-        'pelunasan_resign_pinjaman' => 'Pelunasan Resign Pinjaman',
-        'pelunasan_resign_simpanan' => 'Pelunasan Pinjaman dari Simpanan',
+        'pelunasan_resign_pinjaman' => 'Pelunasan Pinjaman (Resign)',
+        'pelunasan_resign_simpanan' => 'Pelunasan Pinjaman via Simpanan',
         'simpanan_resign_masuk' => 'Simpanan Anggota (Resign)',
-        'return_simpanan_pokok' => 'Return Simpanan Pokok',
-        'return_simpanan_wajib' => 'Return Simpanan Wajib',
+        'return_simpanan_pokok' => 'Pengembalian Simpanan Pokok',
+        'return_simpanan_wajib' => 'Pengembalian Simpanan Wajib',
         'simpanan_pokok_masuk' => 'Simpanan Pokok Masuk',
         'simpanan_wajib_masuk' => 'Simpanan Wajib Masuk',
         'transfer_ke_dana_pinjaman' => 'Transfer ke Dana Pinjaman',
@@ -48,13 +48,14 @@ class LaporanRegistry
         'kembali_talangan_dari_pinjaman' => 'Pengembalian Talangan dari Pinjaman',
         'kembali_talangan_ke_simpanan' => 'Pengembalian Talangan ke Simpanan',
         'kembali_talangan_ke_sosial' => 'Pengembalian Talangan ke Sosial',
-        'sisih_kas_kecil' => 'Sisih Kas Kecil',
-        'terima_sisih_kas_kecil' => 'Terima Sisih Kas Kecil',
+        'sisih_kas_kecil' => 'Transfer Dana',
+        'terima_sisih_kas_kecil' => 'Terima Transfer Dana',
         'pembayaran_shu' => 'Pembayaran SHU',
     ];
 
     public const STATUS_PINJAMAN = [
         'diajukan' => 'Diajukan',
+        'approved_admin' => 'Disetujui Sekretaris',
         'approved_bendahara' => 'Disetujui Bendahara',
         'aktif' => 'Aktif',
         'lunas' => 'Lunas',
@@ -67,7 +68,7 @@ class LaporanRegistry
             // ============ KEUANGAN ============
             'arus-kas' => [
                 'judul' => 'Laporan Arus Kas',
-                'deskripsi' => 'Arus masuk/keluar per kategori dengan saldo awal, arus bersih, dan saldo akhir.',
+                'deskripsi' => 'Ringkasan kas masuk, kas keluar, dan rekonsiliasi saldo Bank serta Kas Kecil.',
                 'kategori' => 'Keuangan',
                 'ikon' => 'wallet',
                 'filter' => ['tipe' => 'rentang', 'ekstra' => ['kantong']],
@@ -94,14 +95,16 @@ class LaporanRegistry
                     $keluar = [];
                     foreach ($agregat as $a) {
                         if ($a->tipe === 'masuk') {
-                            $masuk[$a->kategori] = (float) $a->total;
+                            $masuk[$a->kategori] = round((float) $a->total, 2);
                         } else {
-                            $keluar[$a->kategori] = (float) $a->total;
+                            $keluar[$a->kategori] = round((float) $a->total, 2);
                         }
                     }
 
                     $awal = self::kasPerTanggal($dari->copy()->subDay()->endOfDay());
-                    $awalTotal = $awal['bank'] + $awal['kas_kecil'];
+                    $awalBank = round($awal['bank'], 2);
+                    $awalKasKecil = round($awal['kas_kecil'], 2);
+                    $awalTotal = round($awalBank + $awalKasKecil, 2);
 
                     $rows = [];
                     $gayaBaris = [];
@@ -110,7 +113,7 @@ class LaporanRegistry
                         $gayaBaris[] = 'section';
                     };
                     $baris = function (string $uraian, $nilai, string $gaya = 'data') use (&$rows, &$gayaBaris) {
-                        $rows[] = [$uraian, $nilai];
+                        $rows[] = [$uraian, is_numeric($nilai) ? round((float) $nilai, 2) : $nilai];
                         $gayaBaris[] = $gaya;
                     };
 
@@ -118,48 +121,48 @@ class LaporanRegistry
                     $totalMasuk = 0.0;
                     $totalKeluar = 0.0;
 
-                    $bagian('A. Saldo awal periode');
-                    $baris('Saldo awal — Bank', $awal['bank']);
-                    $baris('Saldo awal — Kas Kecil', $awal['kas_kecil']);
-                    $baris('Jumlah saldo awal', $totalAwal, 'subtotal');
+                    $bagian('A. Saldo Awal Periode');
+                    $baris('Saldo Awal — Bank', $awalBank);
+                    $baris('Saldo Awal — Kas Kecil', $awalKasKecil);
+                    $baris('Total Saldo Awal', $totalAwal, 'subtotal');
 
-                    $bagian('B. Penerimaan kas');
+                    $bagian('B. Penerimaan Kas');
                     foreach (self::KATEGORI_LABEL as $kategori => $label) {
                         if (! empty($masuk[$kategori])) {
-                            $totalMasuk += $masuk[$kategori];
+                            $totalMasuk = round($totalMasuk + $masuk[$kategori], 2);
                             $baris($label, $masuk[$kategori]);
                         }
                     }
                     if ($totalMasuk == 0) {
                         $baris('Tidak ada penerimaan pada periode ini', 0.0);
                     }
-                    $baris('Jumlah penerimaan', $totalMasuk, 'subtotal');
+                    $baris('Total Penerimaan Kas', $totalMasuk, 'subtotal');
 
-                    $bagian('C. Pengeluaran kas');
+                    $bagian('C. Pengeluaran Kas');
                     foreach (self::KATEGORI_LABEL as $kategori => $label) {
                         if (! empty($keluar[$kategori])) {
-                            $totalKeluar += $keluar[$kategori];
+                            $totalKeluar = round($totalKeluar + $keluar[$kategori], 2);
                             $baris($label, $keluar[$kategori]);
                         }
                     }
                     if ($totalKeluar == 0) {
                         $baris('Tidak ada pengeluaran pada periode ini', 0.0);
                     }
-                    $baris('Jumlah pengeluaran', $totalKeluar, 'subtotal');
+                    $baris('Total Pengeluaran Kas', $totalKeluar, 'subtotal');
 
-                    $bersih = $totalMasuk - $totalKeluar;
-                    $akhirHitung = $totalAwal + $bersih;
+                    $bersih = round($totalMasuk - $totalKeluar, 2);
+                    $akhirHitung = round($totalAwal + $bersih, 2);
                     $akhir = self::kasPerTanggal($sampai);
-                    $akhirTotal = $akhir['bank'] + $akhir['kas_kecil'];
+                    $akhirTotal = round($akhir['bank'] + $akhir['kas_kecil'], 2);
 
-                    $bagian('D. Rekonsiliasi');
-                    $baris('Arus bersih (masuk − keluar)', $bersih, 'subtotal');
-                    $baris('Saldo akhir (awal + bersih)', $akhirHitung, 'subtotal');
-                    $baris('Saldo akhir aktual (buku kas)', $akhirTotal, 'subtotal');
+                    $bagian('D. Ringkasan & Rekonsiliasi');
+                    $baris('Arus Kas Bersih (Masuk − Keluar)', $bersih, 'subtotal');
+                    $baris('Saldo Akhir Perhitungan', $akhirHitung, 'subtotal');
+                    $baris('Saldo Akhir Aktual (Buku Kas)', $akhirTotal, 'subtotal');
 
-                    $catatan = 'Seluruh transaksi jurnal (bank & kas kecil). Kantong berfungsi sebagai label klasifikasi, bukan rekening.';
+                    $catatan = 'Mencakup seluruh mutasi kas masuk dan kas keluar (Bank dan Kas Kecil) pada periode terpilih.';
                     if ($kantongFilter && isset(JurnalKasService::KANTONG_LABEL[$kantongFilter])) {
-                        $catatan .= ' Filter label kantong: '.JurnalKasService::KANTONG_LABEL[$kantongFilter].'.';
+                        $catatan .= ' Filter pos dana: '.JurnalKasService::KANTONG_LABEL[$kantongFilter].'.';
                     }
 
                     return self::hasil(
@@ -168,11 +171,11 @@ class LaporanRegistry
                         $rows,
                         null,
                         [
-                            ['Saldo awal periode', self::rupiah($totalAwal)],
-                            ['Total arus masuk', self::rupiah($totalMasuk)],
-                            ['Total arus keluar', self::rupiah($totalKeluar)],
-                            ['Arus bersih', self::rupiah($bersih)],
-                            ['Saldo akhir aktual', self::rupiah($akhirTotal)],
+                            ['Saldo Awal Periode', self::rupiah($totalAwal)],
+                            ['Total Penerimaan', self::rupiah($totalMasuk)],
+                            ['Total Pengeluaran', self::rupiah($totalKeluar)],
+                            ['Arus Kas Bersih', self::rupiah($bersih)],
+                            ['Saldo Akhir Buku Kas', self::rupiah($akhirTotal)],
                         ],
                         $catatan,
                         $gayaBaris,
@@ -182,7 +185,7 @@ class LaporanRegistry
 
             'neraca' => [
                 'judul' => 'Laporan Neraca',
-                'deskripsi' => 'Posisi keuangan koperasi per tanggal cut-off: aktiva = kewajiban + modal.',
+                'deskripsi' => 'Posisi keuangan koperasi (Aktiva, Kewajiban, dan Modal) per tanggal cut-off.',
                 'kategori' => 'Keuangan',
                 'ikon' => 'landmark',
                 'filter' => ['tipe' => 'tanggal'],
@@ -194,42 +197,42 @@ class LaporanRegistry
 
                     // I. Aktiva Lancar
                     $kas = self::kasPerTanggal($cutoff);
-                    $piutang = self::piutangPerTanggal($tgl);
-                    $aktivaLancar = $kas['bank'] + $kas['kas_kecil'] + $piutang;
+                    $bank = round($kas['bank'], 2);
+                    $kasKecil = round($kas['kas_kecil'], 2);
+                    $piutang = round(self::piutangPerTanggal($tgl), 2);
+                    $aktivaLancar = round($bank + $kasKecil + $piutang, 2);
                     $totalAktiva = $aktivaLancar;
 
                     // II. Kewajiban Lancar
-                    $simpananPokok = (float) DB::table('simpanan')
+                    $simpananPokok = round((float) DB::table('simpanan')
                         ->join('anggota', 'anggota.id', '=', 'simpanan.anggota_id')
                         ->where('simpanan.jenis', 'pokok')
                         ->where('anggota.status', 'aktif')
                         ->where('simpanan.tanggal_input', '<=', $cutoff)
-                        ->sum('simpanan.jumlah');
+                        ->sum('simpanan.jumlah'), 2);
 
-                    $simpananWajib = (float) DB::table('simpanan')
+                    $simpananWajib = round((float) DB::table('simpanan')
                         ->join('anggota', 'anggota.id', '=', 'simpanan.anggota_id')
                         ->where('simpanan.jenis', 'wajib')
                         ->where('anggota.status', 'aktif')
                         ->where('simpanan.tanggal_input', '<=', $cutoff)
-                        ->sum('simpanan.jumlah');
+                        ->sum('simpanan.jumlah'), 2);
 
-                    $asuransiSosial = self::danaSosialPerTanggal($cutoff);
+                    $asuransiSosial = round(self::danaSosialPerTanggal($cutoff), 2);
                     $shu = self::shuTahunBerjalan($tahun, $cutoff);
+                    $shuNilai = round((float) $shu['shu'], 2);
                     $hutang = 0.0;
 
-                    $totalKewajiban = $simpananPokok + $simpananWajib + $asuransiSosial + $shu['shu'] + $hutang;
+                    $totalKewajiban = round($simpananPokok + $simpananWajib + $asuransiSosial + $shuNilai + $hutang, 2);
 
                     // III. Modal
-                    // Modal tetap: modal di Excel (18.969.831) + saldo anggota lama (1.440.000) = 20.409.831
-                    $modalTetap = (float) config('koperasi.modal_tetap', 20_409_831);
-
-                    // Laba/Rugi Ditahan: base historis Excel (17.663.447) + otomatis akumulasi dana tak dibagi / sisa dana SHU periode lalu
+                    $modalTetap = round((float) config('koperasi.modal_tetap', 20_409_831), 2);
                     $baseLabaDitahan = (float) config('koperasi.laba_ditahan_historis', 17_663_447.20);
                     $sisaDanaShu = self::akumulasiSisaDanaShu($tahun);
                     $labaRugiDitahan = round($baseLabaDitahan + $sisaDanaShu, 2);
 
-                    $totalModal = $modalTetap + $labaRugiDitahan;
-                    $totalKewajibanDanModal = $totalKewajiban + $totalModal;
+                    $totalModal = round($modalTetap + $labaRugiDitahan, 2);
+                    $totalKewajibanDanModal = round($totalKewajiban + $totalModal, 2);
                     $selisih = round($totalAktiva - $totalKewajibanDanModal, 2);
 
                     $rows = [];
@@ -239,14 +242,14 @@ class LaporanRegistry
                         $gayaBaris[] = 'section';
                     };
                     $baris = function (string $uraian, $nilai, string $gaya = 'data') use (&$rows, &$gayaBaris) {
-                        $rows[] = [$uraian, $nilai];
+                        $rows[] = [$uraian, is_numeric($nilai) ? round((float) $nilai, 2) : $nilai];
                         $gayaBaris[] = $gaya;
                     };
 
                     $bagian('I. AKTIVA');
                     $bagian('Aktiva Lancar');
-                    $baris('Bank', $kas['bank']);
-                    $baris('Kas', $kas['kas_kecil']);
+                    $baris('Bank', $bank);
+                    $baris('Kas', $kasKecil);
                     $baris('Piutang', $piutang);
                     $baris('Total Aktiva Lancar', $aktivaLancar, 'subtotal');
                     $baris('TOTAL AKTIVA', $totalAktiva, 'subtotal');
@@ -256,10 +259,11 @@ class LaporanRegistry
                     $baris('Simpanan Pokok', $simpananPokok);
                     $baris('Simpanan Wajib', $simpananWajib);
                     $baris('Asuransi Sosial', $asuransiSosial);
-                    $baris('Selisih Hasil Usaha', $shu['shu']);
+                    $baris('Selisih Hasil Usaha', $shuNilai);
                     $baris('Hutang', $hutang);
                     $baris('Total Kewajiban', $totalKewajiban, 'subtotal');
 
+                    $bagian('Modal & Ekuitas');
                     $baris('Modal', $modalTetap);
                     $baris('Laba/Rugi Ditahan', $labaRugiDitahan);
                     $baris('Total Modal', $totalModal, 'subtotal');
@@ -276,7 +280,7 @@ class LaporanRegistry
                             ['Total Kewajiban dan Modal', self::rupiah($totalKewajibanDanModal)],
                             ['Selisih (Aktiva − Kewajiban & Modal)', self::rupiah($selisih).($selisih == 0 ? ' — Seimbang' : ' — TIDAK SEIMBANG')],
                         ],
-                        'Struktur neraca diselaraskan dengan format standar neraca.xls: Aktiva Lancar (Bank, Kas, Piutang pokok pinjaman tanpa bunga) seimbang dengan Kewajiban Lancar (Simpanan Pokok, Simpanan Wajib, Asuransi Sosial, Selisih Hasil Usaha tahun berjalan, Hutang) serta Modal (Modal tetap Rp 20.409.831 termasuk saldo anggota lama, dan Laba/Rugi Ditahan dari sisa SHU historis Rp 17.663.447 ditambah otomatis dana tak dibagi / sisa hasil pembagian SHU periode lalu).',
+                        'Laporan posisi keuangan per tanggal cut-off meliputi Kas/Bank, Piutang pokok pinjaman, Simpanan anggota, Asuransi Sosial, Selisih Hasil Usaha tahun berjalan, serta Modal dan Laba/Rugi Ditahan.',
                         $gayaBaris,
                     );
                 },
@@ -284,7 +288,7 @@ class LaporanRegistry
 
             'pendapatan-bunga' => [
                 'judul' => 'Laporan Pendapatan Bunga',
-                'deskripsi' => 'Akumulasi bunga angsuran pinjaman yang lunas per bulan — khusus pinjaman, tidak termasuk bunga bank.',
+                'deskripsi' => 'Rekap pokok dan bunga angsuran pinjaman yang telah lunas per bulan.',
                 'kategori' => 'Keuangan',
                 'ikon' => 'trending-up',
                 'filter' => ['tipe' => 'tahun'],
@@ -313,23 +317,31 @@ class LaporanRegistry
                     $namaBulan = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
                     $rows = [];
                     foreach ($perBulan as $bulan => [$jml, $pokok, $bunga]) {
-                        $rows[] = [$namaBulan[$bulan].' '.$tahun, $jml, $pokok, $bunga];
+                        $rows[] = [$namaBulan[$bulan].' '.$tahun, $jml, round($pokok, 2), round($bunga, 2)];
                     }
+
+                    $totalAngsuran = array_sum(array_column($rows, 1));
+                    $totalPokok = round(array_sum(array_column($rows, 2)), 2);
+                    $totalBunga = round(array_sum(array_column($rows, 3)), 2);
 
                     return self::hasil(
                         ['Periode', 'Angsuran Lunas', 'Total Pokok', 'Bunga Angsuran'],
                         [2, 3],
                         $rows,
-                        ['TOTAL '.$tahun, array_sum(array_column($rows, 1)), array_sum(array_column($rows, 2)), array_sum(array_column($rows, 3))],
-                        null,
-                        'Hanya bunga angsuran pinjaman (normal + percepatan) per tanggal konfirmasi bayar; bunga bank tidak termasuk. Angsuran lunas tanpa tanggal tidak masuk hitungan bulanan.'
+                        ['TOTAL '.$tahun, $totalAngsuran, $totalPokok, $totalBunga],
+                        [
+                            ['Total Angsuran Lunas', $totalAngsuran.' angsuran'],
+                            ['Total Pokok Diterima', self::rupiah($totalPokok)],
+                            ['Total Pendapatan Bunga', self::rupiah($totalBunga)],
+                        ],
+                        'Mencakup pokok dan bunga angsuran pinjaman lunas (reguler dan perubahan tenor) berdasarkan tanggal pembayaran; bunga bank tidak termasuk.'
                     );
                 },
             ],
 
             'laba-rugi' => [
-                'judul' => 'Laporan Laba Rugi YTD',
-                'deskripsi' => 'Laba (bunga angsuran + bunga bank − beban per jenis) per bulan — dasar hitung SHU.',
+                'judul' => 'Laporan Laba Rugi',
+                'deskripsi' => 'Rincian pendapatan, beban operasional, dan Selisih Hasil Usaha (SHU) bulanan per tahun buku.',
                 'kategori' => 'Keuangan',
                 'ikon' => 'calculator',
                 'filter' => ['tipe' => 'tahun'],
@@ -347,8 +359,8 @@ class LaporanRegistry
                     };
                     // Kembalikan total; panggil hanya untuk baris bertotal tak nol.
                     $baris = function (string $uraian, array $perBulan, string $gaya = 'data') use (&$rows, &$gayaBaris) {
-                        $perBulan = array_values($perBulan);
-                        $total = array_sum($perBulan);
+                        $perBulan = array_map(fn ($v) => round((float) $v, 2), array_values($perBulan));
+                        $total = round(array_sum($perBulan), 2);
                         $rows[] = array_merge([$uraian], $perBulan, [$total]);
                         $gayaBaris[] = $gaya;
 
@@ -364,7 +376,7 @@ class LaporanRegistry
                     }
                     $bruto = [];
                     for ($b = 1; $b <= 12; $b++) {
-                        $bruto[$b] = $laba['bunga'][$b] + $laba['bank'][$b];
+                        $bruto[$b] = round($laba['bunga'][$b] + $laba['bank'][$b], 2);
                     }
                     $baris('Laba Bruto', $bruto, 'subtotal');
 
@@ -383,7 +395,7 @@ class LaporanRegistry
                         }
                         $baris($label, $laba['beban'][$tipe]);
                         foreach ($laba['beban'][$tipe] as $b => $v) {
-                            $bebanTotal[$b] += $v;
+                            $bebanTotal[$b] = round($bebanTotal[$b] + $v, 2);
                         }
                     }
                     $baris('Total Beban', $bebanTotal, 'subtotal');
@@ -391,7 +403,7 @@ class LaporanRegistry
                     $bagian('C. Selisih Hasil Usaha');
                     $shu = [];
                     for ($b = 1; $b <= 12; $b++) {
-                        $shu[$b] = $bruto[$b] - $bebanTotal[$b];
+                        $shu[$b] = round($bruto[$b] - $bebanTotal[$b], 2);
                     }
                     $baris('Selisih Hasil Usaha', $shu, 'subtotal');
 
@@ -401,11 +413,11 @@ class LaporanRegistry
                         $rows,
                         null,
                         [
-                            ['Total pendapatan (bunga + bunga bank)', self::rupiah(array_sum($bruto))],
-                            ['Total beban operasional', self::rupiah(array_sum($bebanTotal))],
-                            ['Selisih Hasil Usaha '.$tahun, self::rupiah(array_sum($shu))],
+                            ['Total Pendapatan', self::rupiah(round(array_sum($bruto), 2))],
+                            ['Total Beban Operasional', self::rupiah(round(array_sum($bebanTotal), 2))],
+                            ['Selisih Hasil Usaha '.$tahun, self::rupiah(round(array_sum($shu), 2))],
                         ],
-                        'Bunga = angsuran lunas (normal + percepatan) per tanggal konfirmasi bayar; lunas tanpa tanggal tidak masuk hitungan bulanan. Bunga bank = topup sumber bunga_bank. Beban = pengeluaran jenis koperasi per tipe (santunan bukan beban SHU; tipe tak dikenal masuk Lain-lain). Definisi sama dengan SHU di Neraca.',
+                        'Pendapatan mencakup bunga angsuran pinjaman lunas dan bunga bank, dikurangi beban operasional koperasi di luar Dana Sosial (selaras dengan pos SHU pada Neraca).',
                         $gayaBaris,
                     );
                 },
@@ -414,41 +426,122 @@ class LaporanRegistry
             // ============ PINJAMAN ============
             'pinjaman-per-status' => [
                 'judul' => 'Rekap Pinjaman per Status',
-                'deskripsi' => 'Daftar pinjaman beserta statusnya dalam periode pengajuan.',
+                'deskripsi' => 'Daftar pinjaman per status beserta sisa cicilan, posisi cicilan belum bayar, dan sisa tagihan.',
                 'kategori' => 'Pinjaman',
                 'ikon' => 'hand-coins',
-                'filter' => ['tipe' => 'rentang', 'ekstra' => ['cabang']],
+                'filter' => ['tipe' => 'rentang', 'ekstra' => ['semua_periode', 'status_pinjaman', 'cabang']],
                 'periodeDefault' => fn () => [now()->startOfYear()->format('Y-m'), now()->format('Y-m')],
                 'data' => function (Request $r) {
-                    [$dari, $sampai] = self::rentang($r);
-                    $q = Pinjaman::with('anggota')
-                        ->whereBetween('tanggal_pengajuan', [$dari, $sampai->copy()->endOfMonth()])
-                        ->orderBy('tanggal_pengajuan');
+                    $semuaPeriode = $r->boolean('semua_periode');
+                    $statusInput = $r->input('status_pinjaman');
+                    $statusFilter = is_string($statusInput) && isset(self::STATUS_PINJAMAN[$statusInput])
+                        ? $statusInput
+                        : null;
+
+                    $q = Pinjaman::with([
+                        'anggota',
+                        'angsuran' => fn ($aq) => $aq->where('status', '!=', 'digantikan')->orderBy('cicilan_ke'),
+                        'pengajuanPercepatan' => fn ($pq) => $pq->where('status', 'aktif')
+                            ->latest('created_at')
+                            ->latest('id')
+                            ->with(['angsuranBaru' => fn ($bq) => $bq->orderBy('cicilan_ke')]),
+                    ])->orderBy('tanggal_pengajuan');
+
+                    if (! $semuaPeriode) {
+                        [$dari, $sampai] = self::rentang($r);
+                        $q->whereBetween('tanggal_pengajuan', [$dari, $sampai->copy()->endOfMonth()]);
+                    }
+                    if ($statusFilter !== null) {
+                        $q->where('status', $statusFilter);
+                    }
                     if ($r->filled('cabang')) {
                         $q->whereHas('anggota', fn ($qq) => $qq->where('cabang', $r->input('cabang')));
                     }
-                    $rows = $q->get()->values()->map(fn ($p, $i) => [
-                        $i + 1,
-                        $p->anggota->nama,
-                        $p->anggota->cabang,
-                        (float) $p->nominal,
-                        $p->tenor_bulan.' bln',
-                        self::STATUS_PINJAMAN[$p->status] ?? $p->status,
-                        $p->tanggal_pengajuan->format('d M Y'),
-                    ])->all();
+
+                    $totalNominal = 0.0;
+                    $totalSisaTagihan = 0.0;
+                    $totalSisaCicilan = 0;
+                    $jumlahAktif = 0;
+
+                    $rows = $q->get()->values()->map(function ($p, $i) use (&$totalNominal, &$totalSisaTagihan, &$totalSisaCicilan, &$jumlahAktif) {
+                        $nominal = round((float) $p->nominal, 2);
+                        $totalNominal += $nominal;
+
+                        if ($p->status === 'aktif') {
+                            $jumlahAktif++;
+                            $normal = $p->angsuran;
+                            $percepatan = $p->pengajuanPercepatan->first();
+                            $baru = $percepatan ? $percepatan->angsuranBaru : collect();
+                            $totalCicilan = $normal->count() + $baru->count();
+                            $belumNormal = $normal->where('status', 'belum_bayar');
+                            $belumBaru = $baru->where('status', 'belum_bayar');
+                            $sisaCount = $belumNormal->count() + $belumBaru->count();
+                            $sisaTagihan = round((float) $belumNormal->sum('total_bayar') + (float) $belumBaru->sum('total_bayar'), 2);
+
+                            $totalSisaCicilan += $sisaCount;
+                            $totalSisaTagihan += $sisaTagihan;
+
+                            $sisaCicilanLabel = ($totalCicilan > 0 && $sisaCount > 0) ? "{$sisaCount}x" : '-';
+                            $pertamaNormal = $belumNormal->first();
+                            $pertamaBaru = $belumBaru->first();
+                            if ($pertamaNormal) {
+                                $cicilanBelumBayar = 'Cicilan ke-'.$pertamaNormal->cicilan_ke;
+                            } elseif ($pertamaBaru) {
+                                if ($percepatan->tipe === 'lunas_total') {
+                                    $cicilanBelumBayar = 'Pelunasan Total';
+                                } else {
+                                    $prefix = $percepatan->tipe === 'perpanjang' ? 'Perpanjangan' : 'Percepatan';
+                                    $cicilanBelumBayar = $prefix.' ke-'.$pertamaBaru->cicilan_ke;
+                                }
+                            } else {
+                                $cicilanBelumBayar = '-';
+                            }
+                            $sisaTagihanCell = $sisaTagihan;
+                        } else {
+                            $sisaCicilanLabel = '-';
+                            $cicilanBelumBayar = '-';
+                            $sisaTagihanCell = '-';
+                        }
+
+                        return [
+                            $i + 1,
+                            $p->anggota?->nama ?? '-',
+                            $p->anggota?->cabang ?: '-',
+                            $nominal,
+                            $p->tenor_bulan.' bln',
+                            self::STATUS_PINJAMAN[$p->status] ?? $p->status,
+                            self::tanggalId($p->tanggal_pengajuan),
+                            $sisaCicilanLabel,
+                            $cicilanBelumBayar,
+                            $sisaTagihanCell,
+                        ];
+                    })->all();
+
+                    $totalNominal = round($totalNominal, 2);
+                    $totalSisaTagihan = round($totalSisaTagihan, 2);
+                    $labelStatus = $statusFilter !== null ? ' berstatus '.self::STATUS_PINJAMAN[$statusFilter] : '';
+                    $catatan = $semuaPeriode
+                        ? "Mencakup seluruh pinjaman lintas tahun pengajuan{$labelStatus}; kolom Cicilan Belum Bayar menunjukkan nomor cicilan paling awal yang belum lunas."
+                        : "Mencakup pinjaman sesuai periode tanggal pengajuan{$labelStatus}; kolom Cicilan Belum Bayar menunjukkan nomor cicilan paling awal yang belum lunas.";
 
                     return self::hasil(
-                        ['No', 'Nama', 'Cabang', 'Nominal', 'Tenor', 'Status', 'Tgl Pengajuan'],
-                        [3],
+                        ['No', 'Nama', 'Cabang', 'Nominal', 'Tenor', 'Status', 'Tgl Pengajuan', 'Sisa Cicilan', 'Cicilan Belum Bayar', 'Sisa Tagihan'],
+                        [3, 9],
                         $rows,
-                        [null, null, null, array_sum(array_column($rows, 3)), count($rows).' pinjaman', null, null]
+                        [null, 'Total', null, $totalNominal, count($rows).' pinjaman', null, null, $jumlahAktif > 0 ? $totalSisaCicilan.'x' : null, null, $totalSisaTagihan],
+                        [
+                            ['Total Pinjaman', count($rows).' pinjaman'.($statusFilter === null && $jumlahAktif > 0 ? " ({$jumlahAktif} aktif)" : '')],
+                            ['Total Nominal Pinjaman', self::rupiah($totalNominal)],
+                            ['Total Sisa Tagihan (Aktif)', self::rupiah($totalSisaTagihan)],
+                        ],
+                        $catatan
                     );
                 },
             ],
 
             'perubahan-tenor' => [
                 'judul' => 'Laporan Perubahan Tenor',
-                'deskripsi' => 'Riwayat pengajuan percepatan/perpanjangan/pelunasan dan hasilnya.',
+                'deskripsi' => 'Riwayat pengajuan percepatan, perpanjangan, dan pelunasan total pinjaman beserta statusnya.',
                 'kategori' => 'Pinjaman',
                 'ikon' => 'repeat',
                 'filter' => ['tipe' => 'rentang'],
@@ -463,8 +556,8 @@ class LaporanRegistry
                         ->orderByDesc('tanggal_pengajuan')
                         ->get()
                         ->map(fn ($p) => [
-                            $p->tanggal_pengajuan->format('d M Y'),
-                            $p->pinjaman->anggota->nama,
+                            self::tanggalId($p->tanggal_pengajuan),
+                            $p->pinjaman?->anggota?->nama ?? '-',
                             '#'.$p->pinjaman_id,
                             $labelTipe[$p->tipe] ?? $p->tipe,
                             $p->tenor_baru ? "{$p->tenor_lama} → {$p->tenor_baru} bln" : "{$p->tenor_lama} bln",
@@ -472,10 +565,12 @@ class LaporanRegistry
                         ])->all();
 
                     return self::hasil(
-                        ['Tanggal', 'Nama', 'Pinjaman', 'Jenis', 'Tenor', 'Status'],
+                        ['Tanggal', 'Nama', 'No. Pinjaman', 'Jenis Pengajuan', 'Perubahan Tenor', 'Status'],
                         [],
                         $rows,
-                        [count($rows).' pengajuan', null, null, null, null, null]
+                        [count($rows).' pengajuan', null, null, null, null, null],
+                        null,
+                        'Mencakup seluruh pengajuan perubahan tenor dan pelunasan total pinjaman pada periode pengajuan terpilih.'
                     );
                 },
             ],
@@ -483,7 +578,7 @@ class LaporanRegistry
             // ============ SIMPANAN ============
             'simpanan-per-anggota' => [
                 'judul' => 'Rekap Simpanan per Anggota',
-                'deskripsi' => 'Akumulasi simpanan tiap anggota — bisa dicetak sebagai slip tahunan.',
+                'deskripsi' => 'Rekap akumulasi simpanan pokok, simpanan wajib, dan dana sosial per anggota.',
                 'kategori' => 'Simpanan',
                 'ikon' => 'piggy-bank',
                 'filter' => ['tipe' => 'tanpa_periode', 'ekstra' => ['status_anggota', 'cabang']],
@@ -503,29 +598,45 @@ class LaporanRegistry
                     if ($r->filled('cabang')) {
                         $q->where('anggota.cabang', $r->input('cabang'));
                     }
-                    $rows = $q->get()->map(fn ($a) => [
-                        $a->no_karyawan,
-                        $a->nama,
-                        $a->cabang,
-                        (float) $a->pokok,
-                        (float) $a->wajib,
-                        (float) $a->sosial,
-                        (float) $a->pokok + (float) $a->wajib,
-                    ])->all();
-                    $kolom = ['No. Karyawan', 'Nama', 'Cabang', 'Pokok', 'Wajib', 'Dana Sosial', 'Pokok + Wajib'];
+                    $rows = $q->get()->map(function ($a) {
+                        $pokok = round((float) $a->pokok, 2);
+                        $wajib = round((float) $a->wajib, 2);
+                        $sosial = round((float) $a->sosial, 2);
+
+                        return [
+                            $a->no_karyawan ?: '-',
+                            $a->nama,
+                            $a->cabang ?: '-',
+                            $pokok,
+                            $wajib,
+                            $sosial,
+                            round($pokok + $wajib, 2),
+                        ];
+                    })->all();
+                    $kolom = ['No. Karyawan', 'Nama', 'Cabang', 'Simpanan Pokok', 'Simpanan Wajib', 'Dana Sosial', 'Total Pokok + Wajib'];
+                    $totPokok = round(array_sum(array_column($rows, 3)), 2);
+                    $totWajib = round(array_sum(array_column($rows, 4)), 2);
+                    $totSosial = round(array_sum(array_column($rows, 5)), 2);
+                    $totHak = round(array_sum(array_column($rows, 6)), 2);
 
                     return self::hasil(
                         $kolom,
                         [3, 4, 5, 6],
                         $rows,
-                        [count($rows).' anggota', null, null, array_sum(array_column($rows, 3)), array_sum(array_column($rows, 4)), array_sum(array_column($rows, 5)), array_sum(array_column($rows, 6))]
+                        [count($rows).' anggota', null, null, $totPokok, $totWajib, $totSosial, $totHak],
+                        [
+                            ['Total Anggota', count($rows).' anggota'],
+                            ['Total Simpanan (Pokok + Wajib)', self::rupiah($totHak)],
+                            ['Total Dana Sosial', self::rupiah($totSosial)],
+                        ],
+                        'Akumulasi seluruh simpanan tercatat per anggota; kolom Total Pokok + Wajib merupakan total hak simpanan anggota.'
                     );
                 },
             ],
 
             'setoran-bulanan' => [
                 'judul' => 'Rekap Setoran Bulanan',
-                'deskripsi' => 'Total simpanan wajib & dana sosial yang terkumpul tiap bulan.',
+                'deskripsi' => 'Rekap total setoran simpanan wajib dan dana sosial yang diterima setiap bulan.',
                 'kategori' => 'Simpanan',
                 'ikon' => 'calendar-check',
                 'filter' => ['tipe' => 'tahun'],
@@ -562,14 +673,18 @@ class LaporanRegistry
                     $rows = [];
                     ksort($perBulan);
                     foreach ($perBulan as $bulan => [$jml, $w, $s]) {
-                        $rows[] = [$namaBulan[$bulan], count($penerimaWajib[$bulan] ?? []), $w, $s, $w + $s];
+                        $wajib = round($w, 2);
+                        $sosial = round($s, 2);
+                        $rows[] = [$namaBulan[$bulan], count($penerimaWajib[$bulan] ?? []), $wajib, $sosial, round($wajib + $sosial, 2)];
                     }
 
                     return self::hasil(
-                        ['Bulan', 'Penerima Wajib', 'Simpanan Wajib', 'Dana Sosial', 'Total'],
+                        ['Bulan', 'Jumlah Anggota', 'Simpanan Wajib', 'Dana Sosial', 'Total'],
                         [2, 3, 4],
                         $rows,
-                        ['TOTAL', array_sum(array_column($rows, 1)), array_sum(array_column($rows, 2)), array_sum(array_column($rows, 3)), array_sum(array_column($rows, 4))]
+                        ['Total '.$tahun, array_sum(array_column($rows, 1)), round(array_sum(array_column($rows, 2)), 2), round(array_sum(array_column($rows, 3)), 2), round(array_sum(array_column($rows, 4)), 2)],
+                        null,
+                        'Jumlah anggota dihitung unik per bulan berdasarkan setoran Simpanan Wajib yang telah dikonfirmasi.'
                     );
                 },
             ],
@@ -577,7 +692,7 @@ class LaporanRegistry
             // ============ ANGGOTA ============
             'anggota-daftar' => [
                 'judul' => 'Daftar Anggota',
-                'deskripsi' => 'Daftar anggota aktif/nonaktif beserta lama keanggotaan.',
+                'deskripsi' => 'Daftar anggota aktif maupun resign beserta unit kerja dan masa keanggotaan.',
                 'kategori' => 'Anggota',
                 'ikon' => 'users',
                 'filter' => ['tipe' => 'tanpa_periode', 'ekstra' => [['nama' => 'status_anggota', 'default' => 'aktif'], 'cabang']],
@@ -591,28 +706,30 @@ class LaporanRegistry
                         $q->where('cabang', $r->input('cabang'));
                     }
                     $rows = $q->get()->map(fn ($a) => [
-                        $a->no_karyawan,
+                        $a->no_karyawan ?: '-',
                         $a->nama,
-                        $a->cabang,
-                        $a->unit_bisnis,
-                        $a->jabatan,
-                        $a->tanggal_jadi_anggota?->format('d M Y'),
-                        $a->tanggal_jadi_anggota?->diffInYears(now()).' thn',
+                        $a->cabang ?: '-',
+                        $a->unit_bisnis ?: '-',
+                        $a->jabatan ?: '-',
+                        self::tanggalId($a->tanggal_jadi_anggota),
+                        self::lamaKeanggotaan($a->tanggal_jadi_anggota),
                         ucfirst($a->status),
                     ])->all();
 
                     return self::hasil(
-                        ['No. Karyawan', 'Nama', 'Cabang', 'Unit Bisnis', 'Jabatan', 'Sejak', 'Lama', 'Status'],
+                        ['No. Karyawan', 'Nama', 'Cabang', 'Unit Bisnis', 'Jabatan', 'Tgl Bergabung', 'Lama Keanggotaan', 'Status'],
                         [],
                         $rows,
-                        [count($rows).' anggota', null, null, null, null, null, null, null]
+                        [count($rows).' anggota', null, null, null, null, null, null, null],
+                        null,
+                        'Masa keanggotaan dihitung dari tanggal bergabung hingga tanggal cetak laporan.'
                     );
                 },
             ],
 
             'anggota-resign' => [
-                'judul' => 'Laporan Resign',
-                'deskripsi' => 'Anggota yang resign beserta nilai simpanan yang dikembalikan.',
+                'judul' => 'Laporan Anggota Resign',
+                'deskripsi' => 'Daftar anggota yang mengundurkan diri beserta nilai pengembalian simpanan.',
                 'kategori' => 'Anggota',
                 'ikon' => 'user-minus',
                 'filter' => ['tipe' => 'rentang'],
@@ -627,12 +744,12 @@ class LaporanRegistry
                             $settlement = $a->resigned_settlement_json ?? [];
 
                             return [
-                                $a->no_karyawan,
+                                $a->no_karyawan ?: '-',
                                 $a->nama,
-                                $a->cabang,
-                                $a->tanggal_resign->format('d M Y'),
+                                $a->cabang ?: '-',
+                                self::tanggalId($a->tanggal_resign),
                                 $a->alasan_resign ?: '-',
-                                (float) ($settlement['simpanan_pokok'] ?? 0) + (float) ($settlement['simpanan_wajib'] ?? 0),
+                                round((float) ($settlement['simpanan_pokok'] ?? 0) + (float) ($settlement['simpanan_wajib'] ?? 0), 2),
                             ];
                         })->all();
 
@@ -640,7 +757,9 @@ class LaporanRegistry
                         ['No. Karyawan', 'Nama', 'Cabang', 'Tgl Resign', 'Alasan', 'Simpanan Dikembalikan'],
                         [5],
                         $rows,
-                        [count($rows).' anggota', null, null, null, null, array_sum(array_column($rows, 5))]
+                        [count($rows).' anggota', null, null, null, null, round(array_sum(array_column($rows, 5)), 2)],
+                        null,
+                        'Nilai pengembalian mencakup total Simpanan Pokok dan Simpanan Wajib yang diselesaikan saat anggota resign.'
                     );
                 },
             ],
@@ -648,7 +767,7 @@ class LaporanRegistry
             // ============ OPERASIONAL ============
             'pengeluaran-rekap' => [
                 'judul' => 'Rekap Pengeluaran',
-                'deskripsi' => 'Rincian pengeluaran Koperasi & Dana Sosial per periode.',
+                'deskripsi' => 'Rincian pengeluaran operasional Koperasi dan penyaluran Dana Sosial per periode.',
                 'kategori' => 'Operasional',
                 'ikon' => 'receipt',
                 'filter' => ['tipe' => 'rentang'],
@@ -661,27 +780,34 @@ class LaporanRegistry
                         ->orderBy('tanggal')
                         ->get()
                         ->map(fn ($p) => [
-                            $p->tanggal->format('d M Y'),
+                            self::tanggalId($p->tanggal),
                             $p->jenis === 'dana_sosial' ? 'Dana Sosial' : 'Koperasi',
                             $p->keterangan,
-                            $p->inputOleh->name,
-                            (float) $p->jumlah,
+                            $p->inputOleh?->name ?? '-',
+                            round((float) $p->jumlah, 2),
                         ])->all();
-                    $koperasi = array_sum(array_filter(array_map(fn ($row) => $row[1] === 'Koperasi' ? $row[4] : 0, $rows)));
-                    $sosial = array_sum(array_filter(array_map(fn ($row) => $row[1] === 'Dana Sosial' ? $row[4] : 0, $rows)));
+                    $koperasi = round(array_sum(array_filter(array_map(fn ($row) => $row[1] === 'Koperasi' ? $row[4] : 0, $rows))), 2);
+                    $sosial = round(array_sum(array_filter(array_map(fn ($row) => $row[1] === 'Dana Sosial' ? $row[4] : 0, $rows))), 2);
+                    $totSemua = round(array_sum(array_column($rows, 4)), 2);
 
                     return self::hasil(
                         ['Tanggal', 'Jenis', 'Keterangan', 'Dicatat Oleh', 'Jumlah'],
                         [4],
                         $rows,
-                        ['TOTAL', null, 'Koperasi '.self::rupiah($koperasi).' · Dana Sosial '.self::rupiah($sosial), null, array_sum(array_column($rows, 4))]
+                        ['Total', null, count($rows).' transaksi', null, $totSemua],
+                        [
+                            ['Pengeluaran Koperasi', self::rupiah($koperasi)],
+                            ['Pengeluaran Dana Sosial', self::rupiah($sosial)],
+                            ['Total Pengeluaran', self::rupiah($totSemua)],
+                        ],
+                        'Mencakup seluruh transaksi pengeluaran aktif pada periode terpilih (tidak termasuk transaksi yang dibatalkan).'
                     );
                 },
             ],
 
             'dana-sosial' => [
                 'judul' => 'Rekap Dana Sosial',
-                'deskripsi' => 'Dana sosial terkumpul vs tersalurkan, lengkap dengan sisa saldonya.',
+                'deskripsi' => 'Mutasi penerimaan, penyaluran, dan saldo akhir Dana Sosial per periode.',
                 'kategori' => 'Operasional',
                 'ikon' => 'heart-handshake',
                 'filter' => ['tipe' => 'rentang'],
@@ -701,20 +827,20 @@ class LaporanRegistry
                         })
                         ->orderBy('tanggal')->orderBy('id')
                         ->get()->map(fn ($j) => [
-                            Carbon::parse($j->tanggal)->format('d M Y'),
+                            self::tanggalId(Carbon::parse($j->tanggal)),
                             self::KATEGORI_LABEL[$j->kategori] ?? $j->kategori,
                             $j->keterangan,
-                            $j->tipe === 'masuk' ? (float) $j->jumlah : 0.0,
-                            $j->tipe === 'keluar' ? (float) $j->jumlah : 0.0,
+                            $j->tipe === 'masuk' ? round((float) $j->jumlah, 2) : 0.0,
+                            $j->tipe === 'keluar' ? round((float) $j->jumlah, 2) : 0.0,
                         ])->all();
 
-                    $sisaSampaiCutoff = (float) DB::table('jurnal_kas')
+                    $sisaSampaiCutoff = round((float) DB::table('jurnal_kas')
                         ->where('kantong', 'dana_sosial')
                         ->whereNull('dibatalkan_pada')
                         ->whereNull('koreksi_dari_id')
                         ->where('tanggal', '<=', $sampai->copy()->endOfMonth())
                         ->selectRaw("SUM(CASE WHEN tipe='masuk' THEN jumlah ELSE -jumlah END) as sisa")
-                        ->value('sisa');
+                        ->value('sisa'), 2);
 
                     // Pisahkan keluar dana sosial vs keluar pinjaman (talangan) — 1 query GROUP BY.
                     // Pengeluaran dana sosial bisa tercatat di kantong dana_sosial (lama) atau kas_kecil (fisik baru).
@@ -728,34 +854,35 @@ class LaporanRegistry
                         ->groupBy('kategori')
                         ->pluck('total', 'kategori');
 
-                    $santunan = (float) ($keluarAgg['pengeluaran_dana_sosial'] ?? 0);
-                    $pinjaman = (float) ($keluarAgg['talangan_sosial_ke_pinjaman'] ?? 0);
-                    $kembali = (float) DB::table('jurnal_kas')
+                    $santunan = round((float) ($keluarAgg['pengeluaran_dana_sosial'] ?? 0), 2);
+                    $pinjaman = round((float) ($keluarAgg['talangan_sosial_ke_pinjaman'] ?? 0), 2);
+                    $kembali = round((float) DB::table('jurnal_kas')
                         ->where('kantong', 'dana_sosial')->where('tipe', 'masuk')
                         ->whereNull('dibatalkan_pada')
                         ->whereNull('koreksi_dari_id')
                         ->where('kategori', 'kembali_talangan_ke_sosial')
                         ->whereBetween('tanggal', [$dari, $sampai])
-                        ->sum('jumlah');
+                        ->sum('jumlah'), 2);
 
                     return self::hasil(
                         ['Tanggal', 'Kategori', 'Keterangan', 'Masuk', 'Keluar'],
                         [3, 4],
                         $rows,
-                        [null, null, 'TOTAL PERIODE', array_sum(array_column($rows, 3)), array_sum(array_column($rows, 4))],
-                        ringkasan: [
-                            ['Santunan tersalurkan (periode)', self::rupiah($santunan)],
-                            ['Pinjaman tertalangi (periode)', self::rupiah($pinjaman)],
-                            ['Talangan kembali (periode)', self::rupiah($kembali)],
-                            ['Sisa Dana Sosial s/d akhir periode', self::rupiah($sisaSampaiCutoff)],
-                        ]
+                        [null, null, 'Total Periode', round(array_sum(array_column($rows, 3)), 2), round(array_sum(array_column($rows, 4)), 2)],
+                        [
+                            ['Santunan Tersalurkan', self::rupiah($santunan)],
+                            ['Talangan ke Pinjaman', self::rupiah($pinjaman)],
+                            ['Pengembalian Talangan', self::rupiah($kembali)],
+                            ['Saldo Akhir Dana Sosial', self::rupiah($sisaSampaiCutoff)],
+                        ],
+                        'Mencakup mutasi iuran, penyaluran santunan, talangan, serta saldo akhir Dana Sosial hingga akhir periode terpilih.'
                     );
                 },
             ],
 
             'iuran-pinjaman-rekap' => [
                 'judul' => 'Rekap Iuran & Pinjaman',
-                'deskripsi' => 'Satu baris per anggota: iuran bulan berjalan + cicilan jatuh tempo bulan berjalan + total tagihan untuk accounting.',
+                'deskripsi' => 'Rekap potongan bulanan per anggota meliputi iuran pokok, iuran wajib, asuransi sosial, serta angsuran pinjaman jatuh tempo.',
                 'kategori' => 'Accounting',
                 'ikon' => 'file-text',
                 'filter' => ['tipe' => 'bulan', 'ekstra' => ['cabang']],
@@ -861,16 +988,24 @@ class LaporanRegistry
                         ];
                     }
 
+                    $totPokok = array_sum(array_column($rows, 2));
+                    $totWajib = array_sum(array_column($rows, 3));
+                    $totSosial = array_sum(array_column($rows, 4));
+                    $totPinjaman = array_sum(array_column($rows, 5));
+                    $totBunga = array_sum(array_column($rows, 6));
+                    $totTagihan = array_sum(array_column($rows, 7));
+
                     return self::hasil(
                         ['No', 'Nama', 'Iuran Pokok', 'Iuran Wajib', 'Asuransi Sosial', 'Pinjaman', 'Bunga', 'Total', 'Divisi'],
                         [2, 3, 4, 5, 6, 7],
                         $rows,
-                        [count($rows).' anggota', null, array_sum(array_column($rows, 2)), array_sum(array_column($rows, 3)), array_sum(array_column($rows, 4)), array_sum(array_column($rows, 5)), array_sum(array_column($rows, 6)), array_sum(array_column($rows, 7)), null],
-                        ringkasan: [
-                            ['Total iuran bulan berjalan', self::rupiah(array_sum(array_column($rows, 2)) + array_sum(array_column($rows, 3)) + array_sum(array_column($rows, 4)))],
-                            ['Total cicilan bulan berjalan', self::rupiah(array_sum(array_column($rows, 5)) + array_sum(array_column($rows, 6)))],
-                            ['Total tagihan', self::rupiah(array_sum(array_column($rows, 7)))],
-                        ]
+                        [count($rows).' anggota', null, $totPokok, $totWajib, $totSosial, $totPinjaman, $totBunga, $totTagihan, null],
+                        [
+                            ['Total Iuran', self::rupiah($totPokok + $totWajib + $totSosial)],
+                            ['Total Angsuran Pinjaman', self::rupiah($totPinjaman + $totBunga)],
+                            ['Total Tagihan', self::rupiah($totTagihan)],
+                        ],
+                        'Anggota aktif yang belum dikonfirmasi pada bulan berjalan tetap ditampilkan sebesar tarif iuran standar; anggota resign tidak dikenakan tagihan berjalan.'
                     );
                 },
             ],
@@ -1159,5 +1294,32 @@ class LaporanRegistry
     private static function rupiah(float|int|null $n): string
     {
         return 'Rp '.number_format((float) $n, 0, ',', '.');
+    }
+
+    private static function tanggalId(?Carbon $tgl, string $format = 'd M Y'): string
+    {
+        return $tgl ? $tgl->copy()->locale('id')->translatedFormat($format) : '-';
+    }
+
+    private static function lamaKeanggotaan(?Carbon $tanggal): string
+    {
+        if (! $tanggal) {
+            return '-';
+        }
+        if ($tanggal->isFuture()) {
+            return '0 bln';
+        }
+        $diff = $tanggal->diff(now());
+        if ($diff->y > 0 && $diff->m > 0) {
+            return "{$diff->y} thn {$diff->m} bln";
+        }
+        if ($diff->y > 0) {
+            return "{$diff->y} thn";
+        }
+        if ($diff->m > 0) {
+            return "{$diff->m} bln";
+        }
+
+        return '< 1 bln';
     }
 }

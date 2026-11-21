@@ -52,8 +52,8 @@ const kategoriLabel = {
     kembali_talangan_dari_pinjaman: 'Pengembalian Talangan dari Pinjaman',
     kembali_talangan_ke_simpanan: 'Pengembalian Talangan ke Simpanan',
     kembali_talangan_ke_sosial: 'Pengembalian Talangan ke Sosial',
-    sisih_kas_kecil: 'Sisih Kas Kecil',
-    terima_sisih_kas_kecil: 'Terima Sisih Kas Kecil',
+    sisih_kas_kecil: 'Transfer Dana',
+    terima_sisih_kas_kecil: 'Terima Transfer Dana',
     pembayaran_shu: 'Pembayaran SHU',
 };
 
@@ -512,7 +512,7 @@ export default function Index({
                                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-800 hover:bg-amber-50 transition-colors ${fokusRing}`}
                             >
                                 <ArrowRightLeft size={13} className="text-amber-600" />
-                                Sisih Kas Kecil
+                                Transfer Dana
                             </button>
                         </div>
 
@@ -540,7 +540,7 @@ export default function Index({
                             onClick={() => { setTabDrawer('sisih'); setShowDrawer(true); }}
                         >
                             <ArrowRightLeft size={14} aria-hidden="true" />
-                            Sisih Kas Kecil
+                            Transfer Dana
                         </Button>
                     </div>
                 )}
@@ -1288,7 +1288,7 @@ export default function Index({
                             ? 'Catat Pemasukan Kas'
                             : tabDrawer === 'pengeluaran'
                             ? 'Catat Pengeluaran Kas'
-                            : 'Sisih Kas Kecil'
+                            : 'Transfer Dana'
                     }
                     description={
                         tabDrawer === 'pemasukan'
@@ -1335,7 +1335,7 @@ export default function Index({
                                 }`}
                             >
                                 <ArrowRightLeft size={14} aria-hidden="true" />
-                                <span>Sisih Kas Kecil</span>
+                                <span>Transfer Dana</span>
                             </button>
                         </div>
 
@@ -1492,18 +1492,18 @@ export default function Index({
                             </DrawerSection>
                         )}
 
-                        {/* Form Sisih Kas Kecil */}
+                        {/* Form Transfer Dana */}
                         {tabDrawer === 'sisih' && (
                             <>
                                 <div className="rounded-xl bg-amber-50/55 border border-amber-200/80 p-3.5 text-xs text-slate-700 leading-relaxed">
                                     <p className="font-bold text-amber-900 mb-1">Pemindahan Dana Bank &rarr; Kas Kecil</p>
                                     Saldo Kas Bank saat ini: <strong className="text-slate-900 privacy-blur">{formatRupiah(saldoBank ?? 0)}</strong>.
-                                    Dana yang disisihkan akan ditarik dari Bank dan masuk ke saldo Kas Kecil untuk kebutuhan operasional tunai.
+                                    Dana yang ditransfer akan ditarik dari Bank dan masuk ke saldo Kas Kecil untuk kebutuhan operasional tunai.
                                 </div>
 
-                                <DrawerSection title="Formulir Sisih Kas Kecil" icon={ArrowRightLeft} tone="amber">
+                                <DrawerSection title="Formulir Transfer Dana" icon={ArrowRightLeft} tone="amber">
                                     <form id={transaksiFormId} onSubmit={submitSisih} className="space-y-1">
-                                        <FormField label="Nominal Sisih" error={sisihForm.errors.jumlah} required>
+                                        <FormField label="Nominal Transfer" error={sisihForm.errors.jumlah} required>
                                             <div className="relative">
                                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-500">Rp</span>
                                                 <TextField
@@ -1523,7 +1523,7 @@ export default function Index({
                                                 size="sm"
                                                 value={sisihForm.data.keterangan}
                                                 onChange={(e) => sisihForm.setData('keterangan', e.target.value)}
-                                                placeholder="Keterangan penyisihan dana"
+                                                placeholder="Keterangan transfer dana"
                                             />
                                         </FormField>
                                     </form>
@@ -1555,7 +1555,7 @@ export default function Index({
                                     ? pemasukanForm.processing ? 'Menyimpan...' : 'Simpan Pemasukan'
                                     : tabDrawer === 'pengeluaran'
                                     ? pengeluaranForm.processing ? 'Menyimpan...' : 'Simpan Pengeluaran'
-                                    : sisihForm.processing ? 'Menyimpan...' : 'Sisih Sekarang'}
+                                    : sisihForm.processing ? 'Menyimpan...' : 'Transfer Sekarang'}
                             </Button>
                         </DrawerFooterActions>
                     </DrawerFooter>
@@ -1680,7 +1680,7 @@ export default function Index({
                                     <form id={batalFormId} onSubmit={submitBatal} className="space-y-3">
                                         {['sisih_kas_kecil', 'terima_sisih_kas_kecil'].includes(jurnalBatal.kategori) && (
                                             <div className="p-3 rounded-lg bg-amber-50/70 border border-amber-200/80 text-xs text-amber-900">
-                                                Pembatalan <strong>Sisih Kas Kecil</strong> otomatis membalik kedua jurnal berpasangan (mengembalikan saldo dari Kas Kecil ke Bank).
+                                                Pembatalan <strong>Transfer Dana</strong> otomatis membalik kedua jurnal berpasangan (mengembalikan saldo dari Kas Kecil ke Bank).
                                             </div>
                                         )}
 

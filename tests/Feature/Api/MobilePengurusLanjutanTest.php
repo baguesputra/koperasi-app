@@ -220,6 +220,20 @@ class MobilePengurusLanjutanTest extends TestCase
         $resData = $this->headerToken($token)->getJson("/api/v1/laporan/pinjaman-per-status?dari={$bulan}&sampai={$bulan}")->assertOk();
         $resData->assertJsonStructure(['judul', 'periode', 'kolom', 'angka', 'baris', 'total']);
         $this->assertSame('Rekap Pinjaman per Status', $resData->json('judul'));
+        $this->assertContains('Sisa Cicilan', $resData->json('kolom'));
+        $this->assertContains('Cicilan Belum Bayar', $resData->json('kolom'));
+        $this->assertContains('Sisa Tagihan', $resData->json('kolom'));
+
+        $resAktifSemua = $this->headerToken($token)
+            ->getJson('/api/v1/laporan/pinjaman-per-status?status_pinjaman=aktif&semua_periode=1')
+            ->assertOk();
+        $this->assertSame('Semua Periode', $resAktifSemua->json('periode'));
+        $this->assertGreaterThanOrEqual(1, count($resAktifSemua->json('baris')));
+        $barisMilik = collect($resAktifSemua->json('baris'))->firstWhere(1, $anggota->nama);
+        $this->assertNotNull($barisMilik);
+        $this->assertSame('Aktif', $barisMilik[5]);
+        $this->assertSame('4x', $barisMilik[7]);
+        $this->assertSame('Cicilan ke-1', $barisMilik[8]);
 
         $resSetoran = $this->headerToken($token)->getJson('/api/v1/laporan/setoran-bulanan?tahun='.now()->format('Y'))->assertOk();
         $this->assertSame('Rekap Setoran Bulanan', $resSetoran->json('judul'));
@@ -228,6 +242,9 @@ class MobilePengurusLanjutanTest extends TestCase
 
         $resPdf = $this->headerToken($token)->getJson("/api/v1/laporan/pinjaman-per-status/pdf?dari={$bulan}&sampai={$bulan}")->assertOk();
         $this->assertStringContainsString('application/pdf', (string) $resPdf->headers->get('content-type'));
+
+        $resPdfAktif = $this->headerToken($token)->getJson('/api/v1/laporan/pinjaman-per-status/pdf?status_pinjaman=aktif&semua_periode=1')->assertOk();
+        $this->assertStringContainsString('application/pdf', (string) $resPdfAktif->headers->get('content-type'));
     }
 
     public function test_notifikasi_daftar_baca_dan_baca_semua(): void
