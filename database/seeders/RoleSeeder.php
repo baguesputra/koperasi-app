@@ -20,6 +20,7 @@ class RoleSeeder extends Seeder
             'anggota.lihat', 'anggota.kelola', 'anggota.resign',
             'simpanan.lihat',
             'pinjaman.lihat', 'pinjaman.tinjau-admin',
+            'penghapusan-pinjaman.lihat', 'penghapusan-pinjaman.ajukan',
             'kas.lihat',
             'jurnal.lihat',
             'laporan.lihat',
@@ -37,6 +38,7 @@ class RoleSeeder extends Seeder
             'anggota.lihat',
             'simpanan.lihat', 'simpanan.konfirmasi',
             'pinjaman.lihat', 'pinjaman.tinjau-bendahara',
+            'penghapusan-pinjaman.lihat', 'penghapusan-pinjaman.ajukan', 'penghapusan-pinjaman.approve-bendahara',
             'limit.tinjau-bendahara',
             'angsuran.konfirmasi',
             'kas.lihat', 'kas.topup',
@@ -53,6 +55,7 @@ class RoleSeeder extends Seeder
             'anggota.lihat',
             'simpanan.lihat',
             'pinjaman.lihat', 'pinjaman.approve-ketua',
+            'penghapusan-pinjaman.lihat', 'penghapusan-pinjaman.approve-ketua',
             'limit.approve-ketua',
             'aktivasi.approve-ketua',
             'kas.lihat',
@@ -65,12 +68,13 @@ class RoleSeeder extends Seeder
             'portal.akses',
         ]);
 
-        // 5. Pengawas: Murni view all data, view kebijakan, audit log, dan penarikan laporan
+        // 5. Pengawas: View all data, view kebijakan, audit log, penarikan laporan, & approval berjenjang penghapusan pinjaman
         $pengawas = Role::firstOrCreate(['name' => 'pengawas']);
         $pengawas->syncPermissions([
             'anggota.lihat',
             'simpanan.lihat',
             'pinjaman.lihat',
+            'penghapusan-pinjaman.lihat', 'penghapusan-pinjaman.approve-pengawas',
             'kas.lihat',
             'jurnal.lihat',
             'laporan.lihat',

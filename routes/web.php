@@ -23,6 +23,7 @@ use App\Http\Controllers\MigrasiController;
 use App\Http\Controllers\Pengaturan\PenggunaController;
 use App\Http\Controllers\PengaturanController;
 use App\Http\Controllers\PengeluaranController;
+use App\Http\Controllers\Pengurus\PenghapusanPinjamanController;
 use App\Http\Controllers\PinjamanController;
 use App\Http\Controllers\Portal\AktivasiController as PortalAktivasiController;
 use App\Http\Controllers\Portal\DashboardController as PortalDashboardController;
@@ -37,6 +38,7 @@ use App\Http\Controllers\Security\PinSecurityController;
 use App\Http\Controllers\ShuController;
 use App\Http\Controllers\SimpananController;
 use App\Http\Controllers\VerifikasiController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -363,6 +365,22 @@ Route::middleware('auth')->prefix('ketua')->name('ketua.')->group(function () {
 });
 
 // ==========================================
+// PENGURUS & PENGAWAS (Penghapusan Pinjaman Berjenjang)
+// ==========================================
+Route::middleware(['auth', 'permission:penghapusan-pinjaman.lihat'])->prefix('pengurus')->name('pengurus.')->group(function () {
+    Route::get('/penghapusan-pinjaman', [PenghapusanPinjamanController::class, 'index'])->name('penghapusan-pinjaman.index');
+    Route::post('/penghapusan-pinjaman', [PenghapusanPinjamanController::class, 'store'])
+        ->name('penghapusan-pinjaman.store')
+        ->middleware(['permission:penghapusan-pinjaman.ajukan', 'idempotent']);
+    Route::post('/penghapusan-pinjaman/{pengajuan}/approve', [PenghapusanPinjamanController::class, 'approve'])
+        ->name('penghapusan-pinjaman.approve')
+        ->middleware(['permission:penghapusan-pinjaman.approve-bendahara|penghapusan-pinjaman.approve-ketua|penghapusan-pinjaman.approve-pengawas', 'idempotent']);
+    Route::post('/penghapusan-pinjaman/{pengajuan}/reject', [PenghapusanPinjamanController::class, 'reject'])
+        ->name('penghapusan-pinjaman.reject')
+        ->middleware(['permission:penghapusan-pinjaman.approve-bendahara|penghapusan-pinjaman.approve-ketua|penghapusan-pinjaman.approve-pengawas', 'idempotent']);
+});
+
+// ==========================================
 // PROFILE (semua user login)
 // ==========================================
 Route::middleware('auth')->group(function () {
@@ -375,7 +393,7 @@ Route::middleware(['auth', 'permission:kas.lihat'])->group(function () {
     Route::post('/pengeluaran', [PengeluaranController::class, 'store'])->name('pengeluaran.store')->middleware(['permission:kas.topup', 'idempotent']);
 });
 
-Route::get('/logout', function (Illuminate\Http\Request $request) {
+Route::get('/logout', function (Request $request) {
     if (auth()->check()) {
         return app(AuthenticatedSessionController::class)->destroy($request);
     }

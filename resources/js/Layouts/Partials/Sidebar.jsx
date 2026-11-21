@@ -7,7 +7,7 @@ import {
     LayoutDashboard, Users, PiggyBank, HandCoins,
     ClipboardCheck, CalendarCheck, HeartHandshake,
     Wallet, FileBarChart, TrendingUp, BookOpenText, Percent,
-    ChevronLeft, ChevronRight, Repeat, Settings, LogOut
+    ChevronLeft, ChevronRight, Repeat, Settings, LogOut, FileX2
 } from 'lucide-react';
 
 const fokusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/40';
@@ -40,6 +40,12 @@ const menuGroups = [
             { label: 'Tinjau Limit', routeName: 'bendahara.pengajuan-limit.index', icon: TrendingUp, permission: 'limit.tinjau-bendahara' },
             { label: 'Pengajuan Limit', routeName: 'ketua.pengajuan-limit.index', icon: TrendingUp, permission: 'limit.approve-ketua' },
             { label: 'Aktivasi Anggota', routeName: 'ketua.aktivasi.index', icon: Users, permission: 'aktivasi.approve-ketua' },
+        ],
+    },
+    {
+        label: 'Pengurus',
+        items: [
+            { label: 'Penghapusan Pinjaman', routeName: 'pengurus.penghapusan-pinjaman.index', icon: FileX2, permission: 'penghapusan-pinjaman.lihat' },
         ],
     },
     {
@@ -82,6 +88,7 @@ export default function Sidebar({ collapsed = false, expanding = false, mobile =
         'bendahara.pengajuan-limit.index': notifications?.menunggu_pengajuan_limit_bendahara ?? 0,
         'ketua.pengajuan-limit.index': notifications?.menunggu_pengajuan_limit ?? 0,
         'ketua.aktivasi.index': notifications?.menunggu_aktivasi ?? 0,
+        'pengurus.penghapusan-pinjaman.index': notifications?.menunggu_penghapusan_pinjaman ?? 0,
     };
 
     function bisaAkses(permission) {
@@ -247,11 +254,13 @@ export default function Sidebar({ collapsed = false, expanding = false, mobile =
                         <span className="min-w-0 leading-tight">
                             <span className="block text-sm font-semibold text-slate-800 truncate">{auth.user?.name}</span>
                             <span className="block text-xs text-slate-500 capitalize truncate">
-                                {auth.user?.roles?.[0] === 'super_admin'
-                                    ? 'Super Admin'
-                                    : ['admin', 'sekretaris'].includes(auth.user?.roles?.[0])
-                                        ? 'Sekretaris'
-                                        : (auth.user?.roles?.[0]?.replace('_', ' ') ?? '-')}
+                                {auth.user?.label_jabatan_pengawas
+                                    ? auth.user.label_jabatan_pengawas
+                                    : auth.user?.roles?.[0] === 'super_admin'
+                                        ? 'Super Admin'
+                                        : ['admin', 'sekretaris'].includes(auth.user?.roles?.[0])
+                                            ? 'Sekretaris'
+                                            : (auth.user?.roles?.[0]?.replace('_', ' ') ?? '-')}
                             </span>
                         </span>
                     </Link>

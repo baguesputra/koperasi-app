@@ -29,6 +29,7 @@ class User extends Authenticatable
         'gate_id',
         'auth_provider',
         'status',
+        'jabatan_pengawas',
     ];
 
     protected $hidden = [
@@ -51,7 +52,37 @@ class User extends Authenticatable
             'pin_failed_attempts' => 'integer',
             'pin_locked_until' => 'datetime',
             'harus_ganti_password' => 'boolean',
+            'jabatan_pengawas' => 'integer',
         ];
+    }
+
+    public function levelPengawas(): ?int
+    {
+        $raw = $this->getAttributes();
+        $jabatan = isset($raw['jabatan_pengawas']) ? (int) $raw['jabatan_pengawas'] : null;
+
+        if (in_array($jabatan, [1, 2, 3], true)) {
+            return $jabatan;
+        }
+
+        $noKaryawan = $raw['no_karyawan'] ?? null;
+
+        return match ($noKaryawan) {
+            'WAS-000001' => 1,
+            'WAS-000002' => 2,
+            'WAS-000003' => 3,
+            default => null,
+        };
+    }
+
+    public function labelJabatanPengawas(): ?string
+    {
+        return match ($this->levelPengawas()) {
+            1 => 'Pengawas 1 (Ketua Pengawas)',
+            2 => 'Pengawas 2',
+            3 => 'Pengawas 3',
+            default => null,
+        };
     }
 
     public function hasPin(): bool
@@ -70,6 +101,7 @@ class User extends Authenticatable
     public function incrementPinFailedAttempts(): int
     {
         $this->increment('pin_failed_attempts');
+
         return (int) ($this->fresh()->getAttributes()['pin_failed_attempts'] ?? 1);
     }
 

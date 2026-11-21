@@ -24,6 +24,7 @@ const statusOptions = [
     { value: 'aktif', label: 'Aktif' },
     { value: 'lunas', label: 'Lunas' },
     { value: 'ditolak', label: 'Ditolak' },
+    { value: 'dihapusbukukan', label: 'Dihapusbukukan' },
 ];
 
 function progresAngsuran(angsuran = []) {

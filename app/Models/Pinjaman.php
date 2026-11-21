@@ -117,6 +117,11 @@ class Pinjaman extends Model
         return $this->hasMany(PengajuanPercepatan::class);
     }
 
+    public function pengajuanPenghapusan(): HasMany
+    {
+        return $this->hasMany(PengajuanPenghapusanPinjaman::class);
+    }
+
     /**
      * Memo jadwal aktif per instance. Empat helper agregat (sisa/total/bayar/pokok)
      * membaca jadwal yang sama — tanpa memo, tiap helper = 2-3 query (N+1 fan-out).

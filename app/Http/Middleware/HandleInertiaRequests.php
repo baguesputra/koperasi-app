@@ -7,6 +7,7 @@ use App\Models\PengajuanLimit;
 use App\Models\PengajuanPercepatan;
 use App\Models\Pinjaman;
 use App\Models\SettingChipNominal;
+use App\Services\Pinjaman\PenghapusanPinjamanService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Middleware;
@@ -55,6 +56,8 @@ class HandleInertiaRequests extends Middleware
                     'anggota_status' => $user->anggota?->status,
                     'foto_url' => $user->anggota?->foto_url,
                     'has_pin' => $user->hasPin(),
+                    'jabatan_pengawas' => $user->levelPengawas(),
+                    'label_jabatan_pengawas' => $user->labelJabatanPengawas(),
                 ] : null,
             ],
             'flash' => [
@@ -103,6 +106,10 @@ class HandleInertiaRequests extends Middleware
 
                 if ($permissions->contains('aktivasi.approve-ketua')) {
                     $notifications['menunggu_aktivasi'] = PengajuanAktivasi::where('status', 'diajukan')->count();
+                }
+
+                if ($permissions->contains('penghapusan-pinjaman.lihat')) {
+                    $notifications['menunggu_penghapusan_pinjaman'] = app(PenghapusanPinjamanService::class)->hitungAntreanUntukUser($user);
                 }
 
                 return $notifications;

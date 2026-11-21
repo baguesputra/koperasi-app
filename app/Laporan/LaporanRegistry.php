@@ -5,6 +5,7 @@ namespace App\Laporan;
 use App\Models\Anggota;
 use App\Models\Angsuran;
 use App\Models\AngsuranPercepatan;
+use App\Models\PengajuanPenghapusanPinjaman;
 use App\Models\PengajuanPercepatan;
 use App\Models\Pengeluaran;
 use App\Models\Pinjaman;
@@ -60,6 +61,7 @@ class LaporanRegistry
         'aktif' => 'Aktif',
         'lunas' => 'Lunas',
         'ditolak' => 'Ditolak',
+        'dihapusbukukan' => 'Dihapusbukukan',
     ];
 
     public static function semua(): array
@@ -204,17 +206,19 @@ class LaporanRegistry
                     $totalAktiva = $aktivaLancar;
 
                     // II. Kewajiban Lancar
+                    // Simpanan anggota aktif maupun nonaktif (mis. dinonaktifkan karena penghapusan pinjaman,
+                    // di mana simpanan belum dicairkan/resign) tetap tercatat sebagai kewajiban simpanan.
                     $simpananPokok = round((float) DB::table('simpanan')
                         ->join('anggota', 'anggota.id', '=', 'simpanan.anggota_id')
                         ->where('simpanan.jenis', 'pokok')
-                        ->where('anggota.status', 'aktif')
+                        ->whereIn('anggota.status', ['aktif', 'nonaktif'])
                         ->where('simpanan.tanggal_input', '<=', $cutoff)
                         ->sum('simpanan.jumlah'), 2);
 
                     $simpananWajib = round((float) DB::table('simpanan')
                         ->join('anggota', 'anggota.id', '=', 'simpanan.anggota_id')
                         ->where('simpanan.jenis', 'wajib')
-                        ->where('anggota.status', 'aktif')
+                        ->whereIn('anggota.status', ['aktif', 'nonaktif'])
                         ->where('simpanan.tanggal_input', '<=', $cutoff)
                         ->sum('simpanan.jumlah'), 2);
 
@@ -386,6 +390,7 @@ class LaporanRegistry
                         'perijinan' => 'Beban Perijinan',
                         'bank' => 'Beban Bank',
                         'pajak' => 'Beban Pajak',
+                        'penghapusan_pinjaman' => 'Beban Penghapusan Pinjaman',
                         'lain_lain' => 'Beban Lain-lain',
                     ];
                     $bebanTotal = array_fill(1, 12, 0.0);
@@ -1099,6 +1104,19 @@ class LaporanRegistry
             $dibayar[$pid] = ((float) ($dibayar[$pid] ?? 0)) + (float) $nominal;
         }
 
+        // Kurangi pokok pinjaman yang telah dihapusbukukan (disetujui final) pada atau sebelum tanggal cut-off
+        $dihapusbukukan = PengajuanPenghapusanPinjaman::whereIn('pinjaman_id', $ids)
+            ->where('status', 'disetujui')
+            ->whereNotNull('disetujui_pada')
+            ->whereDate('disetujui_pada', '<=', $tanggal)
+            ->selectRaw('pinjaman_id, SUM(sisa_pokok) as total')
+            ->groupBy('pinjaman_id')
+            ->pluck('total', 'pinjaman_id');
+
+        foreach ($dihapusbukukan as $pid => $nominal) {
+            $dibayar[$pid] = ((float) ($dibayar[$pid] ?? 0)) + (float) $nominal;
+        }
+
         $total = 0.0;
         foreach ($pinjamans as $pid => $nominal) {
             $total += max(0.0, (float) $nominal - (float) ($dibayar[$pid] ?? 0));
@@ -1187,12 +1205,22 @@ class LaporanRegistry
             $beban[$tipe][(int) Carbon::parse($p->tanggal)->format('n')] += (float) $p->jumlah;
         }
 
+        $penghapusan = PengajuanPenghapusanPinjaman::where('status', 'disetujui')
+            ->whereNotNull('disetujui_pada')
+            ->whereBetween('disetujui_pada', [$awal, $akhir])
+            ->get(['disetujui_pada', 'sisa_pokok']);
+        foreach ($penghapusan as $ph) {
+            $beban['penghapusan_pinjaman'] ??= $nol;
+            $beban['penghapusan_pinjaman'][(int) $ph->disetujui_pada->format('n')] += (float) $ph->sisa_pokok;
+        }
+
         return ['bunga' => $bunga, 'bank' => $bank, 'beban' => $beban];
     }
 
     /**
      * SHU tahun berjalan: bunga angsuran lunas (normal + percepatan) +
-     * bunga bank (topup sumber bunga_bank) dikurangi beban operasional kas.
+     * bunga bank (topup sumber bunga_bank) dikurangi beban operasional kas
+     * serta beban penghapusan pokok pinjaman macet.
      * Dana sosial bukan beban SHU (arus dana, bukan laba) sehingga
      * tidak dikurangkan. Topup modal bukan pendapatan SHU.
      */
@@ -1224,7 +1252,14 @@ class LaporanRegistry
             ->whereBetween('tanggal', [$awal, $akhir])
             ->sum('jumlah');
 
-        return ['bunga' => $bunga + $bungaBank, 'beban' => $beban, 'shu' => $bunga + $bungaBank - $beban];
+        $bebanPenghapusan = (float) PengajuanPenghapusanPinjaman::where('status', 'disetujui')
+            ->whereNotNull('disetujui_pada')
+            ->whereBetween('disetujui_pada', [$awal, $akhir])
+            ->sum('sisa_pokok');
+
+        $totalBeban = $beban + $bebanPenghapusan;
+
+        return ['bunga' => $bunga + $bungaBank, 'beban' => $totalBeban, 'shu' => $bunga + $bungaBank - $totalBeban];
     }
 
     /**

@@ -12,6 +12,8 @@ class PenomoranDokumenService
 
     public const JENIS_RESIGN = 'KOP-RSGN';
 
+    public const JENIS_PENGHAPUSAN_PINJAMAN = 'KOP-PHPS';
+
     public const JENIS_JKM = 'JKM';
 
     public const JENIS_JKK = 'JKK';

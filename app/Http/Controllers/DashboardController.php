@@ -8,10 +8,12 @@ use App\Models\JurnalKas;
 use App\Models\KasKoperasi;
 use App\Models\PengajuanAktivasi;
 use App\Models\PengajuanLimit;
+use App\Models\PengajuanPenghapusanPinjaman;
 use App\Models\PengajuanPercepatan;
 use App\Models\Pinjaman;
 use App\Models\Simpanan;
 use App\Services\Keuangan\JurnalKasService;
+use App\Services\Pinjaman\PenghapusanPinjamanService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -64,6 +66,14 @@ class DashboardController extends Controller
         $menungguPengajuanLimitBendahara = (int) ($limitAntre['diajukan'] ?? 0);
         $menungguPengajuanLimit = (int) ($limitAntre['approved_bendahara'] ?? 0);
         $menungguAktivasi = PengajuanAktivasi::where('status', 'diajukan')->count();
+        $menungguPenghapusanSaya = app(PenghapusanPinjamanService::class)->hitungAntreanUntukUser(auth()->user());
+        $penghapusanBerjalan = PengajuanPenghapusanPinjaman::whereIn('status', [
+            'diajukan',
+            'approved_bendahara',
+            'approved_ketua',
+            'approved_pengawas_3',
+            'approved_pengawas_2',
+        ])->count();
 
         $rincianAntrean = [
             'limit_bendahara' => $menungguPengajuanLimitBendahara,
@@ -182,10 +192,11 @@ class DashboardController extends Controller
         // Aktivitas terbaru gabungan
         $aktivitasPinjaman = Pinjaman::with('anggota')
             ->latest('tanggal_pengajuan')
-            ->take(5)
+            ->take(6)
             ->get()
             ->map(fn ($p) => [
                 'tipe' => 'pinjaman',
+                'pinjaman_id' => $p->id,
                 'nama' => $p->anggota?->nama ?? '-',
                 'keterangan' => 'Mengajukan pinjaman '.number_format($p->nominal, 0, ',', '.'),
                 'status' => $p->status,
@@ -195,10 +206,11 @@ class DashboardController extends Controller
         $aktivitasAngsuran = Angsuran::with('pinjaman.anggota')
             ->where('status', 'lunas')
             ->latest('tanggal_konfirmasi_bayar')
-            ->take(5)
+            ->take(6)
             ->get()
             ->map(fn ($a) => [
                 'tipe' => 'angsuran',
+                'pinjaman_id' => $a->pinjaman_id,
                 'nama' => $a->pinjaman?->anggota?->nama ?? '-',
                 'keterangan' => "Membayar cicilan ke-{$a->cicilan_ke}",
                 'status' => 'lunas',
@@ -207,7 +219,7 @@ class DashboardController extends Controller
 
         $aktivitasTerbaru = $aktivitasPinjaman->concat($aktivitasAngsuran)
             ->sortByDesc('tanggal')
-            ->take(6)
+            ->take(8)
             ->values()
             ->map(fn ($item) => [
                 ...collect($item)->except('tanggal')->toArray(),
@@ -241,6 +253,8 @@ class DashboardController extends Controller
                 'aktivasi_anggota' => $menungguAktivasi,
                 'anggota_belum_simpanan' => $anggotaBelumSimpananBulanIni,
                 'angsuran_jatuh_tempo' => $angsuranJatuhTempoBulanIni,
+                'penghapusan_pinjaman_menunggu' => $menungguPenghapusanSaya,
+                'penghapusan_pinjaman_berjalan' => $penghapusanBerjalan,
             ],
             'grafikTren' => $grafikTren,
             'grafikKas' => $grafikKas,

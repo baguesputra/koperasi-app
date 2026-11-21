@@ -39,6 +39,8 @@ class DashboardTest extends TestCase
                 ->has('stats.saldo_kas_kecil')
                 ->where('stats.saldo_kas_kecil', 5_000_000)
                 ->has('stats.saldo_dana_sosial')
+                ->has('actionable.penghapusan_pinjaman_menunggu')
+                ->has('actionable.penghapusan_pinjaman_berjalan')
                 ->missing('stats.total_keseluruhan')
                 ->missing('stats.pendapatan_bunga_bulan_ini')
             );

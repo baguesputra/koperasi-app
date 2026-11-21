@@ -41,6 +41,11 @@ class PermissionSeeder extends Seeder
             'api.akses-pinjaman',
             'api.akses-simpanan',
             'api.akses-limit',
+            'penghapusan-pinjaman.lihat',
+            'penghapusan-pinjaman.ajukan',
+            'penghapusan-pinjaman.approve-bendahara',
+            'penghapusan-pinjaman.approve-ketua',
+            'penghapusan-pinjaman.approve-pengawas',
         ];
 
         foreach ($permissions as $permission) {

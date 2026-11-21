@@ -58,6 +58,8 @@ class PenggunaController extends Controller
                 'roles' => $user->getRoleNames()->values(),
                 'harus_ganti_password' => (bool) $user->harus_ganti_password,
                 'has_pin' => (bool) $user->pin,
+                'jabatan_pengawas' => $user->levelPengawas(),
+                'label_jabatan_pengawas' => $user->labelJabatanPengawas(),
                 'anggota' => $user->anggota ? [
                     'no_anggota' => $user->anggota->no_anggota,
                     'no_karyawan' => $user->anggota->no_karyawan,
@@ -88,6 +90,7 @@ class PenggunaController extends Controller
                     $fail('Role tidak boleh ditetapkan oleh akun Anda.');
                 }
             }],
+            'jabatan_pengawas' => ['nullable', 'integer', 'in:1,2,3'],
             // Login lokal dihapus (SSO-only): akun baru tanpa password lokal yang bisa ditebak.
         ]);
 
@@ -99,6 +102,7 @@ class PenggunaController extends Controller
             'password' => Hash::make(Str::random(32)),
             'harus_ganti_password' => false,
             'status' => 'aktif',
+            'jabatan_pengawas' => $validated['role'] === 'pengawas' ? ($validated['jabatan_pengawas'] ?? null) : null,
         ]);
         $user->syncRoles([$validated['role']]);
 
@@ -123,6 +127,7 @@ class PenggunaController extends Controller
                     $fail('Role tidak boleh ditetapkan oleh akun Anda.');
                 }
             }],
+            'jabatan_pengawas' => ['nullable', 'integer', 'in:1,2,3'],
             'status' => ['required', 'in:aktif,nonaktif'],
         ]);
 
@@ -140,6 +145,7 @@ class PenggunaController extends Controller
             'email' => $user->email,
             'role' => $user->getRoleNames()->first(),
             'status' => $user->status,
+            'jabatan_pengawas' => $user->jabatan_pengawas,
         ];
 
         $user->update([
@@ -147,6 +153,7 @@ class PenggunaController extends Controller
             'no_karyawan' => $validated['no_karyawan'],
             'email' => $validated['email'] ?? null,
             'status' => $validated['status'],
+            'jabatan_pengawas' => $validated['role'] === 'pengawas' ? ($validated['jabatan_pengawas'] ?? $user->jabatan_pengawas) : null,
         ]);
         $user->syncRoles([$validated['role']]);
 
@@ -201,7 +208,7 @@ class PenggunaController extends Controller
 
         AuditLog::catat(
             'reset_pin_pengguna',
-            "PIN akun {$user->name} ({$user->no_karyawan}) di-reset oleh pengurus (".auth()->user()->name.").",
+            "PIN akun {$user->name} ({$user->no_karyawan}) di-reset oleh pengurus (".auth()->user()->name.').',
             null,
             ['user_id' => $user->id]
         );

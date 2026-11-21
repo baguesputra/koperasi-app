@@ -51,8 +51,8 @@ export default function KelolaPengguna({
     const cariDebounced = useDebouncedValue(cari);
     const pertama = useRef(true);
 
-    const tambah = useForm({ name: '', no_karyawan: '', email: '', role: '' });
-    const edit = useForm({ name: '', no_karyawan: '', email: '', role: '', status: '' });
+    const tambah = useForm({ name: '', no_karyawan: '', email: '', role: '', jabatan_pengawas: '' });
+    const edit = useForm({ name: '', no_karyawan: '', email: '', role: '', status: '', jabatan_pengawas: '' });
     const reset = useForm({ password: '', tanpa_wajib_ganti: false });
 
     const filterAktif = Boolean((filterPengguna.cari ?? '') || (filterPengguna.role ?? '') || (filterPengguna.status ?? ''));
@@ -104,6 +104,7 @@ export default function KelolaPengguna({
             email: user.email ?? '',
             role: user.roles[0] ?? '',
             status: user.status,
+            jabatan_pengawas: user.jabatan_pengawas ?? '',
         });
         setTarget(user);
         setView('edit');
@@ -200,6 +201,16 @@ export default function KelolaPengguna({
                     <FormField label="Email" error={tambah.errors.email}>
                         <TextField size="sm" type="email" value={tambah.data.email} onChange={(e) => tambah.setData('email', e.target.value)} placeholder="budi@koperasi.test" />
                     </FormField>
+                    {tambah.data.role === 'pengawas' && (
+                        <FormField label="Jenjang Pengawas" error={tambah.errors.jabatan_pengawas} hint="Urutan approval penghapusan: Pengawas 3 → Pengawas 2 → Pengawas 1 (Ketua)">
+                            <Select size="sm" value={tambah.data.jabatan_pengawas} onChange={(e) => tambah.setData('jabatan_pengawas', e.target.value)}>
+                                <option value="">Pilih jenjang pengawas</option>
+                                <option value="1">Pengawas 1 (Ketua Pengawas — Tahap Final)</option>
+                                <option value="2">Pengawas 2 (Tahap Ke-2)</option>
+                                <option value="3">Pengawas 3 (Tahap Pertama Pengawas)</option>
+                            </Select>
+                        </FormField>
+                    )}
                     <p className="-mt-2 mb-3 text-xs text-slate-500">Akun baru login via SSO — tanpa password lokal.</p>
                     <div className="grid grid-cols-2 gap-2.5 sm:gap-3 pt-3.5 border-t border-slate-100">
                         <Button type="button" variant="neutral" size="drawer" onClick={() => setView('list')}>
@@ -239,6 +250,16 @@ export default function KelolaPengguna({
                     <FormField label="Email" error={edit.errors.email}>
                         <TextField size="sm" type="email" value={edit.data.email} onChange={(e) => edit.setData('email', e.target.value)} />
                     </FormField>
+                    {edit.data.role === 'pengawas' && (
+                        <FormField label="Jenjang Pengawas" error={edit.errors.jabatan_pengawas} hint="Urutan approval penghapusan: Pengawas 3 → Pengawas 2 → Pengawas 1 (Ketua)">
+                            <Select size="sm" value={edit.data.jabatan_pengawas} onChange={(e) => edit.setData('jabatan_pengawas', e.target.value)}>
+                                <option value="">Pilih jenjang pengawas</option>
+                                <option value="1">Pengawas 1 (Ketua Pengawas — Tahap Final)</option>
+                                <option value="2">Pengawas 2 (Tahap Ke-2)</option>
+                                <option value="3">Pengawas 3 (Tahap Pertama Pengawas)</option>
+                            </Select>
+                        </FormField>
+                    )}
                     <FormField label="Status" error={edit.errors.status} required>
                         <Select size="sm" value={edit.data.status} onChange={(e) => edit.setData('status', e.target.value)} required>
                             <option value="aktif">Aktif</option>

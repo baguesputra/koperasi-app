@@ -42,11 +42,27 @@ class UserSeeder extends Seeder
         );
         $ketua->assignRole('ketua_koperasi');
 
-        $pengawas = User::firstOrCreate(
-            ['no_karyawan' => 'WAS-000001'],
-            ['name' => 'Pengawas Koperasi', 'email' => 'pengawas@koperasi.test', 'password' => Hash::make('WAS-000001')]
-        );
-        $pengawas->assignRole('pengawas');
+        $daftarPengawas = [
+            ['no_karyawan' => 'WAS-000001', 'name' => 'Pengawas 1 (Ketua Pengawas)', 'email' => 'pengawas@koperasi.test', 'jabatan_pengawas' => 1],
+            ['no_karyawan' => 'WAS-000002', 'name' => 'Pengawas 2 Koperasi', 'email' => 'pengawas2@koperasi.test', 'jabatan_pengawas' => 2],
+            ['no_karyawan' => 'WAS-000003', 'name' => 'Pengawas 3 Koperasi', 'email' => 'pengawas3@koperasi.test', 'jabatan_pengawas' => 3],
+        ];
+
+        foreach ($daftarPengawas as $item) {
+            $pengawas = User::firstOrCreate(
+                ['no_karyawan' => $item['no_karyawan']],
+                [
+                    'name' => $item['name'],
+                    'email' => $item['email'],
+                    'password' => Hash::make($item['no_karyawan']),
+                    'jabatan_pengawas' => $item['jabatan_pengawas'],
+                ]
+            );
+            if ($pengawas->jabatan_pengawas !== $item['jabatan_pengawas']) {
+                $pengawas->update(['jabatan_pengawas' => $item['jabatan_pengawas']]);
+            }
+            $pengawas->assignRole('pengawas');
+        }
 
         $anggotaBulk = $this->anggotaBulk();
 

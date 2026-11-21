@@ -141,6 +141,7 @@ class PinjamanController extends Controller
                 SUM(CASE WHEN status = 'aktif' THEN 1 ELSE 0 END) as aktif,
                 SUM(CASE WHEN status = 'lunas' THEN 1 ELSE 0 END) as lunas,
                 SUM(CASE WHEN status = 'ditolak' THEN 1 ELSE 0 END) as ditolak,
+                SUM(CASE WHEN status = 'dihapusbukukan' THEN 1 ELSE 0 END) as dihapusbukukan,
                 COALESCE(SUM(CASE WHEN status = 'aktif' THEN nominal ELSE 0 END), 0) as total_nominal_aktif,
                 COALESCE(SUM(CASE WHEN status IN ('diajukan', 'approved_admin', 'approved_bendahara', 'approved_ketua') THEN nominal ELSE 0 END), 0) as total_nominal_antrean
             ")
@@ -160,6 +161,7 @@ class PinjamanController extends Controller
                 'aktif' => (int) $statistik->aktif,
                 'lunas' => (int) $statistik->lunas,
                 'ditolak' => (int) $statistik->ditolak,
+                'dihapusbukukan' => (int) $statistik->dihapusbukukan,
                 'total_nominal_aktif' => (float) $statistik->total_nominal_aktif,
                 'total_nominal_antrean' => (float) $statistik->total_nominal_antrean,
             ],
