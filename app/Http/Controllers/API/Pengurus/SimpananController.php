@@ -58,6 +58,11 @@ class SimpananController extends Controller
             ? $semuaSudah->where('cabang', $cabang)->values()
             : $semuaSudah;
 
+        $terlambatRows = $this->konfirmasi->simpananWajibTerlambat(
+            now()->format('Y-m'),
+            $cabang !== '' ? $cabang : null
+        );
+
         $daftarCabang = Cache::remember(
             'daftar_cabang',
             600,
@@ -71,6 +76,8 @@ class SimpananController extends Controller
             'cabang' => $cabang !== '' ? $cabang : null,
             'daftar_cabang' => $daftarCabang,
             'nominal_per_anggota' => $nominal,
+            'terlambat' => $terlambatRows,
+            'total_terlambat' => (float) $terlambatRows->sum('nominal'),
             'sudah_dikonfirmasi' => $sudahDikonfirmasi,
             'total_sudah_dikonfirmasi' => (float) $sudahDikonfirmasi->sum('nominal_total'),
         ]);
@@ -90,13 +97,29 @@ class SimpananController extends Controller
         }
 
         $request->validate([
-            'anggota_ids' => ['required', 'array', 'min:1'],
+            'anggota_ids' => ['required_without:items', 'array', 'min:1'],
             'anggota_ids.*' => ['integer', 'exists:anggota,id'],
             'bulan_periode' => ['nullable', 'date_format:Y-m'],
+            'items' => ['required_without:anggota_ids', 'array', 'min:1'],
+            'items.*.anggota_id' => ['required', 'integer', 'exists:anggota,id'],
+            'items.*.bulan_periode' => ['required', 'date_format:Y-m'],
         ]);
 
-        $periode = (string) ($request->input('bulan_periode') ?: now()->format('Y-m'));
         $nominal = $this->nominalPerAnggota();
+
+        if ($request->filled('items')) {
+            $jumlah = $this->konfirmasi->konfirmasiMassalMultiPeriode(
+                $request->input('items', []),
+                (int) $request->user()->id
+            );
+
+            return response()->json([
+                'message' => "{$jumlah} tagihan dikonfirmasi.",
+                'total' => $jumlah * $nominal,
+            ]);
+        }
+
+        $periode = (string) ($request->input('bulan_periode') ?: now()->format('Y-m'));
 
         $jumlah = $this->konfirmasi->konfirmasiMassal(
             $request->input('anggota_ids', []),

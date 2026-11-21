@@ -219,4 +219,62 @@ class AngsuranKonfirmasiTest extends TestCase
             'alasan' => 'Akses tidak sah',
         ])->assertStatus(403);
     }
+
+    public function test_angsuran_terlambat_masuk_tab_terlambat_bulan_berjalan_dan_rollover_dari_bulan_lalu(): void
+    {
+        $pinjaman = $this->buatPinjamanAktifDenganAngsuran();
+        $angsuran1 = $pinjaman->angsuran()->where('cicilan_ke', 1)->firstOrFail();
+        $angsuran2 = $pinjaman->angsuran()->where('cicilan_ke', 2)->firstOrFail();
+        $angsuran3 = $pinjaman->angsuran()->where('cicilan_ke', 3)->firstOrFail();
+
+        $bulanSatuLalu = now()->startOfMonth()->subMonthsNoOverflow(1)->format('Y-m');
+
+        $this->masuk('BEN-000001');
+
+        // 1. Pada bulan berjalan: daftarAngsuran hanya memuat cicilan bulan ini, daftarTerlambat memuat cicilan bulan lalu
+        $propsKini = $this->get(route('bendahara.angsuran.index'))
+            ->assertOk()
+            ->viewData('page')['props'];
+
+        $regulerIds = array_column($propsKini['daftarAngsuran'], 'id');
+        $terlambatItems = collect($propsKini['daftarTerlambat']);
+        $terlambatIds = $terlambatItems->pluck('id')->all();
+
+        $this->assertContains('n-'.$angsuran3->id, $regulerIds);
+        $this->assertNotContains('n-'.$angsuran1->id, $regulerIds);
+        $this->assertNotContains('n-'.$angsuran2->id, $regulerIds);
+
+        $this->assertContains('n-'.$angsuran1->id, $terlambatIds);
+        $this->assertContains('n-'.$angsuran2->id, $terlambatIds);
+        $this->assertNotContains('n-'.$angsuran3->id, $terlambatIds);
+        $this->assertTrue($terlambatItems->firstWhere('id', 'n-'.$angsuran1->id)['terlambat']);
+
+        // Urutan terlambat kronologis (cicilan 1 lebih dulu dari cicilan 2)
+        $pos1 = array_search('n-'.$angsuran1->id, $terlambatIds, true);
+        $pos2 = array_search('n-'.$angsuran2->id, $terlambatIds, true);
+        $this->assertLessThan($pos2, $pos1);
+
+        // 2. Pada bulan lalu (Opsi 1): daftarAngsuran & daftarTerlambat kosong, dipindahKeBulanIni menghitung tunggakan periode itu
+        $propsLalu = $this->get(route('bendahara.angsuran.index', ['bulan' => $bulanSatuLalu]))
+            ->assertOk()
+            ->viewData('page')['props'];
+
+        $this->assertSame([], $propsLalu['daftarAngsuran']);
+        $this->assertSame([], $propsLalu['daftarTerlambat']);
+        $this->assertGreaterThanOrEqual(1, $propsLalu['dipindahKeBulanIni']['jumlah']);
+
+        // 3. Konfirmasi cicilan terlambat ke-1 dari bulan berjalan -> hilang dari Terlambat & langsung muncul di Sudah Dikonfirmasi bulan berjalan
+        $this->post(route('bendahara.angsuran.konfirmasi'), [
+            'angsuran_ids' => ['n-'.$angsuran1->id],
+        ])->assertStatus(302);
+
+        $propsSesudah = $this->get(route('bendahara.angsuran.index'))
+            ->assertOk()
+            ->viewData('page')['props'];
+
+        $this->assertNotContains('n-'.$angsuran1->id, array_column($propsSesudah['daftarTerlambat'], 'id'));
+        $itemLunas = collect($propsSesudah['sudahDikonfirmasi'])->firstWhere('id', 'n-'.$angsuran1->id);
+        $this->assertNotNull($itemLunas);
+        $this->assertTrue($itemLunas['dari_bulan_lain']);
+    }
 }

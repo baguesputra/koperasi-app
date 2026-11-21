@@ -40,8 +40,9 @@ class AngsuranController extends Controller
 
         $bulanInput = $request->input('bulan');
         $periode = $bulanInput ?: now()->format('Y-m');
-        $awalBulan = Carbon::createFromFormat('Y-m', $periode)->startOfMonth()->startOfDay()->toDateTimeString();
+        $awalBulan = Carbon::createFromFormat('Y-m', $periode)->startOfMonth()->toDateString();
         $akhirBulan = Carbon::createFromFormat('Y-m', $periode)->endOfMonth()->endOfDay()->toDateTimeString();
+        $awalBulanIni = now()->startOfMonth()->toDateString();
         $cabang = trim((string) $request->input('cabang', ''));
 
         $pinjamanBerpengajuan = PengajuanPercepatan::whereIn('status', ['diajukan', 'approved_bendahara'])
@@ -104,6 +105,52 @@ class AngsuranController extends Controller
             ? $semuaRows->where('cabang', $cabang)->values()
             : $semuaRows;
 
+        $terlambatNormal = Angsuran::with('pinjaman.anggota')
+            ->where('status', 'belum_bayar')
+            ->whereHas('pinjaman', fn ($q) => $q->where('status', 'aktif'))
+            ->where('tanggal_jatuh_tempo', '<', $awalBulanIni)
+            ->get()
+            ->map(fn ($a) => $this->baris(
+                'normal',
+                angsuranId: $a->id,
+                pinjamanId: $a->pinjaman_id,
+                nama: $a->pinjaman->anggota->nama ?? '-',
+                noAnggota: $a->pinjaman->anggota->no_anggota ?? '-',
+                cabang: $a->pinjaman->anggota->cabang,
+                fotoUrl: $a->pinjaman->anggota->foto_url,
+                cicilanKe: $a->cicilan_ke,
+                totalBayar: (float) $a->total_bayar,
+                jatuhTempo: $a->tanggal_jatuh_tempo,
+                adaPengajuan: $pinjamanBerpengajuan->has($a->pinjaman_id),
+            ));
+
+        $terlambatPercepatan = AngsuranPercepatan::with('pengajuan.pinjaman.anggota')
+            ->where('status', 'belum_bayar')
+            ->whereHas('pengajuan.pinjaman', fn ($q) => $q->where('status', 'aktif'))
+            ->where('tanggal_jatuh_tempo', '<', $awalBulanIni)
+            ->get()
+            ->map(fn ($a) => $this->baris(
+                'percepatan',
+                angsuranId: $a->id,
+                pinjamanId: $a->pengajuan->pinjaman_id,
+                nama: $a->pengajuan->pinjaman->anggota->nama ?? '-',
+                noAnggota: $a->pengajuan->pinjaman->anggota->no_anggota ?? '-',
+                cabang: $a->pengajuan->pinjaman->anggota->cabang,
+                fotoUrl: $a->pengajuan->pinjaman->anggota->foto_url,
+                cicilanKe: $a->cicilan_ke,
+                totalBayar: (float) $a->total_bayar,
+                jatuhTempo: $a->tanggal_jatuh_tempo,
+                adaPengajuan: false,
+            ));
+
+        $semuaTerlambat = $terlambatNormal->concat($terlambatPercepatan)
+            ->sortBy('tanggal_jatuh_tempo')
+            ->values();
+
+        $terlambatRows = $cabang !== ''
+            ? $semuaTerlambat->where('cabang', $cabang)->values()
+            : $semuaTerlambat;
+
         $semuaSudah = $this->daftarSudahDikonfirmasi($awalBulan, $akhirBulan);
         $sudahDikonfirmasi = $cabang !== ''
             ? $semuaSudah->where('cabang', $cabang)->values()
@@ -123,6 +170,8 @@ class AngsuranController extends Controller
             'daftar_cabang' => $daftarCabang,
             'tagihan_per_cabang' => $tagihanPerCabang,
             'total_tagihan' => (float) $rows->sum('total_bayar'),
+            'terlambat' => $terlambatRows,
+            'total_terlambat' => (float) $terlambatRows->sum('total_bayar'),
             'sudah_dikonfirmasi' => $sudahDikonfirmasi,
             'total_sudah_dikonfirmasi' => (float) $sudahDikonfirmasi->sum('total_bayar'),
         ]);
@@ -196,12 +245,18 @@ class AngsuranController extends Controller
     {
         $lunasNormal = Angsuran::with('pinjaman.anggota')
             ->where('status', 'lunas')
-            ->whereBetween('tanggal_jatuh_tempo', [$awalBulan, $akhirBulan])
+            ->where(function ($q) use ($awalBulan, $akhirBulan) {
+                $q->whereBetween('tanggal_jatuh_tempo', [$awalBulan, $akhirBulan])
+                    ->orWhereBetween('tanggal_konfirmasi_bayar', [$awalBulan, $akhirBulan]);
+            })
             ->get();
 
         $lunasPercepatan = AngsuranPercepatan::with('pengajuan.pinjaman.anggota')
             ->where('status', 'lunas')
-            ->whereBetween('tanggal_jatuh_tempo', [$awalBulan, $akhirBulan])
+            ->where(function ($q) use ($awalBulan, $akhirBulan) {
+                $q->whereBetween('tanggal_jatuh_tempo', [$awalBulan, $akhirBulan])
+                    ->orWhereBetween('tanggal_konfirmasi_bayar', [$awalBulan, $akhirBulan]);
+            })
             ->get();
 
         if ($lunasNormal->isEmpty() && $lunasPercepatan->isEmpty()) {

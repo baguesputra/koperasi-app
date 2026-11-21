@@ -24,13 +24,18 @@ const fokusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible
 
 export default function Index({
     bulan,
+    bulanIni: bulanIniServer,
+    tabAwal = 'belum',
     daftarAngsuran = [],
+    daftarTerlambat = [],
     sudahDikonfirmasi = [],
     totalSudahDikonfirmasi = 0,
     cabangAktif = '',
     daftarCabang = [],
     tagihanPerCabang = {},
     totalTagihanBulanIni = 0,
+    totalTagihanTerlambat = 0,
+    dipindahKeBulanIni = { jumlah: 0, nominal: 0 },
     totalPendapatanBungaBulanIni = 0,
     totalPendapatanBungaKeseluruhan = 0,
 }) {
@@ -39,7 +44,7 @@ export default function Index({
     const [processing, setProcessing] = useState(false);
     const [cari, setCari] = useState('');
     const [rincianTerbuka, setRincianTerbuka] = useState(false);
-    const [tabStatus, setTabStatus] = useState('belum');
+    const [tabStatus, setTabStatus] = useState(tabAwal);
     const [itemBatal, setItemBatal] = useState(null);
     const batalFormId = useId();
 
@@ -51,7 +56,8 @@ export default function Index({
         setCari('');
         setTerpilih([]);
         setItemBatal(null);
-    }, [bulan, cabangAktif]);
+        setTabStatus(tabAwal);
+    }, [bulan, cabangAktif, tabAwal]);
 
     function ubahBulan(nilaiBaru) {
         router.get(route('bendahara.angsuran.index'), { bulan: nilaiBaru, cabang: cabangAktif }, { preserveState: true });
@@ -68,8 +74,26 @@ export default function Index({
         return new Date(tahun, bulanAngka - 1, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
     }, [bulan]);
 
-    const bulanIni = new Date();
-    const kunciBulanIni = `${bulanIni.getFullYear()}-${String(bulanIni.getMonth() + 1).padStart(2, '0')}`;
+    const bulanIniDate = new Date();
+    const kunciBulanIni = bulanIniServer || `${bulanIniDate.getFullYear()}-${String(bulanIniDate.getMonth() + 1).padStart(2, '0')}`;
+    const isBulanLalu = bulan < kunciBulanIni;
+
+    function gantiTab(tabBaru) {
+        setTabStatus(tabBaru);
+        setTerpilih([]);
+    }
+
+    function bukaTerlambatBulanIni() {
+        if (bulan === kunciBulanIni) {
+            gantiTab('terlambat');
+            return;
+        }
+        router.get(
+            route('bendahara.angsuran.index'),
+            { bulan: kunciBulanIni, cabang: cabangAktif, tab: 'terlambat' },
+            { preserveState: true }
+        );
+    }
 
     function pindahTab(cabang) {
         router.get(route('bendahara.angsuran.index'), { bulan, cabang }, { preserveState: true });
@@ -81,12 +105,19 @@ export default function Index({
     }
 
     const kataCari = cari.trim().toLowerCase();
+    const dataTerlambat = Array.isArray(daftarTerlambat) ? daftarTerlambat : Object.values(daftarTerlambat ?? {});
     const dataSudah = Array.isArray(sudahDikonfirmasi) ? sudahDikonfirmasi : Object.values(sudahDikonfirmasi ?? {});
     const tampil = useMemo(
         () => daftarAngsuran.filter((a) =>
             !kataCari || a.nama.toLowerCase().includes(kataCari) || (a.no_karyawan ?? '').toLowerCase().includes(kataCari)
         ),
         [daftarAngsuran, kataCari]
+    );
+    const tampilTerlambat = useMemo(
+        () => dataTerlambat.filter((a) =>
+            !kataCari || a.nama.toLowerCase().includes(kataCari) || (a.no_karyawan ?? '').toLowerCase().includes(kataCari)
+        ),
+        [dataTerlambat, kataCari]
     );
     const tampilSudah = useMemo(
         () => dataSudah.filter((a) =>
@@ -141,11 +172,14 @@ export default function Index({
         );
     }
 
-    const totalTerpilih = daftarAngsuran
+    const sumberAktif = tabStatus === 'terlambat' ? dataTerlambat : daftarAngsuran;
+    const totalTerpilih = sumberAktif
         .filter((a) => terpilih.includes(a.id))
         .reduce((sum, a) => sum + a.total_bayar, 0);
 
-    const jumlahTerlambat = daftarAngsuran.filter((a) => a.terlambat).length;
+    const totalTerlambatCabang = dataTerlambat.reduce((sum, a) => sum + (a.total_bayar || 0), 0);
+    const jumlahTerlambatWidget = isBulanLalu ? (dipindahKeBulanIni?.jumlah ?? 0) : dataTerlambat.length;
+    const nominalTerlambatWidget = isBulanLalu ? (dipindahKeBulanIni?.nominal ?? 0) : totalTerlambatCabang;
     const filterAktif = Boolean(kataCari || bulan !== kunciBulanIni || cabangAktif);
 
     const tab = [
@@ -199,15 +233,43 @@ export default function Index({
                             </div>
                         ))}
                         <div className="rounded-xl bg-white/10 px-3 py-2">
-                            <dt className="text-xs text-white/70">Jumlah angsuran</dt>
+                            <dt className="text-xs text-white/70">Jumlah angsuran {labelBulan}</dt>
                             <dd className="font-bold tabular-nums">{daftarAngsuran.length} tagihan</dd>
+                        </div>
+                        <div className="rounded-xl bg-white/10 px-3 py-2">
+                            <dt className="text-xs text-white/70">Tunggakan terlambat</dt>
+                            <dd className="font-bold tabular-nums privacy-blur">
+                                {jumlahTerlambatWidget} tagihan • {formatRupiah(nominalTerlambatWidget)}
+                            </dd>
                         </div>
                     </dl>
                 )}
             </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
-                <StatWidget compact label="Terlambat" value={jumlahTerlambat} icon={AlarmClock} tone="rose" />
+                <button
+                    type="button"
+                    onClick={bukaTerlambatBulanIni}
+                    title="Lihat daftar angsuran terlambat"
+                    className={`text-left w-full rounded-xl cursor-pointer transition-all hover:brightness-[0.99] ${fokusRing}`}
+                >
+                    <StatWidget
+                        compact
+                        label="Terlambat"
+                        value={jumlahTerlambatWidget}
+                        icon={AlarmClock}
+                        tone="rose"
+                        caption={
+                            nominalTerlambatWidget > 0 ? (
+                                <span className="privacy-blur">{formatRupiah(nominalTerlambatWidget)}</span>
+                            ) : isBulanLalu ? (
+                                'Dipindah ke bulan ini'
+                            ) : (
+                                'Tidak ada tunggakan'
+                            )
+                        }
+                    />
+                </button>
                 <StatWidget compact label="Menunggu" value={daftarAngsuran.length} icon={Wallet} tone="amber" />
                 <div className="col-span-2 lg:col-span-1">
                     <StatWidget compact label="Pendapatan Bunga Bulan Ini" value={formatRupiah(totalPendapatanBungaBulanIni)} icon={TrendingUp} tone="green" />
@@ -239,10 +301,10 @@ export default function Index({
             <Card padding="sm" className="shadow-md border-slate-200/70 mb-4">
                 <div className="pb-3 mb-1 border-b border-slate-100">
                     {/* Segmented Status Switcher */}
-                    <div className="inline-flex items-center p-1 rounded-xl bg-gradient-to-r from-brand-navy/[0.04] to-brand-green-light/20 border border-slate-200/80 mb-3">
+                    <div className="inline-flex flex-wrap items-center p-1 rounded-xl bg-gradient-to-r from-brand-navy/[0.04] to-brand-green-light/20 border border-slate-200/80 mb-3">
                         <button
                             type="button"
-                            onClick={() => setTabStatus('belum')}
+                            onClick={() => gantiTab('belum')}
                             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${fokusRing} ${
                                 tabStatus === 'belum'
                                     ? 'bg-white text-slate-800 shadow-xs'
@@ -253,7 +315,18 @@ export default function Index({
                         </button>
                         <button
                             type="button"
-                            onClick={() => setTabStatus('sudah')}
+                            onClick={() => gantiTab('terlambat')}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${fokusRing} ${
+                                tabStatus === 'terlambat'
+                                    ? 'bg-white text-rose-700 border border-rose-200/80 shadow-xs'
+                                    : 'text-slate-600 hover:text-rose-700 border border-transparent'
+                            }`}
+                        >
+                            Terlambat ({dataTerlambat.length})
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => gantiTab('sudah')}
                             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${fokusRing} ${
                                 tabStatus === 'sudah'
                                     ? 'bg-white text-emerald-700 border border-emerald-200/80 shadow-xs'
@@ -267,13 +340,38 @@ export default function Index({
                     <div className="flex flex-col md:flex-row md:items-center gap-2">
                         <div className="flex items-center gap-1.5 min-w-0">
                             <p className="text-sm text-slate-500 truncate">
-                                Jatuh tempo <span className="font-bold text-slate-800">{labelBulan}</span>
-                                <span className="text-slate-400">
-                                    {' '}• {tabStatus === 'belum' ? tampil.length : tampilSudah.length}
-                                    {kataCari && (tabStatus === 'belum' ? daftarAngsuran.length : dataSudah.length) > 0
-                                        ? ` dari ${tabStatus === 'belum' ? daftarAngsuran.length : dataSudah.length}`
+                                {tabStatus === 'terlambat'
+                                    ? 'Tunggakan sebelum'
+                                    : tabStatus === 'sudah'
+                                    ? 'Konfirmasi & jatuh tempo'
+                                    : 'Jatuh tempo'}{' '}
+                                <span className="font-bold text-slate-800">{labelBulan}</span>
+                                <span className="text-slate-500">
+                                    {' '}•{' '}
+                                    {tabStatus === 'belum'
+                                        ? tampil.length
+                                        : tabStatus === 'terlambat'
+                                        ? tampilTerlambat.length
+                                        : tampilSudah.length}
+                                    {kataCari &&
+                                    (tabStatus === 'belum'
+                                        ? daftarAngsuran.length
+                                        : tabStatus === 'terlambat'
+                                        ? dataTerlambat.length
+                                        : dataSudah.length) > 0
+                                        ? ` dari ${
+                                              tabStatus === 'belum'
+                                                  ? daftarAngsuran.length
+                                                  : tabStatus === 'terlambat'
+                                                  ? dataTerlambat.length
+                                                  : dataSudah.length
+                                          }`
                                         : ''}{' '}
-                                    {tabStatus === 'belum' ? 'belum dikonfirmasi' : 'sudah dikonfirmasi'}
+                                    {tabStatus === 'belum'
+                                        ? 'belum dikonfirmasi'
+                                        : tabStatus === 'terlambat'
+                                        ? 'terlambat'
+                                        : 'sudah dikonfirmasi'}
                                 </span>
                             </p>
                             {bulan !== kunciBulanIni && (
@@ -353,13 +451,47 @@ export default function Index({
                     </div>
                 </div>
 
-                {tabStatus === 'belum' ? (
+                {(tabStatus === 'belum' || tabStatus === 'terlambat') && isBulanLalu ? (
+                    <div className="text-center py-10 px-4">
+                        <div className="max-w-lg mx-auto rounded-xl border border-slate-200/80 bg-slate-50/70 p-5">
+                            <AlarmClock size={26} aria-hidden="true" className="mx-auto text-slate-400 mb-2.5" />
+                            {(dipindahKeBulanIni?.jumlah ?? 0) > 0 ? (
+                                <>
+                                    <p className="text-sm font-semibold text-slate-800">
+                                        {dipindahKeBulanIni.jumlah} angsuran periode {labelBulan} belum dibayar (<span className="privacy-blur">{formatRupiah(dipindahKeBulanIni.nominal)}</span>)
+                                    </p>
+                                    <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                                        Seluruh tagihan yang belum dibayar dari bulan lalu sudah otomatis dipindahkan ke bulan berjalan agar proses konfirmasi terpusat.
+                                    </p>
+                                </>
+                            ) : (
+                                <>
+                                    <p className="text-sm font-semibold text-slate-800">
+                                        Seluruh angsuran jatuh tempo {labelBulan} sudah lunas.
+                                    </p>
+                                    <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                                        Periode bulan lalu tampil sebagai arsip riwayat pembayaran di tab Sudah Dikonfirmasi.
+                                    </p>
+                                </>
+                            )}
+                            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                                <Button type="button" variant="primary" size="sm" onClick={bukaTerlambatBulanIni} className="rounded-full">
+                                    Lihat di Tab Terlambat (Bulan Ini)
+                                    <ChevronRight size={14} aria-hidden="true" />
+                                </Button>
+                                <Button type="button" variant="neutral" size="sm" onClick={() => gantiTab('sudah')} className="rounded-full">
+                                    Lihat Arsip Sudah Dikonfirmasi
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                ) : tabStatus === 'belum' ? (
                     daftarAngsuran.length === 0 ? (
                         <div className="text-center py-12 px-4">
                             <Calendar size={28} aria-hidden="true" className="mx-auto text-slate-300 mb-3" />
                             <p className="text-sm font-semibold text-slate-600">Tidak ada angsuran jatuh tempo di {labelBulan}.</p>
                             {(bulan !== kunciBulanIni || cabangAktif) && (
-                                <p className="text-sm text-slate-400 mt-1">
+                                <p className="text-sm text-slate-500 mt-1">
                                     Coba{' '}
                                     {bulan !== kunciBulanIni && (
                                         <button onClick={() => ubahBulan(kunciBulanIni)} className={`font-semibold text-brand-green hover:text-brand-green-dark ${fokusRing} rounded`}>
@@ -377,7 +509,7 @@ export default function Index({
                             )}
                         </div>
                     ) : tampil.length === 0 ? (
-                        <p className="text-sm text-slate-400 text-center py-10">
+                        <p className="text-sm text-slate-500 text-center py-10">
                             Tidak ada yang cocok dengan pencarian &ldquo;{cari}&rdquo;.
                         </p>
                     ) : (
@@ -415,7 +547,7 @@ export default function Index({
                                                         </span>
                                                     )}
                                                 </div>
-                                                <p className="text-xs text-slate-400 mt-0.5 truncate">
+                                                <p className="text-xs text-slate-500 mt-0.5 truncate">
                                                     {a.no_karyawan} • {a.cabang} • Cicilan ke-{a.cicilan_ke} • Tempo {a.tanggal_jatuh_tempo}
                                                 </p>
                                             </div>
@@ -429,13 +561,80 @@ export default function Index({
                             })}
                         </ul>
                     )
+                ) : tabStatus === 'terlambat' ? (
+                    dataTerlambat.length === 0 ? (
+                        <div className="text-center py-12 px-4">
+                            <Check size={28} aria-hidden="true" className="mx-auto text-brand-green mb-3" />
+                            <p className="text-sm font-semibold text-slate-700">Tidak ada angsuran terlambat dari bulan-bulan sebelumnya.</p>
+                        </div>
+                    ) : tampilTerlambat.length === 0 ? (
+                        <p className="text-sm text-slate-500 text-center py-10">
+                            Tidak ada angsuran terlambat yang cocok dengan pencarian &ldquo;{cari}&rdquo;.
+                        </p>
+                    ) : (
+                        <>
+                            <div className="rounded-xl bg-rose-50/60 border border-rose-200/70 px-3 py-2 text-xs text-rose-800 mb-2 mt-1">
+                                Pilih manual angsuran terlambat yang sudah dibayar. Tagihan di tab ini tidak ikut terkonfirmasi saat klik Pilih semua di bulan berjalan.
+                            </div>
+                            <ul className="divide-y divide-slate-50">
+                                {tampilTerlambat.map((a) => {
+                                    const dipilih = terpilih.includes(a.id);
+                                    return (
+                                        <li key={a.id}>
+                                            <label
+                                                className={`flex items-start gap-3 px-2 py-3 rounded-xl cursor-pointer transition-all has-[:focus-visible]:bg-rose-50/70 ${
+                                                    dipilih ? 'bg-rose-50/70 hover:bg-rose-50' : 'hover:bg-slate-50'
+                                                }`}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={dipilih}
+                                                    onChange={() => toggleSatu(a.id)}
+                                                    aria-label={`Pilih angsuran terlambat ${a.nama}, cicilan ke-${a.cicilan_ke} tempo ${a.tanggal_jatuh_tempo}`}
+                                                    className="mt-1 w-5 h-5 rounded-lg border-slate-300 text-brand-green focus:ring-brand-green/30 shrink-0"
+                                                />
+                                                <span className="hidden sm:inline-flex shrink-0">
+                                                    <FotoAnggota nama={a.nama} fotoUrl={a.foto_url} ukuran="sm" />
+                                                </span>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                                        <p className="text-sm font-semibold text-slate-800">{a.nama}</p>
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-50 text-red-700 border border-red-200/80 shadow-2xs">
+                                                            Terlambat
+                                                        </span>
+                                                        {a.periode_asal_label && (
+                                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200/80">
+                                                                {a.periode_asal_label}
+                                                            </span>
+                                                        )}
+                                                        {a.ada_pengajuan_percepatan && (
+                                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80 shadow-2xs">
+                                                                Perubahan tenor
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-xs text-slate-500 mt-0.5 truncate">
+                                                        {a.no_karyawan} • {a.cabang} • Cicilan ke-{a.cicilan_ke} • Tempo {a.tanggal_jatuh_tempo}
+                                                    </p>
+                                                </div>
+                                                <div className="text-right shrink-0 pl-2">
+                                                    <p className="text-sm font-bold text-slate-800 whitespace-nowrap tabular-nums privacy-blur">{formatRupiah(a.total_bayar)}</p>
+                                                    <p className="text-xs text-brand-green-dark whitespace-nowrap tabular-nums privacy-blur">+{formatRupiah(a.nominal_bunga)}</p>
+                                                </div>
+                                            </label>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        </>
+                    )
                 ) : dataSudah.length === 0 ? (
                     <div className="text-center py-12 px-4">
                         <Calendar size={28} aria-hidden="true" className="mx-auto text-slate-300 mb-3" />
-                        <p className="text-sm font-semibold text-slate-600">Belum ada angsuran yang dikonfirmasi untuk jatuh tempo {labelBulan}.</p>
+                        <p className="text-sm font-semibold text-slate-600">Belum ada angsuran yang dikonfirmasi untuk {labelBulan}.</p>
                     </div>
                 ) : tampilSudah.length === 0 ? (
-                    <p className="text-sm text-slate-400 text-center py-10">
+                    <p className="text-sm text-slate-500 text-center py-10">
                         Tidak ada yang cocok dengan pencarian &ldquo;{cari}&rdquo;.
                     </p>
                 ) : (
@@ -463,6 +662,11 @@ export default function Index({
                                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-2xs">
                                             Lunas
                                         </span>
+                                        {a.dari_bulan_lain && a.periode_asal_label && (
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200/80">
+                                                Tempo {a.periode_asal_label}
+                                            </span>
+                                        )}
                                         {a.is_percepatan && (
                                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200/80 shadow-2xs">
                                                 Perubahan tenor
@@ -470,7 +674,7 @@ export default function Index({
                                         )}
                                         <ChevronRight size={14} className="text-slate-300 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all" aria-hidden="true" />
                                     </div>
-                                    <p className="text-xs text-slate-400 mt-0.5 truncate">
+                                    <p className="text-xs text-slate-500 mt-0.5 truncate">
                                         {a.no_karyawan} • {a.cabang} • Cicilan ke-{a.cicilan_ke} • Tempo {a.tanggal_jatuh_tempo}
                                         {a.tanggal_konfirmasi_bayar ? ` • Dikonfirmasi ${a.tanggal_konfirmasi_bayar}` : ''}
                                     </p>
@@ -485,7 +689,7 @@ export default function Index({
                 )}
             </Card>
 
-            {tabStatus === 'belum' && terpilih.length > 0 && (
+            {(tabStatus === 'belum' || tabStatus === 'terlambat') && terpilih.length > 0 && (
                 <div className="sticky bottom-0 z-30 mt-4 bg-white border border-slate-200 shadow-xl rounded-t-2xl px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                         <p className="text-sm font-semibold text-slate-700 text-center sm:text-left tabular-nums">

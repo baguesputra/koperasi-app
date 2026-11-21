@@ -154,12 +154,21 @@ class KonfirmasiSimpananService
 
     public function anggotaSudahSimpananWajib(string $bulanPeriode, ?string $cabang = null): Collection
     {
-        $perAnggota = Simpanan::with('anggota:id,nama,no_anggota,no_karyawan,cabang,status,foto_url')
-            ->where('bulan_periode', $bulanPeriode)
-            ->whereIn('jenis', ['wajib', 'dana_sosial'])
-            ->get()
-            ->groupBy('anggota_id');
+        $awalBulan = Carbon::createFromFormat('Y-m', $bulanPeriode)->startOfMonth()->toDateString();
+        $akhirBulan = Carbon::createFromFormat('Y-m', $bulanPeriode)->endOfMonth()->endOfDay()->toDateTimeString();
 
+        $perAnggota = Simpanan::with('anggota:id,nama,no_anggota,no_karyawan,cabang,status,foto_url')
+            ->whereIn('jenis', ['wajib', 'dana_sosial'])
+            ->where(function ($q) use ($bulanPeriode, $awalBulan, $akhirBulan) {
+                $q->where('bulan_periode', $bulanPeriode)
+                    ->orWhere(fn ($qq) => $qq
+                        ->where('bulan_periode', '<', $bulanPeriode)
+                        ->whereBetween('tanggal_input', [$awalBulan, $akhirBulan]));
+            })
+            ->get()
+            ->groupBy(fn ($s) => "{$s->anggota_id}|{$s->bulan_periode}");
+
+        $labelPeriodeCache = [];
         $hasil = collect();
         foreach ($perAnggota as $rows) {
             $wajib = $rows->firstWhere('jenis', 'wajib');
@@ -174,15 +183,26 @@ class KonfirmasiSimpananService
             $sosial = $rows->firstWhere('jenis', 'dana_sosial');
             $nominalWajib = (float) $wajib->jumlah;
             $nominalSosial = (float) ($sosial?->jumlah ?? 0);
+            $periode = (string) $wajib->bulan_periode;
+
+            if (! isset($labelPeriodeCache[$periode])) {
+                $labelPeriodeCache[$periode] = preg_match('/^\d{4}-\d{2}$/', $periode)
+                    ? Carbon::createFromFormat('Y-m', $periode)->translatedFormat('M Y')
+                    : $periode;
+            }
 
             $hasil->push([
                 'id' => $anggota->id,
+                'key' => "{$anggota->id}|{$periode}",
                 'nama' => $anggota->nama,
                 'no_anggota' => $anggota->no_anggota,
                 'no_karyawan' => $anggota->no_karyawan,
                 'cabang' => $anggota->cabang,
                 'foto_url' => $anggota->foto_url,
                 'status_anggota' => $anggota->status,
+                'bulan_periode' => $periode,
+                'bulan_periode_label' => $labelPeriodeCache[$periode],
+                'dari_bulan_lain' => $periode !== $bulanPeriode,
                 'nominal_wajib' => $nominalWajib,
                 'nominal_dana_sosial' => $nominalSosial,
                 'nominal_total' => $nominalWajib + $nominalSosial,
@@ -192,6 +212,140 @@ class KonfirmasiSimpananService
         }
 
         return $hasil->sortBy('nama', SORT_NATURAL | SORT_FLAG_CASE)->values();
+    }
+
+    /**
+     * Daftar tunggakan simpanan wajib dari bulan-bulan sebelumnya (sejak cutoff operasional
+     * hingga sebelum bulan berjalan) yang belum memiliki catatan simpanan wajib.
+     */
+    public function simpananWajibTerlambat(string $bulanBerjalan, ?string $cabang = null, ?string $hanyaPeriode = null): Collection
+    {
+        $cutoff = (string) config('koperasi.simpanan_terlambat_mulai', '2026-10');
+        if (! preg_match('/^\d{4}-\d{2}$/', $cutoff)) {
+            $cutoff = '2026-10';
+        }
+
+        if ($hanyaPeriode !== null) {
+            if (! preg_match('/^\d{4}-\d{2}$/', $hanyaPeriode) || $hanyaPeriode < $cutoff || $hanyaPeriode >= $bulanBerjalan) {
+                return collect();
+            }
+            $daftarPeriode = [$hanyaPeriode];
+        } else {
+            if ($cutoff >= $bulanBerjalan) {
+                return collect();
+            }
+            $daftarPeriode = [];
+            $cursor = Carbon::createFromFormat('Y-m', $cutoff)->startOfMonth();
+            $batas = Carbon::createFromFormat('Y-m', $bulanBerjalan)->startOfMonth();
+            $iterasi = 0;
+
+            while ($cursor->lt($batas) && $iterasi < 120) {
+                $daftarPeriode[] = $cursor->format('Y-m');
+                $cursor->addMonthNoOverflow();
+                $iterasi++;
+            }
+        }
+
+        if ($daftarPeriode === []) {
+            return collect();
+        }
+
+        $daftarAnggota = Anggota::where('status', 'aktif')
+            ->when($cabang !== null && $cabang !== '', fn ($q) => $q->where('cabang', $cabang))
+            ->orderBy('nama')
+            ->get(['id', 'nama', 'no_anggota', 'no_karyawan', 'cabang', 'foto_url', 'tanggal_jadi_anggota']);
+
+        if ($daftarAnggota->isEmpty()) {
+            return collect();
+        }
+
+        $sudah = [];
+        $barisSudah = Simpanan::where('jenis', 'wajib')
+            ->whereIn('anggota_id', $daftarAnggota->pluck('id'))
+            ->whereIn('bulan_periode', $daftarPeriode)
+            ->get(['anggota_id', 'bulan_periode']);
+
+        foreach ($barisSudah as $row) {
+            $sudah["{$row->anggota_id}|{$row->bulan_periode}"] = true;
+        }
+
+        $nominalWajib = (float) (SettingSimpanan::where('jenis', 'wajib')->value('nominal') ?? 0);
+        $nominalDanaSosial = (float) (SettingSimpanan::where('jenis', 'dana_sosial')->value('nominal') ?? 0);
+        $nominalPerAnggota = $nominalWajib + $nominalDanaSosial;
+
+        $labelPeriode = [];
+        foreach ($daftarPeriode as $p) {
+            $labelPeriode[$p] = Carbon::createFromFormat('Y-m', $p)->translatedFormat('M Y');
+        }
+
+        $hasil = collect();
+        foreach ($daftarAnggota as $a) {
+            $bulanGabung = $a->tanggal_jadi_anggota?->format('Y-m');
+            foreach ($daftarPeriode as $periode) {
+                if ($bulanGabung !== null && $periode < $bulanGabung) {
+                    continue;
+                }
+                if (isset($sudah["{$a->id}|{$periode}"])) {
+                    continue;
+                }
+
+                $hasil->push([
+                    'id' => "{$a->id}|{$periode}",
+                    'anggota_id' => $a->id,
+                    'nama' => $a->nama,
+                    'no_anggota' => $a->no_anggota,
+                    'no_karyawan' => $a->no_karyawan,
+                    'cabang' => $a->cabang,
+                    'foto_url' => $a->foto_url,
+                    'bulan_periode' => $periode,
+                    'bulan_periode_label' => $labelPeriode[$periode],
+                    'nominal' => $nominalPerAnggota,
+                    'terlambat' => true,
+                ]);
+            }
+        }
+
+        return $hasil->sort(function (array $a, array $b) {
+            $cmpPeriode = strcmp($a['bulan_periode'], $b['bulan_periode']);
+            if ($cmpPeriode !== 0) {
+                return $cmpPeriode;
+            }
+
+            return strnatcasecmp($a['nama'], $b['nama']);
+        })->values();
+    }
+
+    /**
+     * Konfirmasi massal simpanan wajib + dana sosial lintas periode (khusus tab Terlambat).
+     *
+     * @param  array<int, array{anggota_id: int|string, bulan_periode: string}>  $items
+     */
+    public function konfirmasiMassalMultiPeriode(array $items, int $inputByUserId): int
+    {
+        $perPeriode = [];
+        foreach ($items as $item) {
+            $anggotaId = (int) ($item['anggota_id'] ?? 0);
+            $periode = trim((string) ($item['bulan_periode'] ?? ''));
+            if ($anggotaId <= 0 || ! preg_match('/^\d{4}-\d{2}$/', $periode)) {
+                continue;
+            }
+            $perPeriode[$periode][$anggotaId] = $anggotaId;
+        }
+
+        if ($perPeriode === []) {
+            return 0;
+        }
+
+        ksort($perPeriode);
+
+        return DB::transaction(function () use ($perPeriode, $inputByUserId) {
+            $total = 0;
+            foreach ($perPeriode as $periode => $idsMap) {
+                $total += $this->konfirmasiMassal(array_values($idsMap), $periode, $inputByUserId);
+            }
+
+            return $total;
+        });
     }
 
     public function batalkanKonfirmasi(int $anggotaId, string $bulanPeriode, string $alasan, int $userId): void

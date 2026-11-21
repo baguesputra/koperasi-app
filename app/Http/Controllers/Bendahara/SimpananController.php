@@ -19,23 +19,51 @@ class SimpananController extends Controller
 
     public function index(Request $request): Response
     {
-        $bulan = $request->input('bulan', now()->format('Y-m'));
+        $bulan = (string) $request->input('bulan', now()->format('Y-m'));
+        if (! preg_match('/^\d{4}-\d{2}$/', $bulan)) {
+            $bulan = now()->format('Y-m');
+        }
+
+        $bulanIni = now()->format('Y-m');
+        $isBulanBerjalan = $bulan === $bulanIni;
+        $isBulanLalu = $bulan < $bulanIni;
 
         $cabangAktif = $request->string('cabang');
 
-        $semuaBelumSimpanan = $this->konfirmasi->anggotaBelumSimpananWajib($bulan)
-            ->map(fn ($a) => [
-                'id' => $a->id,
-                'nama' => $a->nama,
-                'no_anggota' => $a->no_anggota,
-                'no_karyawan' => $a->no_karyawan,
-                'cabang' => $a->cabang,
-                'foto_url' => $a->foto_url,
-            ]);
+        if ($isBulanLalu) {
+            $semuaBelumSimpanan = collect();
+            $semuaTerlambat = collect();
+            $dipindahSemua = $this->konfirmasi->simpananWajibTerlambat($bulanIni, null, $bulan);
+            $dipindahTampil = $cabangAktif->isNotEmpty()
+                ? $dipindahSemua->where('cabang', $cabangAktif)->values()
+                : $dipindahSemua;
+            $dipindahKeBulanIni = [
+                'jumlah' => $dipindahTampil->count(),
+                'nominal' => (float) $dipindahTampil->sum('nominal'),
+            ];
+        } else {
+            $semuaBelumSimpanan = $this->konfirmasi->anggotaBelumSimpananWajib($bulan)
+                ->map(fn ($a) => [
+                    'id' => $a->id,
+                    'nama' => $a->nama,
+                    'no_anggota' => $a->no_anggota,
+                    'no_karyawan' => $a->no_karyawan,
+                    'cabang' => $a->cabang,
+                    'foto_url' => $a->foto_url,
+                ]);
+            $semuaTerlambat = $isBulanBerjalan
+                ? $this->konfirmasi->simpananWajibTerlambat($bulanIni)
+                : collect();
+            $dipindahKeBulanIni = ['jumlah' => 0, 'nominal' => 0.0];
+        }
 
         $belumSimpanan = $cabangAktif->isNotEmpty()
             ? $semuaBelumSimpanan->where('cabang', $cabangAktif)->values()
             : $semuaBelumSimpanan;
+
+        $terlambatSimpanan = $cabangAktif->isNotEmpty()
+            ? $semuaTerlambat->where('cabang', $cabangAktif)->values()
+            : $semuaTerlambat;
 
         $semuaSudahSimpanan = $this->konfirmasi->anggotaSudahSimpananWajib($bulan);
         $sudahSimpanan = $cabangAktif->isNotEmpty()
@@ -61,11 +89,20 @@ class SimpananController extends Controller
             $bulan,
         );
 
+        $tabAwal = in_array($request->input('tab'), ['belum', 'terlambat', 'sudah', 'dimuka'], true)
+            ? (string) $request->input('tab')
+            : ($isBulanLalu ? 'sudah' : 'belum');
+
         return Inertia::render('Bendahara/Simpanan/Index', [
             'bulan' => $bulan,
+            'bulanIni' => $bulanIni,
+            'tabAwal' => $tabAwal,
             'belumSimpanan' => $belumSimpanan,
+            'terlambatSimpanan' => $terlambatSimpanan,
             'sudahSimpanan' => $sudahSimpanan,
             'totalSudahSimpanan' => (float) $semuaSudahSimpanan->sum('nominal_total'),
+            'totalTerlambatSimpanan' => (float) $semuaTerlambat->sum('nominal'),
+            'dipindahKeBulanIni' => $dipindahKeBulanIni,
             'anggotaBelumGenapEnamBulan' => $anggotaBelumGenapEnamBulan,
             'cabangAktif' => $cabangAktif->value(),
             'daftarCabang' => $daftarCabang,
@@ -78,10 +115,22 @@ class SimpananController extends Controller
     public function konfirmasi(Request $request)
     {
         $request->validate([
-            'anggota_ids' => ['required', 'array', 'min:1'],
+            'anggota_ids' => ['required_without:items', 'array', 'min:1'],
             'anggota_ids.*' => ['integer', 'exists:anggota,id'],
-            'bulan_periode' => ['required', 'string'],
+            'bulan_periode' => ['required_with:anggota_ids', 'string', 'regex:/^\d{4}-\d{2}$/'],
+            'items' => ['required_without:anggota_ids', 'array', 'min:1'],
+            'items.*.anggota_id' => ['required', 'integer', 'exists:anggota,id'],
+            'items.*.bulan_periode' => ['required', 'string', 'regex:/^\d{4}-\d{2}$/'],
         ]);
+
+        if ($request->filled('items')) {
+            $jumlah = $this->konfirmasi->konfirmasiMassalMultiPeriode(
+                $request->input('items', []),
+                auth()->id()
+            );
+
+            return back()->with('status', "Simpanan terlambat {$jumlah} tagihan berhasil dikonfirmasi.");
+        }
 
         $jumlah = $this->konfirmasi->konfirmasiMassal(
             $request->anggota_ids,

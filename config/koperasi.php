@@ -11,4 +11,7 @@ return [
     'modal_tetap' => (float) env('KOPERASI_MODAL_TETAP', 20_409_831),
     // Base Laba/Rugi Ditahan historis dari sisa SHU tahun-tahun sebelum sistem (sel G18 neraca.xls)
     'laba_ditahan_historis' => (float) env('KOPERASI_LABA_DITAHAN_HISTORIS', 17_663_447.20),
+    // Batas bulan awal pelacakan tunggakan simpanan wajib (format YYYY-MM)
+    // agar bulan kosong hasil migrasi lama tidak dianggap tunggakan operasional.
+    'simpanan_terlambat_mulai' => env('KOPERASI_SIMPANAN_TERLAMBAT_MULAI', '2026-10'),
 ];

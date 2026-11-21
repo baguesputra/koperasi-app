@@ -199,4 +199,93 @@ class SimpananKonfirmasiTest extends TestCase
             'alasan' => 'Akses tidak sah',
         ])->assertStatus(403);
     }
+
+    public function test_simpanan_terlambat_masuk_tab_terlambat_bulan_berjalan_dan_konfirmasi_lintas_periode(): void
+    {
+        $bulanIni = now()->format('Y-m');
+        $bulanSatuLalu = now()->startOfMonth()->subMonthsNoOverflow(1)->format('Y-m');
+        $bulanDuaLalu = now()->startOfMonth()->subMonthsNoOverflow(2)->format('Y-m');
+
+        config(['koperasi.simpanan_terlambat_mulai' => $bulanDuaLalu]);
+
+        $a1 = $this->buatAnggota('TOP-910008'); // tanggal_jadi_anggota = 2 tahun lalu
+        $userBaru = User::create([
+            'no_karyawan' => 'TOP-910009',
+            'name' => 'Anggota Baru',
+            'email' => 'top-910009@t.id',
+            'password' => bcrypt('TOP-910009'),
+            'harus_ganti_password' => false,
+        ]);
+        $a2 = Anggota::create([
+            'user_id' => $userBaru->id,
+            'no_anggota' => 'ANG-SC-0009',
+            'nama' => 'Anggota Baru Bulan Ini',
+            'cabang' => 'Banjarmasin',
+            'unit_bisnis' => 'Ops',
+            'jabatan' => 'staff',
+            'tanggal_mulai_kerja' => now(),
+            'tanggal_jadi_anggota' => now(),
+            'status' => 'aktif',
+        ]);
+
+        $this->masuk('BEN-000001');
+
+        // 1. Bulan berjalan: a1 tampil di belumSimpanan DAN punya 2 tagihan terlambat; a2 tidak masuk terlambat
+        $propsKini = $this->get(route('bendahara.simpanan.index'))
+            ->assertOk()
+            ->viewData('page')['props'];
+
+        $this->assertContains($a1->id, array_column($propsKini['belumSimpanan'], 'id'));
+        $terlambatIds = array_column($propsKini['terlambatSimpanan'], 'id');
+        $this->assertContains("{$a1->id}|{$bulanDuaLalu}", $terlambatIds);
+        $this->assertContains("{$a1->id}|{$bulanSatuLalu}", $terlambatIds);
+        $this->assertNotContains($a2->id, array_column($propsKini['terlambatSimpanan'], 'anggota_id'));
+
+        // 2. Bulan lalu (Opsi 1): belumSimpanan & terlambatSimpanan kosong, dipindahKeBulanIni menghitung tunggakan bulan tsb
+        $propsLalu = $this->get(route('bendahara.simpanan.index', ['bulan' => $bulanSatuLalu]))
+            ->assertOk()
+            ->viewData('page')['props'];
+
+        $this->assertSame([], $propsLalu['belumSimpanan']);
+        $this->assertSame([], $propsLalu['terlambatSimpanan']);
+        $this->assertGreaterThanOrEqual(1, $propsLalu['dipindahKeBulanIni']['jumlah']);
+
+        // 3. Konfirmasi lintas periode dari tab Terlambat via `items`
+        $this->post(route('bendahara.simpanan.konfirmasi'), [
+            'items' => [
+                ['anggota_id' => $a1->id, 'bulan_periode' => $bulanDuaLalu],
+                ['anggota_id' => $a1->id, 'bulan_periode' => $bulanSatuLalu],
+            ],
+        ])->assertStatus(302)->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('simpanan', ['anggota_id' => $a1->id, 'jenis' => 'wajib', 'bulan_periode' => $bulanDuaLalu]);
+        $this->assertDatabaseHas('simpanan', ['anggota_id' => $a1->id, 'jenis' => 'dana_sosial', 'bulan_periode' => $bulanDuaLalu]);
+        $this->assertDatabaseHas('simpanan', ['anggota_id' => $a1->id, 'jenis' => 'wajib', 'bulan_periode' => $bulanSatuLalu]);
+        $this->assertDatabaseMissing('simpanan', ['anggota_id' => $a1->id, 'jenis' => 'wajib', 'bulan_periode' => $bulanIni]);
+
+        $propsSesudah = $this->get(route('bendahara.simpanan.index'))
+            ->assertOk()
+            ->viewData('page')['props'];
+
+        $terlambatIdsSesudah = array_column($propsSesudah['terlambatSimpanan'], 'id');
+        $this->assertNotContains("{$a1->id}|{$bulanDuaLalu}", $terlambatIdsSesudah);
+        $this->assertNotContains("{$a1->id}|{$bulanSatuLalu}", $terlambatIdsSesudah);
+        $this->assertContains($a1->id, array_column($propsSesudah['belumSimpanan'], 'id'));
+
+        $sudahMap = collect($propsSesudah['sudahSimpanan'])->keyBy('key');
+        $this->assertTrue($sudahMap->has("{$a1->id}|{$bulanDuaLalu}"));
+        $this->assertTrue($sudahMap->has("{$a1->id}|{$bulanSatuLalu}"));
+        $this->assertTrue($sudahMap->get("{$a1->id}|{$bulanSatuLalu}")['dari_bulan_lain']);
+
+        // 4. Rollback periode terlambat mengembalikannya ke Tab Terlambat
+        $this->post(route('bendahara.simpanan.batalkan', $a1->id), [
+            'bulan_periode' => $bulanSatuLalu,
+            'alasan' => 'Salah konfirmasi simpanan terlambat',
+        ])->assertStatus(302)->assertSessionHasNoErrors();
+
+        $propsRollback = $this->get(route('bendahara.simpanan.index'))
+            ->assertOk()
+            ->viewData('page')['props'];
+        $this->assertContains("{$a1->id}|{$bulanSatuLalu}", array_column($propsRollback['terlambatSimpanan'], 'id'));
+    }
 }
