@@ -9,8 +9,8 @@ const PrivacyContext = createContext({
     unlockScreen: () => {},
 });
 
-const INACTIVITY_PRIVACY_MS = 60000; // 60 detik: Privasi blur otomatis aktif
-const INACTIVITY_LOCK_MS = 120000;    // 120 detik total: Layar terkunci (Screen Lock)
+const INACTIVITY_PRIVACY_MS = 5 * 60 * 1000; // 5 menit (300.000 ms): Privasi blur otomatis aktif
+const AFTER_BLUR_LOCK_MS = 3 * 60 * 1000;    // 3 menit (180.000 ms) setelah buram (manual/otomatis): Layar terkunci (Screen Lock)
 
 export function PrivacyProvider({ children }) {
     // Default aktif (true) saat sesi baru dibuka
@@ -25,6 +25,11 @@ export function PrivacyProvider({ children }) {
         if (typeof window === 'undefined') return false;
         return sessionStorage.getItem('screen_locked') === '1';
     });
+
+    const isPrivacyActiveRef = useRef(isPrivacyActive);
+    useEffect(() => {
+        isPrivacyActiveRef.current = isPrivacyActive;
+    }, [isPrivacyActive]);
 
     const isScreenLockedRef = useRef(isScreenLocked);
     useEffect(() => {
@@ -61,6 +66,7 @@ export function PrivacyProvider({ children }) {
         setIsScreenLocked(true);
         setIsPrivacyActive(true);
         isScreenLockedRef.current = true;
+        isPrivacyActiveRef.current = true;
         if (typeof window !== 'undefined') {
             sessionStorage.setItem('screen_locked', '1');
         }
@@ -92,6 +98,7 @@ export function PrivacyProvider({ children }) {
                 setIsScreenLocked(true);
                 setIsPrivacyActive(true);
                 isScreenLockedRef.current = true;
+                isPrivacyActiveRef.current = true;
                 sessionStorage.setItem('screen_locked', '1');
             } else if (e.data?.type === 'UNLOCK') {
                 setIsScreenLocked(false);
@@ -103,23 +110,6 @@ export function PrivacyProvider({ children }) {
         return () => {
             channel.close();
             broadcastRef.current = null;
-        };
-    }, []);
-
-    // Auto-lock saat berpindah tab atau meminimalkan browser (visibilitychange)
-    useEffect(() => {
-        if (typeof window === 'undefined') return undefined;
-
-        const handleVisibilityChange = () => {
-            if (document.visibilityState === 'hidden') {
-                setIsPrivacyActive(true);
-            }
-        };
-
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-
-        return () => {
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
     }, []);
 
@@ -145,9 +135,11 @@ export function PrivacyProvider({ children }) {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [togglePrivacy, lockScreen]);
 
-    // Inactivity Timers:
-    // Stage 1 (15 detik): Mode Privasi Aktif (jika sengaja dimatikan)
-    // Stage 2 (30 detik total): Screen Lock Aktif
+    // Two-Stage State-Driven Timers:
+    // 1. Saat tidak buram (isPrivacyActive === false):
+    //    Hitung mundur 5 menit inaktivitas -> otomatis aktifkan buram (setIsPrivacyActive(true)).
+    // 2. Setiap kali setelah buram (isPrivacyActive === true, baik diklik manual maupun otomatis setelah 5 menit):
+    //    Hitung mundur 3 menit -> kunci halaman (lockScreen()).
     useEffect(() => {
         if (typeof window === 'undefined') return undefined;
 
@@ -162,33 +154,48 @@ export function PrivacyProvider({ children }) {
             }
         };
 
-        const resetTimers = () => {
-            // Jangan reset jika layar sudah terkunci
+        if (isScreenLocked) {
+            clearTimers();
+            return undefined;
+        }
+
+        const startStageTimer = () => {
             if (isScreenLockedRef.current) return;
 
             clearTimers();
 
-            // Timer Tier 1: Privacy Mode Blur pada 15 detik
-            timerPrivacyRef.current = setTimeout(() => {
-                setIsPrivacyActive(true);
-            }, INACTIVITY_PRIVACY_MS);
-
-            // Timer Tier 2: Hard Screen Lock pada 30 detik
-            timerLockRef.current = setTimeout(() => {
-                lockScreen();
-            }, INACTIVITY_LOCK_MS);
+            if (!isPrivacyActiveRef.current) {
+                // Stage 1: Layar sedang terbuka -> tunggu 5 menit inaktivitas untuk buram otomatis
+                timerPrivacyRef.current = setTimeout(() => {
+                    setIsPrivacyActive(true);
+                }, INACTIVITY_PRIVACY_MS);
+            } else {
+                // Stage 2: Layar sudah buram (manual atau otomatis) -> 3 menit kemudian kunci halaman
+                timerLockRef.current = setTimeout(() => {
+                    lockScreen();
+                }, AFTER_BLUR_LOCK_MS);
+            }
         };
 
-        resetTimers();
+        startStageTimer();
+
+        const handleActivity = () => {
+            // Saat layar terbuka (tidak buram), aktivitas pengguna mereset timer 5 menit menuju buram.
+            // Saat layar sudah buram, timer 3 menit setelah buram tetap berjalan menuju kunci layar
+            // (kecuali pengguna mematikan mode buram).
+            if (!isPrivacyActiveRef.current && !isScreenLockedRef.current) {
+                startStageTimer();
+            }
+        };
 
         const activityEvents = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
-        activityEvents.forEach((ev) => window.addEventListener(ev, resetTimers, { passive: true }));
+        activityEvents.forEach((ev) => window.addEventListener(ev, handleActivity, { passive: true }));
 
         return () => {
             clearTimers();
-            activityEvents.forEach((ev) => window.removeEventListener(ev, resetTimers));
+            activityEvents.forEach((ev) => window.removeEventListener(ev, handleActivity));
         };
-    }, [lockScreen]);
+    }, [isPrivacyActive, isScreenLocked, lockScreen]);
 
     return (
         <PrivacyContext.Provider

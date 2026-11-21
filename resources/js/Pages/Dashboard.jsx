@@ -179,19 +179,19 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
         <AppLayout>
             <Head title="Dashboard" />
 
-            {/* 1. Open-Canvas Editorial Header (Tanpa Kotak Ber-Border) */}
+            {/* 1. Open-Canvas Editorial Header (Tanpa Kotak Ber-Border & Tanpa Garis Bawah) */}
             <header
                 aria-label="Sambutan pengurus koperasi"
-                className="pb-4 mb-5 border-b border-slate-200/75"
+                className="mb-5"
             >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
-                    <div className="flex items-center gap-3.5 min-w-0">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-4 sm:gap-5 min-w-0">
                         <img
                             src="/images/logo-hero.webp"
                             alt="Logo Koperasi Karya Mandiri"
-                            width="56"
-                            height="56"
-                            className="w-12 h-12 sm:w-14 sm:h-14 object-contain shrink-0"
+                            width="88"
+                            height="88"
+                            className="w-16 h-16 sm:w-20 sm:h-20 lg:w-[88px] lg:h-[88px] object-contain shrink-0"
                         />
                         <div className="min-w-0">
                             <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
