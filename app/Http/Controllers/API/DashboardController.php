@@ -465,33 +465,10 @@ class DashboardController extends Controller
             'tanggal_masuk' => $tglAnggota?->format('Y-m-d'),
             'tanggal_mulai_kerja' => $anggota->tanggal_mulai_kerja?->format('Y-m-d'),
             'tanggal_jadi_anggota' => $anggota->tanggal_jadi_anggota?->format('Y-m-d'),
-            'lama_keanggotaan_label' => $this->formatLamaKeanggotaan($tglAnggota),
+            'lama_keanggotaan_label' => Anggota::formatLamaKeanggotaan($tglAnggota),
             'limit_custom' => $anggota->limit_custom !== null ? (float) $anggota->limit_custom : null,
             'resign_menunggu' => $resignMenunggu,
         ];
-    }
-
-    private function formatLamaKeanggotaan($tanggal): string
-    {
-        if (! $tanggal) {
-            return '-';
-        }
-
-        $sekarang = now();
-        $tahun = (int) $tanggal->diffInYears($sekarang);
-        $bulan = (int) $tanggal->copy()->addYears($tahun)->diffInMonths($sekarang);
-
-        if ($tahun === 0 && $bulan === 0) {
-            return 'Baru bergabung';
-        }
-        if ($tahun === 0) {
-            return "{$bulan} bulan";
-        }
-        if ($bulan === 0) {
-            return "{$tahun} tahun";
-        }
-
-        return "{$tahun} tahun {$bulan} bulan";
     }
 
     /**

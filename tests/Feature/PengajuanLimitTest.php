@@ -2,11 +2,15 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\KirimWaJob;
+use App\Models\Angsuran;
 use App\Models\AuditLog;
 use App\Models\PengajuanLimit;
 use App\Models\Pinjaman;
 use App\Services\Pinjaman\PengajuanLimitService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
+use Laravel\Sanctum\Sanctum;
 use Tests\Concerns\MembuatDataUji;
 use Tests\TestCase;
 
@@ -97,6 +101,7 @@ class PengajuanLimitTest extends TestCase
 
     public function test_bendahara_setujui_teruskan_ke_ketua_dengan_nominal_edit(): void
     {
+        Queue::fake();
         $anggota = $this->buatAnggota();
         $pengajuan = $this->ajukan($anggota, 10_000_000);
 
@@ -110,10 +115,16 @@ class PengajuanLimitTest extends TestCase
         $this->assertSame('approved_bendahara', $pengajuan->status);
         $this->assertEquals(8_000_000, (float) $pengajuan->limit_disetujui_bendahara);
         $this->assertNull($anggota->refresh()->limit_custom);
+
+        Queue::assertNotPushed(
+            KirimWaJob::class,
+            fn (KirimWaJob $job) => $this->propertiWa($job)['event'] === 'limit_disetujui_bendahara'
+        );
     }
 
     public function test_ketua_setujui_final_nominal_bisa_diubah_lagi(): void
     {
+        Queue::fake();
         $anggota = $this->buatAnggota();
         $pengajuan = $this->ajukan($anggota, 10_000_000);
 
@@ -136,6 +147,15 @@ class PengajuanLimitTest extends TestCase
 
         $this->assertTrue(
             AuditLog::where('aksi', 'setujui_pengajuan_limit')->where('keterangan', 'like', '%'.$anggota->nama.'%')->exists()
+        );
+
+        Queue::assertNotPushed(
+            KirimWaJob::class,
+            fn (KirimWaJob $job) => $this->propertiWa($job)['event'] === 'limit_disetujui_bendahara'
+        );
+        Queue::assertPushed(
+            KirimWaJob::class,
+            fn (KirimWaJob $job) => $this->propertiWa($job)['event'] === 'limit_disetujui'
         );
     }
 
@@ -297,7 +317,7 @@ class PengajuanLimitTest extends TestCase
         ]);
 
         for ($i = 1; $i <= 6; $i++) {
-            \App\Models\Angsuran::create([
+            Angsuran::create([
                 'pinjaman_id' => $pinjaman->id,
                 'cicilan_ke' => $i,
                 'nominal_pokok' => 500_000,
@@ -315,11 +335,11 @@ class PengajuanLimitTest extends TestCase
         ]);
 
         $response->assertSessionHasErrors([
-            'limit_diminta' => 'Pinjaman sebelumnya belum lunas. Kenaikan limit baru dapat diajukan setelah pinjaman berjalan tersisa maksimal 2 angsuran atau telah lunas.',
+            'limit_diminta' => 'Pinjaman sebelumnya belum lunas. Kenaikan limit baru dapat diajukan setelah pinjaman berjalan tersisa maksimal 1 angsuran atau telah lunas.',
         ]);
     }
 
-    public function test_pinjaman_aktif_sisa_dua_angsuran_membuka_kembali_pengajuan_limit(): void
+    public function test_pinjaman_aktif_sisa_dua_angsuran_mengunci_pengajuan_limit(): void
     {
         $anggota = $this->buatAnggota('TOP-900005');
         $pinjaman = Pinjaman::create([
@@ -334,7 +354,7 @@ class PengajuanLimitTest extends TestCase
         ]);
 
         for ($i = 1; $i <= 4; $i++) {
-            \App\Models\Angsuran::create([
+            Angsuran::create([
                 'pinjaman_id' => $pinjaman->id,
                 'cicilan_ke' => $i,
                 'nominal_pokok' => 500_000,
@@ -345,7 +365,7 @@ class PengajuanLimitTest extends TestCase
             ]);
         }
         for ($i = 5; $i <= 6; $i++) {
-            \App\Models\Angsuran::create([
+            Angsuran::create([
                 'pinjaman_id' => $pinjaman->id,
                 'cicilan_ke' => $i,
                 'nominal_pokok' => 500_000,
@@ -362,6 +382,52 @@ class PengajuanLimitTest extends TestCase
             'keterangan' => 'Sisa 2 angsuran dan ingin ajukan limit.',
         ]);
 
+        $response->assertSessionHasErrors([
+            'limit_diminta' => 'Pinjaman sebelumnya belum lunas. Kenaikan limit baru dapat diajukan setelah pinjaman berjalan tersisa maksimal 1 angsuran atau telah lunas.',
+        ]);
+    }
+
+    public function test_pinjaman_aktif_sisa_satu_angsuran_membuka_kembali_pengajuan_limit(): void
+    {
+        $anggota = $this->buatAnggota('TOP-900007');
+        $pinjaman = Pinjaman::create([
+            'anggota_id' => $anggota->id,
+            'pengaju_user_id' => $anggota->user_id,
+            'nominal' => 3_000_000,
+            'tenor_bulan' => 6,
+            'persentase_bunga' => 1,
+            'status' => 'aktif',
+            'tanggal_pengajuan' => now()->subMonths(5),
+            'disetujui_pada' => now()->subMonths(5),
+        ]);
+
+        for ($i = 1; $i <= 5; $i++) {
+            Angsuran::create([
+                'pinjaman_id' => $pinjaman->id,
+                'cicilan_ke' => $i,
+                'nominal_pokok' => 500_000,
+                'nominal_bunga' => 30_000,
+                'total_bayar' => 530_000,
+                'tanggal_jatuh_tempo' => now()->subMonths(5 - $i),
+                'status' => 'lunas',
+            ]);
+        }
+        Angsuran::create([
+            'pinjaman_id' => $pinjaman->id,
+            'cicilan_ke' => 6,
+            'nominal_pokok' => 500_000,
+            'nominal_bunga' => 30_000,
+            'total_bayar' => 530_000,
+            'tanggal_jatuh_tempo' => now()->addMonth(),
+            'status' => 'belum_bayar',
+        ]);
+
+        $this->actingAs($anggota->user);
+        $response = $this->post(route('portal.pengajuan-limit.store'), [
+            'limit_diminta' => 8_000_000,
+            'keterangan' => 'Sisa 1 angsuran dan ingin ajukan limit.',
+        ]);
+
         $response->assertSessionHasNoErrors();
         $this->assertDatabaseHas('pengajuan_limit', [
             'anggota_id' => $anggota->id,
@@ -373,7 +439,7 @@ class PengajuanLimitTest extends TestCase
     public function test_api_pengajuan_limit_mengembalikan_flag_dan_status_eligibilitas(): void
     {
         $anggota = $this->buatAnggota('TOP-900006');
-        \Laravel\Sanctum\Sanctum::actingAs($anggota->user);
+        Sanctum::actingAs($anggota->user);
 
         $response = $this->getJson(route('api.pengajuan-limit.index'));
 

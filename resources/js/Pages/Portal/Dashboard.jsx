@@ -637,7 +637,7 @@ export default function Dashboard({
                             </div>
 
                             <div className="pd-band__figure pd-band__figure--end">
-                                <p className="pd-band__label">Limit Tersedia</p>
+                                <p className="pd-band__label">Total Saldo Pinjaman</p>
                                 <p className="pd-band__value pd-band__value--accent">
                                     <Nominal nilai={limitTersedia} tampil={nominalTampil} />
                                 </p>
@@ -649,7 +649,7 @@ export default function Dashboard({
                                         />
                                     </p>
                                 ) : (
-                                    <p className="pd-band__note">Limit siap digunakan</p>
+                                    <p className="pd-band__note">Saldo siap digunakan</p>
                                 )}
                             </div>
                         </div>
@@ -941,12 +941,12 @@ export default function Dashboard({
                                             <>
                                                 {alasanTidakBisa ||
                                                     'Anda belum dapat mengajukan pinjaman saat ini sesuai ketentuan koperasi.'}
-                                                {sisaAngsuranAktif > 2 && limitTersedia > 0 ? (
+                                                {sisaAngsuranAktif > 1 && limitTersedia > 0 ? (
                                                     <>
                                                         {' '}
                                                         Sisa limit yang belum terpakai{' '}
                                                         <Nominal nilai={limitTersedia} tampil={nominalTampil} /> baru
-                                                        dapat dipakai setelah angsuran tersisa maksimal 2 bulan.
+                                                        dapat dipakai setelah angsuran tersisa maksimal 1 bulan.
                                                     </>
                                                 ) : null}
                                             </>
@@ -960,7 +960,7 @@ export default function Dashboard({
                                     tone="info"
                                     icon={Info}
                                     title="Limit pinjaman Anda saat ini terpakai seluruhnya"
-                                    body="Pengajuan pinjaman baru dibuka kembali setelah angsuran berjalan tersisa maksimal 2 bulan, atau Anda dapat mengajukan penambahan limit melalui menu Tambah limit."
+                                    body="Pengajuan pinjaman baru dibuka kembali setelah angsuran berjalan tersisa maksimal 1 bulan, atau Anda dapat mengajukan penambahan limit melalui menu Tambah limit."
                                 />
                             )}
 

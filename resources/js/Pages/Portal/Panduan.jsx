@@ -232,7 +232,7 @@ const TATA_CARA = [
             },
         ],
         catatan: [
-            'Jika masih memiliki pinjaman berjalan, pengajuan baru dibuka saat sisa angsuran maksimal 2 bulan (selama sisa limit mencukupi).',
+            'Jika masih memiliki pinjaman berjalan, pengajuan baru dibuka saat sisa angsuran maksimal 1 bulan (selama sisa limit mencukupi).',
             'Anggota dengan masa keanggotaan di bawah 1 tahun wajib melunasi pinjaman sebelumnya terlebih dahulu.',
             'Pengajuan yang sudah dikirim tidak dapat dibatalkan sendiri; keputusan berada pada alur verifikasi pengurus.',
         ],
@@ -343,7 +343,7 @@ const FAQ = [
             },
             {
                 q: 'Apakah saya boleh memiliki lebih dari satu pinjaman aktif sekaligus?',
-                a: 'Bisa, apabila masa keanggotaan sudah memenuhi syarat reloan, sisa angsuran pinjaman berjalan tersisa maksimal 2 bulan, dan Anda masih memiliki sisa limit yang mencukupi.',
+                a: 'Bisa, apabila masa keanggotaan sudah memenuhi syarat reloan, sisa angsuran pinjaman berjalan tersisa maksimal 1 bulan, dan Anda masih memiliki sisa limit yang mencukupi.',
             },
             {
                 q: 'Apakah pengajuan bisa dibatalkan setelah dikirim?',

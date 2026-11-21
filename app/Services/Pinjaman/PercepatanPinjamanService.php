@@ -150,15 +150,6 @@ class PercepatanPinjamanService
             dataLama: ['status' => $statusLama],
             dataBaru: ['status' => 'approved_bendahara', 'catatan_bendahara' => $catatan]
         );
-
-        WaService::keAnggota(
-            $p->pinjaman->anggota,
-            'perubahan_tenor_disetujui_bendahara',
-            WaPesan::susun($p->pinjaman->anggota->nama, $p->pinjaman->anggota->no_karyawan,
-                'Pengajuan '.self::labelTipe($p->tipe)." Anda untuk pinjaman #{$p->pinjaman->id} ("
-                .WaPesan::rupiah($p->pinjaman->nominal).') telah *Disetujui Bendahara* dan sedang menunggu persetujuan Ketua.'
-                .' Pemberitahuan selanjutnya akan kami sampaikan melalui WhatsApp ini.')
-        );
     }
 
     public function rejectBendahara(PengajuanPercepatan $p, string $catatan): void

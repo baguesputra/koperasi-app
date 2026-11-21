@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Portal;
 
 use App\Http\Controllers\Controller;
+use App\Models\Anggota;
+use App\Models\Angsuran;
 use App\Models\PengajuanPercepatan;
 use App\Models\SettingSimpanan;
 use App\Models\TabelTenor;
 use App\Services\Pinjaman\EligibilitasPinjamanService;
+use Carbon\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -60,7 +63,7 @@ class DashboardController extends Controller
             $resignMenunggu = [
                 'shortfall' => (float) ($settlement['shortfall'] ?? 0),
                 'jatuh_tempo' => isset($settlement['cicilan_akhir_jatuh_tempo'])
-                    ? \Carbon\Carbon::parse($settlement['cicilan_akhir_jatuh_tempo'])->format('d M Y')
+                    ? Carbon::parse($settlement['cicilan_akhir_jatuh_tempo'])->format('d M Y')
                     : null,
                 'tanggal_resign' => $anggota->tanggal_resign?->format('d M Y'),
             ];
@@ -105,7 +108,7 @@ class DashboardController extends Controller
         $pinjamanIdsAnggota = $anggota->pinjaman()->pluck('id');
         $riwayatAngsuran = $pinjamanIdsAnggota->isEmpty()
             ? collect()
-            : \App\Models\Angsuran::whereIn('pinjaman_id', $pinjamanIdsAnggota)
+            : Angsuran::whereIn('pinjaman_id', $pinjamanIdsAnggota)
                 ->where('status', 'lunas')
                 ->latest('tanggal_konfirmasi_bayar')
                 ->take(4)
@@ -170,7 +173,7 @@ class DashboardController extends Controller
                 'no_anggota' => $anggota->no_anggota,
                 'no_karyawan' => $anggota->no_karyawan,
                 'foto_url' => $anggota->foto_url,
-                'lama_keanggotaan_label' => $this->formatLamaKeanggotaan($anggota->tanggal_jadi_anggota),
+                'lama_keanggotaan_label' => Anggota::formatLamaKeanggotaan($anggota->tanggal_jadi_anggota),
             ],
             'totalSimpanan' => (float) $totalSimpanan,
             'simpananPokok' => (float) $simpananPokok,
@@ -227,25 +230,5 @@ class DashboardController extends Controller
             'tabelTenor' => $tabelTenor,
             'settingSimpanan' => $settingSimpanan,
         ]);
-    }
-
-    private function formatLamaKeanggotaan($tanggalJadiAnggota): string
-    {
-        $sekarang = now();
-        $tahun = (int) $tanggalJadiAnggota->diffInYears($sekarang);
-        $tanggalSetelahTahun = $tanggalJadiAnggota->copy()->addYears($tahun);
-        $bulan = (int) $tanggalSetelahTahun->diffInMonths($sekarang);
-
-        if ($tahun === 0 && $bulan === 0) {
-            return 'baru bergabung';
-        }
-        if ($tahun === 0) {
-            return "{$bulan} bulan";
-        }
-        if ($bulan === 0) {
-            return "{$tahun} tahun";
-        }
-
-        return "{$tahun} tahun {$bulan} bulan";
     }
 }

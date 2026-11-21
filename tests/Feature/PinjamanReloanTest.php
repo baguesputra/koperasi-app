@@ -342,17 +342,34 @@ class PinjamanReloanTest extends TestCase
         $anggota = $this->buatAnggota($user, [
             'tanggal_jadi_anggota' => now()->subYears(2), // 1-3 tahun → 5jt
         ]);
-        // 2jt / 4 bulan = 500rb pokok per angsuran, 2 dari 4 lunas → sisa 2 × 500rb = 1jt
+        // 2jt / 4 bulan = 500rb pokok per angsuran, 3 dari 4 lunas → sisa 1 × 500rb = 500rb
+        $this->buatPinjamanAktif($anggota, nominal: 2_000_000, tenor: 4, lunasSampai: 3);
+
+        $result = $this->service->cek($anggota);
+
+        // limit 5jt - (1 × 500rb) = 4.5jt
+        $this->assertEquals(4_500_000, $result['limit_tersedia']);
+        $this->assertEquals(1, $result['sisa_angsuran']);
+        $this->assertEquals(500_000.0, $result['cicilan_pokok']);
+        // Boleh karena sisa <= 1 dan privilege belum dipakai
+        $this->assertTrue($result['boleh']);
+    }
+
+    public function test_cek_sisa_dua_angsuran_terkunci(): void
+    {
+        $user = $this->buatUser();
+        $anggota = $this->buatAnggota($user, [
+            'tanggal_jadi_anggota' => now()->subYears(2), // 1-3 tahun → 5jt
+        ]);
+        // Sisa 2 angsuran (> 1) sekarang dikunci dengan pesan maksimal 1 angsuran.
         $this->buatPinjamanAktif($anggota, nominal: 2_000_000, tenor: 4, lunasSampai: 2);
 
         $result = $this->service->cek($anggota);
 
-        // limit 5jt - (2 × 500rb) = 4jt
-        $this->assertEquals(4_000_000, $result['limit_tersedia']);
+        $this->assertFalse($result['boleh']);
+        $this->assertStringContainsString('maksimal 1 angsuran', $result['alasan']);
         $this->assertEquals(2, $result['sisa_angsuran']);
-        $this->assertEquals(500_000.0, $result['cicilan_pokok']);
-        // Boleh karena sisa <= 2 dan privilege belum dipakai
-        $this->assertTrue($result['boleh']);
+        $this->assertEquals(4_000_000, $result['limit_tersedia']);
     }
 
     public function test_cek_limit_tersedia_floor_nol_jika_sisa_angsuran_melebihi_limit_kategori(): void
@@ -374,13 +391,13 @@ class PinjamanReloanTest extends TestCase
         $anggota = $this->buatAnggota($user, [
             'tanggal_jadi_anggota' => now()->subYears(2), // 1-3 tahun → 5jt
         ]);
-        // 3 dari 6 lunas → sisa 3 (> 2). Aturan baru: terkunci walau privilege belum dipakai.
+        // 3 dari 6 lunas → sisa 3 (> 1). Aturan baru: terkunci walau privilege belum dipakai.
         $this->buatPinjamanAktif($anggota, nominal: 6_000_000, tenor: 6, lunasSampai: 3);
 
         $result = $this->service->cek($anggota);
 
         $this->assertFalse($result['boleh']);
-        $this->assertStringContainsString('maksimal 2 angsuran', $result['alasan']);
+        $this->assertStringContainsString('maksimal 1 angsuran', $result['alasan']);
         $this->assertEquals(3, $result['sisa_angsuran']);
         // Terkunci, tapi sisa plafon tetap ditampilkan apa adanya: 5jt - (3 × 1jt) = 2jt
         $this->assertEquals(2_000_000, $result['limit_tersedia']);
@@ -391,8 +408,8 @@ class PinjamanReloanTest extends TestCase
     {
         $user = $this->buatUser();
         $anggota = $this->buatAnggota($user);
-        // 4 dari 6 lunas → sisa 2
-        $this->buatPinjamanAktif($anggota, nominal: 6_000_000, tenor: 6, lunasSampai: 4);
+        // 5 dari 6 lunas → sisa 1
+        $this->buatPinjamanAktif($anggota, nominal: 6_000_000, tenor: 6, lunasSampai: 5);
 
         $result = $this->service->cek($anggota);
 
@@ -403,7 +420,8 @@ class PinjamanReloanTest extends TestCase
     {
         $user = $this->buatUser();
         $anggota = $this->buatAnggota($user);
-        $this->buatPinjamanAktif($anggota, nominal: 6_000_000, tenor: 6, lunasSampai: 4, sudahPakaiPrivilege: true);
+        // Sisa 1 (lolos gerbang sisa <= 1), tapi sudah pakai privilege → ditolak cek privilege.
+        $this->buatPinjamanAktif($anggota, nominal: 6_000_000, tenor: 6, lunasSampai: 5, sudahPakaiPrivilege: true);
 
         $result = $this->service->cek($anggota);
 
@@ -638,7 +656,7 @@ class PinjamanReloanTest extends TestCase
 
         // Terkunci (sisa 4 > 2), tapi sisa plafon tetap informatif: 5jt - 800rb = 4.2jt
         $this->assertFalse($result['boleh']);
-        $this->assertStringContainsString('maksimal 2 angsuran', $result['alasan']);
+        $this->assertStringContainsString('maksimal 1 angsuran', $result['alasan']);
         $this->assertEquals(4, $result['sisa_angsuran']);
         $this->assertEquals(200_000.0, $result['cicilan_pokok']);
         $this->assertEquals(4_200_000.0, $result['limit_tersedia']);
@@ -735,7 +753,7 @@ class PinjamanReloanTest extends TestCase
         $result = $this->service->cek($anggota);
 
         $this->assertFalse($result['boleh']);
-        $this->assertStringContainsString('maksimal 2 angsuran', $result['alasan']);
+        $this->assertStringContainsString('maksimal 1 angsuran', $result['alasan']);
         $this->assertEquals(3, $result['sisa_angsuran']);
         // Terkunci, tapi rumus berjalan tetap ditampilkan: 5jt - (3 × 1jt) = 2jt
         $this->assertEquals(2_000_000.0, $result['limit_tersedia']);
@@ -793,7 +811,7 @@ class PinjamanReloanTest extends TestCase
 
         // Sisa total 5 (> 2) → terkunci duluan (alasan kuncian, bukan privilege)
         $this->assertFalse($result['boleh']);
-        $this->assertStringContainsString('maksimal 2 angsuran', $result['alasan']);
+        $this->assertStringContainsString('maksimal 1 angsuran', $result['alasan']);
     }
 
     public function test_cek_privilege_di_salah_satu_pinjaman_sisa_kecil_memblokir(): void
@@ -802,8 +820,8 @@ class PinjamanReloanTest extends TestCase
         $anggota = $this->buatAnggota($user, [
             'tanggal_jadi_anggota' => now()->subYears(2),
         ]);
-        // Sisa total 2 (≤ 2), satu flag true → blokir privilege
-        $this->buatPinjamanAktif($anggota, nominal: 2_000_000, tenor: 4, lunasSampai: 2, sudahPakaiPrivilege: true);
+        // Sisa total 1 (≤ 1), satu flag true → blokir privilege
+        $this->buatPinjamanAktif($anggota, nominal: 2_000_000, tenor: 4, lunasSampai: 3, sudahPakaiPrivilege: true);
 
         $result = $this->service->cek($anggota);
 
@@ -822,7 +840,7 @@ class PinjamanReloanTest extends TestCase
 
         $result = $this->service->cek($anggota);
 
-        // Sisa total 5 (> 2) → terkunci, tapi sisa plafon informatif: 5jt - (5 × 500rb) = 2.5jt
+        // Sisa total 5 (> 1) → terkunci, tapi sisa plafon informatif: 5jt - (5 × 500rb) = 2.5jt
         $this->assertFalse($result['boleh']);
         $this->assertEquals(2_500_000.0, $result['limit_tersedia']);
     }
@@ -833,13 +851,13 @@ class PinjamanReloanTest extends TestCase
         $anggota = $this->buatAnggota($user, [
             'tanggal_jadi_anggota' => now()->subYears(2), // 1-3 tahun → 5jt
         ]);
-        // Sisa total 2 (≤ 2), privilege false → boleh dengan rumus berjalan
-        $this->buatPinjamanAktif($anggota, nominal: 2_000_000, tenor: 4, lunasSampai: 2, sudahPakaiPrivilege: false);
+        // Sisa total 1 (≤ 1), privilege false → boleh dengan rumus berjalan (5jt - 500rb = 4.5jt)
+        $this->buatPinjamanAktif($anggota, nominal: 2_000_000, tenor: 4, lunasSampai: 3, sudahPakaiPrivilege: false);
 
         $result = $this->service->cek($anggota);
 
         $this->assertTrue($result['boleh']);
-        $this->assertEquals(4_000_000, $result['limit_tersedia']);
+        $this->assertEquals(4_500_000, $result['limit_tersedia']);
     }
 
     public function test_pakai_privlege_setiap_pengajuan_saat_ada_angsuran_walupun_sisa_banyak(): void

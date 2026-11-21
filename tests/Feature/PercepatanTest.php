@@ -2,10 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Models\Angsuran;
+use App\Jobs\KirimWaJob;
 use App\Models\Pinjaman;
 use App\Services\Pinjaman\PercepatanPinjamanService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use RuntimeException;
 use Tests\Concerns\MembuatDataUji;
 use Tests\TestCase;
@@ -142,5 +143,32 @@ class PercepatanTest extends TestCase
         $service = app(PercepatanPinjamanService::class);
         $service->ajukan($pinjaman, 'perpanjang', 6, 'Pengajuan pertama.');
         $service->ajukan($pinjaman, 'lunas_total', null, 'Pengajuan kedua harus gagal.');
+    }
+
+    public function test_notifikasi_wa_percepatan_hanya_dikirim_saat_approve_ketua_bukan_bendahara(): void
+    {
+        Queue::fake();
+        $pinjaman = $this->buatPinjamanAktif(4);
+        $service = app(PercepatanPinjamanService::class);
+        $pengajuan = $service->ajukan($pinjaman, 'perpanjang', 6, 'Mohon perpanjangan tenor.');
+
+        $this->masuk('BEN-000001');
+        $service->approveBendahara($pengajuan, 'Diteruskan ke Ketua.');
+
+        Queue::assertNotPushed(
+            KirimWaJob::class,
+            fn (KirimWaJob $job) => $this->propertiWa($job)['event'] === 'perubahan_tenor_disetujui_bendahara'
+        );
+
+        $this->masuk('KET-000001');
+        $this->post(route('ketua.percepatan.approve', $pengajuan), [
+            'catatan' => 'Disetujui Ketua.',
+            'bulan_berlaku' => 'bulan_ini',
+        ])->assertStatus(302);
+
+        Queue::assertPushed(
+            KirimWaJob::class,
+            fn (KirimWaJob $job) => $this->propertiWa($job)['event'] === 'perubahan_tenor_disetujui_ketua'
+        );
     }
 }

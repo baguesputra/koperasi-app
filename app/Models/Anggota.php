@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Helpers\TerbilangHelper;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -110,6 +111,37 @@ class Anggota extends Model
     public function getLamaKeanggotaanTahunAttribute(): float
     {
         return $this->tanggal_jadi_anggota->diffInDays(now()) / 365;
+    }
+
+    /**
+     * Format durasi masa keanggotaan yang mudah dibaca (tahun, bulan, dan hari).
+     */
+    public static function formatLamaKeanggotaan(?CarbonInterface $tanggal): string
+    {
+        if (! $tanggal) {
+            return '-';
+        }
+
+        $mulai = $tanggal->copy()->startOfDay();
+        $sekarang = now()->startOfDay();
+
+        if ($mulai->greaterThanOrEqualTo($sekarang)) {
+            return 'Baru bergabung';
+        }
+
+        $diff = $mulai->diff($sekarang);
+        $bagian = [];
+        if ($diff->y > 0) {
+            $bagian[] = "{$diff->y} tahun";
+        }
+        if ($diff->m > 0) {
+            $bagian[] = "{$diff->m} bulan";
+        }
+        if ($diff->d > 0) {
+            $bagian[] = "{$diff->d} hari";
+        }
+
+        return count($bagian) > 0 ? implode(' ', $bagian) : 'Baru bergabung';
     }
 
     /**

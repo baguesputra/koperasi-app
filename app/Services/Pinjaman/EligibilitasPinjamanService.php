@@ -14,6 +14,8 @@ class EligibilitasPinjamanService
 {
     public const MIN_BULAN_KEANGGOTAAN = 6;
 
+    public const MAKS_SISA_ANGSURAN_RELOAN = 1;
+
     /** Memo seluruh setting limit terurut selama request (ganti query berulang). */
     private static ?array $semuaLimitCache = null;
 
@@ -160,16 +162,16 @@ class EligibilitasPinjamanService
      *                            apa adanya sebagai informasi, termasuk saat terkunci;
      *                            full limit jika tidak ada pinjaman aktif)
      *     PENTING: limit_tersedia BUKAN gerbang izin. Gerbangnya `boleh`. Saat
-     *     sisa > 2 angsuran, limit_tersedia tetap > 0 tapi `boleh` = false.
+     *     sisa > 1 angsuran, limit_tersedia tetap > 0 tapi `boleh` = false.
      *   - sisa_angsuran: int (0 jika tidak ada pinjaman aktif; gabungan semua pinjaman aktif)
      *   - cicilan_pokok: float (0 jika tidak ada angsuran belum_bayar; weighted avg dari semua)
      *
      * Aturan:
      *   - Tidak ada pinjaman aktif -> boleh (limit penuh)
-     *   - Sisa > 2 angsuran -> terkunci (limit 0, wajib melunasi hingga sisa <= 2)
-     *   - Sisa <= 2, anggota < 1 tahun -> tolak (wajib lunas)
-     *   - Sisa <= 2, salah satu flag reloan sudah dipakai -> tolak (harus lunas dulu)
-     *   - Sisa <= 2, semua flag reloan belum dipakai -> boleh (limit dikurangi rumus berjalan)
+     *   - Sisa > 1 angsuran -> terkunci (limit 0, wajib melunasi hingga sisa <= 1)
+     *   - Sisa <= 1, anggota < 1 tahun -> tolak (wajib lunas)
+     *   - Sisa <= 1, salah satu flag reloan sudah dipakai -> tolak (harus lunas dulu)
+     *   - Sisa <= 1, semua flag reloan belum dipakai -> boleh (limit dikurangi rumus berjalan)
      */
     public function cek(Anggota $anggota): array
     {
@@ -225,11 +227,11 @@ class EligibilitasPinjamanService
         $limitTersedia = max(0.0, $limitMaksimal - ($sisaAngsuran * $cicilanPokok));
 
         // Kuncian: angsuran yang dibayar tidak langsung membuka pengajuan.
-        // Baru terbuka saat tersisa <= 2 angsuran; lunas penuh = limit awal pulih.
-        if ($sisaAngsuran > 2) {
+        // Baru terbuka saat tersisa <= 1 angsuran; lunas penuh = limit awal pulih.
+        if ($sisaAngsuran > self::MAKS_SISA_ANGSURAN_RELOAN) {
             return [
                 'boleh' => false,
-                'alasan' => 'Pinjaman sebelumnya belum lunas. Selesaikan pembayaran hingga tersisa maksimal 2 angsuran untuk membuka pengajuan berikutnya.',
+                'alasan' => 'Pinjaman sebelumnya belum lunas. Selesaikan pembayaran hingga tersisa maksimal 1 angsuran untuk membuka pengajuan berikutnya.',
                 'limit_tersedia' => $limitTersedia,
                 'sisa_angsuran' => $sisaAngsuran,
                 'cicilan_pokok' => $cicilanPokok,
@@ -332,7 +334,7 @@ class EligibilitasPinjamanService
      * 2. Tidak sedang memiliki pengajuan pinjaman dalam proses verifikasi.
      * 3. Tidak sedang memiliki pengajuan limit yang belum diproses/diverifikasi.
      * 4. Limit saat ini belum menyentuh plafon maksimal kebijakan koperasi (10 jt).
-     * 5. Jika ada pinjaman aktif, sisa angsuran harus <= 2 angsuran atau telah lunas.
+     * 5. Jika ada pinjaman aktif, sisa angsuran harus <= 1 angsuran atau telah lunas.
      * 6. Jika pernah mendapat persetujuan kenaikan limit sebelumnya, wajib memanfaatkan
      *    limit tersebut untuk pinjaman terlebih dahulu sebelum mengajukan kenaikan lagi.
      *
@@ -423,14 +425,14 @@ class EligibilitasPinjamanService
             ];
         }
 
-        // 5. Pinjaman aktif berjalan (sisa angsuran > 2)
+        // 5. Pinjaman aktif berjalan (sisa angsuran > 1)
         $agg = $anggota->pinjamanAktifDenganAgregat();
         if ($agg !== null) {
             $sisaAngsuran = (int) $agg['sisa_total'];
-            if ($sisaAngsuran > 2) {
+            if ($sisaAngsuran > self::MAKS_SISA_ANGSURAN_RELOAN) {
                 return [
                     'boleh' => false,
-                    'alasan' => 'Pinjaman sebelumnya belum lunas. Kenaikan limit baru dapat diajukan setelah pinjaman berjalan tersisa maksimal 2 angsuran atau telah lunas.',
+                    'alasan' => 'Pinjaman sebelumnya belum lunas. Kenaikan limit baru dapat diajukan setelah pinjaman berjalan tersisa maksimal 1 angsuran atau telah lunas.',
                     'status_badge' => 'terkunci',
                     'state_label' => 'Angsuran berjalan',
                     'limit_saat_ini' => $limitSaatIni,
@@ -481,7 +483,7 @@ class EligibilitasPinjamanService
      *   dihitung juga saat terkunci karena hanya informatif.
      *
      * CATATAN: nilai ini BUKAN gerbang izin mengajukan. Gunakan cek()['boleh']
-     * untuk memutuskan boleh/tidak (terkunci saat sisa > 2 angsuran).
+     * untuk memutuskan boleh/tidak (terkunci saat sisa > 1 angsuran).
      */
     public function limitTersedia(Anggota $anggota): float
     {

@@ -194,7 +194,7 @@ export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal, lim
                             <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4">
                                 <p className="text-xs font-semibold text-amber-800 mb-1">Pengajuan Lebih Awal (Reloan)</p>
                                 <p className="text-xs text-amber-700 leading-relaxed">
-                                    Pinjaman aktif Anda tersisa {sisaAngsuranAktif} cicilan (maksimal 2 untuk pengajuan lebih awal) × {formatRupiah(cicilanPokokAktif)} = {formatRupiah(sisaAngsuranAktif * cicilanPokokAktif)}.
+                                    Pinjaman aktif Anda tersisa {sisaAngsuranAktif} cicilan (maksimal 1 untuk pengajuan lebih awal) × {formatRupiah(cicilanPokokAktif)} = {formatRupiah(sisaAngsuranAktif * cicilanPokokAktif)}.
                                     Limit efektif dikurangi sisa cicilan pokok yang berjalan.
                                 </p>
                                 <div className="flex items-center justify-between mt-2 pt-2 border-t border-amber-200">

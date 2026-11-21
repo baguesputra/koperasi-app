@@ -108,7 +108,14 @@ class PinjamanApprovalTest extends TestCase
         ]);
         $this->assertEquals($saldoSebelum - 1_000_000, (float) KasKoperasi::first()->saldo_bank);
 
-        // WA ke anggota membawa dokumen bukti peminjaman
+        // WA ke anggota hanya dikirim saat pengajuan awal & approve Ketua (+ PDF Bukti Peminjaman),
+        // tidak dikirim saat diteruskan Sekretaris maupun disetujui Bendahara.
+        Queue::assertNotPushed(KirimWaJob::class, fn (KirimWaJob $job) => in_array(
+            $this->propertiWa($job)['event'],
+            ['pinjaman_diteruskan_admin', 'pinjaman_disetujui_bendahara'],
+            true
+        ));
+
         $namaFileBukti = "Bukti-Peminjaman-{$pinjaman->id}.pdf";
         Queue::assertPushed(KirimWaJob::class, function (KirimWaJob $job) use ($namaFileBukti) {
             $p = $this->propertiWa($job);

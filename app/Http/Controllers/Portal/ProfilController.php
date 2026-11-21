@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Portal;
 
 use App\Http\Controllers\Controller;
+use App\Models\Anggota;
 use App\Models\RekeningAnggota;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -15,23 +16,13 @@ class ProfilController extends Controller
         $anggota = auth()->user()->anggota;
         $anggota->loadMissing(['perusahaan', 'departemen', 'divisiMaster', 'jabatanMaster']);
 
-        $sekarang = now();
-        $tahun = (int) ($anggota->tanggal_jadi_anggota ? $anggota->tanggal_jadi_anggota->diffInYears($sekarang) : 0);
-        $tanggalSetelahTahun = $anggota->tanggal_jadi_anggota ? $anggota->tanggal_jadi_anggota->copy()->addYears($tahun) : null;
-        $bulan = (int) ($tanggalSetelahTahun ? $tanggalSetelahTahun->diffInMonths($sekarang) : 0);
-        $lamaLabel = ($tahun === 0 && $bulan === 0)
-            ? 'Baru bergabung'
-            : (($tahun === 0)
-                ? "{$bulan} bulan"
-                : (($bulan === 0) ? "{$tahun} tahun" : "{$tahun} tahun {$bulan} bulan"));
-
         return Inertia::render('Portal/Profil', [
             'anggota' => [
                 'nama' => $anggota->nama,
                 'no_anggota' => $anggota->no_anggota,
                 'no_karyawan' => $anggota->no_karyawan,
                 'foto_url' => $anggota->foto_url,
-                'lama_keanggotaan_label' => $lamaLabel,
+                'lama_keanggotaan_label' => Anggota::formatLamaKeanggotaan($anggota->tanggal_jadi_anggota),
                 'cabang' => $anggota->cabang,
                 'unit_bisnis' => $anggota->unit_bisnis,
                 'jabatan' => $anggota->getRelationValue('jabatanMaster')?->nama ?? $anggota->jabatan,

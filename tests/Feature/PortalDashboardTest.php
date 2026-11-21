@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\Anggota;
 use App\Models\Pinjaman;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\Concerns\MembuatDataUji;
 use Tests\TestCase;
 
@@ -71,5 +73,34 @@ class PortalDashboardTest extends TestCase
 
         $props = $res->viewData('page')['props'];
         $this->assertNull($props['pengajuanDitolak']);
+    }
+
+    public function test_masa_keanggotaan_menampilkan_tahun_bulan_dan_hari(): void
+    {
+        Carbon::setTestNow('2026-11-21 10:00:00');
+        try {
+            $this->assertSame('-', Anggota::formatLamaKeanggotaan(null));
+            $this->assertSame('Baru bergabung', Anggota::formatLamaKeanggotaan(now()));
+            $this->assertSame('12 hari', Anggota::formatLamaKeanggotaan(now()->subDays(12)));
+            $this->assertSame('2 bulan 7 hari', Anggota::formatLamaKeanggotaan(Carbon::parse('2026-09-14')));
+            $this->assertSame('1 tahun 2 bulan 5 hari', Anggota::formatLamaKeanggotaan(Carbon::parse('2025-09-16')));
+
+            $anggota = $this->buatAnggota('DSH-990003', ['tanggal_jadi_anggota' => '2025-09-16']);
+
+            $this->actingAs($anggota->user);
+            $res = $this->get(route('portal.dashboard'))->assertOk();
+            $this->assertSame('1 tahun 2 bulan 5 hari', $res->viewData('page')['props']['anggota']['lama_keanggotaan_label']);
+
+            $resProfil = $this->get(route('portal.profil'))->assertOk();
+            $this->assertSame('1 tahun 2 bulan 5 hari', $resProfil->viewData('page')['props']['anggota']['lama_keanggotaan_label']);
+
+            $token = $anggota->user->createToken('uji')->plainTextToken;
+            $this->withHeader('Authorization', "Bearer {$token}")
+                ->getJson('/api/v1/dashboard')
+                ->assertOk()
+                ->assertJsonPath('anggota.lama_keanggotaan_label', '1 tahun 2 bulan 5 hari');
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 }

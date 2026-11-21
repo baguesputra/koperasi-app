@@ -80,7 +80,7 @@ class PengajuanPinjamanService
         [$statusAwal, $cairOlehBendahara, $catatanBendahara] = $this->statusAwalPengajuanMandiri($pengaju);
 
         // Tandai privilege reloan dipakai setiap ada angsuran berjalan (1x per siklus).
-        // Flag ini dipakai aturan eligibilitas saat kuncian terbuka (sisa <= 2).
+        // Flag ini dipakai aturan eligibilitas saat kuncian terbuka (sisa <= 1).
         // Jika sudah ada pinjaman aktif lain, update flag-nya juga.
         $pakaiPrivilegeReloan = $cekEligibilitas['sisa_angsuran'] > 0;
 

@@ -95,20 +95,6 @@ class PersetujuanPinjamanService
             dataLama: ['status' => 'diajukan'],
             dataBaru: ['status' => $mandiriBendahara ? 'approved_bendahara' : 'approved_admin', 'catatan_admin' => $catatan]
         );
-
-        $tahapBerikut = $mandiriBendahara ? 'Ketua' : 'Bendahara';
-        $isi = "Pengajuan pinjaman Anda telah kami informasikan dengan rincian:\n\n"
-            ."- Nomor Referensi: #{$pinjaman->id}\n"
-            .'- Nominal diminta: '.WaPesan::rupiah($pinjaman->nominal_diminta ?? $pinjaman->nominal)."\n"
-            ."- Tenor diminta: ".($pinjaman->tenor_diminta ?? $pinjaman->tenor_bulan)." bulan\n\n"
-            ."Status saat ini: *Diteruskan Sekretaris* dan sedang menunggu pemeriksaan {$tahapBerikut}."
-            .' Pemberitahuan selanjutnya akan kami sampaikan melalui WhatsApp ini.';
-
-        WaService::keAnggota(
-            $pinjaman->anggota,
-            'pinjaman_diteruskan_admin',
-            WaPesan::susun($pinjaman->anggota->nama, $pinjaman->anggota->no_karyawan, $isi)
-        );
     }
 
     public function rejectAdmin(Pinjaman $pinjaman, string $catatan): void
@@ -162,20 +148,6 @@ class PersetujuanPinjamanService
             keterangan: "Pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) disetujui oleh Bendahara. Diminta: ".WaPesan::rupiah($pinjaman->nominal_diminta ?? $pinjaman->nominal).', usulan: '.WaPesan::rupiah($nominalFinal)." ({$tenorFinal} bln). Kas operasional saat itu: ".WaPesan::rupiah($kasSaldo).', proyeksi sisa: '.WaPesan::rupiah($kasSaldo - $nominalFinal),
             dataLama: ['status' => 'approved_admin'],
             dataBaru: ['status' => 'approved_bendahara', 'nominal_disetujui_bendahara' => $nominalFinal, 'tenor_disetujui_bendahara' => $tenorFinal, 'kas_saldo_bendahara' => $kasSaldo, 'catatan_bendahara' => $catatan]
-        );
-
-        $isi = "Pengajuan pinjaman Anda telah kami informasikan dengan rincian:\n\n"
-            ."- Nomor Referensi: #{$pinjaman->id}\n"
-            .'- Nominal diminta: '.WaPesan::rupiah($pinjaman->nominal_diminta ?? $pinjaman->nominal)."\n"
-            .'- Nominal usulan Bendahara: '.WaPesan::rupiah($nominalFinal)."\n"
-            ."- Tenor usulan: {$tenorFinal} bulan\n\n"
-            .'Status saat ini: *Disetujui Bendahara* dan sedang menunggu persetujuan Ketua.'
-            .' Pemberitahuan selanjutnya akan kami sampaikan melalui WhatsApp ini.';
-
-        WaService::keAnggota(
-            $pinjaman->anggota,
-            'pinjaman_disetujui_bendahara',
-            WaPesan::susun($pinjaman->anggota->nama, $pinjaman->anggota->no_karyawan, $isi)
         );
     }
 

@@ -103,15 +103,6 @@ class PengajuanLimitService
             ['status' => 'diajukan'],
             ['status' => 'approved_bendahara', 'limit_disetujui_bendahara' => $nominal, 'catatan_bendahara' => $catatan]
         );
-
-        WaService::keAnggota(
-            $pengajuan->anggota,
-            'limit_disetujui_bendahara',
-            WaPesan::susun($pengajuan->anggota->nama, $pengajuan->anggota->no_karyawan,
-                'Pengajuan kenaikan limit Anda telah *Disetujui Bendahara* sebesar '.WaPesan::rupiah($nominal)
-                .' (diminta: '.WaPesan::rupiah($pengajuan->limit_diminta).') dan sedang menunggu keputusan final Ketua.'
-                .' Pemberitahuan selanjutnya akan kami sampaikan melalui WhatsApp ini.')
-        );
     }
 
     public function rejectBendahara(PengajuanLimit $pengajuan, string $catatan): void

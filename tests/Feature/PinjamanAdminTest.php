@@ -59,7 +59,7 @@ class PinjamanAdminTest extends TestCase
         $this->assertSame('Dokumen lengkap, diteruskan.', $pinjaman->catatan_admin);
         $this->assertTrue(AuditLog::where('aksi', 'pinjaman_teruskan_admin')->exists());
 
-        Queue::assertPushed(KirimWaJob::class, fn (KirimWaJob $job) => $this->propertiWa($job)['event'] === 'pinjaman_diteruskan_admin');
+        Queue::assertNotPushed(KirimWaJob::class, fn (KirimWaJob $job) => $this->propertiWa($job)['event'] === 'pinjaman_diteruskan_admin');
     }
 
     public function test_admin_menolak_final(): void
