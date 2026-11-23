@@ -40,6 +40,9 @@ class LaporanRegistry
         'return_simpanan_wajib' => 'Pengembalian Simpanan Wajib',
         'simpanan_pokok_masuk' => 'Simpanan Pokok Masuk',
         'simpanan_wajib_masuk' => 'Simpanan Wajib Masuk',
+        'setor_tabungan' => 'Setoran Tabungan Anggota',
+        'tarik_tabungan' => 'Penarikan Tabungan Anggota',
+        'return_tabungan_resign' => 'Pengembalian Tabungan (Resign)',
         'transfer_ke_dana_pinjaman' => 'Transfer ke Dana Pinjaman',
         'terima_dari_pengembalian_simpanan' => 'Terima dari Pengembalian Simpanan',
         'talangan_sosial_ke_pinjaman' => 'Talangan Sosial ke Pinjaman',
@@ -223,11 +226,12 @@ class LaporanRegistry
                         ->sum('simpanan.jumlah'), 2);
 
                     $asuransiSosial = round(self::danaSosialPerTanggal($cutoff), 2);
+                    $tabunganAnggota = round(self::tabunganPerTanggal($tgl), 2);
                     $shu = self::shuTahunBerjalan($tahun, $cutoff);
                     $shuNilai = round((float) $shu['shu'], 2);
                     $hutang = 0.0;
 
-                    $totalKewajiban = round($simpananPokok + $simpananWajib + $asuransiSosial + $shuNilai + $hutang, 2);
+                    $totalKewajiban = round($simpananPokok + $simpananWajib + $tabunganAnggota + $asuransiSosial + $shuNilai + $hutang, 2);
 
                     // III. Modal
                     $modalTetap = round((float) config('koperasi.modal_tetap', 20_409_831), 2);
@@ -262,6 +266,7 @@ class LaporanRegistry
                     $bagian('Kewajiban Lancar');
                     $baris('Simpanan Pokok', $simpananPokok);
                     $baris('Simpanan Wajib', $simpananWajib);
+                    $baris('Tabungan Anggota', $tabunganAnggota);
                     $baris('Asuransi Sosial', $asuransiSosial);
                     $baris('Selisih Hasil Usaha', $shuNilai);
                     $baris('Hutang', $hutang);
@@ -390,6 +395,7 @@ class LaporanRegistry
                         'perijinan' => 'Beban Perijinan',
                         'bank' => 'Beban Bank',
                         'pajak' => 'Beban Pajak',
+                        'bunga_tabungan' => 'Beban Bunga Tabungan',
                         'penghapusan_pinjaman' => 'Beban Penghapusan Pinjaman',
                         'lain_lain' => 'Beban Lain-lain',
                     ];
@@ -1140,6 +1146,22 @@ class LaporanRegistry
     }
 
     /**
+     * Kewajiban Tabungan Anggota per tanggal cut-off (neto transaksi aktif s/d tanggal).
+     */
+    private static function tabunganPerTanggal(string $tanggal): float
+    {
+        return (float) (DB::table('tabungan_transaksi')
+            ->whereNull('dibatalkan_pada')
+            ->whereNull('koreksi_dari_id')
+            ->whereDate('tanggal', '<=', $tanggal)
+            ->selectRaw("COALESCE(SUM(CASE
+                WHEN jenis IN ('setor', 'bunga', 'koreksi_masuk') THEN nominal
+                ELSE -nominal
+            END), 0) as total")
+            ->value('total') ?? 0);
+    }
+
+    /**
      * Total SHU setahun = Selisih Hasil Usaha (sumber sel D14 Excel SHU).
      * Dipakai modul Pembagian SHU sebagai default total_shu periode.
      */
@@ -1214,6 +1236,18 @@ class LaporanRegistry
             $beban['penghapusan_pinjaman'][(int) $ph->disetujui_pada->format('n')] += (float) $ph->sisa_pokok;
         }
 
+        $bungaTabunganRows = DB::table('tabungan_transaksi')
+            ->where('jenis', 'bunga')
+            ->whereNull('dibatalkan_pada')
+            ->whereNull('koreksi_dari_id')
+            ->whereDate('tanggal', '>=', sprintf('%04d-01-01', $tahun))
+            ->whereDate('tanggal', '<=', sprintf('%04d-12-31', $tahun))
+            ->get(['tanggal', 'nominal']);
+        foreach ($bungaTabunganRows as $bt) {
+            $beban['bunga_tabungan'] ??= $nol;
+            $beban['bunga_tabungan'][(int) Carbon::parse($bt->tanggal)->format('n')] += (float) $bt->nominal;
+        }
+
         return ['bunga' => $bunga, 'bank' => $bank, 'beban' => $beban];
     }
 
@@ -1257,7 +1291,16 @@ class LaporanRegistry
             ->whereBetween('disetujui_pada', [$awal, $akhir])
             ->sum('sisa_pokok');
 
-        $totalBeban = $beban + $bebanPenghapusan;
+        $akhirTanggal = $cutoff ? $cutoff->toDateString() : sprintf('%04d-12-31', $tahun);
+        $bebanBungaTabungan = (float) DB::table('tabungan_transaksi')
+            ->where('jenis', 'bunga')
+            ->whereNull('dibatalkan_pada')
+            ->whereNull('koreksi_dari_id')
+            ->whereDate('tanggal', '>=', sprintf('%04d-01-01', $tahun))
+            ->whereDate('tanggal', '<=', $akhirTanggal)
+            ->sum('nominal');
+
+        $totalBeban = $beban + $bebanPenghapusan + $bebanBungaTabungan;
 
         return ['bunga' => $bunga + $bungaBank, 'beban' => $totalBeban, 'shu' => $bunga + $bungaBank - $totalBeban];
     }
@@ -1322,6 +1365,7 @@ class LaporanRegistry
             'dana_sosial' => 'Dana Sosial',
             'pengembalian_simpanan' => 'Pengembalian Simpanan',
             'simpanan' => 'Simpanan Anggota',
+            'tabungan' => 'Tabungan Anggota',
             default => $k,
         };
     }

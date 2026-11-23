@@ -24,6 +24,7 @@ const menuGroups = [
         items: [
             { label: 'Anggota', routeName: 'anggota.index', icon: Users, permission: 'anggota.lihat' },
             { label: 'Simpanan', routeName: 'simpanan.index', icon: PiggyBank, permission: 'simpanan.lihat' },
+            { label: 'Tabungan', routeName: 'tabungan.index', icon: BookOpenText, permission: 'tabungan.lihat' },
             { label: 'Pinjaman', routeName: 'pinjaman.index', icon: HandCoins, permission: 'pinjaman.lihat' },
         ],
     },
@@ -37,6 +38,7 @@ const menuGroups = [
             { label: 'Persetujuan Perubahan Tenor', routeName: 'ketua.percepatan.index', icon: Repeat, permission: 'pinjaman.approve-ketua' },
             { label: 'Angsuran', routeName: 'bendahara.angsuran.index', icon: CalendarCheck, permission: 'angsuran.konfirmasi' },
             { label: 'Konfirmasi Simpanan', routeName: 'bendahara.simpanan.index', icon: HeartHandshake, permission: 'simpanan.konfirmasi' },
+            { label: 'Proses Tabungan', routeName: 'bendahara.tabungan.index', icon: Wallet, permission: 'tabungan.kelola' },
             { label: 'Tinjau Limit', routeName: 'bendahara.pengajuan-limit.index', icon: TrendingUp, permission: 'limit.tinjau-bendahara' },
             { label: 'Pengajuan Limit', routeName: 'ketua.pengajuan-limit.index', icon: TrendingUp, permission: 'limit.approve-ketua' },
             { label: 'Aktivasi Anggota', routeName: 'ketua.aktivasi.index', icon: Users, permission: 'aktivasi.approve-ketua' },
@@ -88,6 +90,7 @@ export default function Sidebar({ collapsed = false, expanding = false, mobile =
         'bendahara.pengajuan-limit.index': notifications?.menunggu_pengajuan_limit_bendahara ?? 0,
         'ketua.pengajuan-limit.index': notifications?.menunggu_pengajuan_limit ?? 0,
         'ketua.aktivasi.index': notifications?.menunggu_aktivasi ?? 0,
+        'bendahara.tabungan.index': notifications?.menunggu_tabungan ?? 0,
         'pengurus.penghapusan-pinjaman.index': notifications?.menunggu_penghapusan_pinjaman ?? 0,
     };
 

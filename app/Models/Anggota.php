@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Helpers\TerbilangHelper;
+use App\Services\Tabungan\PerhitunganBungaTabunganService;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -103,6 +104,19 @@ class Anggota extends Model
     public function rekening(): HasMany
     {
         return $this->hasMany(RekeningAnggota::class);
+    }
+
+    public function rekeningTabungan(): HasMany
+    {
+        return $this->hasMany(RekeningTabungan::class);
+    }
+
+    public function rekeningTabunganAktif(): ?RekeningTabungan
+    {
+        return $this->rekeningTabungan()
+            ->where('status', 'aktif')
+            ->latest('id')
+            ->first();
     }
 
     /**
@@ -285,6 +299,22 @@ class Anggota extends Model
         $sisaWajibSetelahPelunasan = max(0, $simpananWajib - max(0, $totalSisaPinjaman - $simpananPokok));
         $shortfall = max(0, $totalSisaPinjaman - $totalSimpananKembali);
 
+        $rekeningTabungan = $this->rekeningTabunganAktif();
+        $tabunganRingkasan = ['ada' => false, 'no_rekening' => null, 'saldo' => 0.0, 'bunga_berjalan' => 0.0, 'total_kembali' => 0.0];
+        if ($rekeningTabungan) {
+            $estimasi = app(PerhitunganBungaTabunganService::class)
+                ->estimasiBulanBerjalan($rekeningTabungan);
+            $bungaBerjalan = ($estimasi['sudah_diposting'] ?? false) ? 0.0 : (float) ($estimasi['bunga_bersih'] ?? 0);
+            $saldoTab = (float) $rekeningTabungan->saldo;
+            $tabunganRingkasan = [
+                'ada' => true,
+                'no_rekening' => $rekeningTabungan->no_rekening,
+                'saldo' => $saldoTab,
+                'bunga_berjalan' => $bungaBerjalan,
+                'total_kembali' => round($saldoTab + $bungaBerjalan, 2),
+            ];
+        }
+
         return [
             'simpanan' => [
                 'pokok' => $simpananPokok,
@@ -292,6 +322,7 @@ class Anggota extends Model
                 'dana_sosial' => $danaSosial,
                 'total_pokok_wajib' => $totalSimpananKembali,
             ],
+            'tabungan' => $tabunganRingkasan,
             'pinjaman' => [
                 'jumlah_pinjaman_aktif' => $pinjamanAktif->count(),
                 'sisa_tagihan' => $totalSisaPinjaman,
@@ -303,7 +334,8 @@ class Anggota extends Model
                 'alokasi_dari_pokok' => $alokasiDariPokok,
                 'kembali_pokok' => $sisaPokokSetelahPelunasan,
                 'kembali_wajib' => $sisaWajibSetelahPelunasan,
-                'total_dikembalikan' => $kembalianNeto,
+                'kembali_tabungan' => $tabunganRingkasan['total_kembali'],
+                'total_dikembalikan' => round($kembalianNeto + $tabunganRingkasan['total_kembali'], 2),
                 'dana_sosial_hangus' => $danaSosial,
                 'cukup_untuk_pelunasan' => $totalSimpananKembali >= $totalSisaPinjaman,
                 'shortfall' => $shortfall,
@@ -336,6 +368,9 @@ class Anggota extends Model
                 'alokasi_dari_wajib' => (float) ($settlement['alokasi_dari_wajib'] ?? 0),
                 'kembali_pokok' => (float) ($settlement['kembali_pokok'] ?? 0),
                 'kembali_wajib' => (float) ($settlement['kembali_wajib'] ?? 0),
+                'tabungan_no_rekening' => $settlement['tabungan_no_rekening'] ?? null,
+                'tabungan_bunga_prorata' => (float) ($settlement['tabungan_bunga_prorata'] ?? 0),
+                'kembali_tabungan' => (float) ($settlement['kembali_tabungan'] ?? 0),
                 'total_dikembalikan' => (float) ($settlement['total_dikembalikan'] ?? 0),
                 'terbilang_total' => TerbilangHelper::angkaKeTerbilang((float) ($settlement['total_dikembalikan'] ?? 0)),
                 'tanggal_proses' => $settlement['tanggal_proses'] ?? $this->tanggal_resign?->format('Y-m-d'),

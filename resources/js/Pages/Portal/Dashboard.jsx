@@ -20,6 +20,7 @@ import {
     X,
     Lock,
     ShieldCheck,
+    Wallet,
 } from 'lucide-react';
 import { formatRupiah } from '@/Utils/formatCurrency';
 import Nominal, { usePrivasiNominal } from '@/Components/ui/Nominal';
@@ -237,6 +238,8 @@ export default function Dashboard({
     stateLimitLabel: propStateLimitLabel,
     plafonKebijakan,
     riwayatGabungan,
+    tabungan = null,
+    sukuBungaTabunganAktif = 2,
     tabelTenor,
     settingSimpanan,
 }) {
@@ -815,6 +818,29 @@ export default function Dashboard({
                         </PetunjukTerkunci>
                     )}
 
+                    <Link href={route('portal.tabungan.index')} className="pd-action pd-focus">
+                        <span className="pd-action__icon">
+                            <Wallet size={17} strokeWidth={2.2} aria-hidden="true" />
+                        </span>
+                        <span className="pd-action__text">
+                            <span className="pd-action__label">Tabungan</span>
+                            <span className="pd-action__state">
+                                {tabungan?.status === 'aktif'
+                                    ? tabungan.no_rekening
+                                    : tabungan?.status === 'diajukan'
+                                    ? 'Menunggu verifikasi'
+                                    : `Bunga ${sukuBungaTabunganAktif}% / tahun`}
+                            </span>
+                        </span>
+                        <span className="pd-action__flag">
+                            {tabungan?.status === 'aktif'
+                                ? 'Aktif'
+                                : tabungan?.status === 'diajukan'
+                                ? 'Diproses'
+                                : 'Buka'}
+                        </span>
+                    </Link>
+
                     <button
                         type="button"
                         onClick={() => window.dispatchEvent(new CustomEvent('open-panduan'))}
@@ -1279,38 +1305,43 @@ export default function Dashboard({
                                 <p className="pd-empty">Belum ada aktivitas transaksi.</p>
                             ) : (
                                 <ul className="pd-acts">
-                                    {riwayatGabungan.map((item, i) => (
-                                        <li key={i} className="pd-act">
-                                            <span
-                                                className={`pd-act__mark ${
-                                                    item.tipe === 'simpanan' ? 'pd-act__mark--in' : ''
-                                                }`}
-                                            >
-                                                {item.tipe === 'simpanan' ? (
-                                                    <ArrowDownCircle size={15} aria-hidden="true" />
-                                                ) : (
-                                                    <CheckCircle2 size={15} aria-hidden="true" />
-                                                )}
-                                            </span>
-                                            <span className="pd-act__text">
-                                                <span className="pd-act__label">{item.label}</span>
-                                                <span className="pd-act__date">
-                                                    {item.tanggal_format}
+                                    {riwayatGabungan.map((item, i) => {
+                                        const isMasuk = ['simpanan', 'tabungan_masuk', 'tabungan_bunga'].includes(item.tipe);
+                                        const isKeluar = item.tipe === 'tabungan_keluar';
+
+                                        return (
+                                            <li key={i} className="pd-act">
+                                                <span
+                                                    className={`pd-act__mark ${
+                                                        isMasuk ? 'pd-act__mark--in' : ''
+                                                    }`}
+                                                >
+                                                    {isMasuk ? (
+                                                        <ArrowDownCircle size={15} aria-hidden="true" />
+                                                    ) : (
+                                                        <CheckCircle2 size={15} aria-hidden="true" />
+                                                    )}
                                                 </span>
-                                            </span>
-                                            <span
-                                                className={`pd-act__amount ${
-                                                    item.tipe === 'simpanan' ? 'pd-act__amount--in' : ''
-                                                }`}
-                                            >
-                                                {item.tipe === 'simpanan' ? '+' : ''}
-                                                <Nominal
-                                                    nilai={item.nominal}
-                                                    tampil={nominalTampil}
-                                                />
-                                            </span>
-                                        </li>
-                                    ))}
+                                                <span className="pd-act__text">
+                                                    <span className="pd-act__label">{item.label}</span>
+                                                    <span className="pd-act__date">
+                                                        {item.tanggal_format}
+                                                    </span>
+                                                </span>
+                                                <span
+                                                    className={`pd-act__amount ${
+                                                        isMasuk ? 'pd-act__amount--in' : ''
+                                                    }`}
+                                                >
+                                                    {isMasuk ? '+' : isKeluar ? '−' : ''}
+                                                    <Nominal
+                                                        nilai={item.nominal}
+                                                        tampil={nominalTampil}
+                                                    />
+                                                </span>
+                                            </li>
+                                        );
+                                    })}
                                 </ul>
                             )}
                         </section>
@@ -1363,6 +1394,63 @@ export default function Dashboard({
                                         ))}
                                     </div>
                                 </details>
+                            )}
+                        </section>
+
+                        {/* ---------------- TABUNGAN ANGGOTA ---------------- */}
+                        <section className="pd-card">
+                            <div className="pd-card__head">
+                                <div>
+                                    <h2>Tabungan anggota</h2>
+                                    <p className="pd-card__note">
+                                        {tabungan?.status === 'aktif'
+                                            ? `No. Rek ${tabungan.no_rekening}`
+                                            : `Simpanan sukarela berbunga ${sukuBungaTabunganAktif}% / tahun`}
+                                    </p>
+                                </div>
+                                <Link href={route('portal.tabungan.index')} className="pd-link pd-focus">
+                                    {tabungan?.status === 'aktif' ? 'Kelola & Setor' : 'Buka menu'}
+                                    <ArrowRight size={13} aria-hidden="true" />
+                                </Link>
+                            </div>
+
+                            {tabungan?.status === 'aktif' ? (
+                                <>
+                                    <p className="pd-figure">
+                                        <Nominal nilai={tabungan.saldo} tampil={nominalTampil} />
+                                    </p>
+                                    <dl className="pd-rows">
+                                        <div className="pd-row">
+                                            <dt>Estimasi bunga bulan ini</dt>
+                                            <dd>
+                                                <Nominal nilai={tabungan.estimasi_bunga_bulan_ini} tampil={nominalTampil} />
+                                            </dd>
+                                        </div>
+                                        <div className="pd-row">
+                                            <dt>Total bunga diterima</dt>
+                                            <dd>
+                                                <Nominal nilai={tabungan.total_bunga} tampil={nominalTampil} />
+                                            </dd>
+                                        </div>
+                                        <div className="pd-row">
+                                            <dt>Suku bunga berlaku</dt>
+                                            <dd>{tabungan.suku_bunga_aktif}% / tahun</dd>
+                                        </div>
+                                    </dl>
+                                    {tabungan.pengajuan_menunggu_count > 0 && (
+                                        <p className="pd-card__foot">
+                                            Ada {tabungan.pengajuan_menunggu_count} pengajuan transaksi yang menunggu verifikasi Bendahara.
+                                        </p>
+                                    )}
+                                </>
+                            ) : tabungan?.status === 'diajukan' ? (
+                                <p className="pd-card__foot">
+                                    Pengajuan pembukaan rekening tabungan Anda sedang ditinjau oleh Bendahara Koperasi.
+                                </p>
+                            ) : (
+                                <p className="pd-card__foot">
+                                    Ajukan pembukaan rekening tabungan sukarela di Portal Anggota untuk memperoleh bunga {sukuBungaTabunganAktif}% per tahun (dihitung harian, dikreditkan bulanan).
+                                </p>
                             )}
                         </section>
 

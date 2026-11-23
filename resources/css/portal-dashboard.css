@@ -815,9 +815,16 @@ a.pd-status__link:hover {
     }
 }
 
-@media (min-width: 56rem) {
+@media (min-width: 48rem) {
     .pd-actions {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: var(--space-sm);
+    }
+}
+
+@media (min-width: 64rem) {
+    .pd-actions {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
         gap: var(--space-sm);
     }
 }

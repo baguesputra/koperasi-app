@@ -24,6 +24,7 @@ class JurnalKasService
         'dana_sosial' => 'saldo_dana_sosial',
         'pengembalian_simpanan' => 'saldo_pengembalian_simpanan',
         'simpanan' => 'saldo_simpanan',
+        'tabungan' => 'saldo_bank',
         'bank' => 'saldo_bank',
         'kas_kecil' => 'saldo_kas_kecil',
     ];
@@ -36,6 +37,7 @@ class JurnalKasService
         'dana_sosial' => 'Dana Sosial',
         'pengembalian_simpanan' => 'Pengembalian Simpanan',
         'simpanan' => 'Simpanan Anggota',
+        'tabungan' => 'Tabungan Anggota',
         'bank' => 'Bank',
         'kas_kecil' => 'Kas Kecil',
     ];

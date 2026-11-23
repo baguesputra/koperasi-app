@@ -12,9 +12,11 @@ use App\Models\GateSyncSetting;
 use App\Models\Jabatan;
 use App\Models\Perusahaan;
 use App\Models\SettingBunga;
+use App\Models\SettingBungaTabungan;
 use App\Models\SettingChipNominal;
 use App\Models\SettingLimitPinjaman;
 use App\Models\SettingSimpanan;
+use App\Models\SettingTabungan;
 use App\Models\TabelTenor;
 use App\Models\User;
 use App\Models\WaLog;
@@ -35,11 +37,12 @@ use Spatie\Permission\Models\Role;
 
 class PengaturanController extends Controller
 {
-    private const TAB_DIPERBOLEHKAN = ['aturan-pinjaman', 'dana-operasional', 'wa', 'akses', 'organisasi', 'audit'];
+    private const TAB_DIPERBOLEHKAN = ['aturan-pinjaman', 'dana-operasional', 'aturan-tabungan', 'wa', 'akses', 'organisasi', 'audit'];
 
     private const TAB_PERMISSIONS = [
         'aturan-pinjaman' => ['pengaturan.kebijakan.lihat', 'pengaturan.kebijakan.kelola', 'pengaturan.kelola'],
         'dana-operasional' => ['pengaturan.kebijakan.lihat', 'pengaturan.kebijakan.kelola', 'pengaturan.kelola'],
+        'aturan-tabungan' => ['pengaturan.kebijakan.lihat', 'pengaturan.kebijakan.kelola', 'pengaturan.kelola'],
         'wa' => ['pengaturan.wa', 'pengaturan.kelola'],
         'akses' => ['user.kelola', 'pengaturan.kelola'],
         'organisasi' => ['pengaturan.organisasi', 'pengaturan.kelola'],
@@ -64,6 +67,7 @@ class PengaturanController extends Controller
         $user = $request->user();
         $allowedTabs = array_values(array_filter(self::TAB_DIPERBOLEHKAN, function ($tab) use ($user) {
             $perms = self::TAB_PERMISSIONS[$tab] ?? ['pengaturan.kelola'];
+
             return $user->hasAnyPermission($perms);
         }));
 
@@ -236,6 +240,24 @@ class PengaturanController extends Controller
             'bungaSaatIni' => $tabAktif === 'aturan-pinjaman' ? SettingBunga::orderByDesc('berlaku_dari_tanggal')->first() : null,
             'settingSimpanan' => $tabAktif === 'dana-operasional' ? SettingSimpanan::orderBy('id')->get() : [],
             'chipNominal' => $tabAktif === 'dana-operasional' ? SettingChipNominal::dikelompokkan() : [],
+            'bungaTabunganSaatIni' => $tabAktif === 'aturan-tabungan' ? SettingBungaTabungan::tarifAktifPada() : null,
+            'riwayatBungaTabungan' => $tabAktif === 'aturan-tabungan'
+                ? SettingBungaTabungan::with('createdBy:id,name')
+                    ->orderByDesc('berlaku_dari_tanggal')
+                    ->orderByDesc('id')
+                    ->limit(20)
+                    ->get()
+                    ->map(fn ($b) => [
+                        'id' => $b->id,
+                        'persentase' => (float) $b->persentase,
+                        'berlaku_dari_tanggal' => $b->berlaku_dari_tanggal?->format('Y-m-d'),
+                        'berlaku_dari_label' => $b->berlaku_dari_tanggal?->format('d M Y'),
+                        'keterangan' => $b->keterangan,
+                        'created_by_name' => $b->createdBy?->name ?? 'Sistem',
+                    ])
+                : [],
+            'settingTabungan' => $tabAktif === 'aturan-tabungan' ? SettingTabungan::current() : null,
+            'metodeBungaOptions' => $tabAktif === 'aturan-tabungan' ? SettingTabungan::METODE_BUNGA : [],
             'ringkasanMaster' => $tabAktif === 'organisasi' ? [
                 'perusahaan' => Perusahaan::count(),
                 'departemen' => Departemen::count(),
@@ -333,7 +355,7 @@ class PengaturanController extends Controller
     {
         return SettingLimitPinjaman::where('id', '!=', $kecualiId)
             ->where(function ($q) use ($min, $maks) {
-                $q->where(function ($r) use ($min, $maks) {
+                $q->where(function ($r) use ($min) {
                     $r->where('min_bulan', '<=', $min)
                         ->where(fn ($s) => $s->whereNull('maks_bulan')->orWhere('maks_bulan', '>=', $min));
                 })->orWhere(function ($r) use ($min, $maks) {
@@ -462,6 +484,64 @@ class PengaturanController extends Controller
         );
 
         return back()->with('status', 'Chip nominal berhasil diperbarui.');
+    }
+
+    public function updateBungaTabungan(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'persentase' => ['required', 'numeric', 'min:0', 'max:50'],
+            'berlaku_dari_tanggal' => ['required', 'date'],
+            'keterangan' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $tarifLama = SettingBungaTabungan::tarifAktifPada();
+
+        $baru = SettingBungaTabungan::create([
+            'persentase' => $data['persentase'],
+            'berlaku_dari_tanggal' => $data['berlaku_dari_tanggal'],
+            'keterangan' => $data['keterangan'] ?? null,
+            'created_by' => $request->user()?->id,
+        ]);
+
+        AuditLog::catat(
+            'update_bunga_tabungan',
+            "Suku bunga tabungan diubah dari {$tarifLama?->persentase}% menjadi {$data['persentase']}% per tahun (berlaku mulai {$data['berlaku_dari_tanggal']})",
+            ['persentase' => $tarifLama?->persentase, 'berlaku_dari_tanggal' => $tarifLama?->berlaku_dari_tanggal?->format('Y-m-d')],
+            ['id' => $baru->id, 'persentase' => $baru->persentase, 'berlaku_dari_tanggal' => $data['berlaku_dari_tanggal'], 'keterangan' => $data['keterangan'] ?? null]
+        );
+
+        return back()->with('status', 'Suku bunga tabungan berhasil diperbarui. Periode yang sudah dibukukan tetap memakai snapshot tarif sebelumnya.');
+    }
+
+    public function updateKetentuanTabungan(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'metode_bunga' => ['required', 'in:'.implode(',', array_keys(SettingTabungan::METODE_BUNGA))],
+            'min_setor' => ['required', 'numeric', 'min:0', 'max:999999999'],
+            'saldo_minimal' => ['required', 'numeric', 'min:0', 'max:999999999'],
+            'min_tarik' => ['required', 'numeric', 'min:0', 'max:999999999'],
+            'bank_tujuan_nama' => ['required', 'string', 'max:100'],
+            'bank_tujuan_rekening' => ['required', 'string', 'max:100'],
+            'bank_tujuan_atas_nama' => ['required', 'string', 'max:150'],
+            'buka_rekening_aktif' => ['required', 'boolean'],
+        ]);
+
+        $setting = SettingTabungan::current();
+        $dataLama = $setting->only([
+            'metode_bunga', 'min_setor', 'saldo_minimal', 'min_tarik',
+            'bank_tujuan_nama', 'bank_tujuan_rekening', 'bank_tujuan_atas_nama', 'buka_rekening_aktif',
+        ]);
+
+        $setting->update([...$data, 'updated_by' => $request->user()?->id]);
+
+        AuditLog::catat(
+            'update_setting_tabungan',
+            'Ketentuan operasional Tabungan Anggota diperbarui.',
+            $dataLama,
+            $data
+        );
+
+        return back()->with('status', 'Ketentuan Tabungan Anggota berhasil diperbarui.');
     }
 
     private function statusGate(): array
@@ -679,7 +759,7 @@ class PengaturanController extends Controller
         $filters = $request->only(['search', 'user_id', 'kategori', 'aksi', 'date_from', 'date_to']);
         $query = AuditLog::with('user:id,name,no_karyawan')->filter($filters)->latest();
 
-        $namaFile = 'Audit_Log_Koperasi_' . now()->format('Ymd_His') . '.xlsx';
+        $namaFile = 'Audit_Log_Koperasi_'.now()->format('Ymd_His').'.xlsx';
 
         return (new AuditLogExport($query))->download($namaFile);
     }

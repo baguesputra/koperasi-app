@@ -4,6 +4,7 @@ import Card from '@/Components/ui/Card';
 import PageHeader from '@/Components/ui/PageHeader';
 import { SECTIONS } from './Sections';
 import TabAturanPinjaman from './Partials/TabAturanPinjaman';
+import TabAturanTabungan from './Partials/TabAturanTabungan';
 import TabDanaOperasional from './Partials/TabDanaOperasional';
 import TabWa from './Partials/TabWa';
 import TabAuditLog from './Partials/TabAuditLog';
@@ -11,7 +12,7 @@ import SectionAkses from './Partials/SectionAkses';
 import SectionOrganisasi from './Partials/SectionOrganisasi';
 
 const JUDUL = {
-    'aturan-pinjaman': 'Aturan Pinjaman', 'dana-operasional': 'Dana Operasional',
+    'aturan-pinjaman': 'Aturan Pinjaman', 'dana-operasional': 'Dana Operasional', 'aturan-tabungan': 'Aturan Tabungan',
     wa: 'WhatsApp', akses: 'Akses', organisasi: 'Organisasi GATE', audit: 'Audit Log',
 };
 
@@ -24,6 +25,11 @@ const SUB_NAV = {
     'dana-operasional': [
         { id: 'simpanan', label: 'Simpanan' },
         { id: 'chip', label: 'Chip' },
+    ],
+    'aturan-tabungan': [
+        { id: 'bunga-tabungan', label: 'Suku Bunga & Snapshot' },
+        { id: 'rekening-tujuan', label: 'Rekening Setoran' },
+        { id: 'ketentuan-tabungan', label: 'Ketentuan Saldo' },
     ],
     organisasi: [
         { id: 'org-status', label: 'Status' },
@@ -49,6 +55,10 @@ export default function Index({
     bungaSaatIni,
     settingSimpanan,
     chipNominal,
+    bungaTabunganSaatIni,
+    riwayatBungaTabungan = [],
+    settingTabungan,
+    metodeBungaOptions = {},
     ringkasanMaster,
     gateStatus,
     gateSetting,
@@ -189,6 +199,16 @@ export default function Index({
                         <TabDanaOperasional
                             settingSimpanan={settingSimpanan}
                             chipNominal={chipNominal}
+                            sectionAktif={sectionAktif}
+                            readOnly={!bisaKelolaKebijakan}
+                        />
+                    )}
+                    {tabAktif === 'aturan-tabungan' && (
+                        <TabAturanTabungan
+                            bungaSaatIni={bungaTabunganSaatIni}
+                            riwayatBunga={riwayatBungaTabungan}
+                            settingTabungan={settingTabungan}
+                            metodeBungaOptions={metodeBungaOptions}
                             sectionAktif={sectionAktif}
                             readOnly={!bisaKelolaKebijakan}
                         />

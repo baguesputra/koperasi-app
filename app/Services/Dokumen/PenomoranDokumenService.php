@@ -14,6 +14,10 @@ class PenomoranDokumenService
 
     public const JENIS_PENGHAPUSAN_PINJAMAN = 'KOP-PHPS';
 
+    public const JENIS_REKENING_TABUNGAN = 'TAB';
+
+    public const JENIS_BUNGA_TABUNGAN = 'BNG-TAB';
+
     public const JENIS_JKM = 'JKM';
 
     public const JENIS_JKK = 'JKK';
@@ -40,6 +44,21 @@ class PenomoranDokumenService
                 self::ROMAWI[$tanggal->month],
                 $tanggal->year
             );
+        });
+    }
+
+    public function rekeningTabunganBerikutnya(Carbon $tanggal): string
+    {
+        return DB::transaction(function () use ($tanggal) {
+            $counter = PenomoranDokumen::lockForUpdate()
+                ->firstOrCreate(
+                    ['jenis' => self::JENIS_REKENING_TABUNGAN, 'tahun' => $tanggal->year],
+                    ['terakhir' => 0]
+                );
+
+            $counter->increment('terakhir');
+
+            return sprintf('TAB-%d-%04d', $tanggal->year, $counter->terakhir);
         });
     }
 

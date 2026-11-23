@@ -123,6 +123,9 @@ $rincian = $settlement['pinjaman_rincian'] ?? [];
         <div class="info">
             <div><span class="lbl">Simpanan Pokok</span><span class="titik">:</span><span class="val-normal">{{ formatRupiah($settlement['simpanan_pokok_total'] ?? 0) }}</span></div>
             <div><span class="lbl">Simpanan Wajib</span><span class="titik">:</span><span class="val-normal">{{ formatRupiah($settlement['simpanan_wajib_total'] ?? 0) }}</span></div>
+            @if(($settlement['kembali_tabungan'] ?? 0) > 0 || !empty($settlement['tabungan_no_rekening']))
+            <div><span class="lbl">Tabungan Anggota ({{ $settlement['tabungan_no_rekening'] ?? '-' }})</span><span class="titik">:</span><span class="val-normal">{{ formatRupiah($settlement['kembali_tabungan'] ?? 0) }}</span></div>
+            @endif
             <div><span class="lbl">Dana Sosial (hangus)</span><span class="titik">:</span><span class="val-normal">{{ formatRupiah($settlement['dana_sosial_hangus'] ?? 0) }}</span></div>
         </div>
     </div>
@@ -188,6 +191,9 @@ $rincian = $settlement['pinjaman_rincian'] ?? [];
         <div class="info">
             <div><span class="lbl">Kembali Simpanan Pokok</span><span class="titik">:</span><span class="val-normal">{{ formatRupiah($settlement['kembali_pokok'] ?? 0) }}</span></div>
             <div><span class="lbl">Kembali Simpanan Wajib</span><span class="titik">:</span><span class="val-normal">{{ formatRupiah($settlement['kembali_wajib'] ?? 0) }}</span></div>
+            @if(($settlement['kembali_tabungan'] ?? 0) > 0)
+            <div><span class="lbl">Kembali Tabungan (+ Bunga Pro-Rata)</span><span class="titik">:</span><span class="val-normal">{{ formatRupiah($settlement['kembali_tabungan'] ?? 0) }}</span></div>
+            @endif
             <div><span class="lbl"><strong>Total Dikembalikan</strong></span><span class="titik">:</span><span class="val">{{ formatRupiah($settlement['total_dikembalikan'] ?? 0) }}</span></div>
         </div>
         <div class="terbilang">Terbilang: {{ $settlement['terbilang_total'] ?? '-' }}</div>

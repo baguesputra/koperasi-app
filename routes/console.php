@@ -27,3 +27,8 @@ Schedule::command('gate:sinkron-master')->dailyAt(
     GateSyncSetting::current()->master_daily_at ?? '02:00'
 )->when(fn () => GateSyncSetting::current()->schedule_enabled)
     ->withoutOverlapping()->onOneServer();
+
+Schedule::command('tabungan:posting-bunga')
+    ->monthlyOn(1, '00:30')
+    ->withoutOverlapping()
+    ->onOneServer();

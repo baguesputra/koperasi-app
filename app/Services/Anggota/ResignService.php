@@ -6,9 +6,12 @@ use App\Models\Anggota;
 use App\Models\Angsuran;
 use App\Models\AngsuranPercepatan;
 use App\Models\AuditLog;
+use App\Models\RekeningTabungan;
+use App\Models\TabunganTransaksi;
 use App\Models\User;
 use App\Services\Dokumen\PenomoranDokumenService;
 use App\Services\Keuangan\JurnalKasService;
+use App\Services\Tabungan\PerhitunganBungaTabunganService;
 use App\Services\Wa\WaPesan;
 use App\Services\Wa\WaService;
 use Carbon\Carbon;
@@ -18,7 +21,10 @@ use RuntimeException;
 
 class ResignService
 {
-    public function __construct(private JurnalKasService $jurnalKas) {}
+    public function __construct(
+        private JurnalKasService $jurnalKas,
+        private PerhitunganBungaTabunganService $bungaTabungan,
+    ) {}
 
     /**
      * Ringkasan data untuk preview modal konfirmasi.
@@ -67,6 +73,8 @@ class ResignService
                 $totalTagihan += $p->agregatJadwalAktif()['sisa_bayar'];
             }
 
+            $tabunganResign = $this->prosesTutupTabunganResign($anggotaLocked, $tanggalResign, $aktor);
+
             if ($totalSimpananKembali < $totalTagihan) {
                 $this->prosesMenunggu($anggotaLocked, $alasan, $tanggalResign, $aktor, [
                     'simpanan_pokok' => $simpananPokok,
@@ -75,6 +83,7 @@ class ResignService
                     'total_simpanan' => $totalSimpananKembali,
                     'total_tagihan' => $totalTagihan,
                     'shortfall' => $totalTagihan - $totalSimpananKembali,
+                    'tabungan' => $tabunganResign,
                 ]);
 
                 return;
@@ -220,7 +229,10 @@ class ResignService
                 'alokasi_dari_wajib' => $alokasiWajib,
                 'kembali_pokok' => $kembaliPokok,
                 'kembali_wajib' => $kembaliWajib,
-                'total_dikembalikan' => $kembaliPokok + $kembaliWajib,
+                'tabungan_no_rekening' => $tabunganResign['no_rekening'],
+                'tabungan_bunga_prorata' => $tabunganResign['bunga_prorata'],
+                'kembali_tabungan' => $tabunganResign['kembali'],
+                'total_dikembalikan' => $kembaliPokok + $kembaliWajib + $tabunganResign['kembali'],
                 'tanggal_proses' => $tanggalResign,
                 'aktor' => $aktor->no_karyawan ?? $aktor->name,
                 'pinjaman_rincian' => $rincianPinjaman,
@@ -395,7 +407,10 @@ class ResignService
             'terpakai_pelunasan' => round($totalTerpakai, 2),
             'kembali_pokok' => 0,
             'kembali_wajib' => 0,
-            'total_dikembalikan' => 0,
+            'tabungan_no_rekening' => $snap['tabungan']['no_rekening'] ?? null,
+            'tabungan_bunga_prorata' => $snap['tabungan']['bunga_prorata'] ?? 0,
+            'kembali_tabungan' => $snap['tabungan']['kembali'] ?? 0,
+            'total_dikembalikan' => $snap['tabungan']['kembali'] ?? 0,
             'shortfall' => $shortfall,
             'cicilan_akhir_id' => $cicilanAkhir->id,
             'cicilan_akhir_pinjaman_id' => $target->id,
@@ -584,5 +599,73 @@ class ResignService
             userId: $aktor->id,
             subJudul: 'Pelunasan dari uang simpanan anggota',
         );
+    }
+
+    /**
+     * Hitung bunga pro-rata s/d tanggal resign, tutup rekening tabungan aktif,
+     * dan kembalikan seluruh saldo + bunga ke anggota.
+     *
+     * @return array{no_rekening: string|null, bunga_prorata: float, kembali: float}
+     */
+    private function prosesTutupTabunganResign(Anggota $anggotaLocked, string $tanggalResign, User $aktor): array
+    {
+        $rekening = RekeningTabungan::where('anggota_id', $anggotaLocked->id)
+            ->where('status', 'aktif')
+            ->lockForUpdate()
+            ->latest('id')
+            ->first();
+
+        if (! $rekening) {
+            return ['no_rekening' => null, 'bunga_prorata' => 0.0, 'kembali' => 0.0];
+        }
+
+        $tglResignCarbon = Carbon::parse($tanggalResign);
+        $bungaProrata = $this->bungaTabungan->kreditkanBungaPenutupan($rekening, $tglResignCarbon, $aktor->id);
+        $rekening->refresh();
+
+        $saldoAkhir = (float) $rekening->saldo;
+
+        if ($saldoAkhir > 0) {
+            $jurnal = $this->jurnalKas->catat(
+                tipe: 'keluar',
+                kategori: 'return_tabungan_resign',
+                kantong: 'tabungan',
+                jumlah: $saldoAkhir,
+                keterangan: "Pengembalian tabungan resign - {$anggotaLocked->nama} ({$rekening->no_rekening})",
+                referensiId: $rekening->id,
+                tanggal: $tanggalResign,
+                userId: $aktor->id,
+                subJudul: 'Pengembalian tabungan ke anggota resign',
+            );
+
+            TabunganTransaksi::create([
+                'rekening_tabungan_id' => $rekening->id,
+                'anggota_id' => $anggotaLocked->id,
+                'no_bukti' => $jurnal->no_bukti,
+                'jenis' => 'tutup_rekening',
+                'kanal' => 'transfer',
+                'nominal' => $saldoAkhir,
+                'saldo_sebelum' => $saldoAkhir,
+                'saldo_sesudah' => 0,
+                'tanggal' => $tanggalResign,
+                'keterangan' => "Penutupan & pengembalian tabungan resign ({$rekening->no_rekening})",
+                'jurnal_kas_id' => $jurnal->id,
+                'created_by' => $aktor->id,
+            ]);
+        }
+
+        $rekening->update([
+            'saldo' => 0,
+            'status' => 'ditutup',
+            'tanggal_tutup' => $tanggalResign,
+            'diproses_oleh' => $aktor->id,
+            'catatan_pengurus' => 'Ditutup otomatis karena anggota resign.',
+        ]);
+
+        return [
+            'no_rekening' => $rekening->no_rekening,
+            'bunga_prorata' => round($bungaProrata, 2),
+            'kembali' => round($saldoAkhir, 2),
+        ];
     }
 }

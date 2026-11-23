@@ -23,6 +23,7 @@ class SettingChipNominal extends Model
         'sisih' => 'Transfer Dana',
         'pinjaman_usulan' => 'Usulan Pinjaman (Bendahara/Ketua)',
         'limit_baru' => 'Limit Baru (Bendahara/Ketua)',
+        'tabungan' => 'Setor / Tarik Tabungan',
     ];
 
     public const DEFAULT = [
@@ -31,6 +32,7 @@ class SettingChipNominal extends Model
         'sisih' => [500_000, 1_000_000, 2_500_000, 5_000_000, 10_000_000],
         'pinjaman_usulan' => [1_000_000, 3_000_000, 5_000_000, 7_000_000, 9_000_000],
         'limit_baru' => [1_000_000, 3_000_000, 5_000_000, 7_000_000, 9_000_000],
+        'tabungan' => [50_000, 100_000, 250_000, 500_000, 1_000_000],
     ];
 
     public const MAKS_PER_GRUP = 8;

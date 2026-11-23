@@ -6,16 +6,21 @@ use App\Http\Controllers\Controller;
 use App\Models\Anggota;
 use App\Models\Angsuran;
 use App\Models\PengajuanPercepatan;
+use App\Models\SettingBungaTabungan;
 use App\Models\SettingSimpanan;
 use App\Models\TabelTenor;
 use App\Services\Pinjaman\EligibilitasPinjamanService;
+use App\Services\Tabungan\PerhitunganBungaTabunganService;
 use Carbon\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function __construct(private EligibilitasPinjamanService $eligibilitas) {}
+    public function __construct(
+        private EligibilitasPinjamanService $eligibilitas,
+        private PerhitunganBungaTabunganService $bungaTabungan,
+    ) {}
 
     public function index(): Response
     {
@@ -121,7 +126,64 @@ class DashboardController extends Controller
                     'tanggal_format' => $a->tanggal_konfirmasi_bayar?->format('d M Y'),
                 ]);
 
-        $riwayatGabungan = $riwayatSimpanan->concat($riwayatAngsuran)
+        $riwayatGabungan = $riwayatSimpanan->concat($riwayatAngsuran);
+
+        $rekeningTabungan = $anggota->rekeningTabungan()
+            ->whereIn('status', ['aktif', 'diajukan'])
+            ->orderByRaw("CASE status WHEN 'aktif' THEN 1 ELSE 2 END")
+            ->latest('id')
+            ->first();
+
+        $tabunganRingkasan = null;
+        if ($rekeningTabungan) {
+            if ($rekeningTabungan->status === 'aktif') {
+                $estimasi = $this->bungaTabungan->estimasiBulanBerjalan($rekeningTabungan);
+                $tabunganRingkasan = [
+                    'status' => 'aktif',
+                    'no_rekening' => $rekeningTabungan->no_rekening,
+                    'saldo' => (float) $rekeningTabungan->saldo,
+                    'estimasi_bunga_bulan_ini' => (float) ($estimasi['bunga_bersih'] ?? 0),
+                    'total_bunga' => (float) $rekeningTabungan->bungaPeriode()->sum('bunga_bersih'),
+                    'suku_bunga_aktif' => SettingBungaTabungan::persentaseAktif(),
+                    'pengajuan_menunggu_count' => $rekeningTabungan->pengajuanTransaksi()->where('status', 'menunggu')->count(),
+                ];
+
+                $riwayatTabungan = $rekeningTabungan->transaksi()
+                    ->whereNull('dibatalkan_pada')
+                    ->whereNull('koreksi_dari_id')
+                    ->latest('tanggal')
+                    ->latest('id')
+                    ->take(4)
+                    ->get()
+                    ->map(fn ($t) => [
+                        'tipe' => $t->isKredit() ? ($t->jenis === 'bunga' ? 'tabungan_bunga' : 'tabungan_masuk') : 'tabungan_keluar',
+                        'label' => match ($t->jenis) {
+                            'setor' => 'Setor Tabungan',
+                            'bunga' => 'Bunga Tabungan',
+                            'tarik' => 'Tarik Tabungan',
+                            'tutup_rekening' => 'Penutupan Tabungan',
+                            default => 'Mutasi Tabungan',
+                        },
+                        'nominal' => (float) $t->nominal,
+                        'tanggal' => $t->tanggal,
+                        'tanggal_format' => $t->tanggal?->format('d M Y'),
+                    ]);
+
+                $riwayatGabungan = $riwayatGabungan->concat($riwayatTabungan);
+            } else {
+                $tabunganRingkasan = [
+                    'status' => 'diajukan',
+                    'no_rekening' => null,
+                    'saldo' => 0.0,
+                    'estimasi_bunga_bulan_ini' => 0.0,
+                    'total_bunga' => 0.0,
+                    'suku_bunga_aktif' => SettingBungaTabungan::persentaseAktif(),
+                    'pengajuan_menunggu_count' => 1,
+                ];
+            }
+        }
+
+        $riwayatGabungan = $riwayatGabungan
             ->sortByDesc('tanggal')
             ->take(4)
             ->values()
@@ -227,6 +289,8 @@ class DashboardController extends Controller
             'stateLimitLabel' => $cekTambahLimit['state_label'],
             'plafonKebijakan' => (float) $cekTambahLimit['plafon_koperasi'],
             'riwayatGabungan' => $riwayatGabungan,
+            'tabungan' => $tabunganRingkasan,
+            'sukuBungaTabunganAktif' => SettingBungaTabungan::persentaseAktif(),
             'tabelTenor' => $tabelTenor,
             'settingSimpanan' => $settingSimpanan,
         ]);

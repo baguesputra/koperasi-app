@@ -90,7 +90,7 @@ class AuditLog extends Model
             ]);
         } catch (\Throwable $e) {
             // Emergency fallback logging agar tidak pernah hilang jejak jika DB audit bermasalah
-            Log::emergency('KEGAGALAN PENCATATAN AUDIT LOG: ' . $e->getMessage(), [
+            Log::emergency('KEGAGALAN PENCATATAN AUDIT LOG: '.$e->getMessage(), [
                 'aksi' => $aksi,
                 'keterangan' => $keterangan,
                 'user_id' => $userIdFinal,
@@ -148,6 +148,7 @@ class AuditLog extends Model
             'pinjaman' => 'Pinjaman',
             'percepatan' => 'Perubahan Tenor',
             'simpanan' => 'Simpanan',
+            'tabungan' => 'Tabungan Anggota',
             'angsuran' => 'Angsuran',
             'limit' => 'Limit Pinjaman',
             'keuangan' => 'Keuangan & Pengeluaran',
@@ -164,17 +165,42 @@ class AuditLog extends Model
      */
     public static function kategoriAksi(string $aksi): string
     {
-        if (str_starts_with($aksi, 'pinjaman_')) return 'pinjaman';
-        if (str_starts_with($aksi, 'percepatan_')) return 'percepatan';
-        if (str_starts_with($aksi, 'simpanan_')) return 'simpanan';
-        if (str_starts_with($aksi, 'angsuran_')) return 'angsuran';
-        if (str_contains($aksi, 'limit') || $aksi === 'setujui_pengajuan_limit') return 'limit';
-        if (str_starts_with($aksi, 'pengeluaran_') || $aksi === 'penuhi_pagu_kas_kecil' || $aksi === 'pinjaman_talangan_kembali') return 'keuangan';
-        if (str_starts_with($aksi, 'aktivasi_') || str_starts_with($aksi, 'anggota_') || str_contains($aksi, 'resign')) return 'anggota';
-        if (str_ends_with($aksi, '_pengguna')) return 'pengguna';
-        if (str_ends_with($aksi, '_role')) return 'role';
-        if (str_starts_with($aksi, 'update_') || str_starts_with($aksi, 'tambah_') || str_starts_with($aksi, 'hapus_')) return 'pengaturan';
-        if (str_starts_with($aksi, 'sso_') || str_starts_with($aksi, 'sinkron_') || str_starts_with($aksi, 'migrasi_')) return 'auth';
+        if (str_starts_with($aksi, 'pinjaman_')) {
+            return 'pinjaman';
+        }
+        if (str_starts_with($aksi, 'percepatan_')) {
+            return 'percepatan';
+        }
+        if (str_starts_with($aksi, 'simpanan_')) {
+            return 'simpanan';
+        }
+        if (str_starts_with($aksi, 'tabungan_')) {
+            return 'tabungan';
+        }
+        if (str_starts_with($aksi, 'angsuran_')) {
+            return 'angsuran';
+        }
+        if (str_contains($aksi, 'limit') || $aksi === 'setujui_pengajuan_limit') {
+            return 'limit';
+        }
+        if (str_starts_with($aksi, 'pengeluaran_') || $aksi === 'penuhi_pagu_kas_kecil' || $aksi === 'pinjaman_talangan_kembali') {
+            return 'keuangan';
+        }
+        if (str_starts_with($aksi, 'aktivasi_') || str_starts_with($aksi, 'anggota_') || str_contains($aksi, 'resign')) {
+            return 'anggota';
+        }
+        if (str_ends_with($aksi, '_pengguna')) {
+            return 'pengguna';
+        }
+        if (str_ends_with($aksi, '_role')) {
+            return 'role';
+        }
+        if (str_starts_with($aksi, 'update_') || str_starts_with($aksi, 'tambah_') || str_starts_with($aksi, 'hapus_')) {
+            return 'pengaturan';
+        }
+        if (str_starts_with($aksi, 'sso_') || str_starts_with($aksi, 'sinkron_') || str_starts_with($aksi, 'migrasi_')) {
+            return 'auth';
+        }
 
         return 'pengaturan';
     }
@@ -226,6 +252,7 @@ class AuditLog extends Model
                     'pinjaman' => $q->where('aksi', 'like', 'pinjaman_%'),
                     'percepatan' => $q->where('aksi', 'like', 'percepatan_%'),
                     'simpanan' => $q->where('aksi', 'like', 'simpanan_%'),
+                    'tabungan' => $q->where('aksi', 'like', 'tabungan_%'),
                     'angsuran' => $q->where('aksi', 'like', 'angsuran_%'),
                     'limit' => $q->where('aksi', 'like', '%limit%')->orWhere('aksi', 'setujui_pengajuan_limit'),
                     'keuangan' => $q->where('aksi', 'like', 'pengeluaran_%')

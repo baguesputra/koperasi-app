@@ -89,7 +89,7 @@ export default function ResignDrawer({ anggota, onClose }) {
 
                 {!loading && !fetchError && ringkasan && (
                     <>
-                        <RingkasanSimpanan simpanan={ringkasan.simpanan} />
+                        <RingkasanSimpanan simpanan={ringkasan.simpanan} tabungan={ringkasan.tabungan} />
                         <RingkasanPinjaman pinjaman={ringkasan.pinjaman} />
                         <EstimasiPengembalian
                             estimasi={ringkasan.estimasi_pengembalian}
@@ -197,17 +197,23 @@ export default function ResignDrawer({ anggota, onClose }) {
     );
 }
 
-function RingkasanSimpanan({ simpanan }) {
+function RingkasanSimpanan({ simpanan, tabungan }) {
+    const rows = [
+        { label: 'Simpanan Pokok', value: formatRupiah(simpanan.pokok), privacy: true },
+        { label: 'Simpanan Wajib', value: formatRupiah(simpanan.wajib), privacy: true },
+        { label: 'Dana Sosial (hangus)', value: formatRupiah(simpanan.dana_sosial), tone: 'rose', privacy: true },
+        { label: 'Total Pokok + Wajib', value: formatRupiah(simpanan.total_pokok_wajib), emphasize: true, privacy: true },
+    ];
+    if (tabungan?.ada) {
+        rows.push(
+            { label: `Tabungan (${tabungan.no_rekening})`, value: formatRupiah(tabungan.saldo), privacy: true },
+            { label: 'Bunga Tabungan Pro-Rata', value: formatRupiah(tabungan.bunga_berjalan), privacy: true },
+        );
+    }
+
     return (
         <DrawerSection title="Simpanan" icon={PiggyBank}>
-            <DrawerKeyValue
-                rows={[
-                    { label: 'Simpanan Pokok', value: formatRupiah(simpanan.pokok), privacy: true },
-                    { label: 'Simpanan Wajib', value: formatRupiah(simpanan.wajib), privacy: true },
-                    { label: 'Dana Sosial (hangus)', value: formatRupiah(simpanan.dana_sosial), tone: 'rose', privacy: true },
-                    { label: 'Total Pokok + Wajib', value: formatRupiah(simpanan.total_pokok_wajib), emphasize: true, privacy: true },
-                ]}
-            />
+            <DrawerKeyValue rows={rows} />
         </DrawerSection>
     );
 }
@@ -288,6 +294,9 @@ function EstimasiPengembalian({ estimasi, sisaTagihan, totalPokokWajib, jatuhTem
                     { label: 'Alokasi pelunasan', value: formatRupiah(estimasi.alokasi_dari_pokok), privacy: true },
                     { label: 'Kembali pokok', value: formatRupiah(estimasi.kembali_pokok), privacy: true },
                     { label: 'Kembali wajib', value: formatRupiah(estimasi.kembali_wajib), privacy: true },
+                    ...((estimasi.kembali_tabungan ?? 0) > 0
+                        ? [{ label: 'Kembali tabungan (+ bunga)', value: formatRupiah(estimasi.kembali_tabungan), privacy: true }]
+                        : []),
                     { label: 'Dana sosial hangus', value: formatRupiah(estimasi.dana_sosial_hangus), tone: 'rose', privacy: true },
                     { label: 'Total kembali', value: formatRupiah(estimasi.total_dikembalikan), tone: 'emerald', emphasize: true, privacy: true },
                 ]}

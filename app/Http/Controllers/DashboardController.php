@@ -10,7 +10,9 @@ use App\Models\PengajuanAktivasi;
 use App\Models\PengajuanLimit;
 use App\Models\PengajuanPenghapusanPinjaman;
 use App\Models\PengajuanPercepatan;
+use App\Models\PengajuanTransaksiTabungan;
 use App\Models\Pinjaman;
+use App\Models\RekeningTabungan;
 use App\Models\Simpanan;
 use App\Services\Keuangan\JurnalKasService;
 use App\Services\Pinjaman\PenghapusanPinjamanService;
@@ -66,6 +68,9 @@ class DashboardController extends Controller
         $menungguPengajuanLimitBendahara = (int) ($limitAntre['diajukan'] ?? 0);
         $menungguPengajuanLimit = (int) ($limitAntre['approved_bendahara'] ?? 0);
         $menungguAktivasi = PengajuanAktivasi::where('status', 'diajukan')->count();
+        $menungguTabungan = RekeningTabungan::where('status', 'diajukan')->count()
+            + PengajuanTransaksiTabungan::where('status', 'menunggu')->count();
+        $totalTabunganAnggota = (float) RekeningTabungan::where('status', 'aktif')->sum('saldo');
         $menungguPenghapusanSaya = app(PenghapusanPinjamanService::class)->hitungAntreanUntukUser(auth()->user());
         $penghapusanBerjalan = PengajuanPenghapusanPinjaman::whereIn('status', [
             'diajukan',
@@ -239,6 +244,7 @@ class DashboardController extends Controller
                 'saldo_dana_sosial' => (float) $saldoDanaSosial,
                 'kas_operasional' => (float) $kasOperasional,
                 'saldo_simpanan' => (float) $kas->saldo_simpanan,
+                'total_tabungan_anggota' => $totalTabunganAnggota,
             ],
             'rincianAntrean' => $rincianAntrean,
             'actionable' => [
@@ -251,6 +257,7 @@ class DashboardController extends Controller
                 'pengajuan_limit' => $menungguPengajuanLimit,
                 'pengajuan_limit_bendahara' => $menungguPengajuanLimitBendahara,
                 'aktivasi_anggota' => $menungguAktivasi,
+                'tabungan_menunggu' => $menungguTabungan,
                 'anggota_belum_simpanan' => $anggotaBelumSimpananBulanIni,
                 'angsuran_jatuh_tempo' => $angsuranJatuhTempoBulanIni,
                 'penghapusan_pinjaman_menunggu' => $menungguPenghapusanSaya,

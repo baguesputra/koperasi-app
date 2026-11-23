@@ -5,7 +5,9 @@ namespace App\Http\Middleware;
 use App\Models\PengajuanAktivasi;
 use App\Models\PengajuanLimit;
 use App\Models\PengajuanPercepatan;
+use App\Models\PengajuanTransaksiTabungan;
 use App\Models\Pinjaman;
+use App\Models\RekeningTabungan;
 use App\Models\SettingChipNominal;
 use App\Services\Pinjaman\PenghapusanPinjamanService;
 use Illuminate\Http\Request;
@@ -67,6 +69,7 @@ class HandleInertiaRequests extends Middleware
                 'pinjamanTerkirim' => fn () => $request->session()->get('pinjaman_terkirim'),
                 'percepatanTerkirim' => fn () => $request->session()->get('percepatan_terkirim'),
                 'limitTerkirim' => fn () => $request->session()->get('limit_terkirim'),
+                'tabunganTerkirim' => fn () => $request->session()->get('tabungan_terkirim'),
             ],
             'chipNominal' => fn () => Cache::remember(
                 'setting_chip_nominal_grouped',
@@ -110,6 +113,11 @@ class HandleInertiaRequests extends Middleware
 
                 if ($permissions->contains('penghapusan-pinjaman.lihat')) {
                     $notifications['menunggu_penghapusan_pinjaman'] = app(PenghapusanPinjamanService::class)->hitungAntreanUntukUser($user);
+                }
+
+                if ($permissions->contains('tabungan.kelola')) {
+                    $notifications['menunggu_tabungan'] = RekeningTabungan::where('status', 'diajukan')->count()
+                        + PengajuanTransaksiTabungan::where('status', 'menunggu')->count();
                 }
 
                 return $notifications;

@@ -3,7 +3,7 @@ import { Head, router, Link } from '@inertiajs/react';
 import { useState } from 'react';
 import {
     ChevronDown, CheckCircle2, Clock, XCircle, ArrowLeft,
-    HandCoins, PiggyBank, TrendingUp, Eye, EyeOff,
+    HandCoins, PiggyBank, TrendingUp, Eye, EyeOff, Wallet, ArrowDownCircle, ArrowUpCircle, Percent,
 } from 'lucide-react';
 import Nominal, { usePrivasiNominal } from '@/Components/ui/Nominal';
 
@@ -33,7 +33,16 @@ const statusIcon = {
 
 const jenisSimpananLabel = { pokok: 'Simpanan Pokok', wajib: 'Simpanan Wajib', dana_sosial: 'Dana Sosial' };
 
-export default function Riwayat({ pinjaman, simpanan, daftarBulanTersedia, bulanFilter, ringkasan }) {
+export default function Riwayat({
+    pinjaman,
+    simpanan,
+    tabunganRekening = null,
+    tabunganTransaksi = [],
+    tabunganBunga = [],
+    daftarBulanTersedia,
+    bulanFilter,
+    ringkasan,
+}) {
     const [tab, setTab] = useState('pinjaman');
     const [nominalTampil, alihNominal] = usePrivasiNominal();
 
@@ -74,7 +83,7 @@ export default function Riwayat({ pinjaman, simpanan, daftarBulanTersedia, bulan
             </div>
 
             {/* Ringkasan */}
-            <div className="-mx-4 px-4 sm:mx-0 sm:px-0 flex sm:grid sm:grid-cols-3 gap-3 sm:gap-4 mb-6 overflow-x-auto sm:overflow-visible snap-x snap-mandatory sm:snap-none pb-1 sm:pb-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="-mx-4 px-4 sm:mx-0 sm:px-0 flex sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 overflow-x-auto sm:overflow-visible snap-x snap-mandatory sm:snap-none pb-1 sm:pb-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <div className="bg-white rounded-2xl border border-slate-100 p-4 sm:p-5 snap-start shrink-0 w-[78%] sm:w-auto sm:shrink">
                     <div className="w-10 h-10 rounded-xl bg-brand-navy/5 text-brand-navy flex items-center justify-center mb-3">
                         <HandCoins size={20} />
@@ -96,6 +105,13 @@ export default function Riwayat({ pinjaman, simpanan, daftarBulanTersedia, bulan
                     <p className="text-sm text-slate-400">Total Simpanan Terkumpul</p>
                     <p className="text-lg font-bold text-slate-800 mt-0.5 tabular-nums break-words"><Nominal nilai={ringkasan.total_simpanan_terkumpul} tampil={nominalTampil} /></p>
                 </div>
+                <div className="bg-white rounded-2xl border border-slate-100 p-4 sm:p-5 snap-start shrink-0 w-[78%] sm:w-auto sm:shrink">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-3">
+                        <Wallet size={20} />
+                    </div>
+                    <p className="text-sm text-slate-400">Saldo Tabungan Anggota</p>
+                    <p className="text-lg font-bold text-slate-800 mt-0.5 tabular-nums break-words"><Nominal nilai={ringkasan.saldo_tabungan ?? 0} tampil={nominalTampil} /></p>
+                </div>
             </div>
 
             {/* Tab */}
@@ -116,6 +132,14 @@ export default function Riwayat({ pinjaman, simpanan, daftarBulanTersedia, bulan
                 >
                     Simpanan
                 </button>
+                <button
+                    onClick={() => setTab('tabungan')}
+                    className={`flex-1 sm:flex-none px-4 min-h-[44px] text-sm font-semibold rounded-lg transition-colors whitespace-nowrap ${
+                        tab === 'tabungan' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'
+                    }`}
+                >
+                    Tabungan
+                </button>
             </div>
 
             {tab === 'pinjaman' && <RiwayatPinjaman pinjaman={pinjaman} nominalTampil={nominalTampil} />}
@@ -124,6 +148,15 @@ export default function Riwayat({ pinjaman, simpanan, daftarBulanTersedia, bulan
                     simpanan={simpanan}
                     daftarBulanTersedia={daftarBulanTersedia}
                     bulanFilter={bulanFilter}
+                    nominalTampil={nominalTampil}
+                />
+            )}
+            {tab === 'tabungan' && (
+                <RiwayatTabungan
+                    rekening={tabunganRekening}
+                    transaksi={tabunganTransaksi}
+                    bunga={tabunganBunga}
+                    totalBunga={ringkasan.total_bunga_tabungan ?? 0}
                     nominalTampil={nominalTampil}
                 />
             )}
@@ -320,6 +353,99 @@ function RiwayatSimpanan({ simpanan, daftarBulanTersedia, bulanFilter, nominalTa
                             <p className="text-base font-bold text-slate-800">
                                 <Nominal nilai={s.jumlah} tampil={nominalTampil} />
                             </p>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
+function RiwayatTabungan({ rekening, transaksi = [], bunga = [], totalBunga = 0, nominalTampil }) {
+    if (!rekening) {
+        return (
+            <div className="bg-white rounded-2xl border border-slate-100 p-8 text-center">
+                <p className="text-base text-slate-500 mb-3">Anda belum memiliki rekening tabungan anggota.</p>
+                <Link
+                    href={route('portal.tabungan.index')}
+                    className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-brand-navy text-white text-sm font-semibold hover:opacity-95"
+                >
+                    Buka Menu Tabungan
+                </Link>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-4">
+            <div className="bg-white rounded-2xl border border-slate-100 p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <p className="text-xs font-semibold text-slate-500">
+                        Rekening {rekening.no_rekening || '(Menunggu Verifikasi)'}
+                    </p>
+                    <p className="text-sm text-slate-500 mt-1">
+                        Total bunga diterima: <strong className="text-brand-green-dark"><Nominal nilai={totalBunga} tampil={nominalTampil} /></strong>
+                    </p>
+                </div>
+                <Link
+                    href={route('portal.tabungan.index')}
+                    className="px-4 py-2 rounded-xl bg-brand-green-light text-brand-green-dark text-sm font-semibold hover:bg-emerald-100 transition-colors"
+                >
+                    Kelola / Setor / Tarik
+                </Link>
+            </div>
+
+            {bunga.length > 0 && (
+                <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+                    <div className="px-5 py-3.5 border-b border-slate-100 flex items-center gap-2">
+                        <Percent size={16} className="text-brand-green-dark" />
+                        <h3 className="text-sm font-bold text-slate-800">Bunga Tabungan Didapat</h3>
+                    </div>
+                    <div className="divide-y divide-slate-50">
+                        {bunga.map((b) => (
+                            <div key={b.id} className="flex items-center justify-between px-5 py-3">
+                                <div>
+                                    <p className="text-sm font-semibold text-slate-700">Periode {b.periode}</p>
+                                    <p className="text-xs text-slate-400">
+                                        Tarif {b.suku_bunga_snapshot}% / thn &bull; {b.jumlah_hari} hari &bull; Dasar <Nominal nilai={b.saldo_dasar} tampil={nominalTampil} />
+                                    </p>
+                                </div>
+                                <p className="text-sm font-bold text-brand-green-dark tabular-nums">
+                                    +<Nominal nilai={b.bunga_bersih} tampil={nominalTampil} />
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {transaksi.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-slate-100 p-10 text-center">
+                    <p className="text-base text-slate-400">Belum ada mutasi tabungan.</p>
+                </div>
+            ) : (
+                <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-50">
+                    {transaksi.map((t) => (
+                        <div key={t.id} className="flex items-center gap-4 px-5 py-4">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${t.is_kredit ? 'bg-brand-green-light text-brand-green-dark' : 'bg-rose-50 text-rose-600'}`}>
+                                {t.is_kredit ? <ArrowDownCircle size={18} /> : <ArrowUpCircle size={18} />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm sm:text-base font-semibold text-slate-700 truncate">{t.keterangan}</p>
+                                <p className="text-xs sm:text-sm text-slate-400">
+                                    {t.no_bukti} &bull; {t.tanggal} &bull; Saldo: <Nominal nilai={t.saldo_sesudah} tampil={nominalTampil} />
+                                </p>
+                            </div>
+                            <div className="text-right shrink-0">
+                                <p className={`text-sm sm:text-base font-bold tabular-nums ${t.is_kredit ? 'text-brand-green-dark' : 'text-rose-600'}`}>
+                                    {t.is_kredit ? '+' : '−'}<Nominal nilai={t.nominal} tampil={nominalTampil} />
+                                </p>
+                                {t.bukti_url && (
+                                    <a href={t.bukti_url} target="_blank" rel="noreferrer" className="text-xs font-semibold text-brand-navy hover:underline">
+                                        Lihat bukti
+                                    </a>
+                                )}
+                            </div>
                         </div>
                     ))}
                 </div>

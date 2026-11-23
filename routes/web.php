@@ -11,6 +11,7 @@ use App\Http\Controllers\Bendahara\PengajuanLimitController as BendaharaPengajua
 use App\Http\Controllers\Bendahara\PercepatanController as BendaharaPercepatanController;
 use App\Http\Controllers\Bendahara\PinjamanController as BendaharaPinjamanController;
 use App\Http\Controllers\Bendahara\SimpananController as BendaharaSimpananController;
+use App\Http\Controllers\Bendahara\TabunganController as BendaharaTabunganController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\JurnalKasController;
 use App\Http\Controllers\KasKoperasiController;
@@ -32,11 +33,14 @@ use App\Http\Controllers\Portal\PercepatanController as PortalPercepatanControll
 use App\Http\Controllers\Portal\PinjamanController as PortalPinjamanController;
 use App\Http\Controllers\Portal\ProfilController;
 use App\Http\Controllers\Portal\RiwayatController;
+use App\Http\Controllers\Portal\TabunganController as PortalTabunganController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\Security\PinSecurityController;
 use App\Http\Controllers\ShuController;
 use App\Http\Controllers\SimpananController;
+use App\Http\Controllers\TabunganBuktiController;
+use App\Http\Controllers\TabunganController;
 use App\Http\Controllers\VerifikasiController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -108,6 +112,12 @@ Route::middleware(['auth', 'permission:portal.akses'])->prefix('portal')->name('
         Route::get('/percepatan', [PortalPercepatanController::class, 'create'])->name('percepatan.create');
         Route::post('/percepatan', [PortalPercepatanController::class, 'store'])->name('percepatan.store')->middleware('idempotent');
         Route::post('/percepatan/preview', [PortalPercepatanController::class, 'preview'])->name('percepatan.preview');
+
+        // ------------ Tabungan Anggota ----------------
+        Route::get('/tabungan', [PortalTabunganController::class, 'index'])->name('tabungan.index');
+        Route::post('/tabungan/buka', [PortalTabunganController::class, 'buka'])->name('tabungan.buka')->middleware('idempotent');
+        Route::post('/tabungan/setor', [PortalTabunganController::class, 'setor'])->name('tabungan.setor')->middleware('idempotent');
+        Route::post('/tabungan/tarik', [PortalTabunganController::class, 'tarik'])->name('tabungan.tarik')->middleware('idempotent');
     });
 });
 
@@ -142,6 +152,21 @@ Route::get('/verifikasi/resign/{anggota}', [VerifikasiController::class, 'resign
 Route::middleware(['auth', 'permission:simpanan.lihat'])->group(function () {
     Route::get('/simpanan', [SimpananController::class, 'index'])->name('simpanan.index');
     Route::get('/simpanan/{anggota}', [SimpananController::class, 'show'])->name('simpanan.show');
+});
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/tabungan/bukti/pengajuan/{pengajuan}/{tipe?}', [TabunganBuktiController::class, 'pengajuan'])
+        ->whereIn('tipe', ['setor', 'pencairan'])
+        ->name('tabungan.bukti.pengajuan');
+    Route::get('/tabungan/bukti/transaksi/{transaksi}', [TabunganBuktiController::class, 'transaksi'])
+        ->name('tabungan.bukti.transaksi');
+});
+
+Route::middleware(['auth', 'permission:tabungan.lihat'])->group(function () {
+    Route::get('/tabungan', [TabunganController::class, 'index'])->name('tabungan.index');
+    Route::get('/tabungan/{rekening}', [TabunganController::class, 'show'])
+        ->whereNumber('rekening')
+        ->name('tabungan.show');
 });
 
 Route::middleware(['auth', 'permission:kas.lihat'])->group(function () {
@@ -216,6 +241,8 @@ Route::middleware([
     Route::post('/pengaturan/bunga', [PengaturanController::class, 'updateBunga'])->name('pengaturan.bunga.update');
     Route::post('/pengaturan/simpanan/{setting}', [PengaturanController::class, 'updateSimpanan'])->name('pengaturan.simpanan.update');
     Route::post('/pengaturan/chip', [PengaturanController::class, 'updateChip'])->name('pengaturan.chip.update');
+    Route::post('/pengaturan/tabungan/bunga', [PengaturanController::class, 'updateBungaTabungan'])->name('pengaturan.tabungan.bunga.update');
+    Route::post('/pengaturan/tabungan/ketentuan', [PengaturanController::class, 'updateKetentuanTabungan'])->name('pengaturan.tabungan.ketentuan.update');
 });
 
 // Organisasi GATE sync & settings
@@ -331,6 +358,17 @@ Route::middleware('auth')->prefix('bendahara')->name('bendahara.')->group(functi
         Route::post('/simpanan/konfirmasi', [BendaharaSimpananController::class, 'konfirmasi'])->name('simpanan.konfirmasi')->middleware('idempotent');
         Route::post('/simpanan/{anggota}/bayar-dimuka', [BendaharaSimpananController::class, 'bayarDiMuka'])->name('simpanan.bayar-dimuka')->middleware('idempotent');
         Route::post('/simpanan/{anggota}/batalkan', [BendaharaSimpananController::class, 'batalkan'])->name('simpanan.batalkan')->middleware('idempotent');
+    });
+
+    Route::middleware('permission:tabungan.kelola')->group(function () {
+        Route::get('/tabungan', [BendaharaTabunganController::class, 'index'])->name('tabungan.index');
+        Route::post('/tabungan/buka/{rekening}/setujui', [BendaharaTabunganController::class, 'setujuiBuka'])->name('tabungan.buka.setujui')->middleware('idempotent');
+        Route::post('/tabungan/buka/{rekening}/tolak', [BendaharaTabunganController::class, 'tolakBuka'])->name('tabungan.buka.tolak')->middleware('idempotent');
+        Route::post('/tabungan/pengajuan/{pengajuan}/setujui', [BendaharaTabunganController::class, 'setujuiPengajuan'])->name('tabungan.pengajuan.setujui')->middleware('idempotent');
+        Route::post('/tabungan/pengajuan/{pengajuan}/tolak', [BendaharaTabunganController::class, 'tolakPengajuan'])->name('tabungan.pengajuan.tolak')->middleware('idempotent');
+        Route::post('/tabungan/setor-tunai', [BendaharaTabunganController::class, 'setorTunai'])->name('tabungan.setor-tunai')->middleware('idempotent');
+        Route::post('/tabungan/transaksi/{transaksi}/batalkan', [BendaharaTabunganController::class, 'batalkanTransaksi'])->name('tabungan.transaksi.batalkan')->middleware('idempotent');
+        Route::post('/tabungan/posting-bunga', [BendaharaTabunganController::class, 'postingBunga'])->name('tabungan.posting-bunga')->middleware('idempotent');
     });
 });
 

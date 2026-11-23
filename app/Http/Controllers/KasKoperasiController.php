@@ -317,6 +317,7 @@ class KasKoperasiController extends Controller
         return match ($j->kategori) {
             'pencairan_pinjaman' => ['nama' => 'pinjaman.show', 'id' => $j->referensi_id, 'izin' => 'pinjaman.lihat'],
             'simpanan_pokok_masuk', 'simpanan_wajib_masuk' => ['nama' => 'simpanan.show', 'id' => $j->referensi_id, 'izin' => 'simpanan.lihat'],
+            'setor_tabungan', 'tarik_tabungan', 'return_tabungan_resign' => ['nama' => 'tabungan.show', 'id' => $j->referensi_id, 'izin' => 'tabungan.lihat'],
             default => null,
         };
     }

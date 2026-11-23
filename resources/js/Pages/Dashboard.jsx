@@ -141,6 +141,7 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
             aksi: [
                 { label: 'Aktivasi', value: actionable.aktivasi_anggota ?? 0, href: route('ketua.aktivasi.index'), permission: 'aktivasi.approve-ketua' },
                 { label: 'Simpanan Wajib', value: actionable.anggota_belum_simpanan ?? 0, href: route('bendahara.simpanan.index'), permission: 'simpanan.konfirmasi' },
+                { label: 'Tabungan Anggota', value: actionable.tabungan_menunggu ?? 0, href: route('bendahara.tabungan.index'), permission: 'tabungan.kelola' },
             ],
         },
     ]

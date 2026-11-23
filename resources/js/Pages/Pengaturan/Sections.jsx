@@ -1,4 +1,4 @@
-import { HandCoins, PiggyBank, QrCode, UserCog, RefreshCw, Activity } from 'lucide-react';
+import { HandCoins, PiggyBank, Landmark, QrCode, UserCog, RefreshCw, Activity } from 'lucide-react';
 
 export const SECTIONS = [
     {
@@ -6,6 +6,7 @@ export const SECTIONS = [
         items: [
             { key: 'aturan-pinjaman', label: 'Aturan Pinjaman', desc: 'Bunga, limit & tenor', icon: HandCoins },
             { key: 'dana-operasional', label: 'Dana Operasional', desc: 'Simpanan & chip', icon: PiggyBank },
+            { key: 'aturan-tabungan', label: 'Aturan Tabungan', desc: 'Bunga, rekening & ketentuan', icon: Landmark },
         ],
     },
     {

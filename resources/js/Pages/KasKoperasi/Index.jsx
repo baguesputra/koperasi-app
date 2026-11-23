@@ -43,6 +43,9 @@ const kategoriLabel = {
     return_simpanan_wajib: 'Return Simpanan Wajib',
     simpanan_pokok_masuk: 'Simpanan Pokok Masuk',
     simpanan_wajib_masuk: 'Simpanan Wajib Masuk',
+    setor_tabungan: 'Setoran Tabungan Anggota',
+    tarik_tabungan: 'Penarikan Tabungan Anggota',
+    return_tabungan_resign: 'Pengembalian Tabungan (Resign)',
     transfer_ke_dana_pinjaman: 'Transfer ke Dana Pinjaman',
     terima_dari_pengembalian_simpanan: 'Terima dari Pengembalian Simpanan',
     talangan_sosial_ke_pinjaman: 'Talangan Sosial ke Pinjaman',
@@ -62,6 +65,7 @@ const kantongLabel = {
     dana_sosial: 'Dana Sosial',
     pengembalian_simpanan: 'Pengembalian Simpanan',
     simpanan: 'Simpanan Anggota',
+    tabungan: 'Tabungan Anggota',
     bank: 'Bank',
     kas_kecil: 'Kas Kecil',
 };

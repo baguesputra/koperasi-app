@@ -73,6 +73,9 @@ $menunggu = ($anggota->status ?? '') === 'resign_menunggu' || $mode === 'menungg
                 <dl class="dl">
                     <dt>Simpanan Pokok</dt><dd>{{ rp($s['simpanan_pokok_total'] ?? 0) }}</dd>
                     <dt>Simpanan Wajib</dt><dd>{{ rp($s['simpanan_wajib_total'] ?? 0) }}</dd>
+                    @if(($s['kembali_tabungan'] ?? 0) > 0 || !empty($s['tabungan_no_rekening']))
+                        <dt>Tabungan Anggota ({{ $s['tabungan_no_rekening'] ?? '-' }})</dt><dd>{{ rp($s['kembali_tabungan'] ?? 0) }}</dd>
+                    @endif
                     <dt>Dana Sosial (hangus)</dt><dd>{{ rp($s['dana_sosial_hangus'] ?? 0) }}</dd>
                     <dt>Total Tagihan</dt><dd>{{ rp($s['tagihan_pelunasan'] ?? 0) }}</dd>
                     <dt>Terpakai Pelunasan</dt><dd>{{ rp($s['terpakai_pelunasan'] ?? (($s['alokasi_dari_pokok'] ?? 0) + ($s['alokasi_dari_wajib'] ?? 0))) }}</dd>

@@ -15,6 +15,8 @@ class PermissionSeeder extends Seeder
             'anggota.resign',
             'simpanan.lihat',
             'simpanan.konfirmasi',
+            'tabungan.lihat',
+            'tabungan.kelola',
             'pinjaman.lihat',
             'pinjaman.tinjau-admin',
             'pinjaman.tinjau-bendahara',

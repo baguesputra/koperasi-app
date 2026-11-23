@@ -94,15 +94,70 @@ class RiwayatController extends Controller
         $totalPinjamanLunas = $anggota->pinjaman()->where('status', 'lunas')->count();
         $totalSimpananTerkumpul = $anggota->simpanan()->whereIn('jenis', ['pokok', 'wajib'])->sum('jumlah');
 
+        $rekeningTabungan = $anggota->rekeningTabungan()
+            ->whereIn('status', ['aktif', 'diajukan', 'ditutup'])
+            ->orderByRaw("CASE status WHEN 'aktif' THEN 1 WHEN 'diajukan' THEN 2 ELSE 3 END")
+            ->latest('id')
+            ->first();
+
+        $tabunganTransaksi = collect();
+        $tabunganBunga = collect();
+        $saldoTabungan = 0.0;
+        $totalBungaTabungan = 0.0;
+
+        if ($rekeningTabungan) {
+            $saldoTabungan = (float) $rekeningTabungan->saldo;
+            $tabunganTransaksi = $rekeningTabungan->transaksi()
+                ->latest('tanggal')
+                ->latest('id')
+                ->get()
+                ->map(fn ($t) => [
+                    'id' => $t->id,
+                    'no_bukti' => $t->no_bukti,
+                    'jenis' => $t->jenis,
+                    'kanal' => $t->kanal,
+                    'is_kredit' => $t->isKredit(),
+                    'nominal' => (float) $t->nominal,
+                    'saldo_sesudah' => (float) $t->saldo_sesudah,
+                    'suku_bunga_snapshot' => $t->suku_bunga_snapshot !== null ? (float) $t->suku_bunga_snapshot : null,
+                    'tanggal' => $t->tanggal?->format('d M Y'),
+                    'keterangan' => $t->keterangan,
+                    'dibatalkan_pada' => $t->dibatalkan_pada?->format('d M Y H:i'),
+                    'bukti_url' => $t->bukti_path ? route('tabungan.bukti.transaksi', $t->id) : null,
+                ]);
+
+            $tabunganBunga = $rekeningTabungan->bungaPeriode()
+                ->orderByDesc('periode')
+                ->get()
+                ->map(fn ($b) => [
+                    'id' => $b->id,
+                    'periode' => $b->periode,
+                    'suku_bunga_snapshot' => (float) $b->suku_bunga_snapshot,
+                    'saldo_dasar' => (float) $b->saldo_dasar,
+                    'jumlah_hari' => (int) $b->jumlah_hari,
+                    'bunga_bersih' => (float) $b->bunga_bersih,
+                ]);
+            $totalBungaTabungan = (float) $tabunganBunga->sum('bunga_bersih');
+        }
+
         return Inertia::render('Portal/Riwayat', [
             'pinjaman' => $pinjaman,
             'simpanan' => $simpanan,
+            'tabunganRekening' => $rekeningTabungan ? [
+                'no_rekening' => $rekeningTabungan->no_rekening,
+                'status' => $rekeningTabungan->status,
+                'saldo' => $saldoTabungan,
+            ] : null,
+            'tabunganTransaksi' => $tabunganTransaksi,
+            'tabunganBunga' => $tabunganBunga,
             'daftarBulanTersedia' => $daftarBulanTersedia,
             'bulanFilter' => $bulanFilter,
             'ringkasan' => [
                 'total_pinjaman_diajukan' => $totalPinjamanDiajukan,
                 'total_pinjaman_lunas' => $totalPinjamanLunas,
                 'total_simpanan_terkumpul' => (float) $totalSimpananTerkumpul,
+                'saldo_tabungan' => $saldoTabungan,
+                'total_bunga_tabungan' => $totalBungaTabungan,
             ],
         ]);
     }
