@@ -14,6 +14,7 @@ use App\Models\PengajuanTransaksiTabungan;
 use App\Models\Pinjaman;
 use App\Models\RekeningTabungan;
 use App\Models\Simpanan;
+use App\Models\TabunganTransaksi;
 use App\Services\Keuangan\JurnalKasService;
 use App\Services\Pinjaman\PenghapusanPinjamanService;
 use Illuminate\Http\RedirectResponse;
@@ -24,6 +25,22 @@ use Inertia\Response;
 
 class DashboardController extends Controller
 {
+    /** @var array<int, string> */
+    private const KATEGORI_INTERNAL_KAS = [
+        'saldo_awal',
+        'sisih_kas_kecil',
+        'terima_sisih_kas_kecil',
+        'transfer_ke_dana_pinjaman',
+        'terima_dari_pengembalian_simpanan',
+        'talangan_sosial_ke_pinjaman',
+        'talangan_simpanan_ke_pinjaman',
+        'terima_talangan_dari_sosial',
+        'terima_talangan_dari_simpanan',
+        'kembali_talangan_dari_pinjaman',
+        'kembali_talangan_ke_simpanan',
+        'kembali_talangan_ke_sosial',
+    ];
+
     public function index(): Response|RedirectResponse
     {
         if (auth()->user()->hasRole('anggota')) {
@@ -98,16 +115,17 @@ class DashboardController extends Controller
             ->whereBetween('tanggal_jatuh_tempo', [$awalBulanIni, $akhirBulanIni])
             ->count();
 
-        // Grafik - tren 6 bulan terakhir: 2 query (simpanan + pinjaman) GROUP BY year, month (cached 60s)
+        // Grafik 12 bulan terakhir: Dana Anggota (Simpanan Pokok/Wajib + Tabungan) vs Pencairan Pinjaman (cached 60s)
         $isSqlite = DB::connection()->getDriverName() === 'sqlite';
         $exprTahunBulan = fn (string $kolom) => $isSqlite
             ? "strftime('%Y', {$kolom}) as tahun, CAST(strftime('%m', {$kolom}) AS INTEGER) as bulan"
             : "YEAR({$kolom}) as tahun, MONTH({$kolom}) as bulan";
 
-        $grafikTren = Cache::remember('dashboard_grafik_tren_6m', 60, function () use ($exprTahunBulan) {
-            $awalPeriode = now()->subMonths(5)->startOfMonth();
+        $grafikTren = Cache::remember('dashboard_grafik_tren_12m', 60, function () use ($exprTahunBulan) {
+            $awalPeriode = now()->subMonths(11)->startOfMonth()->toDateString();
 
             $simpananPerBulan = Simpanan::selectRaw("{$exprTahunBulan('tanggal_input')}, SUM(jumlah) as total")
+                ->whereIn('jenis', ['pokok', 'wajib'])
                 ->where('tanggal_input', '>=', $awalPeriode)
                 ->groupBy('tahun', 'bulan')
                 ->orderBy('tahun')
@@ -115,7 +133,18 @@ class DashboardController extends Controller
                 ->get()
                 ->keyBy(fn ($r) => sprintf('%04d-%02d', $r->tahun, $r->bulan));
 
-            $pinjamanPerBulan = Pinjaman::selectRaw("{$exprTahunBulan('tanggal_pencairan')}, SUM(nominal) as total")
+            $tabunganPerBulan = TabunganTransaksi::selectRaw("{$exprTahunBulan('tanggal')}, jenis, SUM(nominal) as total")
+                ->whereIn('jenis', ['setor', 'tarik', 'tutup_rekening'])
+                ->whereNull('dibatalkan_pada')
+                ->whereNull('koreksi_dari_id')
+                ->where('tanggal', '>=', $awalPeriode)
+                ->groupBy('tahun', 'bulan', 'jenis')
+                ->get()
+                ->groupBy(fn ($r) => sprintf('%04d-%02d', $r->tahun, $r->bulan));
+
+            $pinjamanPerBulan = Pinjaman::selectRaw("{$exprTahunBulan('tanggal_pencairan')}, SUM(nominal) as total, COUNT(*) as jumlah_akad")
+                ->whereIn('status', ['aktif', 'lunas', 'dihapusbukukan'])
+                ->whereNotNull('tanggal_pencairan')
                 ->where('tanggal_pencairan', '>=', $awalPeriode)
                 ->groupBy('tahun', 'bulan')
                 ->orderBy('tahun')
@@ -124,70 +153,105 @@ class DashboardController extends Controller
                 ->keyBy(fn ($r) => sprintf('%04d-%02d', $r->tahun, $r->bulan));
 
             $data = [];
-            for ($i = 5; $i >= 0; $i--) {
+            for ($i = 11; $i >= 0; $i--) {
                 $bulan = now()->subMonths($i);
                 $key = $bulan->format('Y-m');
 
-                $data[] = [
-                    'bulan' => $bulan->translatedFormat('M Y'),
-                    'simpanan' => (float) ($simpananPerBulan[$key]->total ?? 0),
-                    'pinjaman' => (float) ($pinjamanPerBulan[$key]->total ?? 0),
-                ];
-            }
-
-            return $data;
-        });
-
-        // Mutasi kas - per kategori (jurnal) & dana sosial (simpanan), 6 bulan terakhir: 1 query JurnalKas + 1 query Simpanan (cached 60s)
-        $grafikKas = Cache::remember('dashboard_grafik_kas_6m', 60, function () use ($exprTahunBulan) {
-            $awalPeriode = now()->subMonths(5)->startOfMonth();
-
-            $kasPerBulan = JurnalKas::selectRaw("{$exprTahunBulan('tanggal')}, kategori, tipe, SUM(jumlah) as total")
-                ->where('tanggal', '>=', $awalPeriode)
-                ->whereIn('kategori', ['topup_bulanan', 'pembayaran_angsuran', 'pencairan_pinjaman'])
-                ->whereNull('dibatalkan_pada')
-                ->whereNull('koreksi_dari_id')
-                ->groupBy('tahun', 'bulan', 'kategori', 'tipe')
-                ->get()
-                ->groupBy(fn ($r) => sprintf('%04d-%02d', $r->tahun, $r->bulan));
-
-            $danaSosialPerBulan = Simpanan::selectRaw("{$exprTahunBulan('tanggal_input')}, SUM(jumlah) as total")
-                ->where('jenis', 'dana_sosial')
-                ->where('tanggal_input', '>=', $awalPeriode)
-                ->groupBy('tahun', 'bulan')
-                ->orderBy('tahun')
-                ->orderBy('bulan')
-                ->get()
-                ->keyBy(fn ($r) => sprintf('%04d-%02d', $r->tahun, $r->bulan));
-
-            $data = [];
-            for ($i = 5; $i >= 0; $i--) {
-                $bulan = now()->subMonths($i);
-                $key = $bulan->format('Y-m');
-
-                $topup = 0.0;
-                $angsuran = 0.0;
-                $pencairan = 0.0;
-
-                if (isset($kasPerBulan[$key])) {
-                    foreach ($kasPerBulan[$key] as $row) {
-                        $jumlah = (float) $row->total;
-                        if ($row->kategori === 'topup_bulanan' && $row->tipe === 'masuk') {
-                            $topup += $jumlah;
-                        } elseif ($row->kategori === 'pembayaran_angsuran' && $row->tipe === 'masuk') {
-                            $angsuran += $jumlah;
-                        } elseif ($row->kategori === 'pencairan_pinjaman' && $row->tipe === 'keluar') {
-                            $pencairan += $jumlah;
+                $tabunganSetor = 0.0;
+                $tabunganTarik = 0.0;
+                if (isset($tabunganPerBulan[$key])) {
+                    foreach ($tabunganPerBulan[$key] as $row) {
+                        $nominal = (float) $row->total;
+                        if ($row->jenis === 'setor') {
+                            $tabunganSetor += $nominal;
+                        } else {
+                            $tabunganTarik += $nominal;
                         }
                     }
                 }
 
                 $data[] = [
                     'bulan' => $bulan->translatedFormat('M Y'),
-                    'topup' => $topup,
-                    'angsuran' => $angsuran,
-                    'pencairan' => $pencairan,
-                    'dana_sosial' => (float) ($danaSosialPerBulan[$key]->total ?? 0),
+                    'bulan_singkat' => $bulan->translatedFormat('M'),
+                    'simpanan' => round((float) ($simpananPerBulan[$key]->total ?? 0), 2),
+                    'tabungan' => round($tabunganSetor, 2),
+                    'tabungan_tarik' => round($tabunganTarik, 2),
+                    'pinjaman' => round((float) ($pinjamanPerBulan[$key]->total ?? 0), 2),
+                    'pinjaman_count' => (int) ($pinjamanPerBulan[$key]->jumlah_akad ?? 0),
+                ];
+            }
+
+            return $data;
+        });
+
+        // Arus Kas Operasional Riil 12 bulan terakhir: seluruh mutasi JurnalKas non-batal, non-storno, & non-transfer internal (cached 60s)
+        $grafikKas = Cache::remember('dashboard_grafik_kas_12m', 60, function () use ($exprTahunBulan) {
+            $awalPeriode = now()->subMonths(11)->startOfMonth()->toDateString();
+
+            $kasPerBulan = JurnalKas::selectRaw("{$exprTahunBulan('tanggal')}, kategori, tipe, SUM(jumlah) as total")
+                ->where('tanggal', '>=', $awalPeriode)
+                ->whereNotIn('kategori', self::KATEGORI_INTERNAL_KAS)
+                ->whereNull('dibatalkan_pada')
+                ->whereNull('koreksi_dari_id')
+                ->groupBy('tahun', 'bulan', 'kategori', 'tipe')
+                ->get()
+                ->groupBy(fn ($r) => sprintf('%04d-%02d', $r->tahun, $r->bulan));
+
+            $data = [];
+            for ($i = 11; $i >= 0; $i--) {
+                $bulan = now()->subMonths($i);
+                $key = $bulan->format('Y-m');
+
+                $angsuran = 0.0;
+                $simpanan = 0.0;
+                $setorTabungan = 0.0;
+                $danaSosial = 0.0;
+                $topup = 0.0;
+                $pencairan = 0.0;
+                $tarikTabungan = 0.0;
+                $pengeluaran = 0.0;
+                $resignShu = 0.0;
+
+                if (isset($kasPerBulan[$key])) {
+                    foreach ($kasPerBulan[$key] as $row) {
+                        $jumlah = (float) $row->total;
+                        if ($row->tipe === 'masuk') {
+                            match ($row->kategori) {
+                                'pembayaran_angsuran', 'pelunasan_resign_pinjaman' => $angsuran += $jumlah,
+                                'simpanan_pokok_masuk', 'simpanan_wajib_masuk', 'simpanan_resign_masuk' => $simpanan += $jumlah,
+                                'setor_tabungan' => $setorTabungan += $jumlah,
+                                'dana_sosial_bulanan' => $danaSosial += $jumlah,
+                                default => $topup += $jumlah,
+                            };
+                        } else {
+                            match ($row->kategori) {
+                                'pencairan_pinjaman' => $pencairan += $jumlah,
+                                'tarik_tabungan' => $tarikTabungan += $jumlah,
+                                'pengeluaran_koperasi', 'pengeluaran_dana_sosial' => $pengeluaran += $jumlah,
+                                default => $resignShu += $jumlah,
+                            };
+                        }
+                    }
+                }
+
+                $masuk = round($angsuran + $simpanan + $setorTabungan + $danaSosial + $topup, 2);
+                $keluar = round($pencairan + $tarikTabungan + $pengeluaran + $resignShu, 2);
+
+                $data[] = [
+                    'bulan' => $bulan->translatedFormat('M Y'),
+                    'bulan_singkat' => $bulan->translatedFormat('M'),
+                    'masuk' => $masuk,
+                    'keluar' => $keluar,
+                    'net' => round($masuk - $keluar, 2),
+                    'angsuran' => round($angsuran, 2),
+                    'simpanan' => round($simpanan, 2),
+                    'setor_tabungan' => round($setorTabungan, 2),
+                    'dana_sosial' => round($danaSosial, 2),
+                    'topup' => round($topup, 2),
+                    'pencairan' => round($pencairan, 2),
+                    'tarik_tabungan' => round($tarikTabungan, 2),
+                    'pengeluaran' => round($pengeluaran, 2),
+                    'resign_shu' => round($resignShu, 2),
                 ];
             }
 
@@ -222,9 +286,33 @@ class DashboardController extends Controller
                 'tanggal' => $a->tanggal_konfirmasi_bayar,
             ]);
 
-        $aktivitasTerbaru = $aktivitasPinjaman->concat($aktivitasAngsuran)
+        $labelTabungan = [
+            'setor' => 'Setor tabungan',
+            'tarik' => 'Tarik tabungan',
+            'tutup_rekening' => 'Tutup rekening tabungan',
+        ];
+
+        $aktivitasTabungan = TabunganTransaksi::with('anggota')
+            ->whereIn('jenis', ['setor', 'tarik', 'tutup_rekening'])
+            ->whereNull('dibatalkan_pada')
+            ->whereNull('koreksi_dari_id')
+            ->latest('created_at')
+            ->take(6)
+            ->get()
+            ->map(fn ($t) => [
+                'tipe' => 'tabungan',
+                'rekening_tabungan_id' => $t->rekening_tabungan_id,
+                'nama' => $t->anggota?->nama ?? '-',
+                'keterangan' => ($labelTabungan[$t->jenis] ?? 'Transaksi tabungan').' Rp '.number_format((float) $t->nominal, 0, ',', '.'),
+                'status' => 'disetujui',
+                'tanggal' => $t->created_at,
+            ]);
+
+        $aktivitasTerbaru = $aktivitasPinjaman
+            ->concat($aktivitasAngsuran)
+            ->concat($aktivitasTabungan)
             ->sortByDesc('tanggal')
-            ->take(8)
+            ->take(12)
             ->values()
             ->map(fn ($item) => [
                 ...collect($item)->except('tanggal')->toArray(),

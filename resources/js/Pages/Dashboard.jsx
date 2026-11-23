@@ -4,7 +4,7 @@ import { Head, Link, usePage } from '@inertiajs/react';
 import {
     Users, PiggyBank, HandCoins, Wallet, HeartHandshake, Landmark,
     ClipboardCheck, FileClock, Gauge,
-    ChevronRight,
+    ChevronRight, BookOpenText,
     HandCoins as PinjamanIcon, CheckCircle2,
 } from 'lucide-react';
 import DashboardClock from '@/Components/ui/DashboardClock';
@@ -360,11 +360,11 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                 </section>
             )}
 
-            {/* 4. Grafik Tren Simpanan & Pinjaman */}
-            <section aria-label="Tren simpanan dan pinjaman" className="mb-5">
+            {/* 4. Grafik Arus Kas Operasional Koperasi (Full-Width) */}
+            <section aria-label="Arus kas operasional koperasi" className="mb-5">
                 <Suspense fallback={<ChartSkeleton />}>
-                    <DashboardTrenChart
-                        grafikTren={grafikTren}
+                    <DashboardKasChart
+                        grafikKas={grafikKas}
                         bisaAkses={bisaAkses}
                         isPrivacyActive={isPrivacyActive}
                         labelBulan={labelBulan}
@@ -372,14 +372,16 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                 </Suspense>
             </section>
 
-            {/* 5. Mutasi Kas Koperasi & Aktivitas Terbaru */}
-            <section aria-label="Mutasi kas dan aktivitas terbaru" className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-                {/* Mutasi Kas (Kiri, 2 Kolom) */}
+            {/* 5. Dana Anggota & Penyaluran Pinjaman + Aktivitas Terbaru */}
+            <section aria-label="Dana anggota dan aktivitas terbaru" className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                {/* Dana Anggota & Penyaluran Pinjaman (Kiri, 2 Kolom) */}
                 <Suspense fallback={<ChartSkeleton className="lg:col-span-2" />}>
-                    <DashboardKasChart
-                        grafikKas={grafikKas}
+                    <DashboardTrenChart
+                        grafikTren={grafikTren}
+                        stats={stats}
                         bisaAkses={bisaAkses}
                         isPrivacyActive={isPrivacyActive}
+                        labelBulan={labelBulan}
                     />
                 </Suspense>
 
@@ -388,11 +390,11 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                     <div className="flex items-start justify-between gap-3 mb-2">
                         <div>
                             <h2 className="text-base font-bold text-slate-800 tracking-tight">Aktivitas Terbaru</h2>
-                            <p className="text-xs text-slate-400 mt-0.5">Pengajuan &amp; pembayaran terkini</p>
+                            <p className="text-xs text-slate-400 mt-0.5">Pengajuan &amp; transaksi terkini</p>
                         </div>
                         {bisaAkses('pinjaman.lihat') && aktivitasTerbaru.length > 0 && (
                             <Link
-                                href={route('pinjaman.index')}
+                                href={filterAktivitas === 'tabungan' && bisaAkses('tabungan.lihat') ? route('tabungan.index') : route('pinjaman.index')}
                                 className={`inline-flex items-center gap-0.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors ${focusRing} rounded shrink-0`}
                             >
                                 Lihat semua
@@ -402,11 +404,12 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                     </div>
 
                     {aktivitasTerbaru.length > 0 && (
-                        <div className="flex items-center gap-5 border-b border-slate-200/80 mb-3" role="tablist" aria-label="Filter aktivitas terbaru">
+                        <div className="flex items-center gap-4 border-b border-slate-200/80 mb-3 overflow-x-auto scrollbar-hide" role="tablist" aria-label="Filter aktivitas terbaru">
                             {[
                                 { id: 'semua', label: 'Semua' },
                                 { id: 'pinjaman', label: 'Pinjaman' },
                                 { id: 'angsuran', label: 'Angsuran' },
+                                { id: 'tabungan', label: 'Tabungan' },
                             ].map((tabItem) => {
                                 const active = filterAktivitas === tabItem.id;
                                 return (
@@ -416,7 +419,7 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                                         role="tab"
                                         aria-selected={active}
                                         onClick={() => setFilterAktivitas(tabItem.id)}
-                                        className={`pb-2 -mb-px text-xs border-b-2 transition-colors cursor-pointer ${
+                                        className={`pb-2 -mb-px text-xs border-b-2 transition-colors cursor-pointer whitespace-nowrap ${
                                             active
                                                 ? 'border-[#0F1E36] text-[#0F1E36] font-semibold'
                                                 : 'border-transparent text-slate-500 font-medium hover:text-slate-700'
@@ -436,12 +439,20 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                     ) : (
                         <div className="divide-y divide-slate-100 -my-1">
                             {aktivitasTersaring.slice(0, 6).map((item, i) => {
-                                const Icon = item.tipe === 'pinjaman' ? PinjamanIcon : CheckCircle2;
+                                const Icon = item.tipe === 'pinjaman'
+                                    ? PinjamanIcon
+                                    : item.tipe === 'tabungan'
+                                        ? BookOpenText
+                                        : CheckCircle2;
                                 const relatif = waktuRelatif(item.tanggal_iso);
                                 const labelStatus = statusLabel[item.status] ?? item.status;
-                                const hrefItem = bisaAkses('pinjaman.lihat') && item.pinjaman_id
-                                    ? route('pinjaman.show', item.pinjaman_id)
-                                    : null;
+                                const hrefItem = item.tipe === 'tabungan'
+                                    ? (bisaAkses('tabungan.lihat') && item.rekening_tabungan_id
+                                        ? route('tabungan.show', item.rekening_tabungan_id)
+                                        : null)
+                                    : (bisaAkses('pinjaman.lihat') && item.pinjaman_id
+                                        ? route('pinjaman.show', item.pinjaman_id)
+                                        : null);
                                 const ItemWrap = hrefItem ? Link : 'div';
                                 const itemProps = hrefItem ? { href: hrefItem } : {};
 
