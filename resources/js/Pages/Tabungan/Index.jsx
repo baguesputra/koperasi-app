@@ -138,14 +138,14 @@ export default function Index({
 
             <Card padding="sm" className="mb-4">
                 <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center">
-                    <div className="relative flex-1">
-                        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <div className="relative flex-1 group">
+                        <Search size={15} aria-hidden="true" className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-green transition-colors pointer-events-none select-none" />
                         <TextField
                             size="sm"
                             value={cari}
                             onChange={(e) => setCari(e.target.value)}
                             placeholder="Cari nama anggota, NIK, atau nomor rekening..."
-                            className="pl-9"
+                            className="pl-10 pr-8"
                         />
                     </div>
                     <div className="w-full sm:w-44">

@@ -2,6 +2,7 @@ import { useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import { Pencil, Check, X, Plus, Trash2 } from 'lucide-react';
 import { formatRupiah } from '@/Utils/formatCurrency';
+import CurrencyField from '@/Components/ui/CurrencyField';
 import TextField from '@/Components/ui/TextField';
 import Button from '@/Components/ui/Button';
 
@@ -54,14 +55,12 @@ function FormRentang({ awal, onSimpan, onBatal }) {
                 </label>
                 <label className="block">
                     <span className="block text-xs font-semibold text-slate-500 mb-1">Limit Maksimal (Rp)</span>
-                    <TextField
+                    <CurrencyField
                         size="sm"
-                        type="number"
-                        min="0"
                         value={data.limit_maksimal}
                         onChange={(e) => setData('limit_maksimal', e.target.value)}
-                        placeholder="5000000"
-                        className="w-full text-right tabular-nums"
+                        placeholder="5.000.000"
+                        className="text-right"
                     />
                     {errors.limit_maksimal && <p className="text-xs text-red-600 mt-1">{errors.limit_maksimal}</p>}
                 </label>

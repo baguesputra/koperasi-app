@@ -560,7 +560,7 @@ function TabFAQ() {
                         onChange={(e) => setCari(e.target.value)}
                         placeholder="Cari pertanyaan (misal: limit, tenor, resign)..."
                         aria-label="Cari pertanyaan FAQ"
-                        className="w-full pl-9 pr-8 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15 focus:outline-none transition-all"
+                        className="w-full pl-10 pr-8 py-2 text-xs sm:text-sm bg-slate-50/80 hover:bg-white border border-slate-200/95 rounded-xl text-slate-800 placeholder:text-slate-400 shadow-[0_1px_2px_rgba(15,23,42,0.03)] focus:bg-white focus:border-emerald-600 focus:ring-[3px] focus:ring-emerald-600/15 focus:outline-none transition-all"
                     />
                     {cari && (
                         <button

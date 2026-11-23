@@ -122,14 +122,14 @@ export default function DistribusiTable({ periode, detail, sums = {}, filters = 
             )}
 
             <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-slate-100">
-                <div className="relative flex-1 min-w-[180px]">
-                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+                <div className="relative flex-1 min-w-[180px] group">
+                    <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-green transition-colors pointer-events-none select-none" aria-hidden="true" />
                     <input
                         value={cari}
                         onChange={(e) => setCari(e.target.value)}
                         placeholder="Cari nama / no karyawan..."
                         aria-label="Cari anggota"
-                        className="w-full rounded-xl border border-slate-200 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green/30"
+                        className="w-full rounded-xl border border-slate-200/95 hover:border-slate-300 bg-white pl-10 pr-3 py-2 text-sm shadow-[0_1px_2px_rgba(15,23,42,0.03)] focus:border-brand-green focus:outline-none focus:ring-[3px] focus:ring-brand-green/15 transition-all"
                     />
                 </div>
                 <Select

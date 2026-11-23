@@ -1,15 +1,41 @@
-const selectSizes = {
-    sm: 'px-3 py-2 text-base sm:py-1.5 sm:px-3 sm:text-xs rounded-xl sm:rounded-lg',
-    md: 'px-3.5 py-2.5 text-base sm:py-2 sm:px-3 sm:text-sm rounded-xl sm:rounded-lg',
-};
+import { forwardRef } from 'react';
+import { resolveFieldTokens } from './TextField';
 
-export default function Select({ size = 'md', className = '', children, ...props }) {
+const Select = forwardRef(function Select(
+    { size = 'md', className = '', invalid = false, disabled = false, children, ...props },
+    ref,
+) {
+    const effectiveSize = size === 'sm' ? 'sm' : 'md';
+    const tokens = resolveFieldTokens(effectiveSize, className, invalid);
+
+    const classes = [
+        'w-full border text-slate-800',
+        'shadow-[0_1px_2px_rgba(15,23,42,0.03)] outline-none transition-all duration-150',
+        'disabled:text-slate-400 disabled:cursor-not-allowed',
+        tokens.bg,
+        tokens.borderColor,
+        tokens.rounded,
+        tokens.vPad,
+        tokens.hLeft,
+        tokens.hRight,
+        tokens.textSize,
+        tokens.focusClasses,
+        className,
+    ]
+        .filter(Boolean)
+        .join(' ');
+
     return (
         <select
-            className={`w-full ${selectSizes[size]} border border-slate-300 bg-white focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors ${className}`}
+            ref={ref}
+            disabled={disabled}
+            aria-invalid={invalid || undefined}
+            className={classes}
             {...props}
         >
             {children}
         </select>
     );
-}
+});
+
+export default Select;

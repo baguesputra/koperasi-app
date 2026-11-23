@@ -2,6 +2,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import Card from '@/Components/ui/Card';
 import AnggotaPicker from './AnggotaPicker';
 import Button from '@/Components/ui/Button';
+import CurrencyField from '@/Components/ui/CurrencyField';
 import TextField from '@/Components/ui/TextField';
 import FormField from '@/Components/ui/FormField';
 import { formatRupiah } from '@/Utils/formatCurrency';
@@ -147,9 +148,9 @@ function PengurusTable({ baris, setBaris, alokasi, daftarAnggota, readOnly = fal
                                     />
                                 </FormField>
                                 <FormField label="Nominal" className="w-36">
-                                    <TextField
-                                        type="number"
-                                        min="0"
+                                    <CurrencyField
+                                        size="sm"
+                                        prefix={null}
                                         placeholder="Nominal"
                                         value={r.nominal}
                                         onChange={(e) => ubah(i, 'nominal', e.target.value)}
@@ -238,9 +239,9 @@ function RincianTable({ judul, baris, setBaris, alokasi, readOnly = false }) {
                                 />
                             </FormField>
                             <FormField className="w-32">
-                                <TextField
-                                    type="number"
-                                    min="0"
+                                <CurrencyField
+                                    size="sm"
+                                    prefix={null}
                                     placeholder="Nominal"
                                     value={r.nominal}
                                     onChange={(e) => ubah(i, 'nominal', e.target.value)}

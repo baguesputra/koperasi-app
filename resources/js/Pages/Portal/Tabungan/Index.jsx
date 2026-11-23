@@ -15,6 +15,7 @@ import Nominal, { usePrivasiNominal } from '@/Components/ui/Nominal';
 import Pagination from '@/Components/ui/Pagination';
 import Select from '@/Components/ui/Select';
 import StatusBadge from '@/Components/ui/StatusBadge';
+import CurrencyField from '@/Components/ui/CurrencyField';
 import TextField from '@/Components/ui/TextField';
 import { formatRupiah } from '@/Utils/formatCurrency';
 import { withIdempotencyKey } from '@/Utils/idempotency';
@@ -560,13 +561,11 @@ export default function Index({
 
                         <DrawerSection title="Detail Setoran" icon={Upload}>
                             <FormField label="Nominal Setor (Rp)" error={setorForm.errors.nominal || setorForm.errors.setor} hint={`Minimal ${formatRupiah(setting.min_setor)}`} required>
-                                <TextField
-                                    type="number"
-                                    min={setting.min_setor}
+                                <CurrencyField
                                     value={setorForm.data.nominal}
                                     onChange={(e) => setorForm.setData('nominal', e.target.value)}
-                                    placeholder="Contoh: 250000"
-                                    className="tabular-nums"
+                                    placeholder="Contoh: 250.000"
+                                    className="font-semibold"
                                     required
                                 />
                                 <ChipNominal grup="tabungan" nilai={setorForm.data.nominal} onPilih={(v) => setorForm.setData('nominal', v)} />
@@ -647,13 +646,11 @@ export default function Index({
                                     hint={`Min. tarik ${formatRupiah(setting.min_tarik)} • Sisa saldo minimal ${formatRupiah(setting.saldo_minimal)}`}
                                     required
                                 >
-                                    <TextField
-                                        type="number"
-                                        min={setting.min_tarik}
+                                    <CurrencyField
                                         value={tarikForm.data.nominal}
                                         onChange={(e) => tarikForm.setData('nominal', e.target.value)}
-                                        placeholder="Contoh: 100000"
-                                        className="tabular-nums"
+                                        placeholder="Contoh: 100.000"
+                                        className="font-semibold"
                                         required
                                     />
                                     <ChipNominal grup="tabungan" nilai={tarikForm.data.nominal} onPilih={(v) => tarikForm.setData('nominal', v)} />

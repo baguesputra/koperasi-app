@@ -10,6 +10,7 @@ import Card from '@/Components/ui/Card';
 import Button from '@/Components/ui/Button';
 import Pagination from '@/Components/ui/Pagination';
 import PageHeader from '@/Components/ui/PageHeader';
+import CurrencyField from '@/Components/ui/CurrencyField';
 import TextField from '@/Components/ui/TextField';
 import FormField from '@/Components/ui/FormField';
 import Select from '@/Components/ui/Select';
@@ -962,13 +963,13 @@ export default function Index({
                             {showKategoriPopover && (
                                 <div className="absolute left-0 top-full mt-2 z-50 w-64 p-2 bg-white rounded-2xl shadow-xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
                                     <div className="relative mb-2">
-                                        <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                                        <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none select-none" />
                                         <input
                                             type="text"
                                             value={kategoriCari}
                                             onChange={(e) => setKategoriCari(e.target.value)}
                                             placeholder="Cari kategori..."
-                                            className="w-full pl-7 pr-2 py-1 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-green/30"
+                                            className="w-full pl-8 pr-2.5 py-1.5 text-xs rounded-lg border border-slate-200/95 bg-slate-50/80 hover:bg-white focus:bg-white focus:border-brand-green focus:outline-none focus:ring-[3px] focus:ring-brand-green/15 transition-all"
                                         />
                                     </div>
                                     <div className="max-h-56 overflow-y-auto space-y-0.5 pr-1">
@@ -1010,15 +1011,15 @@ export default function Index({
                         </div>
 
                         {/* 4. Search Field */}
-                        <div className="relative flex-1 min-w-[170px] max-w-xs">
-                            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                        <div className="relative flex-1 min-w-[170px] max-w-xs group">
+                            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-green transition-colors pointer-events-none select-none" />
                             <input
                                 type="text"
                                 value={cari}
                                 onChange={(e) => setCari(e.target.value)}
                                 placeholder="Cari uraian / no. bukti..."
                                 aria-label="Cari transaksi"
-                                className="w-full h-8 pl-8 pr-7 text-xs rounded-xl border border-slate-200/90 bg-white placeholder:text-slate-400 text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-green/30 focus:border-brand-green transition-all"
+                                className="w-full h-8 pl-9 pr-7 text-xs rounded-xl border border-slate-200/95 hover:border-slate-300 bg-white placeholder:text-slate-400 text-slate-800 shadow-[0_1px_2px_rgba(15,23,42,0.03)] focus:outline-none focus:ring-[3px] focus:ring-brand-green/15 focus:border-brand-green transition-all"
                             />
                             {cari && (
                                 <button
@@ -1359,25 +1360,20 @@ export default function Index({
                                     </FormField>
 
                                     <FormField label="Nominal Pemasukan" error={pemasukanForm.errors.jumlah} required>
-                                        <div className="relative">
-                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-500">Rp</span>
-                                            <TextField
-                                                size="sm"
-                                                type="number"
-                                                min="1"
-                                                value={pemasukanForm.data.jumlah}
-                                                onChange={(e) => pemasukanForm.setData('jumlah', e.target.value)}
-                                                placeholder="0"
-                                                required
-                                                className="pl-9"
-                                            />
-                                        </div>
+                                        <CurrencyField
+                                            size="sm"
+                                            value={pemasukanForm.data.jumlah}
+                                            onChange={(e) => pemasukanForm.setData('jumlah', e.target.value)}
+                                            placeholder="0"
+                                            required
+                                            className="font-semibold"
+                                        />
                                         <ChipNominal grup="topup" nilai={pemasukanForm.data.jumlah} onPilih={(n) => pemasukanForm.setData('jumlah', n)} />
                                     </FormField>
 
                                     <FormField label="Tanggal" error={pemasukanForm.errors.tanggal} required>
                                         <div className="relative">
-                                            <CalendarDays size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                                            <CalendarDays size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none select-none" />
                                             <TextField
                                                 size="sm"
                                                 type="date"
@@ -1385,7 +1381,7 @@ export default function Index({
                                                 onChange={(e) => pemasukanForm.setData('tanggal', e.target.value)}
                                                 max={hariIni}
                                                 required
-                                                className="pl-9"
+                                                className="pl-10"
                                             />
                                         </div>
                                     </FormField>
@@ -1452,25 +1448,20 @@ export default function Index({
                                     </FormField>
 
                                     <FormField label="Nominal Pengeluaran" error={pengeluaranForm.errors.jumlah} required>
-                                        <div className="relative">
-                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-500">Rp</span>
-                                            <TextField
-                                                size="sm"
-                                                type="number"
-                                                min="1"
-                                                value={pengeluaranForm.data.jumlah}
-                                                onChange={(e) => pengeluaranForm.setData('jumlah', e.target.value)}
-                                                placeholder="0"
-                                                required
-                                                className="pl-9"
-                                            />
-                                        </div>
+                                        <CurrencyField
+                                            size="sm"
+                                            value={pengeluaranForm.data.jumlah}
+                                            onChange={(e) => pengeluaranForm.setData('jumlah', e.target.value)}
+                                            placeholder="0"
+                                            required
+                                            className="font-semibold"
+                                        />
                                         <ChipNominal grup="pengeluaran" nilai={pengeluaranForm.data.jumlah} onPilih={(n) => pengeluaranForm.setData('jumlah', n)} />
                                     </FormField>
 
                                     <FormField label="Tanggal" error={pengeluaranForm.errors.tanggal} required>
                                         <div className="relative">
-                                            <CalendarDays size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                                            <CalendarDays size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none select-none" />
                                             <TextField
                                                 size="sm"
                                                 type="date"
@@ -1478,7 +1469,7 @@ export default function Index({
                                                 onChange={(e) => pengeluaranForm.setData('tanggal', e.target.value)}
                                                 max={hariIni}
                                                 required
-                                                className="pl-9"
+                                                className="pl-10"
                                             />
                                         </div>
                                     </FormField>
@@ -1508,17 +1499,13 @@ export default function Index({
                                 <DrawerSection title="Formulir Transfer Dana" icon={ArrowRightLeft} tone="amber">
                                     <form id={transaksiFormId} onSubmit={submitSisih} className="space-y-1">
                                         <FormField label="Nominal Transfer" error={sisihForm.errors.jumlah} required>
-                                            <div className="relative">
-                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-500">Rp</span>
-                                                <TextField
-                                                    size="sm"
-                                                    type="number"
-                                                    value={sisihForm.data.jumlah}
-                                                    onChange={(e) => sisihForm.setData('jumlah', e.target.value)}
-                                                    placeholder="0"
-                                                    className="pl-9"
-                                                />
-                                            </div>
+                                            <CurrencyField
+                                                size="sm"
+                                                value={sisihForm.data.jumlah}
+                                                onChange={(e) => sisihForm.setData('jumlah', e.target.value)}
+                                                placeholder="0"
+                                                className="font-semibold"
+                                            />
                                             <ChipNominal grup="sisih" nilai={sisihForm.data.jumlah} onPilih={(n) => sisihForm.setData('jumlah', n)} />
                                         </FormField>
 

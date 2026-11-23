@@ -1,6 +1,7 @@
 import AnggotaLayout from '@/Layouts/AnggotaLayout';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { ArrowLeft, Clock, CheckCircle2, XCircle, Lock } from 'lucide-react';
+import CurrencyField from '@/Components/ui/CurrencyField';
 import { withIdempotencyKey } from '@/Utils/idempotency';
 import { useFeatureTour } from '@/Utils/featureTour';
 
@@ -121,18 +122,15 @@ export default function Create({
                                 <label htmlFor="limit-diminta" className="block text-base font-semibold text-slate-700 mb-2">
                                     Limit yang Diminta
                                 </label>
-                                <div className="relative">
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-semibold text-slate-400">Rp</span>
-                                    <input
-                                        id="limit-diminta" data-tour="limit-request"
-                                        type="number"
-                                        inputMode="numeric"
-                                        value={data.limit_diminta}
-                                        onChange={(e) => setData('limit_diminta', e.target.value)}
-                                        placeholder="0"
-                                        className={`w-full pl-12 pr-4 py-3 text-xl font-bold rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors ${focusRing}`}
-                                    />
-                                </div>
+                                <CurrencyField
+                                    id="limit-diminta"
+                                    data-tour="limit-request"
+                                    size="lg"
+                                    value={data.limit_diminta}
+                                    onChange={(e) => setData('limit_diminta', e.target.value)}
+                                    placeholder="0"
+                                    className={focusRing}
+                                />
                                 {(errors.limit_diminta || melebihiKebijakan) && (
                                     <p className="text-sm text-red-600 mt-1.5">
                                         {errors.limit_diminta || 'Nominal yang diajukan melebihi batas kebijakan koperasi.'}

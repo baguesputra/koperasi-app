@@ -3,6 +3,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { AlertCircle, ArrowLeft, Banknote, Check, CheckCircle2, FileText, Landmark, MessageSquareText, User, X, XCircle } from 'lucide-react';
 import Button from '@/Components/ui/Button';
 import ChipNominal from '@/Components/ui/ChipNominal';
+import CurrencyField from '@/Components/ui/CurrencyField';
 import {
     DrawerBody,
     DrawerField,
@@ -167,17 +168,12 @@ export default function KeputusanDrawer({ pinjaman, onClose }) {
                                         <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">
                                             Nominal Usulan (maks <span className="privacy-blur">{formatRupiah(pinjaman.limit_tersedia)}</span>)
                                         </label>
-                                        <div className="relative">
-                                            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-500">Rp</span>
-                                            <input
-                                                type="number"
-                                                min={1}
-                                                value={data.nominal}
-                                                onChange={(e) => setData('nominal', e.target.value)}
-                                                className="w-full pl-10 pr-4 py-2 text-base font-bold rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors privacy-blur tabular-nums"
-                                                autoFocus
-                                            />
-                                        </div>
+                                        <CurrencyField
+                                            value={data.nominal}
+                                            onChange={(e) => setData('nominal', e.target.value)}
+                                            className="font-bold privacy-blur"
+                                            autoFocus
+                                        />
                                         <ChipNominal grup="pinjaman_usulan" nilai={data.nominal} onPilih={(n) => setData('nominal', n)} />
                                         {errors.nominal && <p className="text-xs sm:text-sm font-medium text-red-600 mt-1.5">{errors.nominal}</p>}
                                         {diAtasLimit && (
@@ -196,9 +192,9 @@ export default function KeputusanDrawer({ pinjaman, onClose }) {
                                                 value={data.tenor_bulan}
                                                 onChange={(e) => setData('tenor_bulan', e.target.value)}
                                                 placeholder={`Auto: maks ${pinjaman.tenor_maksimal_diminta ?? '-'} bln`}
-                                                className="w-full px-3.5 pr-12 py-2 text-base font-bold rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors tabular-nums"
+                                                className="w-full pl-3.5 pr-12 py-2 text-base font-bold rounded-xl border border-slate-200/95 hover:border-slate-300 shadow-[0_1px_2px_rgba(15,23,42,0.03)] focus:border-brand-green focus:ring-[3px] focus:ring-brand-green/15 outline-none transition-all tabular-nums"
                                             />
-                                            <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-500">bln</span>
+                                            <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400 pointer-events-none select-none">bln</span>
                                         </div>
                                         {errors.tenor_bulan && <p className="text-xs sm:text-sm font-medium text-red-600 mt-1.5">{errors.tenor_bulan}</p>}
                                     </div>

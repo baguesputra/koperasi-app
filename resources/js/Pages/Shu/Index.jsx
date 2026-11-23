@@ -5,6 +5,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import Card from '@/Components/ui/Card';
 import Button from '@/Components/ui/Button';
 import PageHeader from '@/Components/ui/PageHeader';
+import CurrencyField from '@/Components/ui/CurrencyField';
 import TextField from '@/Components/ui/TextField';
 import FormField from '@/Components/ui/FormField';
 import Select from '@/Components/ui/Select';
@@ -71,9 +72,7 @@ export default function Index({ periode = [], filters = {}, persenDefault = {}, 
                                 />
                             </FormField>
                             <FormField label="Total SHU (kosong = dari Laba Rugi YTD)" error={errors.total_shu}>
-                                <TextField
-                                    type="number"
-                                    min="0"
+                                <CurrencyField
                                     placeholder="Otomatis dari Laba Rugi"
                                     value={data.total_shu}
                                     onChange={(e) => setData('total_shu', e.target.value)}

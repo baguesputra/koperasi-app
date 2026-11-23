@@ -271,15 +271,15 @@ export default function TabAuditLog({
                     {/* Pencarian bebas */}
                     <div className="lg:col-span-2">
                         <label className="block text-xs font-semibold text-slate-600 mb-1">Cari Keterangan / IP / Aksi</label>
-                        <div className="relative">
-                            <Search size={16} aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <div className="relative group">
+                            <Search size={16} aria-hidden="true" className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-green transition-colors pointer-events-none select-none" />
                             <input
                                 type="search"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 placeholder="Cari nama, no. karyawan, IP, keterangan..."
                                 aria-label="Cari log audit"
-                                className={`w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-300 bg-white placeholder:text-slate-400 focus:border-brand-green outline-none ${fokusRing}`}
+                                className={`w-full pl-10 pr-3 py-2 text-sm rounded-xl border border-slate-200/95 hover:border-slate-300 bg-white placeholder:text-slate-400 shadow-[0_1px_2px_rgba(15,23,42,0.03)] focus:border-brand-green focus:ring-[3px] focus:ring-brand-green/15 outline-none transition-all ${fokusRing}`}
                             />
                         </div>
                     </div>

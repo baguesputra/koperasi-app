@@ -6,6 +6,7 @@ import {
     Phone, Clock, Wallet, X, FileText, Lock,
 } from 'lucide-react';
 import { formatRupiah } from '@/Utils/formatCurrency';
+import CurrencyField from '@/Components/ui/CurrencyField';
 import { withIdempotencyKey } from '@/Utils/idempotency';
 import { useFeatureTour } from '@/Utils/featureTour';
 
@@ -211,26 +212,21 @@ export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal, lim
                             </p>
                         )}
 
-                        <div className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-semibold text-slate-400">Rp</span>
-                            <input
-                                type="number"
-                                inputMode="numeric"
-                                data-tour="pinjaman-nominal"
-                                value={nominal}
-                                onChange={(e) => setNominal(e.target.value)}
-                                placeholder="0"
-                                autoFocus
-                                max={limitTersedia}
-                                className="w-full pl-12 pr-12 py-4 text-xl sm:text-2xl font-bold rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
-                            />
-                            {loadingNominal && (
-                                <div className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 border-2 border-brand-green border-t-transparent rounded-full animate-spin" />
-                            )}
-                            {nominalValid && !loadingNominal && (
-                                <Check className="absolute right-4 top-1/2 -translate-y-1/2 text-brand-green" size={22} />
-                            )}
-                        </div>
+                        <CurrencyField
+                            size="xl"
+                            data-tour="pinjaman-nominal"
+                            value={nominal}
+                            onChange={(e) => setNominal(e.target.value)}
+                            placeholder="0"
+                            autoFocus
+                            suffix={
+                                loadingNominal ? (
+                                    <div className="w-5 h-5 border-2 border-brand-green border-t-transparent rounded-full animate-spin pointer-events-none" />
+                                ) : nominalValid ? (
+                                    <Check className="text-brand-green pointer-events-none" size={22} />
+                                ) : null
+                            }
+                        />
                         <p className="text-xs text-slate-400 mt-2">Maksimal: {formatRupiah(limitTersedia)}</p>
                     </div>
 

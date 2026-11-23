@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import Button from '@/Components/ui/Button';
 import FormField from '@/Components/ui/FormField';
+import CurrencyField from '@/Components/ui/CurrencyField';
 import TextField from '@/Components/ui/TextField';
 import { formatRupiah } from '@/Utils/formatCurrency';
 
@@ -40,14 +41,14 @@ export default function TabTenor({ tabelTenor, readOnly = false }) {
 
             {!readOnly && showForm && (
                 <form onSubmit={submit} className="mb-4 p-4 bg-slate-50/80 border border-slate-100 rounded-2xl flex flex-wrap items-end gap-3">
-                    <div className="w-36">
+                    <div className="w-44">
                         <FormField label="Nominal Min" error={errors.nominal_min} required>
-                            <TextField size="sm" type="number" min="0" value={data.nominal_min} onChange={(e) => setData('nominal_min', e.target.value)} required className="tabular-nums" />
+                            <CurrencyField size="sm" value={data.nominal_min} onChange={(e) => setData('nominal_min', e.target.value)} required />
                         </FormField>
                     </div>
-                    <div className="w-36">
+                    <div className="w-44">
                         <FormField label="Nominal Max" error={errors.nominal_max} required>
-                            <TextField size="sm" type="number" min="0" value={data.nominal_max} onChange={(e) => setData('nominal_max', e.target.value)} required className="tabular-nums" />
+                            <CurrencyField size="sm" value={data.nominal_max} onChange={(e) => setData('nominal_max', e.target.value)} required />
                         </FormField>
                     </div>
                     <div className="w-32">

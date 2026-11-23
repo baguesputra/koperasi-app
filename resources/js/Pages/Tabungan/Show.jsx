@@ -21,6 +21,7 @@ import PageHeader from '@/Components/ui/PageHeader';
 import Pagination from '@/Components/ui/Pagination';
 import Select from '@/Components/ui/Select';
 import StatusBadge from '@/Components/ui/StatusBadge';
+import CurrencyField from '@/Components/ui/CurrencyField';
 import TextField from '@/Components/ui/TextField';
 import { formatRupiah } from '@/Utils/formatCurrency';
 import { withIdempotencyKey } from '@/Utils/idempotency';
@@ -342,12 +343,11 @@ export default function Show({
                     <DrawerBody>
                         <DrawerSection title="Detail Setoran Tunai" icon={ArrowDownCircle}>
                             <FormField label="Nominal Setor (Rp)" error={setorForm.errors.nominal || setorForm.errors.setor_tunai} hint={`Minimal ${formatRupiah(minSetor)}`} required>
-                                <TextField
-                                    type="number"
-                                    min={minSetor}
+                                <CurrencyField
                                     value={setorForm.data.nominal}
                                     onChange={(e) => setorForm.setData('nominal', e.target.value)}
-                                    className="tabular-nums"
+                                    placeholder="0"
+                                    className="font-semibold"
                                     required
                                 />
                                 <ChipNominal grup="tabungan" nilai={setorForm.data.nominal} onPilih={(v) => setorForm.setData('nominal', v)} />

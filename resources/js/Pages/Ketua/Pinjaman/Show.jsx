@@ -5,6 +5,7 @@ import { useState } from 'react';
 import Card from '@/Components/ui/Card';
 import Button from '@/Components/ui/Button';
 import ChipNominal from '@/Components/ui/ChipNominal';
+import CurrencyField from '@/Components/ui/CurrencyField';
 import { formatRupiah } from '@/Utils/formatCurrency';
 import { withIdempotencyKey } from '@/Utils/idempotency';
 import JejakNominal from '@/Pages/PinjamanApproval/JejakNominal';
@@ -123,17 +124,12 @@ export default function Show({ pinjaman }) {
                                                 <label className="block text-sm font-semibold text-slate-600 mb-2">
                                                     Nominal Final Cair (maks {formatRupiah(pinjaman.limit_tersedia)})
                                                 </label>
-                                                <div className="relative">
-                                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-base font-semibold text-slate-400">Rp</span>
-                                                    <input
-                                                        type="number"
-                                                        min={1}
-                                                        value={data.nominal}
-                                                        onChange={(e) => setData('nominal', e.target.value)}
-                                                        className="w-full pl-12 pr-4 py-2.5 text-lg font-bold rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
-                                                        autoFocus
-                                                    />
-                                                </div>
+                                                <CurrencyField
+                                                    size="lg"
+                                                    value={data.nominal}
+                                                    onChange={(e) => setData('nominal', e.target.value)}
+                                                    autoFocus
+                                                />
                                                 <ChipNominal grup="pinjaman_usulan" nilai={data.nominal} onPilih={(n) => setData('nominal', n)} />
                                                 {errors.nominal && <p className="text-sm text-red-600 mt-1.5">{errors.nominal}</p>}
                                                 {nominalFinal > (pinjaman.limit_tersedia ?? 0) && (
@@ -152,9 +148,9 @@ export default function Show({ pinjaman }) {
                                                         value={data.tenor_bulan}
                                                         onChange={(e) => setData('tenor_bulan', e.target.value)}
                                                         placeholder={`Default: ${pinjaman.tenor_disetujui_bendahara ?? pinjaman.tenor_bulan} bln`}
-                                                        className="w-full px-4 py-2.5 text-lg font-bold rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
+                                                        className="w-full pl-4 pr-14 py-2.5 text-lg font-bold rounded-xl border border-slate-200/95 hover:border-slate-300 shadow-[0_1px_2px_rgba(15,23,42,0.03)] focus:border-brand-green focus:ring-[3px] focus:ring-brand-green/15 outline-none transition-all tabular-nums"
                                                     />
-                                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-base font-semibold text-slate-400">bln</span>
+                                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-base font-semibold text-slate-400 pointer-events-none select-none">bln</span>
                                                 </div>
                                                 {errors.tenor_bulan && <p className="text-sm text-red-600 mt-1.5">{errors.tenor_bulan}</p>}
                                             </div>

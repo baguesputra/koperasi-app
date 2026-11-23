@@ -419,7 +419,7 @@ export default function Index({
                                 onChange={(e) => setCari(e.target.value)}
                                 placeholder="Cari nama atau no. karyawan..."
                                 aria-label="Cari nama atau nomor karyawan"
-                                className="pl-10 pr-8 text-sm rounded-full border-slate-200 bg-slate-50/60 focus:bg-white shadow-inner focus:shadow-md transition-all"
+                                className="pl-10 pr-8 text-sm rounded-full border-slate-200 bg-slate-50/80 hover:bg-white focus:bg-white shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition-all"
                             />
                             {cari && (
                                 <button

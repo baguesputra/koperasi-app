@@ -6,6 +6,7 @@ import useDebouncedValue from '@/Utils/useDebouncedValue';
 import Card from '@/Components/ui/Card';
 import Button from '@/Components/ui/Button';
 import PageHeader from '@/Components/ui/PageHeader';
+import CurrencyField from '@/Components/ui/CurrencyField';
 import TextField from '@/Components/ui/TextField';
 import FormField from '@/Components/ui/FormField';
 import Select from '@/Components/ui/Select';
@@ -126,26 +127,21 @@ export default function Index({ pengeluaran, filters = {}, tipeList = {}, akunLi
                             </div>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3">
-                            <FormField label="Jumlah (Rp)" error={errors.jumlah} required>
-                                <div className="relative">
-                                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400 pointer-events-none">Rp</span>
-                                    <TextField
-                                        size="sm"
-                                        type="number"
-                                        min="1"
-                                        value={data.jumlah}
-                                        onChange={(e) => setData('jumlah', e.target.value)}
-                                        placeholder="250000"
-                                        autoFocus
-                                        required
-                                        className="pl-10 tabular-nums"
-                                    />
-                                </div>
+                            <FormField label="Nominal Pengeluaran" error={errors.jumlah} required>
+                                <CurrencyField
+                                    size="sm"
+                                    value={data.jumlah}
+                                    onChange={(e) => setData('jumlah', e.target.value)}
+                                    placeholder="250.000"
+                                    autoFocus
+                                    required
+                                    className="font-semibold"
+                                />
                                 <ChipNominal grup="pengeluaran" nilai={data.jumlah} onPilih={(n) => setData('jumlah', n)} />
                             </FormField>
                             <FormField label="Tanggal" error={errors.tanggal} required>
                                 <div className="relative">
-                                    <CalendarDays size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                    <CalendarDays size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none select-none" />
                                     <TextField
                                         size="sm"
                                         type="date"
@@ -153,7 +149,7 @@ export default function Index({ pengeluaran, filters = {}, tipeList = {}, akunLi
                                         onChange={(e) => setData('tanggal', e.target.value)}
                                         max={hariIni}
                                         required
-                                        className="pl-9"
+                                        className="pl-10"
                                     />
                                 </div>
                             </FormField>
@@ -219,7 +215,7 @@ export default function Index({ pengeluaran, filters = {}, tipeList = {}, akunLi
                                 onChange={(e) => setCari(e.target.value)}
                                 placeholder="Cari keterangan atau pencatat..."
                                 aria-label="Cari pengeluaran"
-                                className="pl-10 pr-8 text-sm rounded-full border-slate-200 bg-slate-50/60 focus:bg-white shadow-inner focus:shadow-md transition-all"
+                                className="pl-10 pr-8 text-sm rounded-full border-slate-200 bg-slate-50/80 hover:bg-white focus:bg-white shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition-all"
                             />
                             {cari && (
                                 <button

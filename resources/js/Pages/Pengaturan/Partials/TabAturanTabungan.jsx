@@ -3,6 +3,7 @@ import { ShieldAlert, History } from 'lucide-react';
 import Button from '@/Components/ui/Button';
 import FormField from '@/Components/ui/FormField';
 import Select from '@/Components/ui/Select';
+import CurrencyField from '@/Components/ui/CurrencyField';
 import TextField from '@/Components/ui/TextField';
 import SectionCard from './SectionCard';
 
@@ -237,40 +238,31 @@ export default function TabAturanTabungan({
                         </FormField>
 
                         <FormField label="Minimal Setoran (Rp)" error={ketentuanForm.errors.min_setor} required>
-                            <TextField
+                            <CurrencyField
                                 size="sm"
-                                type="number"
-                                min="0"
                                 value={ketentuanForm.data.min_setor}
                                 onChange={(e) => ketentuanForm.setData('min_setor', e.target.value)}
                                 disabled={readOnly}
-                                className="tabular-nums"
                                 required
                             />
                         </FormField>
 
                         <FormField label="Saldo Minimal Mengendap (Rp)" error={ketentuanForm.errors.saldo_minimal} required>
-                            <TextField
+                            <CurrencyField
                                 size="sm"
-                                type="number"
-                                min="0"
                                 value={ketentuanForm.data.saldo_minimal}
                                 onChange={(e) => ketentuanForm.setData('saldo_minimal', e.target.value)}
                                 disabled={readOnly}
-                                className="tabular-nums"
                                 required
                             />
                         </FormField>
 
                         <FormField label="Minimal Penarikan (Rp)" error={ketentuanForm.errors.min_tarik} required>
-                            <TextField
+                            <CurrencyField
                                 size="sm"
-                                type="number"
-                                min="0"
                                 value={ketentuanForm.data.min_tarik}
                                 onChange={(e) => ketentuanForm.setData('min_tarik', e.target.value)}
                                 disabled={readOnly}
-                                className="tabular-nums"
                                 required
                             />
                         </FormField>

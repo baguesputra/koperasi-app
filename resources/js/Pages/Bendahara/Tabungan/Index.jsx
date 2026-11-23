@@ -24,6 +24,7 @@ import FotoAnggota from '@/Components/ui/FotoAnggota';
 import PageHeader from '@/Components/ui/PageHeader';
 import Select from '@/Components/ui/Select';
 import StatusBadge from '@/Components/ui/StatusBadge';
+import CurrencyField from '@/Components/ui/CurrencyField';
 import TextField from '@/Components/ui/TextField';
 import { formatRupiah } from '@/Utils/formatCurrency';
 import { withIdempotencyKey } from '@/Utils/idempotency';
@@ -729,12 +730,11 @@ export default function Index({
                             </FormField>
 
                             <FormField label="Nominal Setor (Rp)" error={setorTunaiForm.errors.nominal || setorTunaiForm.errors.setor_tunai} hint={`Minimal ${formatRupiah(setting.min_setor)}`} required>
-                                <TextField
-                                    type="number"
-                                    min={setting.min_setor}
+                                <CurrencyField
                                     value={setorTunaiForm.data.nominal}
                                     onChange={(e) => setorTunaiForm.setData('nominal', e.target.value)}
-                                    className="tabular-nums"
+                                    placeholder="0"
+                                    className="font-semibold"
                                     required
                                 />
                                 <ChipNominal grup="tabungan" nilai={setorTunaiForm.data.nominal} onPilih={(v) => setorTunaiForm.setData('nominal', v)} />

@@ -5,6 +5,7 @@ import { useState } from 'react';
 import Card from '@/Components/ui/Card';
 import Button from '@/Components/ui/Button';
 import ChipNominal from '@/Components/ui/ChipNominal';
+import CurrencyField from '@/Components/ui/CurrencyField';
 import { formatRupiah } from '@/Utils/formatCurrency';
 import { withIdempotencyKey } from '@/Utils/idempotency';
 
@@ -79,17 +80,12 @@ export default function Show({ pengajuan }) {
                                     {aksi === 'approve' && (
                                         <div className="mb-4">
                                             <label className="block text-sm font-semibold text-slate-600 mb-2">Nominal Final yang Disetujui</label>
-                                            <div className="relative">
-                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-base font-semibold text-slate-400">Rp</span>
-                                                <input
-                                                    type="number"
-                                                    min={1}
-                                                    value={data.limit_disetujui}
-                                                    onChange={(e) => setData('limit_disetujui', e.target.value)}
-                                                    className="w-full pl-12 pr-4 py-2.5 text-lg font-bold rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
-                                                    autoFocus
-                                                />
-                                            </div>
+                                            <CurrencyField
+                                                size="lg"
+                                                value={data.limit_disetujui}
+                                                onChange={(e) => setData('limit_disetujui', e.target.value)}
+                                                autoFocus
+                                            />
                                             <ChipNominal grup="limit_baru" nilai={data.limit_disetujui} onPilih={(n) => setData('limit_disetujui', n)} />
                                             {errors.limit_disetujui && <p className="text-sm text-red-600 mt-1.5">{errors.limit_disetujui}</p>}
                                             {diBawahSaatIni && (

@@ -13,6 +13,7 @@ import {
 import FotoAnggota from '@/Components/ui/FotoAnggota';
 import FormField from '@/Components/ui/FormField';
 import Select from '@/Components/ui/Select';
+import CurrencyField from '@/Components/ui/CurrencyField';
 import TextField from '@/Components/ui/TextField';
 
 export default function EditDrawer({ anggota, onClose }) {
@@ -104,7 +105,7 @@ export default function EditDrawer({ anggota, onClose }) {
                     icon={Wallet}
                 >
                     <FormField label="Nominal Limit Khusus" error={errors.limit_custom} hint="Kosongkan untuk hapus limit khusus">
-                        <TextField size="sm" type="number" min="0" value={data.limit_custom} onChange={(e) => setData('limit_custom', e.target.value)} placeholder="Contoh: 10000000" />
+                        <CurrencyField size="sm" value={data.limit_custom} onChange={(e) => setData('limit_custom', e.target.value)} placeholder="Contoh: 10.000.000" />
                     </FormField>
                     <FormField label="Alasan / Keterangan" error={errors.limit_custom_keterangan}>
                         <TextField size="sm" value={data.limit_custom_keterangan} onChange={(e) => setData('limit_custom_keterangan', e.target.value)} placeholder="Contoh: Kebijakan khusus ketua" />

@@ -67,7 +67,7 @@ export default function Login({ status }) {
                         <div>
                             <InputLabel htmlFor="no_karyawan" value="No. Karyawan" className="text-base font-semibold text-slate-200" />
                             <div className="relative mt-1.5">
-                                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={20} />
                                 <input
                                     id="no_karyawan"
                                     type="text"
@@ -88,7 +88,7 @@ export default function Login({ status }) {
                                 <InputLabel htmlFor="password" value="Password" className="text-base font-semibold text-slate-200" />
                             </div>
                             <div className="relative mt-1.5">
-                                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={20} />
                                 <input
                                     id="password"
                                     type="password"

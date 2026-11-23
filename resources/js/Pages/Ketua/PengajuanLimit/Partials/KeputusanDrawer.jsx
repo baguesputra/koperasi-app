@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import Button from '@/Components/ui/Button';
 import ChipNominal from '@/Components/ui/ChipNominal';
+import CurrencyField from '@/Components/ui/CurrencyField';
 import {
     DrawerBody,
     DrawerField,
@@ -320,17 +321,12 @@ export default function KeputusanDrawer({ pengajuan, onClose }) {
                                         Isi total limit baru secara keseluruhan (bukan nilai selisih). Wajib &gt;{' '}
                                         <span className="privacy-blur font-semibold text-slate-700">{formatRupiah(pengajuan.limit_saat_ini)}</span>.
                                     </p>
-                                    <div className="relative">
-                                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-500">Rp</span>
-                                        <input
-                                            type="number"
-                                            min={pengajuan.limit_saat_ini + 1}
-                                            value={data.limit_disetujui}
-                                            onChange={(e) => setData('limit_disetujui', e.target.value)}
-                                            className="w-full pl-10 pr-4 py-2 text-base font-bold rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors privacy-blur tabular-nums"
-                                            autoFocus
-                                        />
-                                    </div>
+                                    <CurrencyField
+                                        value={data.limit_disetujui}
+                                        onChange={(e) => setData('limit_disetujui', e.target.value)}
+                                        className="font-bold privacy-blur"
+                                        autoFocus
+                                    />
                                     <ChipNominal grup="limit_baru" nilai={data.limit_disetujui} onPilih={(n) => setData('limit_disetujui', n)} />
                                     {Number(data.limit_disetujui) > pengajuan.limit_saat_ini && (
                                         <p className="text-xs font-semibold text-brand-green-dark mt-1.5 privacy-blur tabular-nums">

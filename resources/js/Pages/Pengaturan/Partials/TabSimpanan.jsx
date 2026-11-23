@@ -2,7 +2,7 @@ import { useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import { Pencil, Check, X } from 'lucide-react';
 import { formatRupiah } from '@/Utils/formatCurrency';
-import TextField from '@/Components/ui/TextField';
+import CurrencyField from '@/Components/ui/CurrencyField';
 
 export default function TabSimpanan({ settingSimpanan, readOnly = false }) {
     const [editId, setEditId] = useState(null);
@@ -33,14 +33,13 @@ export default function TabSimpanan({ settingSimpanan, readOnly = false }) {
                         {!readOnly && editId === item.id ? (
                             <div className="shrink-0">
                                 <div className="flex items-center gap-1.5">
-                                    <TextField
+                                    <CurrencyField
                                         size="sm"
-                                        type="number"
-                                        min="0"
                                         value={data.nominal}
                                         onChange={(e) => setData('nominal', e.target.value)}
                                         aria-label={`Nominal ${item.label}`}
-                                        className="w-36 text-right tabular-nums"
+                                        wrapperClassName="w-44"
+                                        className="text-right"
                                         autoFocus
                                     />
                                     <button onClick={() => simpan(item.id)} disabled={processing} aria-label="Simpan" title="Simpan" className="min-h-[40px] min-w-[40px] inline-flex items-center justify-center rounded-lg text-brand-green-dark bg-brand-green-light hover:shadow-sm transition-all">
