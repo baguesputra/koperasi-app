@@ -1,57 +1,71 @@
 import { Link, usePage } from '@inertiajs/react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { usePrivacy } from '@/Contexts/PrivacyContext';
 import CountBadge, { CountDot } from '@/Components/ui/CountBadge';
 import PrivacyIcon from '@/Components/ui/PrivacyIcon';
 import {
-    LayoutDashboard, Users, PiggyBank, HandCoins,
-    ClipboardCheck, CalendarCheck, HeartHandshake,
-    Wallet, FileBarChart, TrendingUp, BookOpenText, Percent,
-    ChevronLeft, ChevronRight, Repeat, Settings, LogOut, FileX2
+    LayoutDashboard, Users, UserCheck, PiggyBank, HeartHandshake,
+    BookOpenText, ArrowLeftRight, HandCoins, FileSearch, ClipboardCheck,
+    BadgeCheck, CalendarCheck, Repeat, TrendingUp, FileX2,
+    Wallet, Percent, FileBarChart,
+    ChevronLeft, ChevronRight, ChevronDown, Settings, LogOut,
 } from 'lucide-react';
 
+const STORAGE_KEY = 'sidebar-groups-state-v1';
 const fokusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/40';
+
+const PENGATURAN_PERMISSIONS = [
+    'pengaturan.kelola',
+    'pengaturan.kebijakan.lihat',
+    'pengaturan.kebijakan.kelola',
+    'pengaturan.wa',
+    'pengaturan.organisasi',
+    'pengaturan.audit.lihat',
+    'user.kelola',
+];
+
+const pinnedItems = [
+    { label: 'Dashboard', routeName: 'dashboard', icon: LayoutDashboard, permission: null },
+];
 
 const menuGroups = [
     {
-        label: 'Utama',
+        id: 'keanggotaan',
+        label: 'Keanggotaan',
         items: [
-            { label: 'Dashboard', routeName: 'dashboard', icon: LayoutDashboard, permission: null },
+            { label: 'Data Anggota', routeName: 'anggota.index', icon: Users, permission: 'anggota.lihat' },
+            { label: 'Aktivasi Anggota', routeName: 'ketua.aktivasi.index', icon: UserCheck, permission: 'aktivasi.approve-ketua' },
         ],
     },
     {
-        label: 'Data',
+        id: 'simpanan-tabungan',
+        label: 'Simpanan & Tabungan',
         items: [
-            { label: 'Anggota', routeName: 'anggota.index', icon: Users, permission: 'anggota.lihat' },
-            { label: 'Simpanan', routeName: 'simpanan.index', icon: PiggyBank, permission: 'simpanan.lihat' },
-            { label: 'Tabungan', routeName: 'tabungan.index', icon: BookOpenText, permission: 'tabungan.lihat' },
-            { label: 'Pinjaman', routeName: 'pinjaman.index', icon: HandCoins, permission: 'pinjaman.lihat' },
-        ],
-    },
-    {
-        label: 'Pemrosesan',
-        items: [
-            { label: 'Verifikasi Awal Pinjaman', routeName: 'admin.pinjaman.index', icon: ClipboardCheck, permission: 'pinjaman.tinjau-admin' },
-            { label: 'Tinjau Pinjaman', routeName: 'bendahara.pinjaman.index', icon: ClipboardCheck, permission: 'pinjaman.tinjau-bendahara' },
-            { label: 'Persetujuan Pinjaman', routeName: 'ketua.pinjaman.index', icon: ClipboardCheck, permission: 'pinjaman.approve-ketua' },
-            { label: 'Tinjau Perubahan Tenor', routeName: 'bendahara.percepatan.index', icon: Repeat, permission: 'pinjaman.tinjau-bendahara' },
-            { label: 'Persetujuan Perubahan Tenor', routeName: 'ketua.percepatan.index', icon: Repeat, permission: 'pinjaman.approve-ketua' },
-            { label: 'Angsuran', routeName: 'bendahara.angsuran.index', icon: CalendarCheck, permission: 'angsuran.konfirmasi' },
+            { label: 'Data Simpanan', routeName: 'simpanan.index', icon: PiggyBank, permission: 'simpanan.lihat' },
             { label: 'Konfirmasi Simpanan', routeName: 'bendahara.simpanan.index', icon: HeartHandshake, permission: 'simpanan.konfirmasi' },
-            { label: 'Proses Tabungan', routeName: 'bendahara.tabungan.index', icon: Wallet, permission: 'tabungan.kelola' },
-            { label: 'Tinjau Limit', routeName: 'bendahara.pengajuan-limit.index', icon: TrendingUp, permission: 'limit.tinjau-bendahara' },
-            { label: 'Pengajuan Limit', routeName: 'ketua.pengajuan-limit.index', icon: TrendingUp, permission: 'limit.approve-ketua' },
-            { label: 'Aktivasi Anggota', routeName: 'ketua.aktivasi.index', icon: Users, permission: 'aktivasi.approve-ketua' },
+            { label: 'Rekening Tabungan', routeName: 'tabungan.index', icon: BookOpenText, permission: 'tabungan.lihat' },
+            { label: 'Proses Tabungan', routeName: 'bendahara.tabungan.index', icon: ArrowLeftRight, permission: 'tabungan.kelola' },
         ],
     },
     {
-        label: 'Pengurus',
+        id: 'pinjaman-kredit',
+        label: 'Pinjaman',
         items: [
+            { label: 'Data Pinjaman', routeName: 'pinjaman.index', icon: HandCoins, permission: 'pinjaman.lihat' },
+            { label: 'Verifikasi Awal', routeName: 'admin.pinjaman.index', icon: FileSearch, permission: 'pinjaman.tinjau-admin' },
+            { label: 'Tinjau Pinjaman', routeName: 'bendahara.pinjaman.index', icon: ClipboardCheck, permission: 'pinjaman.tinjau-bendahara' },
+            { label: 'Setujui Pinjaman', routeName: 'ketua.pinjaman.index', icon: BadgeCheck, permission: 'pinjaman.approve-ketua' },
+            { label: 'Konfirmasi Angsuran', routeName: 'bendahara.angsuran.index', icon: CalendarCheck, permission: 'angsuran.konfirmasi' },
+            { label: 'Tinjau Ubah Tenor', routeName: 'bendahara.percepatan.index', icon: Repeat, permission: 'pinjaman.tinjau-bendahara' },
+            { label: 'Setujui Ubah Tenor', routeName: 'ketua.percepatan.index', icon: Repeat, permission: 'pinjaman.approve-ketua' },
+            { label: 'Tinjau Tambah Limit', routeName: 'bendahara.pengajuan-limit.index', icon: TrendingUp, permission: 'limit.tinjau-bendahara' },
+            { label: 'Setujui Tambah Limit', routeName: 'ketua.pengajuan-limit.index', icon: TrendingUp, permission: 'limit.approve-ketua' },
             { label: 'Penghapusan Pinjaman', routeName: 'pengurus.penghapusan-pinjaman.index', icon: FileX2, permission: 'penghapusan-pinjaman.lihat' },
         ],
     },
     {
-        label: 'Keuangan',
+        id: 'keuangan-laporan',
+        label: 'Keuangan & Laporan',
         items: [
             { label: 'Kas Koperasi', routeName: 'kas-koperasi.index', icon: Wallet, permission: 'kas.lihat' },
             { label: 'Pembagian SHU', routeName: 'shu.index', icon: Percent, permission: 'shu.lihat' },
@@ -60,27 +74,59 @@ const menuGroups = [
     },
 ];
 
-export default function Sidebar({ collapsed = false, expanding = false, mobile = false, onToggle }) {
+function bacaPreferensiGrup() {
+    if (typeof window === 'undefined') {
+        return {};
+    }
+    try {
+        const raw = window.localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+            return {};
+        }
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+        return {};
+    }
+}
+
+function simpanPreferensiGrup(prefs) {
+    if (typeof window === 'undefined') {
+        return;
+    }
+    try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+    } catch {
+        // Abaikan bila localStorage diblokir browser
+    }
+}
+
+/** Aktif bila route persis sama atau satu modul (prefix sama). */
+function sedangAktif(routeName) {
+    if (!routeName) {
+        return false;
+    }
+    if (route().current(routeName)) {
+        return true;
+    }
+    const prefix = routeName.replace(/\.index$/, '');
+    return prefix !== routeName && route().current(`${prefix}.*`);
+}
+
+export default function Sidebar({ collapsed = false, expanding = false, mobile = false, onToggle, onNavigate }) {
     const { auth, notifications } = usePage().props;
     const { isPrivacyActive, togglePrivacy } = usePrivacy();
     const url = usePage().url;
     const tautanAktif = useRef(null);
+    const [groupPrefs, setGroupPrefs] = useState(bacaPreferensiGrup);
     const tertutup = collapsed && !expanding;
     const userPermissions = auth.user?.permissions ?? [];
-    const PENGATURAN_PERMISSIONS = [
-        'pengaturan.kelola',
-        'pengaturan.kebijakan.lihat',
-        'pengaturan.kebijakan.kelola',
-        'pengaturan.wa',
-        'pengaturan.organisasi',
-        'pengaturan.audit.lihat',
-        'user.kelola',
-    ];
     const bisaPengaturan = userPermissions.some((p) => PENGATURAN_PERMISSIONS.includes(p));
     const initial = auth.user?.name?.charAt(0)?.toUpperCase() ?? '?';
     const csrfToken = typeof document !== 'undefined'
         ? document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
         : null;
+
     const badgeAngka = {
         'admin.pinjaman.index': notifications?.menunggu_tinjauan_admin ?? 0,
         'bendahara.pinjaman.index': notifications?.menunggu_tinjauan_bendahara ?? 0,
@@ -98,13 +144,66 @@ export default function Sidebar({ collapsed = false, expanding = false, mobile =
         return permission === null || userPermissions.includes(permission);
     }
 
-    /** Aktif bila route persis sama atau satu modul (prefix sama). */
-    function sedangAktif(routeName) {
-        if (!routeName) return false;
-        if (route().current(routeName)) return true;
-        const prefix = routeName.replace(/\.index$/, '');
-        return prefix !== routeName && route().current(`${prefix}.*`);
+    const visiblePinnedItems = pinnedItems.filter((item) => bisaAkses(item.permission));
+
+    const visibleGroups = menuGroups
+        .map((group) => {
+            const items = group.items.filter((item) => bisaAkses(item.permission));
+            const hasActive = items.some((item) => sedangAktif(item.routeName));
+            const totalBadge = items.reduce((sum, item) => sum + (badgeAngka[item.routeName] ?? 0), 0);
+
+            return {
+                ...group,
+                items,
+                hasActive,
+                totalBadge,
+            };
+        })
+        .filter((group) => group.items.length > 0);
+
+    const totalGroupedItems = visibleGroups.reduce((sum, group) => sum + group.items.length, 0);
+
+    function grupDilipat(group) {
+        if (tertutup) {
+            return false;
+        }
+        const pref = groupPrefs[group.id];
+        if (typeof pref === 'boolean') {
+            return pref;
+        }
+        // Role biasa (<= 15 menu grup) buka semua grup secara default;
+        // Super Admin (> 15 menu grup) buka grup aktif atau yang memiliki antrean menunggu.
+        if (totalGroupedItems > 15) {
+            return !(group.hasActive || group.totalBadge > 0);
+        }
+        return false;
     }
+
+    function toggleGroup(groupId, currentlyCollapsed) {
+        setGroupPrefs((prev) => {
+            const next = { ...prev, [groupId]: !currentlyCollapsed };
+            simpanPreferensiGrup(next);
+            return next;
+        });
+    }
+
+    // Pastikan grup dari rute tujuan terbuka otomatis saat berpindah halaman.
+    useEffect(() => {
+        const activeGroup = menuGroups.find((group) =>
+            group.items.some((item) => sedangAktif(item.routeName)),
+        );
+        if (!activeGroup) {
+            return;
+        }
+        setGroupPrefs((prev) => {
+            if (prev[activeGroup.id] !== true) {
+                return prev;
+            }
+            const next = { ...prev, [activeGroup.id]: false };
+            simpanPreferensiGrup(next);
+            return next;
+        });
+    }, [url]);
 
     // Gulirkan menu aktif ke area terlihat tiap pindah halaman/reload.
     // block:'nearest' = diam bila sudah terlihat; tanpa animasi.
@@ -114,12 +213,56 @@ export default function Sidebar({ collapsed = false, expanding = false, mobile =
         }
     }, [url, tertutup]);
 
-    const visibleGroups = menuGroups
-        .map((group) => ({
-            ...group,
-            items: group.items.filter((item) => bisaAkses(item.permission)),
-        }))
-        .filter((group) => group.items.length > 0);
+    function renderMenuItem(item, keySuffix, tersembunyi = false) {
+        const Icon = item.icon;
+        const href = item.routeName ? route(item.routeName) : '#';
+        const isActive = sedangAktif(item.routeName);
+        const badge = item.routeName ? (badgeAngka[item.routeName] ?? 0) : 0;
+
+        if (item.disabled) {
+            return (
+                <div
+                    key={item.label + keySuffix}
+                    title={tertutup ? item.label : 'Segera'}
+                    className={`flex items-center ${tertutup ? 'gap-0 justify-center' : 'gap-3'} px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-300 cursor-not-allowed`}
+                >
+                    <Icon size={18} strokeWidth={2} />
+                    <span className={`flex-1 truncate transition-all duration-300 whitespace-nowrap overflow-hidden ${tertutup ? 'opacity-0 max-w-0' : 'opacity-100 max-w-[170px]'}`}>
+                        {item.label}
+                    </span>
+                </div>
+            );
+        }
+
+        return (
+            <Link
+                key={item.label + keySuffix}
+                href={href}
+                ref={isActive ? tautanAktif : undefined}
+                tabIndex={tersembunyi ? -1 : undefined}
+                onClick={mobile ? onNavigate : undefined}
+                title={tertutup ? (badge > 0 ? `${item.label} (${badge} menunggu)` : item.label) : undefined}
+                className={`group flex items-center ${tertutup ? 'gap-0 justify-center' : 'gap-3'} px-2.5 py-1.5 rounded-xl text-sm font-semibold transition-all duration-150 ${fokusRing} ${
+                    isActive
+                        ? 'bg-gradient-to-r from-brand-navy via-brand-navy to-brand-navy-light text-white shadow-md shadow-brand-navy/20 ring-1 ring-white/10'
+                        : 'text-slate-600 hover:bg-gradient-to-r hover:from-brand-green-light/70 hover:to-transparent hover:text-brand-navy'
+                }`}
+            >
+                <span className="relative shrink-0">
+                    <Icon size={18} strokeWidth={2} className={isActive ? 'text-brand-green' : 'text-slate-400 group-hover:text-brand-green transition-colors'} />
+                    {badge > 0 && tertutup && (
+                        <CountDot active={isActive} className="absolute -top-0.5 -right-0.5" />
+                    )}
+                </span>
+                <span className={`flex-1 truncate transition-all duration-300 whitespace-nowrap overflow-hidden ${tertutup ? 'opacity-0 max-w-0' : 'opacity-100 max-w-[170px] min-w-0'}`}>
+                    {item.label}
+                </span>
+                {badge > 0 && !tertutup && (
+                    <CountBadge count={badge} active={isActive} context="sidebar" className="ml-auto" />
+                )}
+            </Link>
+        );
+    }
 
     const asideClass = mobile
         ? 'w-full h-full bg-white flex flex-col overflow-hidden'
@@ -170,62 +313,79 @@ export default function Sidebar({ collapsed = false, expanding = false, mobile =
                 )}
             </div>
 
-            <nav className="flex-1 px-3 py-3 space-y-4 overflow-y-auto scrollbar-hide">
-                {visibleGroups.map((group) => (
-                    <div key={group.label}>
-                        <p className={`px-2 mb-1 text-[11px] font-bold uppercase tracking-wider text-slate-500 ${tertutup ? 'hidden' : ''}`}>
-                            {group.label}
-                        </p>
-                        <div className="space-y-0.5">
-                            {group.items.map((item) => {
-                                const Icon = item.icon;
-                                const href = item.routeName ? route(item.routeName) : '#';
-                                const isActive = sedangAktif(item.routeName);
-                                const badge = item.routeName ? badgeAngka[item.routeName] : 0;
+            <nav className="flex-1 px-3 py-3 overflow-y-auto scrollbar-hide">
+                {visiblePinnedItems.length > 0 && (
+                    <div className="space-y-0.5">
+                        {visiblePinnedItems.map((item) => renderMenuItem(item, 'pinned'))}
+                    </div>
+                )}
 
-                                if (item.disabled) {
-                                    return (
-                                        <div
-                                            key={item.label + group.label}
-                                            title={tertutup ? item.label : 'Segera'}
-                                            className={`flex items-center ${tertutup ? 'gap-0 justify-center' : 'gap-3'} px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-300 cursor-not-allowed`}
-                                        >
-                                            <Icon size={18} strokeWidth={2} />
-                                            <span className={`flex-1 truncate transition-all duration-300 whitespace-nowrap overflow-hidden ${tertutup ? 'opacity-0 max-w-0' : 'opacity-100 max-w-[170px]'}`}>{item.label}</span>
-                                        </div>
-                                    );
-                                }
+                {visiblePinnedItems.length > 0 && visibleGroups.length > 0 && (
+                    <div className={`border-t border-slate-100 ${tertutup ? 'mx-2 my-2' : 'my-2.5'}`} />
+                )}
 
-                                return (
-                                    <Link
-                                        key={item.label + group.label}
-                                        href={href}
-                                        ref={isActive ? tautanAktif : undefined}
-                                        title={tertutup ? (badge > 0 ? `${item.label} (${badge} menunggu)` : item.label) : undefined}
-                                        className={`group flex items-center ${tertutup ? 'gap-0 justify-center' : 'gap-3'} px-2.5 py-1.5 rounded-xl text-sm font-semibold transition-all duration-150 ${
-                                            isActive
-                                                ? 'bg-gradient-to-r from-brand-navy via-brand-navy to-brand-navy-light text-white shadow-md shadow-brand-navy/20 ring-1 ring-white/10'
-                                                : 'text-slate-600 hover:bg-gradient-to-r hover:from-brand-green-light/70 hover:to-transparent hover:text-brand-navy'
+                <div className={tertutup ? 'space-y-2' : 'space-y-2.5'}>
+                    {visibleGroups.map((group, index) => {
+                        const isGroupCollapsed = grupDilipat(group);
+                        const groupPanelId = `sidebar-group-${group.id}`;
+
+                        return (
+                            <div key={group.id}>
+                                {tertutup && index > 0 && (
+                                    <div className="mx-2 mb-2 border-t border-slate-100" />
+                                )}
+
+                                {!tertutup && (
+                                    <button
+                                        type="button"
+                                        onClick={() => toggleGroup(group.id, isGroupCollapsed)}
+                                        aria-expanded={!isGroupCollapsed}
+                                        aria-controls={groupPanelId}
+                                        className={`w-full flex items-center justify-between gap-2 px-2 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-colors ${fokusRing} ${
+                                            group.hasActive && isGroupCollapsed
+                                                ? 'text-brand-navy bg-brand-green-light/45'
+                                                : 'text-slate-500 hover:text-brand-navy hover:bg-slate-50'
                                         }`}
                                     >
-                                        <span className="relative shrink-0">
-                                            <Icon size={18} strokeWidth={2} className={isActive ? 'text-brand-green' : 'text-slate-400 group-hover:text-brand-green transition-colors'} />
-                                            {badge > 0 && tertutup && (
-                                                <CountDot active={isActive} className="absolute -top-0.5 -right-0.5" />
+                                        <span className="flex items-center gap-1.5 min-w-0">
+                                            <span className="truncate">{group.label}</span>
+                                            {group.hasActive && isGroupCollapsed && (
+                                                <span className="w-1.5 h-1.5 rounded-full bg-brand-green shrink-0" aria-hidden="true" />
                                             )}
                                         </span>
-                                        <span className={`flex-1 truncate transition-all duration-300 whitespace-nowrap overflow-hidden ${tertutup ? 'opacity-0 max-w-0' : 'opacity-100 max-w-[170px] min-w-0'}`}>{item.label}</span>
-                                        {badge > 0 && !tertutup && (
-                                            <CountBadge count={badge} active={isActive} context="sidebar" className="ml-auto" />
-                                        )}
-                                    </Link>
-                                );
-                            })}
-                        </div>
-                    </div>
-                ))}
-            </nav>
+                                        <span className="flex items-center gap-1.5 shrink-0">
+                                            {isGroupCollapsed && group.totalBadge > 0 && (
+                                                <CountBadge count={group.totalBadge} context="sidebar" />
+                                            )}
+                                            <ChevronDown
+                                                size={14}
+                                                strokeWidth={2.25}
+                                                className={`text-slate-400 transition-transform duration-200 ${isGroupCollapsed ? '-rotate-90' : 'rotate-0'}`}
+                                            />
+                                        </span>
+                                    </button>
+                                )}
 
+                                <div
+                                    id={groupPanelId}
+                                    aria-hidden={isGroupCollapsed}
+                                    className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${
+                                        isGroupCollapsed
+                                            ? 'grid-rows-[0fr] opacity-0 pointer-events-none'
+                                            : 'grid-rows-[1fr] opacity-100'
+                                    }`}
+                                >
+                                    <div className="overflow-hidden">
+                                        <div className={`space-y-0.5 ${!tertutup ? 'pt-0.5' : ''}`}>
+                                            {group.items.map((item) => renderMenuItem(item, group.id, isGroupCollapsed))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </nav>
 
             {/* Profil & aksi akun */}
             {tertutup ? (
@@ -235,6 +395,7 @@ export default function Sidebar({ collapsed = false, expanding = false, mobile =
                 >
                     <Link
                         href={route('profile.edit')}
+                        onClick={mobile ? onNavigate : undefined}
                         title="Profil Saya"
                         className={`w-8 h-8 rounded-full bg-brand-green text-white flex items-center justify-center text-xs font-bold hover:opacity-90 transition-opacity ${fokusRing}`}
                     >
@@ -248,6 +409,7 @@ export default function Sidebar({ collapsed = false, expanding = false, mobile =
                 >
                     <Link
                         href={route('profile.edit')}
+                        onClick={mobile ? onNavigate : undefined}
                         title="Profil Saya"
                         className={`flex items-center gap-2 min-w-0 flex-1 rounded-xl p-1 -m-0.5 hover:bg-white/90 hover:shadow-xs transition-all ${fokusRing}`}
                     >
@@ -270,6 +432,7 @@ export default function Sidebar({ collapsed = false, expanding = false, mobile =
                     {bisaPengaturan && (
                         <Link
                             href={route('pengaturan.index')}
+                            onClick={mobile ? onNavigate : undefined}
                             title="Pengaturan"
                             className={`p-1.5 rounded-lg text-slate-400 hover:text-brand-navy hover:bg-brand-green-light/60 transition-all shrink-0 ${fokusRing}`}
                         >

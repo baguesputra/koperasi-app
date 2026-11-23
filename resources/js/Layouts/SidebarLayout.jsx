@@ -84,7 +84,7 @@ export default function SidebarLayout({ children }) {
                         leaveTo="-translate-x-full"
                     >
                         <div className="relative w-64 max-w-[82vw] h-full bg-white border-r border-slate-200 shadow-xl flex flex-col overflow-hidden">
-                            <Sidebar mobile collapsed={false} expanding={false} onToggle={toggleSidebar} />
+                            <Sidebar mobile collapsed={false} expanding={false} onToggle={toggleSidebar} onNavigate={closeMobileSidebar} />
                         </div>
                     </Transition.Child>
                 </div>
