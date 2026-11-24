@@ -32,6 +32,12 @@ class ReaktivasiService
                 );
             }
 
+            if ($anggotaLocked->status_pencairan_resign === 'menunggu') {
+                throw new RuntimeException(
+                    "Anggota {$anggotaLocked->nama} masih menunggu pencairan pengembalian resign oleh Bendahara."
+                );
+            }
+
             $dataLama = [
                 'status' => 'resign',
                 'tanggal_resign' => $anggotaLocked->tanggal_resign?->format('Y-m-d'),

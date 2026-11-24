@@ -18,7 +18,9 @@ class ResignAnggotaRequest extends FormRequest
         return [
             'alasan_resign' => ['required', 'string', 'min:10', 'max:500'],
             'tanggal_resign' => ['required', 'date', 'before_or_equal:'.$batasAkhir],
-            'konfirmasi_pelunasan' => ['required', 'accepted'],
+            'rekening_bank' => ['nullable', 'string', 'max:60'],
+            'rekening_nomor' => ['nullable', 'string', 'max:60'],
+            'rekening_atas_nama' => ['nullable', 'string', 'max:120'],
         ];
     }
 
@@ -32,7 +34,9 @@ class ResignAnggotaRequest extends FormRequest
             'alasan_resign.max' => 'Alasan resign maksimal 500 karakter.',
             'tanggal_resign.required' => 'Tanggal resign wajib diisi.',
             'tanggal_resign.before_or_equal' => "Tanggal resign maksimal {$batasAkhir}.",
-            'konfirmasi_pelunasan.accepted' => 'Anda harus menyetujui pelunasan otomatis dari simpanan.',
+            'rekening_bank.max' => 'Nama bank maksimal 60 karakter.',
+            'rekening_nomor.max' => 'Nomor rekening maksimal 60 karakter.',
+            'rekening_atas_nama.max' => 'Nama pemilik rekening maksimal 120 karakter.',
         ];
     }
 }

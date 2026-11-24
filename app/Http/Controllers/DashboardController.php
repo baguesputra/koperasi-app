@@ -78,6 +78,7 @@ class DashboardController extends Controller
             ->where('cair_oleh_bendahara', false)
             ->count();
         $menungguPencairanPinjaman = Pinjaman::where('status', 'approved_ketua')->count();
+        $menungguPencairanResign = Anggota::where('status_pencairan_resign', 'menunggu')->count();
 
         $percepatanAntre = $hitungStatus(PengajuanPercepatan::class);
         $menungguPerubahanTenorBendahara = (int) ($percepatanAntre['diajukan'] ?? 0);
@@ -358,6 +359,7 @@ class DashboardController extends Controller
                 'menunggu_tinjauan_bendahara' => $menungguTinjauanBendahara,
                 'menunggu_approval_ketua' => $menungguApprovalKetua,
                 'menunggu_pencairan_pinjaman' => $menungguPencairanPinjaman,
+                'menunggu_pencairan_resign' => $menungguPencairanResign,
                 'perubahan_tenor' => $menungguPerubahanTenor,
                 'perubahan_tenor_bendahara' => $menungguPerubahanTenorBendahara,
                 'perubahan_tenor_ketua' => $menungguPerubahanTenorKetua,

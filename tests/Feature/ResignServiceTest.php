@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Laporan\LaporanRegistry;
 use App\Models\Anggota;
 use App\Models\Angsuran;
 use App\Models\JurnalKas;
@@ -11,6 +12,9 @@ use App\Models\Simpanan;
 use App\Models\User;
 use App\Services\Anggota\ResignService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class ResignServiceTest extends TestCase
@@ -87,6 +91,9 @@ class ResignServiceTest extends TestCase
 
     public function test_resign_offset_simpanan_dan_kembalikan_sisa_dari_bank(): void
     {
+        Queue::fake();
+        Storage::fake('local');
+
         $user = $this->actor();
         $this->actingAs($user);
         KasKoperasi::create([
@@ -98,19 +105,47 @@ class ResignServiceTest extends TestCase
         ]);
         $anggota = $this->anggotaDenganSimpananDanPinjaman($user);
 
-        app(ResignService::class)->proses(
+        $service = app(ResignService::class);
+        $tgl = now()->format('Y-m-d');
+
+        // Tahap 1: Pelunasan 600rb masuk bank; sisa 400rb menunggu pencairan Bendahara (bank = 5,6jt)
+        $service->proses(
             $anggota,
             'Resign pribadi',
-            now()->format('Y-m-d'),
-            $user
+            $tgl,
+            $user,
+            ['nama_bank' => 'BCA', 'no_rekening' => '1234567890', 'atas_nama' => 'Budi Test']
         );
 
         $kas = KasKoperasi::first();
+        $this->assertEquals(5_600_000, (float) $kas->saldo_bank);
+        $this->assertSame('menunggu', $anggota->refresh()->status_pencairan_resign);
+        $this->assertSame('BCA', $anggota->resign_snapshot_bank);
+        $this->assertSame('1234567890', $anggota->resign_snapshot_no_rekening);
+        $this->assertSame(0, JurnalKas::where('kategori', 'return_simpanan_wajib')->count());
+
+        // Neraca sebelum dicairkan Bendahara tetap seimbang melalui Hutang Pengembalian Resign
+        $neracaTahap1 = LaporanRegistry::ambil('neraca')['data'](request()->merge(['tanggal' => $tgl]));
+        $hutangTahap1 = collect($neracaTahap1['rows'])->firstWhere(fn ($r) => $r[0] === 'Hutang')[1];
+        $this->assertEqualsWithDelta(400_000, $hutangTahap1, 0.01);
+
+        // Tahap 2: Bendahara mencairkan sisa 400rb + upload bukti -> bank berkurang jadi 5,2jt
+        $service->cairkanBendahara(
+            anggota: $anggota->refresh(),
+            buktiTransfer: UploadedFile::fake()->image('bukti-resign.jpg'),
+            tanggalPencairan: $tgl,
+            akunKas: 'bank',
+            catatan: 'Transfer pengembalian resign selesai.',
+            aktorId: $user->id,
+        );
+
+        $kas->refresh();
 
         // Pelunasan 600rb di-offset simpanan (masuk bank); sisa 400rb
         // kembali ke anggota dari bank: 5jt + 600rb − 400rb.
         $this->assertEquals(5_200_000, (float) $kas->saldo_bank);
         $this->assertEquals(1_000_000, (float) $kas->saldo_kas_kecil);
+        $this->assertSame('dicairkan', $anggota->refresh()->status_pencairan_resign);
 
         // Jurnal pelunasan masuk bank (bukan audit saldo 0).
         $this->assertEquals(
@@ -135,6 +170,11 @@ class ResignServiceTest extends TestCase
             'tipe' => 'keluar',
             'jumlah' => 400_000,
         ]);
+
+        // Setelah cair, Hutang Pengembalian Resign kembali 0
+        $neracaTahap2 = LaporanRegistry::ambil('neraca')['data'](request()->merge(['tanggal' => $tgl]));
+        $hutangTahap2 = collect($neracaTahap2['rows'])->firstWhere(fn ($r) => $r[0] === 'Hutang')[1];
+        $this->assertEqualsWithDelta(0, $hutangTahap2, 0.01);
 
         // Angsuran & pinjaman lunas.
         $this->assertDatabaseHas('angsuran', ['cicilan_ke' => 1, 'status' => 'lunas']);

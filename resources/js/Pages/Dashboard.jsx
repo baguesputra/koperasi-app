@@ -145,6 +145,7 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                 { label: 'Verifikasi Tabungan', value: actionable.tabungan_admin_menunggu ?? 0, href: route('persetujuan.index', { kategori: 'tabungan', tahap: 'admin' }), permission: 'tabungan.tinjau-admin' },
                 { label: 'Tinjau Tabungan', value: actionable.tabungan_bendahara_menunggu ?? actionable.tabungan_menunggu ?? 0, href: route('persetujuan.index', { kategori: 'tabungan', tahap: 'bendahara' }), permission: 'tabungan.kelola' },
                 { label: 'Pencairan Tabungan', value: actionable.pencairan_tabungan_menunggu ?? 0, href: route('persetujuan.index', { kategori: 'pencairan', sub: 'tabungan' }), permission: 'tabungan.kelola' },
+                { label: 'Pencairan Resign', value: actionable.menunggu_pencairan_resign ?? 0, href: route('persetujuan.index', { kategori: 'pencairan' }), permission: 'pinjaman.cairkan' },
                 { label: 'Setujui Tabungan', value: actionable.tabungan_ketua_menunggu ?? 0, href: route('persetujuan.index', { kategori: 'tabungan', tahap: 'ketua' }), permission: 'tabungan.approve-ketua' },
             ],
         },

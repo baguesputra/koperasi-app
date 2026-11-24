@@ -2,15 +2,19 @@
 
 namespace Tests\Feature;
 
+use App\Models\Anggota;
 use App\Models\PengajuanLimit;
 use App\Models\PengajuanPenghapusanPinjaman;
 use App\Models\PengajuanPercepatan;
 use App\Models\PengajuanTransaksiTabungan;
 use App\Models\Pinjaman;
 use App\Models\RekeningTabungan;
+use App\Models\Simpanan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia;
 use Tests\Concerns\MembuatDataUji;
 use Tests\TestCase;
@@ -103,6 +107,7 @@ class PersetujuanHubTest extends TestCase
         PengajuanPercepatan::query()->delete();
         PengajuanLimit::query()->delete();
         PengajuanPenghapusanPinjaman::query()->delete();
+        Anggota::where('status_pencairan_resign', 'menunggu')->update(['status_pencairan_resign' => null]);
 
         $anggota = $this->buatAnggota('HUB-900002');
         $rekening = RekeningTabungan::create([
@@ -212,6 +217,68 @@ class PersetujuanHubTest extends TestCase
                     fn ($item) => $item['kategori'] === 'pinjaman'
                         && $item['tahap'] === 'admin'
                         && ($item['detail']['id'] ?? null) === $pinjaman->id
+                ))
+            );
+    }
+
+    public function test_pencairan_resign_masuk_ke_pencairan_dana_dan_riwayat_hub(): void
+    {
+        Queue::fake();
+        Storage::fake('local');
+
+        $anggota = $this->buatAnggota('HUB-900006');
+        Simpanan::create([
+            'anggota_id' => $anggota->id,
+            'jenis' => 'pokok',
+            'jumlah' => 300_000,
+            'bulan_periode' => now()->format('Y-m'),
+            'tanggal_input' => now(),
+            'input_by' => 1,
+        ]);
+
+        // Sekretaris memproses resign -> menunggu pencairan Bendahara
+        $this->masuk('ADM-000001');
+        $this->post(route('anggota.resign', $anggota), [
+            'alasan_resign' => 'Resign uji integrasi Pusat Persetujuan.',
+            'tanggal_resign' => now()->format('Y-m-d'),
+            'rekening_bank' => 'BCA',
+            'rekening_nomor' => '8877665544',
+            'rekening_atas_nama' => $anggota->nama,
+        ])->assertRedirect(route('anggota.index'));
+
+        // Bendahara melihat antrean cair_resign di Pusat Persetujuan & dapat mengunduh slip PDF
+        $this->masuk('BEN-000001');
+        $this->get(route('anggota.slip-resign', $anggota))->assertOk();
+
+        $this->get(route('persetujuan.index', ['kategori' => 'pencairan']))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Persetujuan/Index')
+                ->where('notifications.menunggu_pencairan_resign', 1)
+                ->where('inbox.antrean', fn ($antrean) => collect($antrean)->contains(
+                    fn ($item) => $item['jenis_kode'] === 'cair_resign'
+                        && ($item['detail']['id'] ?? null) === $anggota->id
+                        && ($item['detail']['rekening']['no_rekening'] ?? null) === '8877665544'
+                ))
+            );
+
+        // Eksekusi pencairan resign dari Pusat Persetujuan -> masuk ke tab Riwayat
+        $this->from('/persetujuan?kategori=pencairan')
+            ->post(route('bendahara.pencairan-resign.cair', $anggota), [
+                'akun_kas' => 'kas_kecil',
+                'tanggal_pencairan' => now()->format('Y-m-d'),
+                'bukti_pencairan' => UploadedFile::fake()->image('bukti-kas-kecil.png'),
+                'catatan' => 'Dibayar tunai kas kecil.',
+            ])->assertRedirect('/persetujuan?kategori=pencairan');
+
+        $this->get(route('persetujuan.index', ['view' => 'riwayat']))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('notifications.menunggu_pencairan_resign', 0)
+                ->where('inbox.riwayat', fn ($riwayat) => collect($riwayat)->contains(
+                    fn ($item) => $item['jenis_kode'] === 'cair_resign'
+                        && $item['status'] === 'dicairkan'
+                        && ($item['detail']['id'] ?? null) === $anggota->id
                 ))
             );
     }

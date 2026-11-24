@@ -44,6 +44,17 @@ class Anggota extends Model
         'resigned_by',
         'resigned_settlement_json',
         'reaktivasi_history_json',
+        'status_pencairan_resign',
+        'resign_snapshot_bank',
+        'resign_snapshot_no_rekening',
+        'resign_snapshot_atas_nama',
+        'resign_akun_kas_pencairan',
+        'tanggal_pencairan_resign',
+        'dicairkan_resign_oleh',
+        'catatan_pencairan_resign',
+        'bukti_pencairan_resign_path',
+        'bukti_pencairan_resign_nama_asli',
+        'bukti_pencairan_resign_mime',
         'limit_custom',
         'limit_custom_keterangan',
         'no_hp',
@@ -56,6 +67,7 @@ class Anggota extends Model
         'tanggal_mulai_kerja' => 'date',
         'tanggal_jadi_anggota' => 'date',
         'tanggal_resign' => 'date',
+        'tanggal_pencairan_resign' => 'date',
         'resigned_settlement_json' => 'array',
         'reaktivasi_history_json' => 'array',
         'limit_custom' => 'decimal:2',
@@ -64,6 +76,11 @@ class Anggota extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function dicairkanResignOleh(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'dicairkan_resign_oleh');
     }
 
     public function perusahaan(): BelongsTo
@@ -315,6 +332,22 @@ class Anggota extends Model
             ];
         }
 
+        $daftarRekening = $this->rekening()
+            ->orderByDesc('is_default')
+            ->orderBy('id')
+            ->get()
+            ->map(fn ($r) => [
+                'id' => $r->id,
+                'nama_bank' => $r->nama_bank,
+                'no_rekening' => $r->no_rekening,
+                'atas_nama' => $r->atas_nama,
+                'is_default' => (bool) $r->is_default,
+            ])
+            ->values()
+            ->all();
+
+        $rekeningDefault = $daftarRekening[0] ?? null;
+
         return [
             'simpanan' => [
                 'pokok' => $simpananPokok,
@@ -323,6 +356,8 @@ class Anggota extends Model
                 'total_pokok_wajib' => $totalSimpananKembali,
             ],
             'tabungan' => $tabunganRingkasan,
+            'rekening_tujuan' => $rekeningDefault,
+            'daftar_rekening' => $daftarRekening,
             'pinjaman' => [
                 'jumlah_pinjaman_aktif' => $pinjamanAktif->count(),
                 'sisa_tagihan' => $totalSisaPinjaman,
@@ -346,6 +381,9 @@ class Anggota extends Model
     public function dataSlipResign(): array
     {
         $settlement = $this->resigned_settlement_json ?? [];
+        $bankTujuan = $this->resign_snapshot_bank ?? ($settlement['rekening_tujuan']['nama_bank'] ?? null);
+        $noRekTujuan = $this->resign_snapshot_no_rekening ?? ($settlement['rekening_tujuan']['no_rekening'] ?? null);
+        $atasNamaTujuan = $this->resign_snapshot_atas_nama ?? ($settlement['rekening_tujuan']['atas_nama'] ?? null);
 
         return [
             'anggota' => [
@@ -376,6 +414,14 @@ class Anggota extends Model
                 'tanggal_proses' => $settlement['tanggal_proses'] ?? $this->tanggal_resign?->format('Y-m-d'),
                 'aktor' => $settlement['aktor'] ?? null,
                 'pinjaman_rincian' => $settlement['pinjaman_rincian'] ?? [],
+                'rekening_tujuan' => ($bankTujuan || $noRekTujuan) ? [
+                    'nama_bank' => $bankTujuan,
+                    'no_rekening' => $noRekTujuan,
+                    'atas_nama' => $atasNamaTujuan,
+                ] : null,
+                'status_pencairan' => $this->status_pencairan_resign ?? ($settlement['status_pencairan'] ?? null),
+                'tanggal_pencairan' => $this->tanggal_pencairan_resign?->format('Y-m-d') ?? ($settlement['tanggal_pencairan'] ?? null),
+                'dicairkan_oleh' => $this->dicairkanResignOleh?->name ?? ($settlement['dicairkan_oleh'] ?? null),
             ],
             'doc_no' => $settlement['doc_no'] ?? null,
             'kota_ttd' => config('koperasi.kota_ttd', 'Banjarmasin'),

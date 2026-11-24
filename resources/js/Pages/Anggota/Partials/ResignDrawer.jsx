@@ -1,12 +1,13 @@
 import { useForm } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
-import { AlertTriangle, ArrowLeft, HandCoins, CheckCircle2, Loader2, PiggyBank, CreditCard, CalendarDays } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, HandCoins, CheckCircle2, Loader2, PiggyBank, CreditCard, CalendarDays, Landmark } from 'lucide-react';
 import Button from '@/Components/ui/Button';
 import {
     DrawerBody,
     DrawerFooter,
     DrawerFooterActions,
     DrawerKeyValue,
+    DrawerNoteCallout,
     DrawerSection,
 } from '@/Components/ui/DrawerSection';
 import FormField from '@/Components/ui/FormField';
@@ -25,14 +26,24 @@ export default function ResignDrawer({ anggota, onClose }) {
     const { data, setData, post, processing, errors } = useForm({
         alasan_resign: '',
         tanggal_resign: new Date().toISOString().slice(0, 10),
-        konfirmasi_pelunasan: false,
+        rekening_bank: '',
+        rekening_nomor: '',
+        rekening_atas_nama: '',
     });
 
     useEffect(() => {
         setLoading(true);
         axios.get(route('anggota.ringkasan-resign', anggota.id))
             .then((res) => {
-                setRingkasan(res.data.ringkasan);
+                const payloadRingkasan = res.data.ringkasan;
+                const rek = payloadRingkasan?.rekening_tujuan;
+                setRingkasan(payloadRingkasan);
+                setData((prev) => ({
+                    ...prev,
+                    rekening_bank: rek?.nama_bank ?? '',
+                    rekening_nomor: rek?.no_rekening ?? '',
+                    rekening_atas_nama: rek?.atas_nama ?? anggota.nama ?? '',
+                }));
                 setFetchError(null);
             })
             .catch((err) => {
@@ -50,7 +61,8 @@ export default function ResignDrawer({ anggota, onClose }) {
     }
 
     const cukup = ringkasan?.estimasi_pengembalian?.cukup_untuk_pelunasan ?? true;
-    const shortfall = ringkasan?.estimasi_pengembalian?.shortfall ?? 0;
+    const totalDikembalikan = ringkasan?.estimasi_pengembalian?.total_dikembalikan ?? 0;
+    const daftarRekening = ringkasan?.daftar_rekening ?? [];
     const tanggalResign = data.tanggal_resign || new Date().toISOString().slice(0, 10);
     const jatuhTempo = (() => {
         try {
@@ -127,49 +139,76 @@ export default function ResignDrawer({ anggota, onClose }) {
                             </FormField>
                         </DrawerSection>
 
-                        {cukup ? (
-                            <label
-                                className={`flex items-start gap-2.5 cursor-pointer rounded-xl border-2 px-3.5 py-3 transition-colors shadow-[0_1px_3px_rgba(15,30,54,0.04)] ${
-                                    data.konfirmasi_pelunasan
-                                        ? 'bg-rose-50/40 border-rose-300'
-                                        : 'bg-white border-slate-200/80 hover:border-slate-300'
-                                }`}
+                        {totalDikembalikan > 0 && (
+                            <DrawerSection
+                                title="Rekening Tujuan Pengembalian"
+                                description="Otomatis terisi dari rekening anggota dan diteruskan ke antrean Pencairan Dana Bendahara."
+                                icon={Landmark}
+                                tone="emerald"
                             >
-                                <input
-                                    type="checkbox"
-                                    checked={data.konfirmasi_pelunasan}
-                                    onChange={(e) => setData('konfirmasi_pelunasan', e.target.checked)}
-                                    className="mt-0.5 w-4 h-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500 shrink-0"
+                                {daftarRekening.length > 1 && (
+                                    <div className="flex flex-wrap gap-1.5 mb-2">
+                                        {daftarRekening.map((r) => {
+                                            const terpilih =
+                                                data.rekening_bank === r.nama_bank
+                                                && data.rekening_nomor === r.no_rekening;
+                                            return (
+                                                <button
+                                                    key={r.id}
+                                                    type="button"
+                                                    onClick={() => setData((prev) => ({
+                                                        ...prev,
+                                                        rekening_bank: r.nama_bank ?? '',
+                                                        rekening_nomor: r.no_rekening ?? '',
+                                                        rekening_atas_nama: r.atas_nama ?? anggota.nama ?? '',
+                                                    }))}
+                                                    className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition-colors ${
+                                                        terpilih
+                                                            ? 'bg-brand-navy text-white border-brand-navy'
+                                                            : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                                                    }`}
+                                                >
+                                                    {r.nama_bank} • {r.no_rekening}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <FormField label="Nama Bank" error={errors.rekening_bank}>
+                                        <TextField
+                                            size="sm"
+                                            value={data.rekening_bank}
+                                            onChange={(e) => setData('rekening_bank', e.target.value)}
+                                            placeholder="Contoh: BCA / Mandiri / BRI"
+                                        />
+                                    </FormField>
+                                    <FormField label="No. Rekening" error={errors.rekening_nomor}>
+                                        <TextField
+                                            size="sm"
+                                            value={data.rekening_nomor}
+                                            onChange={(e) => setData('rekening_nomor', e.target.value)}
+                                            placeholder="Kosongkan jika cair tunai"
+                                        />
+                                    </FormField>
+                                </div>
+
+                                <FormField label="Atas Nama" error={errors.rekening_atas_nama}>
+                                    <TextField
+                                        size="sm"
+                                        value={data.rekening_atas_nama}
+                                        onChange={(e) => setData('rekening_atas_nama', e.target.value)}
+                                        placeholder="Nama pemilik rekening"
+                                    />
+                                </FormField>
+
+                                <DrawerNoteCallout
+                                    label="Alur Pencairan 2 Tahap"
+                                    note={`Pengembalian sebesar ${formatRupiah(totalDikembalikan)} belum memotong kas. Bendahara akan mentransfer, mengunggah bukti transfer, dan mengirim 1x notifikasi WA + Slip PDF via Pusat Persetujuan.`}
+                                    tone="emerald"
                                 />
-                                <span className="text-xs sm:text-sm text-slate-700 leading-relaxed">
-                                    Saya memahami <strong className="privacy-blur">{formatRupiah(ringkasan.pinjaman.sisa_tagihan)}</strong> dilunasi
-                                    otomatis dan <strong className="privacy-blur">{formatRupiah(ringkasan.estimasi_pengembalian.total_dikembalikan)}</strong> dikembalikan.
-                                    Akun login dinonaktifkan.
-                                </span>
-                            </label>
-                        ) : (
-                            <label
-                                className={`flex items-start gap-2.5 cursor-pointer rounded-xl border-2 px-3.5 py-3 transition-colors shadow-[0_1px_3px_rgba(15,30,54,0.04)] ${
-                                    data.konfirmasi_pelunasan
-                                        ? 'bg-amber-50/60 border-amber-400'
-                                        : 'bg-white border-amber-200/90 hover:border-amber-300'
-                                }`}
-                            >
-                                <input
-                                    type="checkbox"
-                                    checked={data.konfirmasi_pelunasan}
-                                    onChange={(e) => setData('konfirmasi_pelunasan', e.target.checked)}
-                                    className="mt-0.5 w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 shrink-0"
-                                />
-                                <span className="text-xs sm:text-sm text-amber-900 leading-relaxed">
-                                    Simpanan tidak cukup. Seluruh simpanan dialokasikan ke angsuran terawal,
-                                    sisa <strong className="privacy-blur">{formatRupiah(shortfall)}</strong> menjadi cicilan akhir jatuh tempo{' '}
-                                    <strong>{jatuhTempo}</strong>. Status menjadi menunggu sampai lunas via Konfirmasi Angsuran.
-                                </span>
-                            </label>
-                        )}
-                        {errors.konfirmasi_pelunasan && (
-                            <p className="text-xs text-red-600 font-medium">{errors.konfirmasi_pelunasan}</p>
+                            </DrawerSection>
                         )}
                     </>
                 )}
@@ -186,7 +225,7 @@ export default function ResignDrawer({ anggota, onClose }) {
                             type="submit"
                             variant="danger"
                             size="drawer"
-                            disabled={processing || !data.konfirmasi_pelunasan || !data.alasan_resign}
+                            disabled={processing || !data.alasan_resign.trim()}
                         >
                             {processing ? 'Memproses...' : cukup ? 'Konfirmasi Resign' : 'Resign + Jadwalkan Cicilan Akhir'}
                         </Button>

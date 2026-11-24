@@ -1,14 +1,18 @@
 <?php
-function formatRupiah($n) {
-    return 'Rp ' . number_format(floatval($n ?? 0), 0, ',', '.');
+if (! function_exists('formatRupiah')) {
+    function formatRupiah($n) {
+        return 'Rp ' . number_format(floatval($n ?? 0), 0, ',', '.');
+    }
 }
 
-function tanggalIndonesia($tgl) {
-    if (! $tgl) return '-';
-    try {
-        return \Carbon\Carbon::parse($tgl)->translatedFormat('d F Y');
-    } catch (\Throwable $e) {
-        return $tgl;
+if (! function_exists('tanggalIndonesia')) {
+    function tanggalIndonesia($tgl) {
+        if (! $tgl) return '-';
+        try {
+            return \Carbon\Carbon::parse($tgl)->translatedFormat('d F Y');
+        } catch (\Throwable $e) {
+            return $tgl;
+        }
     }
 }
 

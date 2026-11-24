@@ -1,6 +1,6 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, router, usePage } from '@inertiajs/react';
-import { Search, Upload, Users, UserCheck, UserX, UserMinus, RotateCcw, FileText, ChevronRight, X, RefreshCw } from 'lucide-react';
+import { Search, Upload, Users, UserCheck, UserX, UserMinus, RotateCcw, FileText, ChevronRight, X, RefreshCw, Image } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import useDebouncedValue from '@/Utils/useDebouncedValue';
 import Button from '@/Components/ui/Button';
@@ -244,7 +244,19 @@ export default function Index({ anggota, statistik, filters, daftarCabang = [] }
                                         <td className="hidden lg:table-cell px-4 py-2.5 text-slate-600 max-w-[200px] truncate">{a.jabatanMaster?.nama ?? a.jabatan}</td>
                                         <td className="hidden lg:table-cell px-4 py-2.5 text-slate-600 whitespace-nowrap">{formatLamaAnggota(a.lama_keanggotaan_tahun)}</td>
                                         <td className="px-4 py-2.5">
-                                            <StatusBadge status={a.status} />
+                                            <div className="flex flex-col items-start gap-0.5">
+                                                <StatusBadge status={a.status} />
+                                                {a.status_pencairan_resign === 'menunggu' && (
+                                                    <span className="text-[11px] font-semibold text-amber-700">
+                                                        Menunggu transfer Bendahara
+                                                    </span>
+                                                )}
+                                                {a.status_pencairan_resign === 'dicairkan' && a.tanggal_pencairan_resign && (
+                                                    <span className="text-[11px] text-emerald-700">
+                                                        Cair {a.tanggal_pencairan_resign}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                         {canResign && (
                                             <td className="px-4 py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
@@ -254,8 +266,20 @@ export default function Index({ anggota, statistik, filters, daftarCabang = [] }
                                                     )}
                                                     {(a.status === 'resign' || a.status === 'resign_menunggu') && (
                                                         <>
-                                                            {a.status === 'resign' && (
+                                                            {a.status === 'resign' && a.status_pencairan_resign !== 'menunggu' && (
                                                                 <TombolAksi label={`Aktifkan ${a.nama}`} title="Aktifkan kembali" tone="green" onClick={() => setReaktivasiAnggota(a)} />
+                                                            )}
+                                                            {a.bukti_pencairan_resign_url && (
+                                                                <a
+                                                                    href={a.bukti_pencairan_resign_url}
+                                                                    target="_blank"
+                                                                    rel="noreferrer"
+                                                                    title="Lihat bukti transfer resign"
+                                                                    aria-label={`Bukti transfer resign ${a.nama}`}
+                                                                    className="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-transparent text-slate-400 transition-all duration-200 hover:text-emerald-700 hover:bg-emerald-50 hover:border-emerald-200 hover:shadow-sm"
+                                                                >
+                                                                    <Image size={16} />
+                                                                </a>
                                                             )}
                                                             <TombolAksi label={`Slip resign ${a.nama}`} title="Slip resign" tone="blue" onClick={() => bukaSlip(a)} />
                                                         </>

@@ -1,8 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { formatRupiah } from '@/Utils/formatCurrency';
+import { usePrivacy } from '@/Contexts/PrivacyContext';
 
 export function usePrivasiNominal() {
     const [tampil, setTampil] = useState(false);
+    const { isScreenLocked } = usePrivacy();
+
+    useEffect(() => {
+        if (isScreenLocked) {
+            setTampil(false);
+        }
+    }, [isScreenLocked]);
 
     function alih() {
         setTampil((v) => !v);

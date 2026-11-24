@@ -75,6 +75,11 @@ class AnggotaController extends Controller
                 'no_hp' => $a->no_hp,
                 'alamat' => $a->alamat,
                 'foto_url' => $a->foto_url,
+                'status_pencairan_resign' => $a->status_pencairan_resign,
+                'tanggal_pencairan_resign' => $a->tanggal_pencairan_resign?->format('d M Y'),
+                'bukti_pencairan_resign_url' => $a->bukti_pencairan_resign_path
+                    ? route('anggota.bukti-pencairan-resign', $a->id)
+                    : null,
                 'user' => $a->user ? [
                     'id' => $a->user->id,
                     'email' => $a->user->email,
@@ -180,21 +185,36 @@ class AnggotaController extends Controller
 
     public function resign(ResignAnggotaRequest $request, Anggota $anggota, ResignService $resignService)
     {
+        $rekeningTujuan = $request->filled('rekening_bank') || $request->filled('rekening_nomor')
+            ? [
+                'nama_bank' => $request->input('rekening_bank'),
+                'no_rekening' => $request->input('rekening_nomor'),
+                'atas_nama' => $request->input('rekening_atas_nama'),
+            ]
+            : null;
+
         try {
             $resignService->proses(
                 $anggota,
                 $request->string('alasan_resign')->toString(),
                 $request->date('tanggal_resign')->format('Y-m-d'),
-                $request->user()
+                $request->user(),
+                $rekeningTujuan,
             );
         } catch (\RuntimeException $e) {
             return back()->withErrors(['alasan_resign' => $e->getMessage()]);
         }
 
         $anggota->refresh();
-        $pesan = $anggota->status === 'resign_menunggu'
-            ? "Resign {$anggota->nama} menunggu pelunasan cicilan akhir. Rincian dikirim via WhatsApp."
-            : "Anggota {$anggota->nama} berhasil di-resign. Slip pengembalian tersedia di detail.";
+        if ($anggota->status === 'resign_menunggu') {
+            $pesan = $anggota->status_pencairan_resign === 'menunggu'
+                ? "Resign {$anggota->nama} menunggu pelunasan cicilan akhir. Pengembalian saldo tabungan masuk ke antrean Pencairan Dana Bendahara."
+                : "Resign {$anggota->nama} menunggu pelunasan cicilan akhir. Rincian dikirim via WhatsApp.";
+        } elseif ($anggota->status_pencairan_resign === 'menunggu') {
+            $pesan = "Resign {$anggota->nama} diproses. Pengembalian simpanan/tabungan menunggu pencairan Bendahara di Pusat Persetujuan.";
+        } else {
+            $pesan = "Anggota {$anggota->nama} berhasil di-resign. Slip penyelesaian tersedia di detail.";
+        }
 
         return redirect()->route('anggota.index')->with('status', $pesan);
     }

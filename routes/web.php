@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\PinjamanController as AdminPinjamanController;
 use App\Http\Controllers\Admin\TabunganController as AdminTabunganController;
+use App\Http\Controllers\AnggotaBuktiResignController;
 use App\Http\Controllers\AnggotaController;
 use App\Http\Controllers\API\AnggotaController as ApiAnggotaController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
@@ -9,6 +10,7 @@ use App\Http\Controllers\Auth\MobileSsoController;
 use App\Http\Controllers\Auth\SsoController;
 use App\Http\Controllers\Bendahara\AngsuranController;
 use App\Http\Controllers\Bendahara\PencairanPinjamanController;
+use App\Http\Controllers\Bendahara\PencairanResignController;
 use App\Http\Controllers\Bendahara\PengajuanLimitController as BendaharaPengajuanLimitController;
 use App\Http\Controllers\Bendahara\PercepatanController as BendaharaPercepatanController;
 use App\Http\Controllers\Bendahara\PinjamanController as BendaharaPinjamanController;
@@ -226,7 +228,14 @@ Route::middleware(['auth', 'permission:anggota.resign'])->group(function () {
     Route::get('/anggota/{anggota}/ringkasan-resign', [AnggotaController::class, 'ringkasanResign'])->name('anggota.ringkasan-resign');
     Route::post('/anggota/{anggota}/resign', [AnggotaController::class, 'resign'])->name('anggota.resign');
     Route::post('/anggota/{anggota}/aktifkan-kembali', [AnggotaController::class, 'aktifkanKembali'])->name('anggota.aktifkan-kembali');
+});
+
+Route::middleware(['auth', 'permission:anggota.resign|pinjaman.cairkan'])->group(function () {
     Route::get('/anggota/{anggota}/slip-resign', [AnggotaController::class, 'slipResign'])->name('anggota.slip-resign');
+});
+
+Route::middleware('auth')->group(function () {
+    Route::get('/anggota/{anggota}/bukti-pencairan-resign', [AnggotaBuktiResignController::class, 'show'])->name('anggota.bukti-pencairan-resign');
 });
 
 // ==========================================
@@ -365,6 +374,7 @@ Route::middleware('auth')->prefix('bendahara')->name('bendahara.')->group(functi
     Route::middleware('permission:pinjaman.cairkan')->group(function () {
         Route::get('/pencairan-pinjaman', [PencairanPinjamanController::class, 'index'])->name('pencairan-pinjaman.index');
         Route::post('/pencairan-pinjaman/{pinjaman}/cair', [PencairanPinjamanController::class, 'cair'])->name('pencairan-pinjaman.cair')->middleware('idempotent');
+        Route::post('/pencairan-resign/{anggota}/cair', [PencairanResignController::class, 'cair'])->name('pencairan-resign.cair')->middleware('idempotent');
     });
 
     Route::middleware('permission:limit.tinjau-bendahara')->group(function () {

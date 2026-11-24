@@ -4,8 +4,10 @@ use Endroid\QrCode\Writer\PngWriter;
 use Endroid\QrCode\Encoding\Encoding;
 use Endroid\QrCode\ErrorCorrectionLevel;
 
-function formatRupiah($n) {
-    return 'Rp ' . number_format(floatval($n ?? 0), 0, ',', '.');
+if (! function_exists('formatRupiah')) {
+    function formatRupiah($n) {
+        return 'Rp ' . number_format(floatval($n ?? 0), 0, ',', '.');
+    }
 }
 
 $kopNama = config('koperasi.nama', 'KOPERASI KARYAWAN');

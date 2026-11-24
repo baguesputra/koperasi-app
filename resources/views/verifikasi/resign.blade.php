@@ -1,6 +1,10 @@
 <?php
-function rp($n) { return 'Rp '.number_format((float) ($n ?? 0), 0, ',', '.'); }
-function tgl($t) { try { return \Carbon\Carbon::parse($t)->translatedFormat('d F Y'); } catch (\Throwable $e) { return $t ?? '-'; } }
+if (! function_exists('rp')) {
+    function rp($n) { return 'Rp '.number_format((float) ($n ?? 0), 0, ',', '.'); }
+}
+if (! function_exists('tgl')) {
+    function tgl($t) { try { return \Carbon\Carbon::parse($t)->translatedFormat('d F Y'); } catch (\Throwable $e) { return $t ?? '-'; } }
+}
 $s = $settlement ?? [];
 $mode = $s['mode'] ?? 'selesai';
 $menunggu = ($anggota->status ?? '') === 'resign_menunggu' || $mode === 'menunggu_pelunasan_akhir';

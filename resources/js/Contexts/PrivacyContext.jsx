@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
+import { router } from '@inertiajs/react';
 
 const PrivacyContext = createContext({
     isPrivacyActive: true,
@@ -9,10 +10,35 @@ const PrivacyContext = createContext({
     unlockScreen: () => {},
 });
 
-const INACTIVITY_PRIVACY_MS = 5 * 60 * 1000; // 5 menit (300.000 ms): Privasi blur otomatis aktif
-const AFTER_BLUR_LOCK_MS = 3 * 60 * 1000;    // 3 menit (180.000 ms) setelah buram (manual/otomatis): Layar terkunci (Screen Lock)
+const INACTIVITY_PRIVACY_MS = 5 * 60 * 1000;      // 5 menit (300.000 ms) idle layar terbuka Pengurus -> buram otomatis
+const AFTER_BLUR_LOCK_MS = 3 * 60 * 1000;         // 3 menit (180.000 ms) idle saat layar buram Pengurus -> kunci layar
+const PORTAL_INACTIVITY_LOCK_MS = 5 * 60 * 1000;  // 5 menit (300.000 ms) idle di Portal Anggota -> kunci layar
+const ACTIVITY_THROTTLE_MS = 1000;                // Throttle reset timer per 1 detik agar hemat CPU
+const BROADCAST_ACTIVITY_THROTTLE_MS = 5000;      // Sinkronisasi aktivitas antar-tab setiap 5 detik
+
+function getPathname() {
+    return typeof window !== 'undefined' ? window.location.pathname : '/';
+}
+
+function isPortalPath(pathname) {
+    return pathname === '/portal' || pathname.startsWith('/portal/');
+}
+
+function isPublicPath(pathname) {
+    return (
+        pathname === '/' ||
+        pathname.startsWith('/login') ||
+        pathname.startsWith('/register') ||
+        pathname.startsWith('/forgot-password') ||
+        pathname.startsWith('/reset-password') ||
+        pathname.startsWith('/auth/') ||
+        pathname.startsWith('/verifikasi')
+    );
+}
 
 export function PrivacyProvider({ children }) {
+    const [pathname, setPathname] = useState(getPathname);
+
     // Default aktif (true) saat sesi baru dibuka
     const [isPrivacyActive, setIsPrivacyActive] = useState(() => {
         if (typeof window === 'undefined') return true;
@@ -39,6 +65,27 @@ export function PrivacyProvider({ children }) {
     const timerPrivacyRef = useRef(null);
     const timerLockRef = useRef(null);
     const broadcastRef = useRef(null);
+    const startStageTimerRef = useRef(null);
+    const lastActivityResetRef = useRef(0);
+    const lastActivityBroadcastRef = useRef(0);
+
+    // Pantau perpindahan rute SPA Inertia agar aturan timer Portal vs Pengurus selalu akurat
+    useEffect(() => {
+        if (typeof window === 'undefined') return undefined;
+
+        const syncPathname = () => setPathname(getPathname());
+        const removeNavigate = router.on('navigate', syncPathname);
+        window.addEventListener('popstate', syncPathname);
+
+        return () => {
+            if (typeof removeNavigate === 'function') {
+                removeNavigate();
+            } else if (typeof router.off === 'function') {
+                router.off('navigate', syncPathname);
+            }
+            window.removeEventListener('popstate', syncPathname);
+        };
+    }, []);
 
     // Sinkronkan ke sessionStorage & pasang atribut data-privacy di elemen root (html)
     useEffect(() => {
@@ -104,6 +151,10 @@ export function PrivacyProvider({ children }) {
                 setIsScreenLocked(false);
                 isScreenLockedRef.current = false;
                 sessionStorage.setItem('screen_locked', '0');
+            } else if (e.data?.type === 'ACTIVITY') {
+                if (!isScreenLockedRef.current) {
+                    startStageTimerRef.current?.();
+                }
             }
         };
 
@@ -135,11 +186,14 @@ export function PrivacyProvider({ children }) {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [togglePrivacy, lockScreen]);
 
-    // Two-Stage State-Driven Timers:
-    // 1. Saat tidak buram (isPrivacyActive === false):
-    //    Hitung mundur 5 menit inaktivitas -> otomatis aktifkan buram (setIsPrivacyActive(true)).
-    // 2. Setiap kali setelah buram (isPrivacyActive === true, baik diklik manual maupun otomatis setelah 5 menit):
-    //    Hitung mundur 3 menit -> kunci halaman (lockScreen()).
+    // Timer Inaktivitas & Screen Lock:
+    // 1. Di halaman publik (login, verifikasi, dll.): timer nonaktif.
+    // 2. Di Portal Anggota (/portal/*): hitung mundur inaktivitas penuh 5 menit menuju PIN Screen Lock,
+    //    selalu di-reset setiap aktivitas pengguna (mousemove, keydown, click, scroll, touchstart).
+    // 3. Di halaman Pengurus:
+    //    - Saat layar terbuka (isPrivacyActive === false): 5 menit inaktivitas -> buram otomatis.
+    //    - Saat layar buram (isPrivacyActive === true): 3 menit inaktivitas -> kunci halaman (lockScreen()),
+    //      juga selalu di-reset saat pengguna aktif sehingga tidak mengunci di tengah pekerjaan.
     useEffect(() => {
         if (typeof window === 'undefined') return undefined;
 
@@ -154,8 +208,9 @@ export function PrivacyProvider({ children }) {
             }
         };
 
-        if (isScreenLocked) {
+        if (isScreenLocked || isPublicPath(pathname)) {
             clearTimers();
+            startStageTimerRef.current = null;
             return undefined;
         }
 
@@ -164,27 +219,42 @@ export function PrivacyProvider({ children }) {
 
             clearTimers();
 
+            if (isPortalPath(pathname)) {
+                timerLockRef.current = setTimeout(() => {
+                    lockScreen();
+                }, PORTAL_INACTIVITY_LOCK_MS);
+                return;
+            }
+
             if (!isPrivacyActiveRef.current) {
-                // Stage 1: Layar sedang terbuka -> tunggu 5 menit inaktivitas untuk buram otomatis
+                // Stage 1 (Pengurus): Layar sedang terbuka -> tunggu 5 menit inaktivitas untuk buram otomatis
                 timerPrivacyRef.current = setTimeout(() => {
                     setIsPrivacyActive(true);
                 }, INACTIVITY_PRIVACY_MS);
             } else {
-                // Stage 2: Layar sudah buram (manual atau otomatis) -> 3 menit kemudian kunci halaman
+                // Stage 2 (Pengurus): Layar sudah buram -> 3 menit inaktivitas kunci halaman
                 timerLockRef.current = setTimeout(() => {
                     lockScreen();
                 }, AFTER_BLUR_LOCK_MS);
             }
         };
 
+        startStageTimerRef.current = startStageTimer;
+        lastActivityResetRef.current = Date.now();
         startStageTimer();
 
         const handleActivity = () => {
-            // Saat layar terbuka (tidak buram), aktivitas pengguna mereset timer 5 menit menuju buram.
-            // Saat layar sudah buram, timer 3 menit setelah buram tetap berjalan menuju kunci layar
-            // (kecuali pengguna mematikan mode buram).
-            if (!isPrivacyActiveRef.current && !isScreenLockedRef.current) {
+            if (isScreenLockedRef.current) return;
+
+            const now = Date.now();
+            if (now - lastActivityResetRef.current >= ACTIVITY_THROTTLE_MS) {
+                lastActivityResetRef.current = now;
                 startStageTimer();
+            }
+
+            if (broadcastRef.current && now - lastActivityBroadcastRef.current >= BROADCAST_ACTIVITY_THROTTLE_MS) {
+                lastActivityBroadcastRef.current = now;
+                broadcastRef.current.postMessage({ type: 'ACTIVITY' });
             }
         };
 
@@ -193,9 +263,10 @@ export function PrivacyProvider({ children }) {
 
         return () => {
             clearTimers();
+            startStageTimerRef.current = null;
             activityEvents.forEach((ev) => window.removeEventListener(ev, handleActivity));
         };
-    }, [isPrivacyActive, isScreenLocked, lockScreen]);
+    }, [pathname, isPrivacyActive, isScreenLocked, lockScreen]);
 
     return (
         <PrivacyContext.Provider

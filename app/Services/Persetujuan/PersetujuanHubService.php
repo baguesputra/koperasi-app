@@ -2,8 +2,10 @@
 
 namespace App\Services\Persetujuan;
 
+use App\Helpers\TerbilangHelper;
 use App\Http\Controllers\Ketua\AktivasiController as KetuaAktivasiController;
 use App\Http\Controllers\Ketua\PengajuanLimitController as KetuaPengajuanLimitController;
+use App\Models\Anggota;
 use App\Models\KasKoperasi;
 use App\Models\PengajuanAktivasi;
 use App\Models\PengajuanLimit;
@@ -104,6 +106,10 @@ class PersetujuanHubService
                 $count = $hitungPinjaman('approved_ketua');
                 $notifications['menunggu_pencairan_pinjaman'] = $count;
                 $totalPersetujuan += $count;
+
+                $countResign = Anggota::where('status_pencairan_resign', 'menunggu')->count();
+                $notifications['menunggu_pencairan_resign'] = $countResign;
+                $totalPersetujuan += $countResign;
             }
         }
 
@@ -256,7 +262,7 @@ class PersetujuanHubService
         $canCairPinjaman = $permissions->contains('pinjaman.cairkan');
         $canCairTabungan = $permissions->contains('tabungan.kelola');
         if ($canCairPinjaman || $canCairTabungan) {
-            $countPencairan = ($canCairPinjaman ? (int) ($notif['menunggu_pencairan_pinjaman'] ?? 0) : 0)
+            $countPencairan = ($canCairPinjaman ? (int) ($notif['menunggu_pencairan_pinjaman'] ?? 0) + (int) ($notif['menunggu_pencairan_resign'] ?? 0) : 0)
                 + ($canCairTabungan ? (int) ($notif['menunggu_pencairan_tabungan'] ?? 0) : 0);
 
             $tabs[] = [
@@ -478,6 +484,14 @@ class PersetujuanHubService
                 ));
         }
 
+        if ($permissions->contains('pinjaman.cairkan')) {
+            Anggota::where('status_pencairan_resign', 'menunggu')
+                ->orderBy('tanggal_resign')
+                ->orderBy('id')
+                ->get()
+                ->each(fn (Anggota $a) => $items->push($this->envelopePencairanResign($a)));
+        }
+
         // 3. Tabungan (Admin, Bendahara, Ketua)
         if ($permissions->contains('tabungan.tinjau-admin')) {
             RekeningTabungan::with('anggota:id,nama,no_karyawan,cabang,foto_url,tanggal_jadi_anggota')
@@ -637,6 +651,14 @@ class PersetujuanHubService
                         'detail' => $detail,
                     ]);
                 });
+
+            Anggota::with('dicairkanResignOleh:id,name')
+                ->where('status_pencairan_resign', 'dicairkan')
+                ->latest('tanggal_pencairan_resign')
+                ->latest('id')
+                ->take(15)
+                ->get()
+                ->each(fn (Anggota $a) => $items->push($this->envelopePencairanResign($a, true)));
         }
 
         if ($permissions->contains('tabungan.kelola') || $permissions->contains('tabungan.approve-ketua') || $permissions->contains('tabungan.tinjau-admin')) {
@@ -1147,5 +1169,95 @@ class PersetujuanHubService
         }
 
         return 'Pengurus';
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function envelopePencairanResign(Anggota $a, bool $isRiwayat = false): array
+    {
+        $settlement = $a->resigned_settlement_json ?? [];
+        $totalDikembalikan = round((float) ($settlement['total_dikembalikan'] ?? 0), 2);
+        $docNo = $settlement['doc_no'] ?? '-';
+        $bank = $a->resign_snapshot_bank ?? ($settlement['rekening_tujuan']['nama_bank'] ?? null);
+        $noRek = $a->resign_snapshot_no_rekening ?? ($settlement['rekening_tujuan']['no_rekening'] ?? null);
+        $atasNama = $a->resign_snapshot_atas_nama ?? ($settlement['rekening_tujuan']['atas_nama'] ?? null);
+
+        $komponen = [];
+        if (($settlement['kembali_pokok'] ?? 0) > 0 || ($settlement['kembali_wajib'] ?? 0) > 0) {
+            $komponen[] = 'Simpanan';
+        }
+        if (($settlement['kembali_tabungan'] ?? 0) > 0) {
+            $komponen[] = 'Tabungan';
+        }
+        $komponenLabel = ! empty($komponen) ? implode(' + ', $komponen) : 'Pengembalian';
+        $rekRingkas = ($bank || $noRek) ? trim(($bank ?? '').' '.($noRek ?? '')) : null;
+
+        $subBagian = $isRiwayat
+            ? array_filter([
+                $a->tanggal_pencairan_resign ? 'Cair '.$a->tanggal_pencairan_resign->format('d M Y') : null,
+                $a->resign_akun_kas_pencairan === 'kas_kecil' ? 'Kas Kecil' : ($bank ?? 'Bank'),
+                $docNo !== '-' ? $docNo : null,
+            ])
+            : array_filter([
+                $komponenLabel,
+                $rekRingkas,
+                $docNo !== '-' ? $docNo : null,
+            ]);
+
+        return [
+            'uid' => ($isRiwayat ? 'riwayat-' : '')."pencairan-resign-{$a->id}",
+            'kategori' => 'pencairan',
+            'kategori_label' => 'Pencairan Dana',
+            'jenis_kode' => 'cair_resign',
+            'jenis_label' => 'Pencairan Resign',
+            'warna' => 'emerald',
+            'tahap' => 'bendahara',
+            'tahap_label' => 'Bendahara',
+            'anggota' => $this->ringkasAnggota($a),
+            'ringkasan_utama' => 'Rp '.number_format($totalDikembalikan, 0, ',', '.'),
+            'ringkasan_sub' => implode(' • ', $subBagian),
+            'is_nominal' => true,
+            'nada_nominal' => 'default',
+            'tanggal' => ($isRiwayat ? $a->tanggal_pencairan_resign : $a->tanggal_resign)?->format('d M Y') ?? '-',
+            'sort_ts' => ($isRiwayat ? ($a->tanggal_pencairan_resign ?? $a->updated_at) : ($a->tanggal_resign ?? $a->updated_at))?->timestamp ?? 0,
+            'status' => $isRiwayat ? 'dicairkan' : 'menunggu_pencairan',
+            'aksi_label' => $isRiwayat ? 'Detail' : 'Cairkan',
+            'detail' => [
+                'id' => $a->id,
+                'status' => $isRiwayat ? 'dicairkan' : 'menunggu_pencairan',
+                'status_anggota' => $a->status,
+                'nomor_dokumen' => $docNo,
+                'tanggal_resign' => $a->tanggal_resign?->format('d M Y') ?? '-',
+                'alasan_resign' => $a->alasan_resign ?? '-',
+                'nominal' => $totalDikembalikan,
+                'terbilang' => TerbilangHelper::angkaKeTerbilang($totalDikembalikan).' rupiah',
+                'kembali_pokok' => (float) ($settlement['kembali_pokok'] ?? 0),
+                'kembali_wajib' => (float) ($settlement['kembali_wajib'] ?? 0),
+                'kembali_tabungan' => (float) ($settlement['kembali_tabungan'] ?? 0),
+                'tabungan_no_rekening' => $settlement['tabungan_no_rekening'] ?? null,
+                'tagihan_pelunasan' => (float) ($settlement['tagihan_pelunasan'] ?? 0),
+                'dana_sosial_hangus' => (float) ($settlement['dana_sosial_hangus'] ?? 0),
+                'akun_kas' => $a->resign_akun_kas_pencairan,
+                'tanggal_pencairan' => $a->tanggal_pencairan_resign?->format('d M Y'),
+                'dicairkan_oleh' => $a->dicairkanResignOleh?->name ?? ($settlement['dicairkan_oleh'] ?? '-'),
+                'catatan_pencairan' => $a->catatan_pencairan_resign,
+                'ada_bukti_pencairan' => (bool) $a->bukti_pencairan_resign_path,
+                'bukti_pencairan_url' => $a->bukti_pencairan_resign_path ? route('anggota.bukti-pencairan-resign', $a->id) : null,
+                'slip_resign_url' => route('anggota.slip-resign', $a->id),
+                'rekening' => ($bank || $noRek) ? [
+                    'bank' => $bank ?? '-',
+                    'no_rekening' => $noRek ?? '-',
+                    'atas_nama' => $atasNama ?? $a->nama,
+                ] : null,
+                'anggota' => [
+                    'id' => $a->id,
+                    'nama' => $a->nama,
+                    'no_karyawan' => $a->no_karyawan ?? '-',
+                    'cabang' => $a->cabang ?? '-',
+                    'foto_url' => $a->foto_url,
+                ],
+            ],
+        ];
     }
 }

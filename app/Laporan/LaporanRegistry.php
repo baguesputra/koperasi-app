@@ -230,7 +230,7 @@ class LaporanRegistry
                     $tabunganAnggota = round(self::tabunganPerTanggal($tgl), 2);
                     $shu = self::shuTahunBerjalan($tahun, $cutoff);
                     $shuNilai = round((float) $shu['shu'], 2);
-                    $hutang = 0.0;
+                    $hutang = round(self::hutangPengembalianResignPerTanggal($cutoff), 2);
 
                     $totalKewajiban = round($simpananPokok + $simpananWajib + $tabunganAnggota + $asuransiSosial + $shuNilai + $hutang, 2);
 
@@ -1144,6 +1144,31 @@ class LaporanRegistry
             ->where('tanggal', '<=', $tanggal)
             ->selectRaw("SUM(CASE WHEN tipe = 'masuk' THEN jumlah ELSE -jumlah END) as total")
             ->value('total') ?? 0);
+    }
+
+    /**
+     * Kewajiban pengembalian simpanan/tabungan anggota resign yang belum dicairkan
+     * oleh Bendahara pada tanggal cut-off neraca (menjaga Neraca tetap seimbang).
+     */
+    private static function hutangPengembalianResignPerTanggal(Carbon $cutoff): float
+    {
+        $tgl = $cutoff->toDateString();
+
+        $rows = Anggota::whereIn('status', ['resign', 'resign_menunggu'])
+            ->whereIn('status_pencairan_resign', ['menunggu', 'dicairkan'])
+            ->where(function ($q) use ($tgl) {
+                $q->where('status_pencairan_resign', 'menunggu')
+                    ->orWhereDate('tanggal_pencairan_resign', '>', $tgl);
+            })
+            ->get(['resigned_settlement_json']);
+
+        $total = 0.0;
+        foreach ($rows as $row) {
+            $settlement = $row->resigned_settlement_json ?? [];
+            $total += (float) ($settlement['total_dikembalikan'] ?? 0);
+        }
+
+        return $total;
     }
 
     /**

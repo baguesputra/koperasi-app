@@ -252,6 +252,21 @@ export default function Index({
             return { title: `${prefix} — ${nama}`, description: '', badge: <StatusBadge status={status} />, maxWidth: '3xl' };
         }
         if (item.kategori === 'pencairan') {
+            if (item.jenis_kode === 'cair_resign') {
+                return status === 'menunggu_pencairan'
+                    ? {
+                        title: `Pencairan Resign — ${nama}`,
+                        description: `${item.anggota?.no_karyawan ?? ''}${item.anggota?.cabang ? ` • ${item.anggota.cabang}` : ''}`,
+                        badge: <StatusBadge status={status} />,
+                        maxWidth: '2xl',
+                    }
+                    : {
+                        title: `Rincian Pencairan Resign — ${nama}`,
+                        description: `${item.detail?.nomor_dokumen ?? ''}`,
+                        badge: <StatusBadge status={status} />,
+                        maxWidth: 'xl',
+                    };
+            }
             if (item.jenis_kode === 'cair_pinjaman') {
                 return status === 'approved_ketua'
                     ? {
