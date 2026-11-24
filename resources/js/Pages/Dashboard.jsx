@@ -2,8 +2,7 @@ import { Suspense, lazy, useMemo, useState } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, Link, usePage } from '@inertiajs/react';
 import {
-    Users, PiggyBank, HandCoins, Wallet, HeartHandshake, Landmark,
-    ClipboardCheck, FileClock, Gauge,
+    PiggyBank, HandCoins, Wallet, Banknote, HeartHandshake, Landmark,
     ChevronRight, BookOpenText,
     HandCoins as PinjamanIcon, CheckCircle2,
 } from 'lucide-react';
@@ -20,7 +19,7 @@ const focusRing =
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy/25';
 
 const panelSurface =
-    'rounded-2xl bg-white border border-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.03),0_4px_16px_-4px_rgba(15,23,42,0.04)]';
+    'rounded-2xl bg-white border border-slate-200/85 shadow-[0_1px_3px_rgba(15,23,42,0.04),0_6px_18px_-6px_rgba(15,23,42,0.06)]';
 
 function ChartSkeleton({ className = '' }) {
     return (
@@ -55,41 +54,30 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
 
     const labelBulan = new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(new Date());
 
-    const widgets = [
-        {
-            label: 'Kas Operasional Gabungan',
-            value: formatRupiah(stats.kas_operasional ?? 0),
-            icon: Wallet,
-            caption: 'Saldo bank + kas kecil',
-            href: bisaAkses('kas.lihat') ? route('kas-koperasi.index') : null,
-        },
-        {
-            label: 'Saldo Bank',
-            value: formatRupiah(stats.saldo_bank ?? 0),
-            icon: Landmark,
-            caption: 'Rekening bank operasional',
-            href: bisaAkses('kas.lihat') ? route('kas-koperasi.index', { kanal: 'bank' }) : null,
-        },
-        {
-            label: 'Kas Kecil',
-            value: formatRupiah(stats.saldo_kas_kecil ?? 0),
-            icon: Wallet,
-            caption: 'Uang tunai operasional',
-            href: bisaAkses('kas.lihat') ? route('kas-koperasi.index', { kanal: 'kas_kecil' }) : null,
-        },
+    const kpiCards = [
         {
             label: 'Total Simpanan (Aktif)',
-            value: formatRupiah(stats.total_simpanan_outstanding),
+            value: formatRupiah(stats.total_simpanan_outstanding ?? 0),
             icon: PiggyBank,
             caption: 'Pokok + wajib anggota aktif',
             href: bisaAkses('simpanan.lihat') ? route('simpanan.index') : null,
+            iconCls: 'bg-emerald-50 text-emerald-700 border-emerald-200/70',
         },
         {
             label: 'Total Pinjaman',
-            value: formatRupiah(stats.pinjaman_outstanding),
+            value: formatRupiah(stats.pinjaman_outstanding ?? 0),
             icon: HandCoins,
             caption: 'Pinjaman berstatus aktif',
             href: bisaAkses('pinjaman.lihat') ? route('pinjaman.index', { status: 'aktif' }) : null,
+            iconCls: 'bg-amber-50 text-amber-700 border-amber-200/70',
+        },
+        {
+            label: 'Tabungan Anggota',
+            value: formatRupiah(stats.total_tabungan_anggota ?? 0),
+            icon: BookOpenText,
+            caption: 'Saldo tabungan sukarela aktif',
+            href: bisaAkses('tabungan.lihat') ? route('tabungan.index') : null,
+            iconCls: 'bg-sky-50 text-sky-700 border-sky-200/70',
         },
         {
             label: 'Saldo Dana Sosial',
@@ -99,6 +87,7 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
             href: bisaAkses('laporan.lihat')
                 ? route('laporan.show', 'dana-sosial')
                 : (bisaAkses('kas.lihat') ? route('kas-koperasi.index') : null),
+            iconCls: 'bg-rose-50 text-rose-600 border-rose-200/70',
         },
     ];
 
@@ -109,56 +98,67 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
 
     const grupAksi = [
         {
-            label: 'Pinjaman', icon: ClipboardCheck,
+            label: 'Pinjaman',
             aksi: [
-                { label: 'Verifikasi Awal', value: actionable.menunggu_tinjauan_admin ?? 0, href: route('persetujuan.index', { kategori: 'pinjaman', tahap: 'admin' }), permission: 'pinjaman.tinjau-admin' },
-                { label: 'Verifikasi', value: actionable.menunggu_tinjauan_bendahara ?? 0, href: route('persetujuan.index', { kategori: 'pinjaman', tahap: 'bendahara' }), permission: 'pinjaman.tinjau-bendahara' },
-                { label: 'Persetujuan', value: actionable.menunggu_approval_ketua ?? 0, href: route('persetujuan.index', { kategori: 'pinjaman', tahap: 'ketua' }), permission: 'pinjaman.approve-ketua' },
-                { label: 'Pencairan Pinjaman', value: actionable.menunggu_pencairan_pinjaman ?? 0, href: route('persetujuan.index', { kategori: 'pencairan', sub: 'pinjaman' }), permission: 'pinjaman.cairkan' },
+                { label: 'Verifikasi Awal', value: actionable.menunggu_tinjauan_admin ?? 0, href: route('persetujuan.index', { kategori: 'pinjaman', tahap: 'admin' }), permission: 'pinjaman.tinjau-admin', kePersetujuan: true },
+                { label: 'Verifikasi', value: actionable.menunggu_tinjauan_bendahara ?? 0, href: route('persetujuan.index', { kategori: 'pinjaman', tahap: 'bendahara' }), permission: 'pinjaman.tinjau-bendahara', kePersetujuan: true },
+                { label: 'Persetujuan', value: actionable.menunggu_approval_ketua ?? 0, href: route('persetujuan.index', { kategori: 'pinjaman', tahap: 'ketua' }), permission: 'pinjaman.approve-ketua', kePersetujuan: true },
+                { label: 'Pencairan Pinjaman', value: actionable.menunggu_pencairan_pinjaman ?? 0, href: route('persetujuan.index', { kategori: 'pencairan', sub: 'pinjaman' }), permission: 'pinjaman.cairkan', kePersetujuan: true },
                 ...(bisaApprovePenghapusan ? [{
                     label: 'Penghapusan Pinjaman',
                     value: actionable.penghapusan_pinjaman_menunggu ?? 0,
                     href: route('persetujuan.index', { kategori: 'penghapusan' }),
                     permission: 'penghapusan-pinjaman.lihat',
+                    kePersetujuan: true,
                 }] : []),
             ],
         },
         {
-            label: 'Perubahan Tenor', icon: FileClock,
+            label: 'Perubahan Tenor',
             aksi: [
-                { label: 'Verifikasi', value: (actionable.perubahan_tenor_bendahara ?? actionable.perubahan_tenor) ?? 0, href: route('persetujuan.index', { kategori: 'percepatan', tahap: 'bendahara' }), permission: 'pinjaman.tinjau-bendahara' },
-                { label: 'Persetujuan', value: (actionable.perubahan_tenor_ketua ?? actionable.perubahan_tenor) ?? 0, href: route('persetujuan.index', { kategori: 'percepatan', tahap: 'ketua' }), permission: 'pinjaman.approve-ketua' },
+                { label: 'Verifikasi', value: (actionable.perubahan_tenor_bendahara ?? actionable.perubahan_tenor) ?? 0, href: route('persetujuan.index', { kategori: 'percepatan', tahap: 'bendahara' }), permission: 'pinjaman.tinjau-bendahara', kePersetujuan: true },
+                { label: 'Persetujuan', value: (actionable.perubahan_tenor_ketua ?? actionable.perubahan_tenor) ?? 0, href: route('persetujuan.index', { kategori: 'percepatan', tahap: 'ketua' }), permission: 'pinjaman.approve-ketua', kePersetujuan: true },
             ],
         },
         {
-            label: 'Kenaikan Limit', icon: Gauge,
+            label: 'Kenaikan Limit',
             aksi: [
-                { label: 'Verifikasi', value: actionable.pengajuan_limit_bendahara ?? 0, href: route('persetujuan.index', { kategori: 'limit', tahap: 'bendahara' }), permission: 'limit.tinjau-bendahara' },
-                { label: 'Persetujuan', value: actionable.pengajuan_limit ?? 0, href: route('persetujuan.index', { kategori: 'limit', tahap: 'ketua' }), permission: 'limit.approve-ketua' },
+                { label: 'Verifikasi', value: actionable.pengajuan_limit_bendahara ?? 0, href: route('persetujuan.index', { kategori: 'limit', tahap: 'bendahara' }), permission: 'limit.tinjau-bendahara', kePersetujuan: true },
+                { label: 'Persetujuan', value: actionable.pengajuan_limit ?? 0, href: route('persetujuan.index', { kategori: 'limit', tahap: 'ketua' }), permission: 'limit.approve-ketua', kePersetujuan: true },
             ],
         },
         {
-            label: 'Keanggotaan', icon: Users,
+            label: 'Keanggotaan',
             aksi: [
-                { label: 'Aktivasi', value: actionable.aktivasi_anggota ?? 0, href: route('persetujuan.index', { kategori: 'aktivasi' }), permission: 'aktivasi.approve-ketua' },
-                { label: 'Simpanan Wajib', value: actionable.anggota_belum_simpanan ?? 0, href: route('bendahara.simpanan.index'), permission: 'simpanan.konfirmasi' },
-                { label: 'Verifikasi Tabungan', value: actionable.tabungan_admin_menunggu ?? 0, href: route('persetujuan.index', { kategori: 'tabungan', tahap: 'admin' }), permission: 'tabungan.tinjau-admin' },
-                { label: 'Tinjau Tabungan', value: actionable.tabungan_bendahara_menunggu ?? actionable.tabungan_menunggu ?? 0, href: route('persetujuan.index', { kategori: 'tabungan', tahap: 'bendahara' }), permission: 'tabungan.kelola' },
-                { label: 'Pencairan Tabungan', value: actionable.pencairan_tabungan_menunggu ?? 0, href: route('persetujuan.index', { kategori: 'pencairan', sub: 'tabungan' }), permission: 'tabungan.kelola' },
-                { label: 'Pencairan Resign', value: actionable.menunggu_pencairan_resign ?? 0, href: route('persetujuan.index', { kategori: 'pencairan' }), permission: 'pinjaman.cairkan' },
-                { label: 'Setujui Tabungan', value: actionable.tabungan_ketua_menunggu ?? 0, href: route('persetujuan.index', { kategori: 'tabungan', tahap: 'ketua' }), permission: 'tabungan.approve-ketua' },
+                { label: 'Aktivasi Anggota', value: actionable.aktivasi_anggota ?? 0, href: route('persetujuan.index', { kategori: 'aktivasi' }), permission: 'aktivasi.approve-ketua', kePersetujuan: true },
+                { label: 'Simpanan Wajib', value: actionable.anggota_belum_simpanan ?? 0, href: route('bendahara.simpanan.index'), permission: 'simpanan.konfirmasi', kePersetujuan: false },
+                { label: 'Verifikasi Tabungan', value: actionable.tabungan_admin_menunggu ?? 0, href: route('persetujuan.index', { kategori: 'tabungan', tahap: 'admin' }), permission: 'tabungan.tinjau-admin', kePersetujuan: true },
+                { label: 'Tinjau Tabungan', value: (actionable.tabungan_bendahara_menunggu ?? actionable.tabungan_menunggu) ?? 0, href: route('persetujuan.index', { kategori: 'tabungan', tahap: 'bendahara' }), permission: 'tabungan.kelola', kePersetujuan: true },
+                { label: 'Pencairan Tabungan', value: actionable.pencairan_tabungan_menunggu ?? 0, href: route('persetujuan.index', { kategori: 'pencairan', sub: 'tabungan' }), permission: 'tabungan.kelola', kePersetujuan: true },
+                { label: 'Pencairan Resign', value: actionable.menunggu_pencairan_resign ?? 0, href: route('persetujuan.index', { kategori: 'pencairan' }), permission: 'pinjaman.cairkan', kePersetujuan: true },
+                { label: 'Persetujuan Tabungan', value: actionable.tabungan_ketua_menunggu ?? 0, href: route('persetujuan.index', { kategori: 'tabungan', tahap: 'ketua' }), permission: 'tabungan.approve-ketua', kePersetujuan: true },
             ],
         },
     ]
-        .map((g) => ({ ...g, tampil: g.aksi.filter((a) => bisaAkses(a.permission)), total: 0 }))
-        .filter((g) => g.tampil.length > 0)
-        .map((g) => ({ ...g, total: g.tampil.reduce((s, a) => s + a.value, 0) }))
-        .sort((a, b) => b.total - a.total);
+        .map((g) => {
+            const tampil = g.aksi.filter((a) => bisaAkses(a.permission));
+            const aktif = tampil.filter((a) => a.value > 0).sort((a, b) => b.value - a.value);
+            const total = aktif.reduce((s, a) => s + a.value, 0);
+            return { ...g, tampil, aktif, total };
+        })
+        .filter((g) => g.tampil.length > 0);
 
-    const grupMenunggu = grupAksi.filter((g) => g.total > 0);
-    const jumlahMenunggu = grupMenunggu.length;
-    const totalItemMenunggu = grupMenunggu.reduce((sum, g) => sum + g.total, 0);
-    const semuaBeres = jumlahMenunggu === 0;
+    const totalItemMenunggu = grupAksi.reduce((sum, g) => sum + g.total, 0);
+    const semuaBeres = totalItemMenunggu === 0;
+    const bisaBukaPersetujuan = grupAksi.some((g) => g.tampil.some((a) => a.kePersetujuan));
+    const gridKolomAksi =
+        grupAksi.length === 1
+            ? 'grid-cols-1'
+            : grupAksi.length === 2
+                ? 'grid-cols-1 sm:grid-cols-2'
+                : grupAksi.length === 3
+                    ? 'grid-cols-1 sm:grid-cols-3'
+                    : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4';
 
     const aktivitasTersaring = useMemo(() => {
         if (filterAktivitas === 'semua') return aktivitasTerbaru;
@@ -218,148 +218,260 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                 </div>
             </header>
 
-            {/* 2. Ringkasan Posisi Keuangan (Unified Hairline 3x2 Metric Grid) */}
+            {/* 2. Ringkasan Posisi Keuangan (Hero Likuiditas Brand + 2x2 Semantic KPI Cards) */}
             <section aria-label="Ringkasan posisi keuangan" className="mb-6">
-                <div className={`${panelSurface} overflow-hidden`}>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 bg-slate-200/65 gap-px">
-                        {widgets.map((w) => {
-                            const Icon = w.icon;
-                            const Wrapper = w.href ? Link : 'div';
-                            const wrapperProps = w.href ? { href: w.href } : {};
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+                    {/* Kartu Jangkar Likuiditas: Kas Operasional Gabungan + Rincian Bank & Kas Kecil */}
+                    <div className="lg:col-span-5 relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0B1527] via-[#0F1E36] to-[#0D3522] text-white p-5 sm:p-6 shadow-[0_12px_32px_-12px_rgba(15,30,54,0.38)] border border-white/10 flex flex-col justify-between">
+                        <div
+                            aria-hidden="true"
+                            className="pointer-events-none absolute -top-12 -right-12 w-40 h-40 rounded-full bg-emerald-400/15 blur-2xl"
+                        />
+                        <div
+                            aria-hidden="true"
+                            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-300/30 to-transparent"
+                        />
 
-                            return (
-                                <Wrapper
-                                    key={w.label}
-                                    {...wrapperProps}
-                                    className={`bg-white p-4 sm:p-5 flex flex-col justify-between min-h-[104px] ${
-                                        w.href
-                                            ? `group cursor-pointer transition-colors duration-150 hover:bg-slate-50/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-navy/25`
-                                            : ''
-                                    }`}
-                                >
-                                    <div className="flex items-center justify-between gap-2">
-                                        <p className="text-xs font-medium text-slate-500 group-hover:text-slate-700 transition-colors leading-snug truncate">
-                                            {w.label}
-                                        </p>
-                                        <Icon
-                                            size={15}
-                                            strokeWidth={1.85}
+                        <div>
+                            <div className="relative flex items-center justify-between gap-2">
+                                <span className="inline-flex items-center gap-2.5 min-w-0">
+                                    <span className="w-8 h-8 rounded-xl bg-emerald-400/15 border border-emerald-400/25 text-emerald-300 flex items-center justify-center shrink-0">
+                                        <Wallet size={16} aria-hidden="true" />
+                                    </span>
+                                    <span className="text-xs font-semibold text-emerald-100/90 tracking-wide truncate">
+                                        Kas Operasional Gabungan
+                                    </span>
+                                </span>
+                                {bisaAkses('kas.lihat') && (
+                                    <Link
+                                        href={route('kas-koperasi.index')}
+                                        className="group inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-white/10 hover:bg-white/15 border border-white/15 hover:border-white/25 text-white/95 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60 shrink-0"
+                                    >
+                                        Buku Kas
+                                        <ChevronRight
+                                            size={12}
                                             aria-hidden="true"
-                                            className="text-slate-400 group-hover:text-slate-600 transition-colors shrink-0"
+                                            className="group-hover:translate-x-0.5 transition-transform duration-150"
                                         />
+                                    </Link>
+                                )}
+                            </div>
+
+                            <div className="relative mt-4 min-w-0">
+                                <p className="text-2xl sm:text-[28px] font-extrabold text-white leading-tight tabular-nums tracking-[-0.025em] truncate">
+                                    <PrivacyWrapper>{formatRupiah(stats.kas_operasional ?? 0)}</PrivacyWrapper>
+                                </p>
+                                <p className="text-xs text-slate-300/80 mt-1">
+                                    Total saldo likuid Bank + Kas Kecil
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="relative mt-5 pt-4 border-t border-white/12 grid grid-cols-2 gap-2.5">
+                            {[
+                                {
+                                    label: 'Saldo Bank',
+                                    value: formatRupiah(stats.saldo_bank ?? 0),
+                                    icon: Landmark,
+                                    iconColor: 'text-sky-300',
+                                    href: bisaAkses('kas.lihat') ? route('kas-koperasi.index', { kanal: 'bank' }) : null,
+                                },
+                                {
+                                    label: 'Kas Kecil',
+                                    value: formatRupiah(stats.saldo_kas_kecil ?? 0),
+                                    icon: Banknote,
+                                    iconColor: 'text-emerald-300',
+                                    href: bisaAkses('kas.lihat') ? route('kas-koperasi.index', { kanal: 'kas_kecil' }) : null,
+                                },
+                            ].map((sub) => {
+                                const SubIcon = sub.icon;
+                                return (
+                                    <div
+                                        key={sub.label}
+                                        className="rounded-xl bg-white/[0.07] border border-white/10 px-3 py-2.5 min-w-0"
+                                    >
+                                        <div className="flex items-center justify-between gap-1.5">
+                                            <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-300/90 truncate">
+                                                <SubIcon size={12} aria-hidden="true" className={`${sub.iconColor} shrink-0`} />
+                                                <span className="truncate">{sub.label}</span>
+                                            </span>
+                                            {sub.href && (
+                                                <Link
+                                                    href={sub.href}
+                                                    aria-label={`Lihat rincian ${sub.label}`}
+                                                    className="group/link inline-flex items-center gap-0.5 text-[11px] font-medium text-white/60 hover:text-white transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60 shrink-0"
+                                                >
+                                                    Lihat
+                                                    <ChevronRight
+                                                        size={11}
+                                                        aria-hidden="true"
+                                                        className="group-hover/link:translate-x-0.5 transition-transform duration-150"
+                                                    />
+                                                </Link>
+                                            )}
+                                        </div>
+                                        <p className="text-sm sm:text-[15px] font-bold text-white tabular-nums mt-1 truncate">
+                                            <PrivacyWrapper>{sub.value}</PrivacyWrapper>
+                                        </p>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Grid 2x2 Kartu KPI Semantik */}
+                    <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        {kpiCards.map((k) => {
+                            const Icon = k.icon;
+                            return (
+                                <div
+                                    key={k.label}
+                                    className={`${panelSurface} p-4 sm:p-5 flex flex-col justify-between min-h-[112px]`}
+                                >
+                                    <div className="flex items-start justify-between gap-2.5">
+                                        <p className="text-xs font-semibold text-slate-500 leading-snug pt-0.5">
+                                            {k.label}
+                                        </p>
+                                        <span className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 ${k.iconCls}`}>
+                                            <Icon size={17} strokeWidth={1.9} aria-hidden="true" />
+                                        </span>
                                     </div>
                                     <div className="mt-3 min-w-0">
                                         <p className="text-xl sm:text-[22px] font-bold text-[#0F1E36] leading-tight tabular-nums tracking-[-0.02em] truncate">
-                                            <PrivacyWrapper>{w.value}</PrivacyWrapper>
+                                            <PrivacyWrapper>{k.value}</PrivacyWrapper>
                                         </p>
-                                        <div className="flex items-center justify-between gap-2 mt-1">
-                                            <p className="text-[11px] text-slate-400 group-hover:text-slate-500 transition-colors truncate">
-                                                {w.caption}
+                                        <div className="flex items-center justify-between gap-2 mt-1.5">
+                                            <p className="text-[11px] text-slate-400 truncate">
+                                                {k.caption}
                                             </p>
-                                            {w.href && (
-                                                <ChevronRight
-                                                    size={13}
-                                                    aria-hidden="true"
-                                                    className="text-slate-300 opacity-0 group-hover:opacity-100 group-hover:text-slate-500 transition-opacity shrink-0"
-                                                />
+                                            {k.href && (
+                                                <Link
+                                                    href={k.href}
+                                                    className={`group/link inline-flex items-center gap-0.5 text-[11px] font-semibold text-slate-500 hover:text-[#0F1E36] transition-colors shrink-0 rounded ${focusRing}`}
+                                                >
+                                                    Lihat
+                                                    <ChevronRight
+                                                        size={12}
+                                                        aria-hidden="true"
+                                                        className="group-hover/link:translate-x-0.5 transition-transform duration-150"
+                                                    />
+                                                </Link>
                                             )}
                                         </div>
                                     </div>
-                                </Wrapper>
+                                </div>
                             );
                         })}
                     </div>
                 </div>
             </section>
 
-            {/* 3. Perlu Ditindaklanjuti (Clean Ledger Cards) */}
+            {/* 3. Perlu Ditindaklanjuti (1-Card Hairline Domain Ledger) */}
             {grupAksi.length > 0 && (
-                <section aria-label="Antrean perlu ditindaklanjuti" className="mb-6">
-                    <div className="flex items-center justify-between gap-2 mb-3">
-                        <div className="flex items-center gap-2">
-                            <h2 className="text-sm font-bold text-slate-800 tracking-tight">Perlu Ditindaklanjuti</h2>
-                            {!semuaBeres && (
-                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 tabular-nums">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" aria-hidden="true" />
-                                    {totalItemMenunggu} antrean
-                                </span>
+                <section aria-label="Antrean perlu ditindaklanjuti" className="mb-5">
+                    {semuaBeres ? (
+                        <div className="rounded-2xl bg-emerald-50/60 border border-emerald-200/75 px-4 py-2.5 flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                                <CheckCircle2 size={16} aria-hidden="true" className="text-emerald-700 shrink-0" />
+                                <p className="text-xs sm:text-sm font-medium text-emerald-900 truncate">
+                                    Semua antrean sudah ditangani. Tidak ada pengajuan yang menunggu tindakan.
+                                </p>
+                            </div>
+                            {bisaBukaPersetujuan && (
+                                <Link
+                                    href={route('persetujuan.index')}
+                                    className={`group/link inline-flex items-center gap-0.5 text-xs font-semibold text-emerald-800 hover:text-emerald-950 transition-colors shrink-0 rounded ${focusRing}`}
+                                >
+                                    Pusat Persetujuan
+                                    <ChevronRight
+                                        size={13}
+                                        aria-hidden="true"
+                                        className="group-hover/link:translate-x-0.5 transition-transform duration-150"
+                                    />
+                                </Link>
                             )}
                         </div>
-                        <p className="text-xs font-medium text-slate-400">
-                            {semuaBeres ? 'Semua beres' : `${jumlahMenunggu} domain menunggu aksi`}
-                        </p>
-                    </div>
-
-                    {semuaBeres ? (
-                        <div className={`${panelSurface} flex items-center gap-3 px-4 py-3.5`}>
-                            <CheckCircle2 size={16} aria-hidden="true" className="text-brand-green-dark shrink-0" />
-                            <p className="text-sm font-medium text-slate-600">
-                                Semua antrean sudah ditangani. Tidak ada pengajuan yang menunggu tindakan.
-                            </p>
-                        </div>
                     ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                            {grupAksi.map((grup) => {
-                                const Icon = grup.icon;
-                                const sibuk = grup.total > 0;
-                                return (
-                                    <div
-                                        key={grup.label}
-                                        className={`${panelSurface} p-4 flex flex-col justify-between ${
-                                            sibuk ? '' : 'opacity-80'
-                                        }`}
+                        <div className={`${panelSurface} overflow-hidden`}>
+                            <div className="px-4 sm:px-5 py-3 bg-white border-b border-slate-100 flex items-center justify-between gap-3 flex-wrap">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                    <h2 className="text-xs sm:text-[13px] font-bold text-[#0F1E36] tracking-tight">
+                                        Perlu Ditindaklanjuti
+                                    </h2>
+                                    <span className="text-slate-300" aria-hidden="true">&bull;</span>
+                                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 tabular-nums">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" aria-hidden="true" />
+                                        {totalItemMenunggu} antrean
+                                    </span>
+                                </div>
+
+                                {bisaBukaPersetujuan && (
+                                    <Link
+                                        href={route('persetujuan.index')}
+                                        className={`group/link inline-flex items-center gap-0.5 text-xs font-semibold text-slate-500 hover:text-[#0F1E36] transition-colors shrink-0 rounded ${focusRing}`}
                                     >
-                                        <div className="flex items-center justify-between gap-2 pb-3 mb-2.5 border-b border-slate-100">
-                                            <div className="flex items-center gap-2 min-w-0">
-                                                <Icon
-                                                    size={15}
-                                                    strokeWidth={1.9}
-                                                    aria-hidden="true"
-                                                    className={sibuk ? 'text-slate-700 shrink-0' : 'text-slate-400 shrink-0'}
-                                                />
-                                                <p className="text-sm font-semibold text-slate-800 truncate">{grup.label}</p>
-                                            </div>
-                                            <span className="inline-flex items-center gap-1.5 text-xs font-bold tabular-nums shrink-0 text-slate-800">
-                                                {sibuk && <span className="w-1.5 h-1.5 rounded-full bg-amber-500" aria-hidden="true" />}
-                                                <span className={sibuk ? 'text-slate-900' : 'text-slate-400 font-medium'}>{grup.total}</span>
-                                            </span>
+                                        Pusat Persetujuan
+                                        <ChevronRight
+                                            size={13}
+                                            aria-hidden="true"
+                                            className="group-hover/link:translate-x-0.5 transition-transform duration-150"
+                                        />
+                                    </Link>
+                                )}
+                            </div>
+
+                            <div className={`grid ${gridKolomAksi} bg-slate-100 gap-px`}>
+                                {grupAksi.map((grup) => (
+                                    <div key={grup.label} className="bg-white p-4 flex flex-col justify-start">
+                                        <div className="flex items-center justify-between gap-2 mb-2.5">
+                                            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate">
+                                                {grup.label}
+                                            </p>
+                                            {grup.total > 0 ? (
+                                                <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-bold bg-[#0F1E36] text-white tabular-nums shrink-0">
+                                                    {grup.total}
+                                                </span>
+                                            ) : (
+                                                <span className="text-xs font-medium text-slate-300 tabular-nums shrink-0">
+                                                    0
+                                                </span>
+                                            )}
                                         </div>
 
-                                        <div className="space-y-0.5">
-                                            {grup.tampil.map((a) => {
-                                                const aktif = a.value > 0;
-                                                return (
+                                        {grup.aktif.length > 0 ? (
+                                            <div className="space-y-0.5">
+                                                {grup.aktif.map((a) => (
                                                     <Link
                                                         key={a.label}
                                                         href={a.href}
-                                                        className={`group flex items-center justify-between gap-2 -mx-1.5 px-2 py-1.5 rounded-lg text-xs transition-colors hover:bg-slate-50 ${
-                                                            aktif
-                                                                ? 'font-medium text-slate-800'
-                                                                : 'font-normal text-slate-500 hover:text-slate-700'
-                                                        } ${focusRing}`}
+                                                        className={`group/row flex items-center justify-between gap-2 -mx-2 px-2 py-1.5 rounded-lg text-xs font-medium text-slate-700 hover:text-[#0F1E36] hover:bg-slate-50 transition-colors ${focusRing}`}
                                                     >
-                                                        <span className="truncate">{a.label}</span>
+                                                        <span className="inline-flex items-center gap-2 min-w-0">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" aria-hidden="true" />
+                                                            <span className="truncate">{a.label}</span>
+                                                        </span>
                                                         <span className="inline-flex items-center gap-1 shrink-0">
-                                                            <span
-                                                                className={`tabular-nums text-xs ${
-                                                                    aktif ? 'font-bold text-slate-900' : 'font-medium text-slate-400'
-                                                                }`}
-                                                            >
+                                                            <span className="text-xs font-bold text-[#0F1E36] tabular-nums">
                                                                 {a.value}
                                                             </span>
                                                             <ChevronRight
-                                                                size={13}
+                                                                size={12}
                                                                 aria-hidden="true"
-                                                                className="text-slate-300 group-hover:text-slate-500 transition-colors"
+                                                                className="text-slate-300 group-hover/row:text-slate-600 group-hover/row:translate-x-0.5 transition-all duration-150"
                                                             />
                                                         </span>
                                                     </Link>
-                                                );
-                                            })}
-                                        </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="py-1.5 flex items-center gap-1.5 text-xs text-slate-400">
+                                                <CheckCircle2 size={13} aria-hidden="true" className="text-emerald-500/80 shrink-0" />
+                                                <span>Semua beres</span>
+                                            </div>
+                                        )}
                                     </div>
-                                );
-                            })}
+                                ))}
+                            </div>
                         </div>
                     )}
                 </section>
@@ -461,6 +573,12 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                                 const ItemWrap = hrefItem ? Link : 'div';
                                 const itemProps = hrefItem ? { href: hrefItem } : {};
 
+                                const itemTone = item.tipe === 'pinjaman'
+                                    ? 'bg-amber-50 border-amber-200/70 text-amber-700'
+                                    : item.tipe === 'tabungan'
+                                        ? 'bg-sky-50 border-sky-200/70 text-sky-700'
+                                        : 'bg-emerald-50 border-emerald-200/70 text-emerald-700';
+
                                 return (
                                     <ItemWrap
                                         key={i}
@@ -469,7 +587,7 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                                             hrefItem ? `cursor-pointer ${focusRing}` : ''
                                         }`}
                                     >
-                                        <div className="w-8 h-8 rounded-lg bg-slate-100/80 border border-slate-200/60 text-slate-600 flex items-center justify-center shrink-0 mt-0.5">
+                                        <div className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${itemTone}`}>
                                             <Icon size={15} strokeWidth={1.9} />
                                         </div>
                                         <div className="flex-1 min-w-0">

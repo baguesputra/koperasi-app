@@ -46,35 +46,25 @@ export default function DashboardClock() {
 
     return (
         <div
-            className="inline-flex items-center gap-3.5 rounded-2xl border border-slate-200/80 bg-white px-4 py-2.5 shadow-[0_1px_2px_rgba(15,23,42,0.03),0_4px_16px_-4px_rgba(15,23,42,0.04)]"
+            className="flex flex-col items-start sm:items-end leading-tight"
             title={`Waktu perangkat: ${hariTeks}, ${tanggalLengkap} pukul ${jamTeks}${zonaWaktu ? ` ${zonaWaktu}` : ''}`}
         >
-            {/* Kolom Kiri: Jam Digital Tegas */}
-            <div className="flex items-baseline gap-1.5">
-                <span className="text-xl sm:text-[22px] font-bold text-[#0F1E36] tabular-nums tracking-[-0.03em] leading-none">
+            <time dateTime={sekarang.toISOString()} className="text-xs font-medium text-slate-500 whitespace-nowrap">
+                <span className="hidden sm:inline">{hariTeks}, {tanggalLengkap}</span>
+                <span className="sm:hidden">{hariTeks}, {tanggalRingkas}</span>
+            </time>
+
+            <div className="flex items-center gap-2 mt-1">
+                <span className="text-2xl sm:text-[26px] font-extrabold text-[#0F1E36] tabular-nums tracking-[-0.03em] leading-none">
                     {jamTeks}
                 </span>
                 {zonaWaktu && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-brand-green-dark">
-                        <span className="h-1.5 w-1.5 rounded-full bg-brand-green shrink-0" aria-hidden="true" />
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200/70">
+                        <span className="h-1.5 w-1.5 rounded-full bg-brand-green animate-pulse shrink-0" aria-hidden="true" />
                         {zonaWaktu}
                     </span>
                 )}
             </div>
-
-            {/* Pemisah Vertikal Hairline */}
-            <span className="h-7 w-px bg-slate-200/80 shrink-0" aria-hidden="true" />
-
-            {/* Kolom Kanan: Hari & Tanggal Bertingkat */}
-            <time dateTime={sekarang.toISOString()} className="flex flex-col justify-center leading-tight">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                    {hariTeks}
-                </span>
-                <span className="text-xs sm:text-[13px] font-semibold text-slate-700 whitespace-nowrap mt-0.5">
-                    <span className="hidden sm:inline">{tanggalLengkap}</span>
-                    <span className="sm:hidden">{tanggalRingkas}</span>
-                </span>
-            </time>
         </div>
     );
 }

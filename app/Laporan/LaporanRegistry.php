@@ -1040,10 +1040,38 @@ class LaporanRegistry
         $urut = ['Accounting', 'Keuangan', 'Pinjaman', 'Simpanan', 'Anggota', 'Operasional'];
         $grup = array_fill_keys($urut, []);
         foreach (self::semua() as $slug => $def) {
-            $grup[$def['kategori']][] = ['slug' => $slug, ...collect($def)->except(['data', 'filter', 'periodeDefault'])->all()];
+            $grup[$def['kategori']][] = [
+                'slug' => $slug,
+                ...collect($def)->except(['data', 'filter', 'periodeDefault'])->all(),
+                'tipe_periode' => $def['filter']['tipe'] ?? 'tanpa_periode',
+                'periode_default_label' => self::labelPeriodeDefault($def),
+            ];
         }
 
         return $grup;
+    }
+
+    private static function labelPeriodeDefault(array $def): string
+    {
+        $tipe = $def['filter']['tipe'] ?? 'tanpa_periode';
+        $default = collect($def['periodeDefault']())->values();
+
+        return match ($tipe) {
+            'bulan' => Carbon::parse(($default->get(0) ?? now()->format('Y-m')).'-01')->locale('id')->translatedFormat('F Y'),
+            'tahun' => 'Tahun '.($default->get(0) ?? now()->format('Y')),
+            'tanggal' => Carbon::parse($default->get(0) ?? now()->format('Y-m-d'))->locale('id')->translatedFormat('d M Y'),
+            'rentang' => (function () use ($default): string {
+                $dari = $default->get(0);
+                $sampai = $default->get(1, $dari);
+                $labelDari = $dari ? Carbon::parse($dari.'-01')->locale('id')->translatedFormat('M Y') : null;
+                $labelSampai = $sampai ? Carbon::parse($sampai.'-01')->locale('id')->translatedFormat('M Y') : null;
+
+                return ($labelSampai && $labelSampai !== $labelDari)
+                    ? "{$labelDari} – {$labelSampai}"
+                    : ($labelDari ?? 'Semua Periode');
+            })(),
+            default => 'Semua Periode',
+        };
     }
 
     // ---------- helper ----------

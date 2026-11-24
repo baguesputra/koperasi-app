@@ -1,13 +1,14 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, Link, router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
-import { FileSpreadsheet, Printer, CalendarDays, Loader2, RotateCcw } from 'lucide-react';
+import { CalendarDays, Loader2, RotateCcw } from 'lucide-react';
 import Card from '@/Components/ui/Card';
 import BackLink from '@/Components/ui/BackLink';
 import PageHeader from '@/Components/ui/PageHeader';
 import FormField from '@/Components/ui/FormField';
 import TextField from '@/Components/ui/TextField';
 import Select from '@/Components/ui/Select';
+import { ExcelIcon, PdfIcon } from '@/Components/ui/ExportIcons';
 import { formatRupiah } from '@/Utils/formatCurrency';
 
 const fokusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/40';
@@ -73,25 +74,31 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
                 <div className="flex flex-wrap items-center gap-2">
                     <Link
                         href={route('laporan.show', laporan.slug)}
-                        className={`inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-full text-slate-600 hover:bg-slate-100 transition-colors ${fokusRing}`}
+                        className={`inline-flex items-center justify-center gap-2 px-3.5 py-2 text-sm font-semibold rounded-xl text-slate-600 hover:bg-slate-100 transition-colors ${fokusRing}`}
                     >
-                        <RotateCcw size={16} aria-hidden="true" />
+                        <RotateCcw size={15} aria-hidden="true" />
                         Reset Filter
                     </Link>
-                    <a
-                        href={`${route('laporan.export', laporan.slug)}?${queryString()}`}
-                        className={`inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-full border-2 border-brand-navy text-brand-navy hover:bg-slate-50 hover:shadow-md hover:-translate-y-px active:translate-y-0 transition-all ${fokusRing}`}
-                    >
-                        <FileSpreadsheet size={16} aria-hidden="true" />
-                        Excel
-                    </a>
-                    <a
-                        href={`${route('laporan.pdf', laporan.slug)}?${queryString()}`}
-                        className={`inline-flex items-center justify-center gap-2 px-5 py-2 text-sm font-semibold rounded-full text-white bg-gradient-to-r from-brand-green to-brand-green-dark shadow-md shadow-brand-green/25 hover:shadow-lg hover:-translate-y-px active:translate-y-0 transition-all ${fokusRing}`}
-                    >
-                        <Printer size={16} aria-hidden="true" />
-                        Cetak / PDF
-                    </a>
+                    <div className={`flex items-center gap-2 transition-opacity ${memuat ? 'opacity-50 pointer-events-none' : ''}`}>
+                        <a
+                            href={`${route('laporan.export', laporan.slug)}?${queryString()}`}
+                            title={`Unduh Excel (.xlsx) — ${periodeLabel}`}
+                            aria-label={`Unduh Excel ${laporan.judul} (${periodeLabel})`}
+                            className={`inline-flex items-center justify-center gap-2 px-3.5 py-2 text-sm font-semibold rounded-xl bg-white border border-slate-200/90 text-slate-700 shadow-2xs hover:border-emerald-300 hover:bg-emerald-50/70 hover:text-emerald-800 hover:-translate-y-px active:translate-y-0 transition-all ${fokusRing}`}
+                        >
+                            <ExcelIcon size={18} />
+                            <span>Excel</span>
+                        </a>
+                        <a
+                            href={`${route('laporan.pdf', laporan.slug)}?${queryString()}`}
+                            title={`Unduh PDF (.pdf) — ${periodeLabel}`}
+                            aria-label={`Unduh PDF ${laporan.judul} (${periodeLabel})`}
+                            className={`inline-flex items-center justify-center gap-2 px-3.5 py-2 text-sm font-semibold rounded-xl bg-white border border-slate-200/90 text-slate-700 shadow-2xs hover:border-rose-300 hover:bg-rose-50/70 hover:text-rose-700 hover:-translate-y-px active:translate-y-0 transition-all ${fokusRing}`}
+                        >
+                            <PdfIcon size={18} />
+                            <span>PDF</span>
+                        </a>
+                    </div>
                 </div>
             </PageHeader>
 

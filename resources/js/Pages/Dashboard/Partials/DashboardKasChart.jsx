@@ -164,20 +164,20 @@ export default function DashboardKasChart({ grafikKas = [], bisaAkses, isPrivacy
     const mask = (text) => (isPrivacyActive ? '••••••••' : text);
 
     return (
-        <div className="rounded-2xl bg-white border border-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.03),0_4px_16px_-4px_rgba(15,23,42,0.04)] p-5 sm:p-6">
+        <div className="rounded-2xl bg-white border border-slate-200/85 shadow-[0_1px_3px_rgba(15,23,42,0.04),0_6px_18px_-6px_rgba(15,23,42,0.06)] p-5 sm:p-6">
             <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
                 <div>
                     <h2 className="text-base font-bold text-slate-800 tracking-tight">Arus Kas Operasional Koperasi</h2>
                     <p className="text-xs text-slate-400 mt-0.5">
-                        Kas masuk riil vs kas keluar riil &amp; arus bersih (tanpa transfer internal kas) • {range} bulan terakhir{labelBulan ? ` • ${labelBulan}` : ''}
+                        Kas masuk riil vs kas keluar riil &amp; arus bersih (tanpa transfer internal kas) &bull; {range} bulan terakhir{labelBulan ? ` • ${labelBulan}` : ''}
                     </p>
                 </div>
 
-                <div className="flex items-center gap-2.5 flex-wrap">
+                <div className="flex items-center gap-3 flex-wrap">
                     <div
                         role="group"
                         aria-label="Rentang waktu grafik arus kas"
-                        className="flex items-center gap-0.5 bg-slate-100/80 border border-slate-200/70 rounded-lg p-0.5"
+                        className="flex items-center gap-0.5 bg-white border border-slate-200/85 rounded-lg p-0.5"
                     >
                         {[3, 6, 12].map((bln) => {
                             const active = range === bln;
@@ -187,10 +187,10 @@ export default function DashboardKasChart({ grafikKas = [], bisaAkses, isPrivacy
                                     type="button"
                                     onClick={() => setRange(bln)}
                                     aria-pressed={active}
-                                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+                                    className={`px-2.5 py-1 rounded-md text-xs transition-colors cursor-pointer ${
                                         active
-                                            ? 'bg-white text-slate-800 shadow-2xs'
-                                            : 'text-slate-500 hover:text-slate-700'
+                                            ? 'bg-[#0F1E36] text-white font-semibold'
+                                            : 'text-slate-500 font-medium hover:text-[#0F1E36]'
                                     } ${focusRing}`}
                                 >
                                     {bln} Bln
@@ -199,119 +199,122 @@ export default function DashboardKasChart({ grafikKas = [], bisaAkses, isPrivacy
                         })}
                     </div>
 
-                    <div
-                        role="group"
-                        aria-label="Filter seri grafik arus kas"
-                        className="flex items-center gap-1 bg-slate-50 border border-slate-200/70 rounded-full p-0.5"
-                    >
-                        {kasSeries.map((s) => {
-                            const isHidden = Boolean(hiddenSeries[s.key]);
-                            return (
-                                <button
-                                    key={s.key}
-                                    type="button"
-                                    onClick={() => toggleSeries(s.key)}
-                                    aria-pressed={!isHidden}
-                                    title={isHidden ? `Tampilkan ${s.name}` : `Sembunyikan ${s.name}`}
-                                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer ${
-                                        isHidden
-                                            ? 'text-slate-400 hover:text-slate-600'
-                                            : 'bg-white text-slate-700 shadow-2xs'
-                                    } ${focusRing}`}
-                                >
-                                    <span
-                                        className={s.type === 'line' ? 'w-3 h-0.5 rounded-full shrink-0' : 'w-2 h-2 rounded-xs shrink-0'}
-                                        style={{ backgroundColor: isHidden ? '#cbd5e1' : s.color }}
-                                    />
-                                    <span>{s.name}</span>
-                                </button>
-                            );
-                        })}
-                    </div>
-
                     {bisaAkses('laporan.lihat') && (
                         <Link
                             href={route('laporan.show', 'arus-kas')}
-                            className={`inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors ${focusRing} rounded`}
+                            className={`group/link inline-flex items-center gap-0.5 text-xs font-semibold text-slate-500 hover:text-[#0F1E36] transition-colors ${focusRing} rounded`}
                         >
                             Laporan Arus Kas
-                            <ChevronRight size={13} aria-hidden="true" />
+                            <ChevronRight
+                                size={13}
+                                aria-hidden="true"
+                                className="group-hover/link:translate-x-0.5 transition-transform duration-150"
+                            />
                         </Link>
                     )}
                 </div>
             </div>
 
             {/* KPI Strip Analitik Arus Kas */}
-            <div className="mb-5 rounded-xl border border-slate-200/75 overflow-hidden">
-                <div className="grid grid-cols-2 lg:grid-cols-4 bg-slate-200/65 gap-px">
-                    <div className="bg-slate-50/45 px-3.5 py-2.5">
-                        <div className="flex items-center justify-between gap-2">
-                            <p className="text-[11px] font-medium text-slate-500">Total Kas Masuk</p>
-                            {ringkasan.deltaMasukPct !== null && !isPrivacyActive && (
-                                <span
-                                    className={`text-[10px] font-semibold tabular-nums px-1.5 py-0.5 rounded-full ${
-                                        ringkasan.deltaMasukPct >= 0
-                                            ? 'bg-emerald-50 text-emerald-700'
-                                            : 'bg-rose-50 text-rose-700'
-                                    }`}
-                                >
-                                    {ringkasan.deltaMasukPct >= 0 ? '+' : ''}{ringkasan.deltaMasukPct}% bln ini
-                                </span>
-                            )}
-                        </div>
-                        <p className="text-sm sm:text-base font-bold text-[#0F1E36] tabular-nums mt-1 truncate">
-                            {mask(formatRupiah(ringkasan.totalMasuk))}
-                        </p>
-                    </div>
-
-                    <div className="bg-slate-50/45 px-3.5 py-2.5">
-                        <p className="text-[11px] font-medium text-slate-500">Total Kas Keluar</p>
-                        <p className="text-sm sm:text-base font-bold text-[#0F1E36] tabular-nums mt-1 truncate">
-                            {mask(formatRupiah(ringkasan.totalKeluar))}
-                        </p>
-                    </div>
-
-                    <div className="bg-slate-50/45 px-3.5 py-2.5">
-                        <div className="flex items-center justify-between gap-2">
-                            <p className="text-[11px] font-medium text-slate-500">Arus Kas Bersih</p>
+            <div className="mb-4 border-y border-slate-100 py-3.5 grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-3 lg:gap-x-0 lg:divide-x lg:divide-slate-100">
+                <div className="lg:px-4 lg:first:pl-0 lg:last:pr-0 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                        <p className="text-[11px] font-medium text-slate-500">Total Kas Masuk</p>
+                        {ringkasan.deltaMasukPct !== null && !isPrivacyActive && (
                             <span
-                                className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
-                                    ringkasan.netTotal >= 0
+                                className={`text-[10px] font-semibold tabular-nums px-1.5 py-0.5 rounded-full ${
+                                    ringkasan.deltaMasukPct >= 0
                                         ? 'bg-emerald-50 text-emerald-700'
                                         : 'bg-rose-50 text-rose-700'
                                 }`}
                             >
-                                {ringkasan.netTotal >= 0 ? 'Surplus' : 'Defisit'}
+                                {ringkasan.deltaMasukPct >= 0 ? '+' : ''}{ringkasan.deltaMasukPct}% bln ini
                             </span>
-                        </div>
-                        <p
-                            className={`text-sm sm:text-base font-bold tabular-nums mt-1 truncate ${
-                                isPrivacyActive
-                                    ? 'text-[#0F1E36]'
-                                    : ringkasan.netTotal >= 0
-                                        ? 'text-emerald-700'
-                                        : 'text-rose-600'
-                            }`}
-                        >
-                            {mask(formatSignedRupiah(ringkasan.netTotal))}
-                        </p>
+                        )}
                     </div>
-
-                    <div className="bg-slate-50/45 px-3.5 py-2.5">
-                        <p className="text-[11px] font-medium text-slate-500">Rata-rata Net / Bulan</p>
-                        <p
-                            className={`text-sm sm:text-base font-bold tabular-nums mt-1 truncate ${
-                                isPrivacyActive
-                                    ? 'text-[#0F1E36]'
-                                    : ringkasan.rataNet >= 0
-                                        ? 'text-emerald-700'
-                                        : 'text-rose-600'
-                            }`}
-                        >
-                            {mask(formatSignedRupiah(Math.round(ringkasan.rataNet)))}
-                        </p>
-                    </div>
+                    <p className="text-sm sm:text-base font-bold text-[#0F1E36] tabular-nums mt-1 truncate">
+                        {mask(formatRupiah(ringkasan.totalMasuk))}
+                    </p>
                 </div>
+
+                <div className="lg:px-4 lg:first:pl-0 lg:last:pr-0 min-w-0">
+                    <p className="text-[11px] font-medium text-slate-500">Total Kas Keluar</p>
+                    <p className="text-sm sm:text-base font-bold text-[#0F1E36] tabular-nums mt-1 truncate">
+                        {mask(formatRupiah(ringkasan.totalKeluar))}
+                    </p>
+                </div>
+
+                <div className="lg:px-4 lg:first:pl-0 lg:last:pr-0 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                        <p className="text-[11px] font-medium text-slate-500">Arus Kas Bersih</p>
+                        <span
+                            className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                                ringkasan.netTotal >= 0
+                                    ? 'bg-emerald-50 text-emerald-700'
+                                    : 'bg-rose-50 text-rose-700'
+                            }`}
+                        >
+                            {ringkasan.netTotal >= 0 ? 'Surplus' : 'Defisit'}
+                        </span>
+                    </div>
+                    <p
+                        className={`text-sm sm:text-base font-bold tabular-nums mt-1 truncate ${
+                            isPrivacyActive
+                                ? 'text-[#0F1E36]'
+                                : ringkasan.netTotal >= 0
+                                    ? 'text-emerald-700'
+                                    : 'text-rose-600'
+                        }`}
+                    >
+                        {mask(formatSignedRupiah(ringkasan.netTotal))}
+                    </p>
+                </div>
+
+                <div className="lg:px-4 lg:first:pl-0 lg:last:pr-0 min-w-0">
+                    <p className="text-[11px] font-medium text-slate-500">Rata-rata Net / Bulan</p>
+                    <p
+                        className={`text-sm sm:text-base font-bold tabular-nums mt-1 truncate ${
+                            isPrivacyActive
+                                ? 'text-[#0F1E36]'
+                                : ringkasan.rataNet >= 0
+                                    ? 'text-emerald-700'
+                                    : 'text-rose-600'
+                        }`}
+                    >
+                        {mask(formatSignedRupiah(Math.round(ringkasan.rataNet)))}
+                    </p>
+                </div>
+            </div>
+
+            {/* Filter Seri Legend */}
+            <div
+                role="group"
+                aria-label="Filter seri grafik arus kas"
+                className="flex items-center justify-end gap-4 mb-3 flex-wrap"
+            >
+                {kasSeries.map((s) => {
+                    const isHidden = Boolean(hiddenSeries[s.key]);
+                    return (
+                        <button
+                            key={s.key}
+                            type="button"
+                            onClick={() => toggleSeries(s.key)}
+                            aria-pressed={!isHidden}
+                            title={isHidden ? `Tampilkan ${s.name}` : `Sembunyikan ${s.name}`}
+                            className={`inline-flex items-center gap-1.5 text-xs font-medium transition-colors cursor-pointer rounded ${
+                                isHidden
+                                    ? 'text-slate-300 line-through'
+                                    : 'text-slate-600 hover:text-[#0F1E36]'
+                            } ${focusRing}`}
+                        >
+                            <span
+                                className={s.type === 'line' ? 'w-3 h-0.5 rounded-full shrink-0' : 'w-2 h-2 rounded-xs shrink-0'}
+                                style={{ backgroundColor: isHidden ? '#cbd5e1' : s.color }}
+                            />
+                            <span>{s.name}</span>
+                        </button>
+                    );
+                })}
             </div>
 
             <div className={`transition-all duration-300 ${isPrivacyActive ? 'privacy-chart' : ''}`}>

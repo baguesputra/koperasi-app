@@ -153,21 +153,21 @@ export default function DashboardTrenChart({ grafikTren = [], stats = {}, bisaAk
     const mask = (text) => (isPrivacyActive ? '••••••••' : text);
 
     return (
-        <div className="lg:col-span-2 rounded-2xl bg-white border border-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.03),0_4px_16px_-4px_rgba(15,23,42,0.04)] p-5 sm:p-6 flex flex-col justify-between">
+        <div className="lg:col-span-2 rounded-2xl bg-white border border-slate-200/85 shadow-[0_1px_3px_rgba(15,23,42,0.04),0_6px_18px_-6px_rgba(15,23,42,0.06)] p-5 sm:p-6 flex flex-col justify-between">
             <div>
                 <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
                     <div>
                         <h2 className="text-base font-bold text-slate-800 tracking-tight">Dana Anggota &amp; Penyaluran Pinjaman</h2>
                         <p className="text-xs text-slate-400 mt-0.5">
-                            Simpanan pokok/wajib &amp; tabungan vs pinjaman cair • {range} bulan terakhir{labelBulan ? ` • ${labelBulan}` : ''}
+                            Simpanan pokok/wajib &amp; tabungan vs pinjaman cair &bull; {range} bulan terakhir{labelBulan ? ` • ${labelBulan}` : ''}
                         </p>
                     </div>
 
-                    <div className="flex items-center gap-2.5 flex-wrap">
+                    <div className="flex items-center gap-3 flex-wrap">
                         <div
                             role="group"
                             aria-label="Rentang waktu grafik dana dan pinjaman"
-                            className="flex items-center gap-0.5 bg-slate-100/80 border border-slate-200/70 rounded-lg p-0.5"
+                            className="flex items-center gap-0.5 bg-white border border-slate-200/85 rounded-lg p-0.5"
                         >
                             {[3, 6, 12].map((bln) => {
                                 const active = range === bln;
@@ -177,10 +177,10 @@ export default function DashboardTrenChart({ grafikTren = [], stats = {}, bisaAk
                                         type="button"
                                         onClick={() => setRange(bln)}
                                         aria-pressed={active}
-                                        className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+                                        className={`px-2.5 py-1 rounded-md text-xs transition-colors cursor-pointer ${
                                             active
-                                                ? 'bg-white text-slate-800 shadow-2xs'
-                                                : 'text-slate-500 hover:text-slate-700'
+                                                ? 'bg-[#0F1E36] text-white font-semibold'
+                                                : 'text-slate-500 font-medium hover:text-[#0F1E36]'
                                         } ${focusRing}`}
                                     >
                                         {bln} Bln
@@ -192,86 +192,86 @@ export default function DashboardTrenChart({ grafikTren = [], stats = {}, bisaAk
                         {bisaAkses('laporan.lihat') && (
                             <Link
                                 href={route('laporan.show', 'neraca')}
-                                className={`inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors ${focusRing} rounded`}
+                                className={`group/link inline-flex items-center gap-0.5 text-xs font-semibold text-slate-500 hover:text-[#0F1E36] transition-colors ${focusRing} rounded`}
                             >
                                 Laporan Neraca
-                                <ChevronRight size={13} aria-hidden="true" />
+                                <ChevronRight
+                                    size={13}
+                                    aria-hidden="true"
+                                    className="group-hover/link:translate-x-0.5 transition-transform duration-150"
+                                />
                             </Link>
                         )}
                     </div>
                 </div>
 
                 {/* KPI Strip Analitik Dana vs Pinjaman */}
-                <div className="mb-4 rounded-xl border border-slate-200/75 overflow-hidden">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 bg-slate-200/65 gap-px">
-                        <div className="bg-slate-50/45 px-3.5 py-2.5">
-                            <p className="text-[11px] font-medium text-slate-500">Dana Masuk Anggota</p>
-                            <p className="text-sm sm:text-base font-bold text-[#0F1E36] tabular-nums mt-0.5 truncate">
-                                {mask(formatRupiah(ringkasan.danaMasuk))}
-                            </p>
-                            <p className="text-[11px] text-slate-400 tabular-nums mt-0.5 truncate">
-                                Simpanan {mask(formatRupiahSingkat(ringkasan.totalSimpanan))} &bull; Tabungan {mask(formatRupiahSingkat(ringkasan.totalTabungan))}
-                            </p>
-                        </div>
+                <div className="mb-4 border-y border-slate-100 py-3.5 grid grid-cols-1 sm:grid-cols-3 gap-y-3 sm:divide-x sm:divide-slate-100">
+                    <div className="sm:px-4 sm:first:pl-0 sm:last:pr-0 min-w-0">
+                        <p className="text-[11px] font-medium text-slate-500">Dana Masuk Anggota</p>
+                        <p className="text-sm sm:text-base font-bold text-[#0F1E36] tabular-nums mt-0.5 truncate">
+                            {mask(formatRupiah(ringkasan.danaMasuk))}
+                        </p>
+                        <p className="text-[11px] text-slate-400 tabular-nums mt-0.5 truncate">
+                            Simpanan {mask(formatRupiahSingkat(ringkasan.totalSimpanan))} &bull; Tabungan {mask(formatRupiahSingkat(ringkasan.totalTabungan))}
+                        </p>
+                    </div>
 
-                        <div className="bg-slate-50/45 px-3.5 py-2.5">
-                            <p className="text-[11px] font-medium text-slate-500">Pinjaman Disalurkan</p>
-                            <p className="text-sm sm:text-base font-bold text-[#0F1E36] tabular-nums mt-0.5 truncate">
-                                {mask(formatRupiah(ringkasan.totalPinjaman))}
-                            </p>
-                            <p className="text-[11px] text-slate-400 tabular-nums mt-0.5">
-                                {ringkasan.totalAkad} akad dicairkan
-                            </p>
-                        </div>
+                    <div className="sm:px-4 sm:first:pl-0 sm:last:pr-0 min-w-0">
+                        <p className="text-[11px] font-medium text-slate-500">Pinjaman Disalurkan</p>
+                        <p className="text-sm sm:text-base font-bold text-[#0F1E36] tabular-nums mt-0.5 truncate">
+                            {mask(formatRupiah(ringkasan.totalPinjaman))}
+                        </p>
+                        <p className="text-[11px] text-slate-400 tabular-nums mt-0.5">
+                            {ringkasan.totalAkad} akad dicairkan
+                        </p>
+                    </div>
 
-                        <div className="bg-slate-50/45 px-3.5 py-2.5">
-                            <div className="flex items-center justify-between gap-2">
-                                <p className="text-[11px] font-medium text-slate-500">Rasio Penyaluran (LDR)</p>
-                                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${ldrBadge.cls}`}>
-                                    {ldrBadge.label}
-                                </span>
-                            </div>
-                            <p className="text-sm sm:text-base font-bold text-[#0F1E36] tabular-nums mt-0.5">
-                                {ringkasan.ldrPct !== null ? `${ringkasan.ldrPct}%` : '-'}
-                            </p>
-                            <p className="text-[11px] text-slate-400 mt-0.5 truncate">
-                                Pinjaman aktif &divide; Simpanan + Tabungan
-                            </p>
+                    <div className="sm:px-4 sm:first:pl-0 sm:last:pr-0 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                            <p className="text-[11px] font-medium text-slate-500">Rasio Penyaluran (LDR)</p>
+                            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${ldrBadge.cls}`}>
+                                {ldrBadge.label}
+                            </span>
                         </div>
+                        <p className="text-sm sm:text-base font-bold text-[#0F1E36] tabular-nums mt-0.5">
+                            {ringkasan.ldrPct !== null ? `${ringkasan.ldrPct}%` : '-'}
+                        </p>
+                        <p className="text-[11px] text-slate-400 mt-0.5 truncate">
+                            Pinjaman aktif &divide; Simpanan + Tabungan
+                        </p>
                     </div>
                 </div>
 
                 {/* Filter Seri Legend */}
-                <div className="flex items-center justify-end mb-3">
-                    <div
-                        role="group"
-                        aria-label="Filter seri grafik dana anggota dan pinjaman"
-                        className="flex items-center gap-1 bg-slate-50 border border-slate-200/70 rounded-full p-0.5 flex-wrap"
-                    >
-                        {trenSeries.map((s) => {
-                            const isHidden = Boolean(hiddenSeries[s.key]);
-                            return (
-                                <button
-                                    key={s.key}
-                                    type="button"
-                                    onClick={() => toggleSeries(s.key)}
-                                    aria-pressed={!isHidden}
-                                    title={isHidden ? `Tampilkan ${s.name}` : `Sembunyikan ${s.name}`}
-                                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer ${
-                                        isHidden
-                                            ? 'text-slate-400 hover:text-slate-600'
-                                            : 'bg-white text-slate-700 shadow-2xs'
-                                    } ${focusRing}`}
-                                >
-                                    <span
-                                        className="w-2 h-2 rounded-full shrink-0"
-                                        style={{ backgroundColor: isHidden ? '#cbd5e1' : s.color }}
-                                    />
-                                    <span>{s.name}</span>
-                                </button>
-                            );
-                        })}
-                    </div>
+                <div
+                    role="group"
+                    aria-label="Filter seri grafik dana anggota dan pinjaman"
+                    className="flex items-center justify-end gap-4 mb-3 flex-wrap"
+                >
+                    {trenSeries.map((s) => {
+                        const isHidden = Boolean(hiddenSeries[s.key]);
+                        return (
+                            <button
+                                key={s.key}
+                                type="button"
+                                onClick={() => toggleSeries(s.key)}
+                                aria-pressed={!isHidden}
+                                title={isHidden ? `Tampilkan ${s.name}` : `Sembunyikan ${s.name}`}
+                                className={`inline-flex items-center gap-1.5 text-xs font-medium transition-colors cursor-pointer rounded ${
+                                    isHidden
+                                        ? 'text-slate-300 line-through'
+                                        : 'text-slate-600 hover:text-[#0F1E36]'
+                                } ${focusRing}`}
+                            >
+                                <span
+                                    className="w-2 h-2 rounded-full shrink-0"
+                                    style={{ backgroundColor: isHidden ? '#cbd5e1' : s.color }}
+                                />
+                                <span>{s.name}</span>
+                            </button>
+                        );
+                    })}
                 </div>
 
                 <div className={`transition-all duration-300 ${isPrivacyActive ? 'privacy-chart' : ''}`}>
