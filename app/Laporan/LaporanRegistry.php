@@ -280,7 +280,7 @@ class LaporanRegistry
 
                     $baris('TOTAL KEWAJIBAN DAN MODAL', $totalKewajibanDanModal, 'subtotal');
 
-                    return self::hasil(
+                    $hasil = self::hasil(
                         ['Pos', 'Nilai'],
                         [1],
                         $rows,
@@ -293,6 +293,55 @@ class LaporanRegistry
                         'Laporan posisi keuangan per tanggal cut-off meliputi Kas/Bank, Piutang pokok pinjaman, Simpanan anggota, Asuransi Sosial, Selisih Hasil Usaha tahun berjalan, serta Modal dan Laba/Rugi Ditahan.',
                         $gayaBaris,
                     );
+
+                    return [
+                        ...$hasil,
+                        'skontro' => [
+                            'kiri' => [
+                                'judul' => 'I. AKTIVA',
+                                'kelompok' => [
+                                    [
+                                        'judul' => 'Aktiva Lancar',
+                                        'baris' => [
+                                            ['label' => 'Bank', 'nilai' => $bank],
+                                            ['label' => 'Kas', 'nilai' => $kasKecil],
+                                            ['label' => 'Piutang', 'nilai' => $piutang],
+                                        ],
+                                        'subtotal' => ['label' => 'Total Aktiva Lancar', 'nilai' => $aktivaLancar],
+                                    ],
+                                ],
+                                'total' => ['label' => 'TOTAL AKTIVA', 'nilai' => $totalAktiva],
+                            ],
+                            'kanan' => [
+                                'judul' => 'II. KEWAJIBAN DAN MODAL',
+                                'kelompok' => [
+                                    [
+                                        'judul' => 'Kewajiban Lancar',
+                                        'baris' => [
+                                            ['label' => 'Simpanan Pokok', 'nilai' => $simpananPokok],
+                                            ['label' => 'Simpanan Wajib', 'nilai' => $simpananWajib],
+                                            ['label' => 'Tabungan Anggota', 'nilai' => $tabunganAnggota],
+                                            ['label' => 'Asuransi Sosial', 'nilai' => $asuransiSosial],
+                                            ['label' => 'Selisih Hasil Usaha', 'nilai' => $shuNilai],
+                                            ['label' => 'Hutang', 'nilai' => $hutang],
+                                        ],
+                                        'subtotal' => ['label' => 'Total Kewajiban', 'nilai' => $totalKewajiban],
+                                    ],
+                                    [
+                                        'judul' => 'Modal & Ekuitas',
+                                        'baris' => [
+                                            ['label' => 'Modal', 'nilai' => $modalTetap],
+                                            ['label' => 'Laba/Rugi Ditahan', 'nilai' => $labaRugiDitahan],
+                                        ],
+                                        'subtotal' => ['label' => 'Total Modal', 'nilai' => $totalModal],
+                                    ],
+                                ],
+                                'total' => ['label' => 'TOTAL KEWAJIBAN DAN MODAL', 'nilai' => $totalKewajibanDanModal],
+                            ],
+                            'selisih' => $selisih,
+                            'seimbang' => $selisih == 0.0,
+                        ],
+                    ];
                 },
             ],
 

@@ -9,6 +9,7 @@ import FormField from '@/Components/ui/FormField';
 import TextField from '@/Components/ui/TextField';
 import Select from '@/Components/ui/Select';
 import { ExcelIcon, PdfIcon } from '@/Components/ui/ExportIcons';
+import NeracaSkontro from './Partials/NeracaSkontro';
 import { formatRupiah } from '@/Utils/formatCurrency';
 
 const fokusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/40';
@@ -249,78 +250,87 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
             </Card>
 
             {/* Hasil */}
-            <Card padding="none" className="shadow-md border-slate-200/70 overflow-hidden">
-                <div className="px-4 py-3 border-b border-slate-100 flex flex-wrap items-baseline justify-between gap-2">
-                    <h2 className="text-sm font-bold text-slate-800 tabular-nums">{hasil.rows.length} baris data</h2>
-                    <p className="text-xs text-slate-500">Periode: <span className="font-bold text-slate-700">{periodeLabel}</span></p>
-                </div>
-
-                {hasil.rows.length === 0 ? (
-                    <div className="text-center py-12 px-4">
-                        <p className="text-sm font-semibold text-slate-600">Tidak ada data pada periode ini.</p>
-                        <p className="text-sm text-slate-500 mt-1">Coba perlebar rentang periode atau ubah filter.</p>
-                        <Link
-                            href={route('laporan.show', laporan.slug)}
-                            className="inline-flex items-center justify-center gap-2 mt-3 px-4 py-2 text-sm font-semibold rounded-full text-brand-navy border-2 border-brand-navy hover:bg-slate-50 transition-colors"
-                        >
-                            <RotateCcw size={14} aria-hidden="true" />
-                            Reset Filter
-                        </Link>
+            {hasil.skontro ? (
+                <NeracaSkontro
+                    skontro={hasil.skontro}
+                    periodeLabel={periodeLabel}
+                    catatan={hasil.catatan}
+                    memuat={memuat}
+                />
+            ) : (
+                <Card padding="none" className="shadow-md border-slate-200/70 overflow-hidden">
+                    <div className="px-4 py-3 border-b border-slate-100 flex flex-wrap items-baseline justify-between gap-2">
+                        <h2 className="text-sm font-bold text-slate-800 tabular-nums">{hasil.rows.length} baris data</h2>
+                        <p className="text-xs text-slate-500">Periode: <span className="font-bold text-slate-700">{periodeLabel}</span></p>
                     </div>
-                ) : (
-                    <div className={`overflow-x-auto transition-opacity ${memuat ? 'opacity-50' : ''}`} aria-busy={memuat}>
-                        <table className="w-full text-sm table-sticky-first">
-                            <thead>
-                                <tr className="text-left border-b border-slate-200/80 bg-[#F8FAFC]">
-                                    {hasil.kolom.map((label, i) => (
-                                        <th key={i} scope="col" className={`px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap ${sel(i)}`}>{label}</th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white">
-                                {hasil.rows.map((row, ri) => (
-                                    hasil.gayaBaris?.[ri] === 'section' ? (
-                                        <tr key={ri} data-row-tone="section" className="bg-[#F1F5F9]">
-                                            <td colSpan={hasil.kolom.length} className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-brand-navy/80">{row[0]}</td>
-                                        </tr>
-                                    ) : (
-                                        <tr key={ri} data-row-tone={hasil.gayaBaris?.[ri] || undefined} className={gayaBaris(ri)}>
-                                            {row.map((cell, ci) => (
-                                                <td key={ci} className={`px-4 py-2.5 text-slate-700 ${sel(ci)}`}>{tampilCell(ci, cell, hasil.gayaBaris?.[ri] === 'subtotal')}</td>
-                                            ))}
-                                        </tr>
-                                    )
-                                ))}
-                            </tbody>
-                            {hasil.totals && (
-                                <tfoot>
-                                    <tr className="border-t-2 border-slate-200/90 bg-[#F7F9FC]">
-                                        {hasil.totals.map((cell, i) => (
-                                            <td key={i} className={`px-4 py-3 font-bold text-slate-800 ${sel(i)}`}>{cell == null ? '' : tampilCell(i, cell, true)}</td>
+
+                    {hasil.rows.length === 0 ? (
+                        <div className="text-center py-12 px-4">
+                            <p className="text-sm font-semibold text-slate-600">Tidak ada data pada periode ini.</p>
+                            <p className="text-sm text-slate-500 mt-1">Coba perlebar rentang periode atau ubah filter.</p>
+                            <Link
+                                href={route('laporan.show', laporan.slug)}
+                                className="inline-flex items-center justify-center gap-2 mt-3 px-4 py-2 text-sm font-semibold rounded-full text-brand-navy border-2 border-brand-navy hover:bg-slate-50 transition-colors"
+                            >
+                                <RotateCcw size={14} aria-hidden="true" />
+                                Reset Filter
+                            </Link>
+                        </div>
+                    ) : (
+                        <div className={`overflow-x-auto transition-opacity ${memuat ? 'opacity-50' : ''}`} aria-busy={memuat}>
+                            <table className="w-full text-sm table-sticky-first">
+                                <thead>
+                                    <tr className="text-left border-b border-slate-200/80 bg-[#F8FAFC]">
+                                        {hasil.kolom.map((label, i) => (
+                                            <th key={i} scope="col" className={`px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap ${sel(i)}`}>{label}</th>
                                         ))}
                                     </tr>
-                                </tfoot>
-                            )}
-                        </table>
-                    </div>
-                )}
+                                </thead>
+                                <tbody className="bg-white">
+                                    {hasil.rows.map((row, ri) => (
+                                        hasil.gayaBaris?.[ri] === 'section' ? (
+                                            <tr key={ri} data-row-tone="section" className="bg-[#F1F5F9]">
+                                                <td colSpan={hasil.kolom.length} className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-brand-navy/80">{row[0]}</td>
+                                            </tr>
+                                        ) : (
+                                            <tr key={ri} data-row-tone={hasil.gayaBaris?.[ri] || undefined} className={gayaBaris(ri)}>
+                                                {row.map((cell, ci) => (
+                                                    <td key={ci} className={`px-4 py-2.5 text-slate-700 ${sel(ci)}`}>{tampilCell(ci, cell, hasil.gayaBaris?.[ri] === 'subtotal')}</td>
+                                                ))}
+                                            </tr>
+                                        )
+                                    ))}
+                                </tbody>
+                                {hasil.totals && (
+                                    <tfoot>
+                                        <tr className="border-t-2 border-slate-200/90 bg-[#F7F9FC]">
+                                            {hasil.totals.map((cell, i) => (
+                                                <td key={i} className={`px-4 py-3 font-bold text-slate-800 ${sel(i)}`}>{cell == null ? '' : tampilCell(i, cell, true)}</td>
+                                            ))}
+                                        </tr>
+                                    </tfoot>
+                                )}
+                            </table>
+                        </div>
+                    )}
 
-                {(hasil.ringkasan?.length > 0 || hasil.catatan) && (
-                    <div className="p-4 border-t border-slate-100">
-                        {hasil.ringkasan?.length > 0 && (
-                            <dl className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-2">
-                                {hasil.ringkasan?.map(([label, nilai]) => (
-                                    <div key={label} className="rounded-xl bg-slate-50/80 border border-slate-100 px-3 py-2">
-                                        <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{label}</dt>
-                                        <dd className="text-sm font-bold text-slate-800 tabular-nums mt-0.5">{nilai}</dd>
-                                    </div>
-                                ))}
-                            </dl>
-                        )}
-                        {hasil.catatan && <p className="text-xs italic text-slate-500">{hasil.catatan}</p>}
-                    </div>
-                )}
-            </Card>
+                    {(hasil.ringkasan?.length > 0 || hasil.catatan) && (
+                        <div className="p-4 border-t border-slate-100">
+                            {hasil.ringkasan?.length > 0 && (
+                                <dl className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-2">
+                                    {hasil.ringkasan?.map(([label, nilai]) => (
+                                        <div key={label} className="rounded-xl bg-slate-50/80 border border-slate-100 px-3 py-2">
+                                            <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{label}</dt>
+                                            <dd className="text-sm font-bold text-slate-800 tabular-nums mt-0.5">{nilai}</dd>
+                                        </div>
+                                    ))}
+                                </dl>
+                            )}
+                            {hasil.catatan && <p className="text-xs italic text-slate-500">{hasil.catatan}</p>}
+                        </div>
+                    )}
+                </Card>
+            )}
         </AppLayout>
     );
 }

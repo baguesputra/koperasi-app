@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\ArrayExport;
+use App\Exports\NeracaExport;
 use App\Laporan\LaporanRegistry;
 use App\Models\Anggota;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -53,12 +54,15 @@ class LaporanController extends Controller
         [$filter, $periodeLabel] = $this->siapkanFilter($request, $def);
         $hasil = $def['data']($request);
 
-        return Pdf::loadView('laporan.generik', [
+        $view = isset($hasil['skontro']) ? 'laporan.neraca' : 'laporan.generik';
+        $orientasi = (isset($hasil['skontro']) || count($hasil['kolom']) > 6) ? 'landscape' : 'portrait';
+
+        return Pdf::loadView($view, [
             'judul' => $def['judul'],
             'periodeLabel' => $periodeLabel,
             'hasil' => $hasil,
         ])
-            ->setPaper('a4', count($hasil['kolom']) > 6 ? 'landscape' : 'portrait')
+            ->setPaper('a4', $orientasi)
             ->download($this->namaFile($def['judul'], $periodeLabel).'.pdf');
     }
 
@@ -67,6 +71,14 @@ class LaporanController extends Controller
         $def = $this->validasi($jenis);
         [, $periodeLabel] = $this->siapkanFilter($request, $def);
         $hasil = $def['data']($request);
+        $namaFile = $this->namaFile($def['judul'], $periodeLabel).'.xlsx';
+
+        if (isset($hasil['skontro'])) {
+            return Excel::download(
+                new NeracaExport($def['judul'], $periodeLabel, $hasil['skontro'], $hasil['catatan'] ?? null),
+                $namaFile
+            );
+        }
 
         $rowsExcel = collect($hasil['rows'])->map(function ($row, $i) use ($hasil) {
             if (($hasil['gayaBaris'][$i] ?? null) === 'section') {
@@ -87,7 +99,7 @@ class LaporanController extends Controller
             $baris[] = array_map(fn ($v) => $v === null ? '' : $v, $hasil['totals']);
         }
 
-        return Excel::download(new ArrayExport($baris), $this->namaFile($def['judul'], $periodeLabel).'.xlsx');
+        return Excel::download(new ArrayExport($baris), $namaFile);
     }
 
     private function validasi(string $jenis): array

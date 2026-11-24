@@ -134,11 +134,14 @@ class LaporanController extends Controller
 
         $namaFile = $slug.'-'.str_replace([' ', '/'], '-', strtolower($periodeLabel)).'.pdf';
 
-        return Pdf::loadView('laporan.generik', [
+        $view = isset($hasil['skontro']) ? 'laporan.neraca' : 'laporan.generik';
+        $orientasi = (isset($hasil['skontro']) || count($hasil['kolom']) > 6) ? 'landscape' : 'portrait';
+
+        return Pdf::loadView($view, [
             'judul' => $def['judul'],
             'periodeLabel' => $periodeLabel,
             'hasil' => $hasil,
-        ])->setPaper('a4', count($hasil['kolom']) > 6 ? 'landscape' : 'portrait')
+        ])->setPaper('a4', $orientasi)
             ->download($namaFile);
     }
 
