@@ -63,10 +63,29 @@ class TabunganTest extends TestCase
             'setuju_syarat' => true,
         ])->assertSessionHasErrors('buka');
 
-        // Bendahara menyetujui pembukaan rekening
+        // Bendahara tidak bisa melompati tahap Sekretaris
+        $this->masuk('BEN-000001');
+        $this->post(route('bendahara.tabungan.buka.setujui', $rekening->id), ['catatan' => 'Lompat'])
+            ->assertSessionHasErrors('aksi');
+
+        // Tahap 1: Sekretaris memverifikasi pembukaan rekening
+        $this->masuk('ADM-000001');
+        $this->post(route('admin.tabungan.buka.approve', $rekening->id), [
+            'catatan' => 'Data keanggotaan valid',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame('approved_admin', $rekening->refresh()->status);
+
+        // Tahap 2: Bendahara meninjau pembukaan rekening
         $this->masuk('BEN-000001');
         $this->post(route('bendahara.tabungan.buka.setujui', $rekening->id), [
-            'catatan' => 'Disetujui',
+            'catatan' => 'Oke lanjut ke Ketua',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame('approved_bendahara', $rekening->refresh()->status);
+
+        // Tahap 3: Ketua Koperasi menyetujui dan mengaktifkan rekening
+        $this->masuk('KET-000001');
+        $this->post(route('ketua.tabungan.buka.approve', $rekening->id), [
+            'catatan' => 'Disetujui Ketua',
         ])->assertRedirect()->assertSessionHasNoErrors();
 
         $rekening->refresh();
@@ -207,17 +226,118 @@ class TabunganTest extends TestCase
             ->where('jenis', 'tarik')
             ->sole();
 
-        // Bendahara cairkan dari bank
+        // Tahap 1-3 Approval Berjenjang Penarikan (Sekretaris -> Bendahara -> Ketua) belum memotong saldo / kas
         $bankSebelumTarik = (float) KasKoperasi::first()->saldo_bank;
+
+        $this->masuk('ADM-000001');
+        $this->post(route('admin.tabungan.pengajuan.approve', $pengajuanTarik->id), [
+            'catatan' => 'Data penarikan valid',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame('approved_admin', $pengajuanTarik->refresh()->status);
+
         $this->masuk('BEN-000001');
         $this->post(route('bendahara.tabungan.pengajuan.setujui', $pengajuanTarik->id), [
+            'catatan' => 'Likuiditas aman',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame('approved_bendahara', $pengajuanTarik->refresh()->status);
+
+        $this->masuk('KET-000001');
+        $this->post(route('ketua.tabungan.pengajuan.approve', $pengajuanTarik->id), [
+            'catatan' => 'Disetujui Ketua untuk pencairan',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame('approved_ketua', $pengajuanTarik->refresh()->status);
+
+        // Sebelum pencairan Bendahara: saldo dan kas bank belum berubah
+        $this->assertEqualsWithDelta(1_000_000, (float) $rekening->refresh()->saldo, 0.01);
+        $this->assertEqualsWithDelta($bankSebelumTarik, (float) KasKoperasi::first()->saldo_bank, 0.01);
+
+        // Bendahara eksekusi pencairan dengan tanggal transfer + upload bukti
+        $this->masuk('BEN-000001');
+        $this->post(route('bendahara.tabungan.pengajuan.cair', $pengajuanTarik->id), [
             'akun_kas' => 'bank',
-            'catatan' => 'Sudah ditransfer',
+            'tanggal_pencairan' => now()->toDateString(),
+            'bukti_pencairan' => UploadedFile::fake()->image('bukti-cair-tabungan.jpg'),
+            'catatan' => 'Sudah ditransfer ke rekening BCA anggota',
         ])->assertRedirect()->assertSessionHasNoErrors();
 
         $rekening->refresh();
+        $pengajuanTarik->refresh();
+        $this->assertSame('disetujui', $pengajuanTarik->status);
+        $this->assertNotNull($pengajuanTarik->bukti_pencairan_path);
+        Storage::disk('local')->assertExists($pengajuanTarik->bukti_pencairan_path);
         $this->assertEqualsWithDelta(700_000, (float) $rekening->saldo, 0.01);
         $this->assertEqualsWithDelta($bankSebelumTarik - 300_000, (float) KasKoperasi::first()->saldo_bank, 0.01);
+    }
+
+    public function test_masa_tunggu_tarik_tabungan_1_tahun_tetap_bisa_setor_dan_resign(): void
+    {
+        $anggota = $this->buatAnggota('TAB-900010');
+        $anggota->user->update(['pin' => '135790']);
+        $rekTujuan = RekeningAnggota::create([
+            'anggota_id' => $anggota->id,
+            'nama_bank' => 'BRI',
+            'no_rekening' => '777888999',
+            'atas_nama' => $anggota->nama,
+            'is_default' => true,
+        ]);
+
+        // Rekening baru dibuka hari ini (< 12 bulan) dengan saldo awal Rp 1.000.000
+        $rekening = $this->buatRekeningAktif($anggota, now()->toDateString());
+        $rekening->update(['saldo' => 1_000_000]);
+
+        $this->actingAs($anggota->user);
+
+        // Penarikan biasa & tutup rekening sukarela diblokir sebelum 1 tahun
+        $this->post(route('portal.tabungan.tarik'), [
+            'tutup_rekening' => false,
+            'nominal' => 200_000,
+            'kanal' => 'transfer',
+            'rekening_anggota_id' => $rekTujuan->id,
+            'pin' => '135790',
+        ])->assertSessionHasErrors('tarik');
+
+        $this->post(route('portal.tabungan.tarik'), [
+            'tutup_rekening' => true,
+            'kanal' => 'transfer',
+            'rekening_anggota_id' => $rekTujuan->id,
+            'pin' => '135790',
+        ])->assertSessionHasErrors('tarik');
+
+        // Menambah setoran tabungan tetap diperbolehkan kapan saja
+        $this->post(route('portal.tabungan.setor'), [
+            'nominal' => 250_000,
+            'tanggal_transaksi' => now()->toDateString(),
+            'bukti' => UploadedFile::fake()->image('setor-awal.jpg'),
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        // Resign sebelum 1 tahun tetap memproses pengembalian tabungan tanpa terhalang lock-in
+        $ben = $this->masuk('BEN-000001');
+        app(ResignService::class)->proses($anggota->fresh(), 'Resign sebelum 1 tahun', now()->toDateString(), $ben);
+        $rekening->refresh();
+        $this->assertSame('ditutup', $rekening->status);
+        $this->assertEqualsWithDelta(0, (float) $rekening->saldo, 0.01);
+
+        // Setelah >= 12 bulan sejak tanggal buka, penarikan normal dapat diajukan
+        $anggotaLama = $this->buatAnggota('TAB-900011');
+        $anggotaLama->user->update(['pin' => '135790']);
+        $rekTujuanLama = RekeningAnggota::create([
+            'anggota_id' => $anggotaLama->id,
+            'nama_bank' => 'Mandiri',
+            'no_rekening' => '1234432100',
+            'atas_nama' => $anggotaLama->nama,
+            'is_default' => true,
+        ]);
+        $rekeningLama = $this->buatRekeningAktif($anggotaLama, now()->subMonthsNoOverflow(12)->toDateString());
+        $rekeningLama->update(['saldo' => 1_000_000]);
+
+        $this->actingAs($anggotaLama->user);
+        $this->post(route('portal.tabungan.tarik'), [
+            'tutup_rekening' => false,
+            'nominal' => 200_000,
+            'kanal' => 'transfer',
+            'rekening_anggota_id' => $rekTujuanLama->id,
+            'pin' => '135790',
+        ])->assertRedirect()->assertSessionHasNoErrors();
     }
 
     public function test_storno_transaksi_tabungan_membalik_saldo_dan_jurnal(): void
@@ -428,20 +548,30 @@ class TabunganTest extends TestCase
         $anggota = $this->buatAnggota('TAB-900009');
         $rekening = $this->buatRekeningAktif($anggota);
 
-        // Sekretaris & Pengawas bisa lihat daftar & detail tabungan, tapi ditolak di proses bendahara
-        foreach (['ADM-000001', 'WAS-000001'] as $nik) {
-            $this->masuk($nik);
-            $this->get(route('tabungan.index'))->assertOk();
-            $this->get(route('tabungan.show', $rekening->id))->assertOk();
-            $this->get(route('bendahara.tabungan.index'))->assertForbidden();
+        // Sekretaris bisa verifikasi tahap 1 dan lihat daftar/detail/kebijakan (read-only), tapi dilarang di proses bendahara & ketua
+        $this->masuk('ADM-000001');
+        $this->get(route('tabungan.index'))->assertOk();
+        $this->get(route('tabungan.show', $rekening->id))->assertOk();
+        $this->get(route('admin.tabungan.index'))->assertOk();
+        $this->get(route('bendahara.tabungan.index'))->assertForbidden();
+        $this->get(route('ketua.tabungan.index'))->assertForbidden();
 
-            session(['auth.password_confirmed_at' => time()]);
-            $this->get(route('pengaturan.index', ['tab' => 'aturan-tabungan']))->assertOk();
-            $this->post(route('pengaturan.tabungan.bunga.update'), [
-                'persentase' => 3.5,
-                'berlaku_dari_tanggal' => now()->toDateString(),
-            ])->assertForbidden();
-        }
+        session(['auth.password_confirmed_at' => time()]);
+        $this->get(route('pengaturan.index', ['tab' => 'aturan-tabungan']))->assertOk();
+        $this->post(route('pengaturan.tabungan.bunga.update'), [
+            'persentase' => 3.5,
+            'berlaku_dari_tanggal' => now()->toDateString(),
+        ])->assertForbidden();
+
+        // Pengawas hanya view data tabungan (Revisi 4), dilarang akses approval & pengaturan
+        $this->masuk('WAS-000001');
+        $this->get(route('tabungan.index'))->assertOk();
+        $this->get(route('tabungan.show', $rekening->id))->assertOk();
+        $this->get(route('admin.tabungan.index'))->assertForbidden();
+        $this->get(route('bendahara.tabungan.index'))->assertForbidden();
+        $this->get(route('ketua.tabungan.index'))->assertForbidden();
+        session(['auth.password_confirmed_at' => time()]);
+        $this->get(route('pengaturan.index', ['tab' => 'aturan-tabungan']))->assertForbidden();
 
         // Bendahara bisa akses proses tabungan, tapi tidak bisa ubah kebijakan bunga
         $this->masuk('BEN-000001');
@@ -452,8 +582,9 @@ class TabunganTest extends TestCase
             'berlaku_dari_tanggal' => now()->toDateString(),
         ])->assertForbidden();
 
-        // Ketua Koperasi bisa ubah suku bunga & ketentuan tabungan
+        // Ketua Koperasi bisa akses approval ketua dan ubah suku bunga & ketentuan tabungan
         $this->masuk('KET-000001');
+        $this->get(route('ketua.tabungan.index'))->assertOk();
         session(['auth.password_confirmed_at' => time()]);
         $this->post(route('pengaturan.tabungan.bunga.update'), [
             'persentase' => 2.75,
@@ -472,6 +603,7 @@ class TabunganTest extends TestCase
             'min_setor' => 100_000,
             'saldo_minimal' => 50_000,
             'min_tarik' => 50_000,
+            'masa_tunggu_tarik_bulan' => 18,
             'bank_tujuan_nama' => 'Bank BRI',
             'bank_tujuan_rekening' => '1122334455',
             'bank_tujuan_atas_nama' => 'Koperasi Karya Mandiri',
@@ -479,11 +611,14 @@ class TabunganTest extends TestCase
         ])->assertRedirect()->assertSessionHasNoErrors();
 
         $this->assertSame(100_000.0, (float) SettingTabungan::current()->min_setor);
+        $this->assertSame(18, (int) SettingTabungan::current()->masa_tunggu_tarik_bulan);
         $this->assertSame('Bank BRI', SettingTabungan::current()->bank_tujuan_nama);
     }
 
-    private function buatRekeningAktif(Anggota $anggota): RekeningTabungan
+    private function buatRekeningAktif(Anggota $anggota, ?string $tanggalBuka = null): RekeningTabungan
     {
+        $tgl = $tanggalBuka ?? now()->subMonthsNoOverflow(13)->toDateString();
+
         return RekeningTabungan::create([
             'anggota_id' => $anggota->id,
             'no_rekening' => 'TAB-2026-'.str_pad((string) random_int(100, 9999), 4, '0', STR_PAD_LEFT),
@@ -492,8 +627,8 @@ class TabunganTest extends TestCase
             'suku_bunga_saat_buka' => 2.00,
             'versi_syarat' => 'v1.0-2026-11-23',
             'setuju_syarat' => true,
-            'tanggal_pengajuan' => now()->toDateString(),
-            'tanggal_buka' => now()->toDateString(),
+            'tanggal_pengajuan' => $tgl,
+            'tanggal_buka' => $tgl,
         ]);
     }
 }

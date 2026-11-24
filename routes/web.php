@@ -1,12 +1,14 @@
 <?php
 
 use App\Http\Controllers\Admin\PinjamanController as AdminPinjamanController;
+use App\Http\Controllers\Admin\TabunganController as AdminTabunganController;
 use App\Http\Controllers\AnggotaController;
 use App\Http\Controllers\API\AnggotaController as ApiAnggotaController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\MobileSsoController;
 use App\Http\Controllers\Auth\SsoController;
 use App\Http\Controllers\Bendahara\AngsuranController;
+use App\Http\Controllers\Bendahara\PencairanPinjamanController;
 use App\Http\Controllers\Bendahara\PengajuanLimitController as BendaharaPengajuanLimitController;
 use App\Http\Controllers\Bendahara\PercepatanController as BendaharaPercepatanController;
 use App\Http\Controllers\Bendahara\PinjamanController as BendaharaPinjamanController;
@@ -19,12 +21,14 @@ use App\Http\Controllers\Ketua\AktivasiController as KetuaAktivasiController;
 use App\Http\Controllers\Ketua\PengajuanLimitController as KetuaPengajuanLimitController;
 use App\Http\Controllers\Ketua\PercepatanController as KetuaPercepatanController;
 use App\Http\Controllers\Ketua\PinjamanController as KetuaPinjamanController;
+use App\Http\Controllers\Ketua\TabunganController as KetuaTabunganController;
 use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\MigrasiController;
 use App\Http\Controllers\Pengaturan\PenggunaController;
 use App\Http\Controllers\PengaturanController;
 use App\Http\Controllers\PengeluaranController;
 use App\Http\Controllers\Pengurus\PenghapusanPinjamanController;
+use App\Http\Controllers\PinjamanBuktiController;
 use App\Http\Controllers\PinjamanController;
 use App\Http\Controllers\Portal\AktivasiController as PortalAktivasiController;
 use App\Http\Controllers\Portal\DashboardController as PortalDashboardController;
@@ -139,6 +143,11 @@ Route::middleware(['auth', 'permission:pinjaman.lihat'])->group(function () {
     Route::get('/pinjaman', [PinjamanController::class, 'index'])->name('pinjaman.index');
     Route::get('/pinjaman/{pinjaman}', [PinjamanController::class, 'show'])->name('pinjaman.show');
     Route::get('/pinjaman/{pinjaman}/cetak-bukti', [PinjamanController::class, 'cetakBukti'])->name('pinjaman.cetak-bukti');
+});
+
+Route::middleware('auth')->group(function () {
+    Route::get('/pinjaman/{pinjaman}/bukti-pencairan', [PinjamanBuktiController::class, 'show'])
+        ->name('pinjaman.bukti-pencairan');
 });
 
 // ==========================================
@@ -320,6 +329,14 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
         Route::post('/pinjaman/{pinjaman}/approve', [AdminPinjamanController::class, 'approve'])->name('pinjaman.approve')->middleware('idempotent');
         Route::post('/pinjaman/{pinjaman}/reject', [AdminPinjamanController::class, 'reject'])->name('pinjaman.reject')->middleware('idempotent');
     });
+
+    Route::middleware('permission:tabungan.tinjau-admin')->group(function () {
+        Route::get('/tabungan', [AdminTabunganController::class, 'index'])->name('tabungan.index');
+        Route::post('/tabungan/buka/{rekening}/approve', [AdminTabunganController::class, 'approveBuka'])->name('tabungan.buka.approve')->middleware('idempotent');
+        Route::post('/tabungan/buka/{rekening}/reject', [AdminTabunganController::class, 'rejectBuka'])->name('tabungan.buka.reject')->middleware('idempotent');
+        Route::post('/tabungan/pengajuan/{pengajuan}/approve', [AdminTabunganController::class, 'approveTarik'])->name('tabungan.pengajuan.approve')->middleware('idempotent');
+        Route::post('/tabungan/pengajuan/{pengajuan}/reject', [AdminTabunganController::class, 'rejectTarik'])->name('tabungan.pengajuan.reject')->middleware('idempotent');
+    });
 });
 
 // ==========================================
@@ -337,6 +354,11 @@ Route::middleware('auth')->prefix('bendahara')->name('bendahara.')->group(functi
         Route::get('/percepatan/{percepatan}', [BendaharaPercepatanController::class, 'show'])->name('percepatan.show');
         Route::post('/percepatan/{percepatan}/approve', [BendaharaPercepatanController::class, 'approve'])->name('percepatan.approve')->middleware('idempotent');
         Route::post('/percepatan/{percepatan}/reject', [BendaharaPercepatanController::class, 'reject'])->name('percepatan.reject')->middleware('idempotent');
+    });
+
+    Route::middleware('permission:pinjaman.cairkan')->group(function () {
+        Route::get('/pencairan-pinjaman', [PencairanPinjamanController::class, 'index'])->name('pencairan-pinjaman.index');
+        Route::post('/pencairan-pinjaman/{pinjaman}/cair', [PencairanPinjamanController::class, 'cair'])->name('pencairan-pinjaman.cair')->middleware('idempotent');
     });
 
     Route::middleware('permission:limit.tinjau-bendahara')->group(function () {
@@ -365,6 +387,7 @@ Route::middleware('auth')->prefix('bendahara')->name('bendahara.')->group(functi
         Route::post('/tabungan/buka/{rekening}/setujui', [BendaharaTabunganController::class, 'setujuiBuka'])->name('tabungan.buka.setujui')->middleware('idempotent');
         Route::post('/tabungan/buka/{rekening}/tolak', [BendaharaTabunganController::class, 'tolakBuka'])->name('tabungan.buka.tolak')->middleware('idempotent');
         Route::post('/tabungan/pengajuan/{pengajuan}/setujui', [BendaharaTabunganController::class, 'setujuiPengajuan'])->name('tabungan.pengajuan.setujui')->middleware('idempotent');
+        Route::post('/tabungan/pengajuan/{pengajuan}/cair', [BendaharaTabunganController::class, 'cairPengajuan'])->name('tabungan.pengajuan.cair')->middleware('idempotent');
         Route::post('/tabungan/pengajuan/{pengajuan}/tolak', [BendaharaTabunganController::class, 'tolakPengajuan'])->name('tabungan.pengajuan.tolak')->middleware('idempotent');
         Route::post('/tabungan/setor-tunai', [BendaharaTabunganController::class, 'setorTunai'])->name('tabungan.setor-tunai')->middleware('idempotent');
         Route::post('/tabungan/transaksi/{transaksi}/batalkan', [BendaharaTabunganController::class, 'batalkanTransaksi'])->name('tabungan.transaksi.batalkan')->middleware('idempotent');
@@ -399,6 +422,14 @@ Route::middleware('auth')->prefix('ketua')->name('ketua.')->group(function () {
         Route::get('/aktivasi', [KetuaAktivasiController::class, 'index'])->name('aktivasi.index');
         Route::post('/aktivasi/{aktivasi}/approve', [KetuaAktivasiController::class, 'approve'])->name('aktivasi.approve')->middleware('idempotent');
         Route::post('/aktivasi/{aktivasi}/reject', [KetuaAktivasiController::class, 'reject'])->name('aktivasi.reject')->middleware('idempotent');
+    });
+
+    Route::middleware('permission:tabungan.approve-ketua')->group(function () {
+        Route::get('/tabungan', [KetuaTabunganController::class, 'index'])->name('tabungan.index');
+        Route::post('/tabungan/buka/{rekening}/approve', [KetuaTabunganController::class, 'approveBuka'])->name('tabungan.buka.approve')->middleware('idempotent');
+        Route::post('/tabungan/buka/{rekening}/reject', [KetuaTabunganController::class, 'rejectBuka'])->name('tabungan.buka.reject')->middleware('idempotent');
+        Route::post('/tabungan/pengajuan/{pengajuan}/approve', [KetuaTabunganController::class, 'approveTarik'])->name('tabungan.pengajuan.approve')->middleware('idempotent');
+        Route::post('/tabungan/pengajuan/{pengajuan}/reject', [KetuaTabunganController::class, 'rejectTarik'])->name('tabungan.pengajuan.reject')->middleware('idempotent');
     });
 });
 

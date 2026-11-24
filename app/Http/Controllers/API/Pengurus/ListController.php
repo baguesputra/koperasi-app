@@ -42,7 +42,7 @@ class ListController extends Controller
 
         $cari = trim((string) $request->input('cari', ''));
 
-        $dasar = Pinjaman::with(['anggota', 'pengaju']);
+        $dasar = Pinjaman::with(['anggota', 'pengaju', 'dicairkanOleh:id,name']);
         $this->terapkanCari($dasar, $cari);
 
         $rekap = (clone $dasar)

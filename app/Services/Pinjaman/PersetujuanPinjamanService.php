@@ -11,7 +11,11 @@ use App\Services\Keuangan\JurnalKasService;
 use App\Services\Wa\WaPesan;
 use App\Services\Wa\WaService;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 
 class PersetujuanPinjamanService
 {
@@ -26,7 +30,7 @@ class PersetujuanPinjamanService
         $pemilik = $pinjaman->anggota?->user_id;
 
         if (($pengaju && $pengaju === $saya) || ($pemilik && $pemilik === $saya)) {
-            throw new \RuntimeException('Anda tidak dapat memproses pengajuan Anda sendiri.');
+            throw new RuntimeException('Anda tidak dapat memproses pengajuan Anda sendiri.');
         }
     }
 
@@ -44,13 +48,13 @@ class PersetujuanPinjamanService
         $tenorMaksimal = $this->eligibilitas->tenorMaksimal($nominal);
 
         if (! $tenorMaksimal) {
-            throw new \RuntimeException('Nominal tidak sesuai dengan ketentuan tenor yang berlaku.');
+            throw new RuntimeException('Nominal tidak sesuai dengan ketentuan tenor yang berlaku.');
         }
 
         $acuan = $tenorDiminta ?? $tenorAcuan ?? $pinjaman->tenor_bulan;
 
         if ($tenorDiminta !== null && $tenorDiminta > $tenorMaksimal) {
-            throw new \RuntimeException("Tenor maksimal untuk nominal ini adalah {$tenorMaksimal} bulan.");
+            throw new RuntimeException("Tenor maksimal untuk nominal ini adalah {$tenorMaksimal} bulan.");
         }
 
         return min($acuan, $tenorMaksimal);
@@ -62,13 +66,13 @@ class PersetujuanPinjamanService
     private function validasiNominal(Pinjaman $pinjaman, float $nominal): void
     {
         if ($nominal < 1) {
-            throw new \RuntimeException('Nominal yang disetujui minimal Rp 1.');
+            throw new RuntimeException('Nominal yang disetujui minimal Rp 1.');
         }
 
         $limitTersedia = $this->eligibilitas->limitTersedia($pinjaman->anggota);
 
         if ($nominal > $limitTersedia) {
-            throw new \RuntimeException(
+            throw new RuntimeException(
                 'Nominal melebihi limit tersedia anggota: Rp '.number_format($limitTersedia, 0, ',', '.')
             );
         }
@@ -78,7 +82,7 @@ class PersetujuanPinjamanService
     {
         $this->tolakBilaSelfApproval($pinjaman);
         if ($pinjaman->status !== 'diajukan') {
-            throw new \RuntimeException('Hanya pinjaman berstatus Diajukan yang dapat diteruskan Sekretaris.');
+            throw new RuntimeException('Hanya pinjaman berstatus Diajukan yang dapat diteruskan Sekretaris.');
         }
 
         $mandiriBendahara = $pinjaman->catatan_bendahara === 'Diajukan mandiri oleh Bendahara';
@@ -101,7 +105,7 @@ class PersetujuanPinjamanService
     {
         $this->tolakBilaSelfApproval($pinjaman);
         if ($pinjaman->status !== 'diajukan') {
-            throw new \RuntimeException('Hanya pinjaman berstatus Diajukan yang dapat ditolak Sekretaris.');
+            throw new RuntimeException('Hanya pinjaman berstatus Diajukan yang dapat ditolak Sekretaris.');
         }
 
         $pinjaman->update([
@@ -127,35 +131,53 @@ class PersetujuanPinjamanService
     {
         $this->tolakBilaSelfApproval($pinjaman);
         if ($pinjaman->status !== 'approved_admin') {
-            throw new \RuntimeException('Hanya pinjaman berstatus Diteruskan Sekretaris yang dapat disetujui Bendahara.');
+            throw new RuntimeException('Hanya pinjaman berstatus Diteruskan Sekretaris yang dapat disetujui Bendahara.');
         }
 
         $nominalFinal = $nominal ?? (float) $pinjaman->nominal;
         $this->validasiNominal($pinjaman, $nominalFinal);
         $tenorFinal = $this->resolveTenor($pinjaman, $nominalFinal, $tenorBulan);
         $kasSaldo = $this->jurnalKas->saldoOperasional();
+        $mandiriKetua = (bool) $pinjaman->cair_oleh_bendahara;
 
-        $pinjaman->update([
-            'status' => 'approved_bendahara',
+        $payload = [
+            'status' => $mandiriKetua ? 'approved_ketua' : 'approved_bendahara',
             'nominal_disetujui_bendahara' => $nominalFinal,
             'tenor_disetujui_bendahara' => $tenorFinal,
             'kas_saldo_bendahara' => $kasSaldo,
             'catatan_bendahara' => $catatan,
-        ]);
+        ];
+
+        if ($mandiriKetua) {
+            $payload = array_merge($payload, [
+                'nominal' => $nominalFinal,
+                'tenor_bulan' => $tenorFinal,
+                'nominal_disetujui' => $nominalFinal,
+                'tenor_disetujui' => $tenorFinal,
+                'disetujui_ketua_pada' => now(),
+            ]);
+        }
+
+        $pinjaman->update($payload);
 
         AuditLog::catat(
             aksi: 'pinjaman_setujui_bendahara',
-            keterangan: "Pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) disetujui oleh Bendahara. Diminta: ".WaPesan::rupiah($pinjaman->nominal_diminta ?? $pinjaman->nominal).', usulan: '.WaPesan::rupiah($nominalFinal)." ({$tenorFinal} bln). Kas operasional saat itu: ".WaPesan::rupiah($kasSaldo).', proyeksi sisa: '.WaPesan::rupiah($kasSaldo - $nominalFinal),
+            keterangan: "Pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) disetujui oleh Bendahara. Diminta: ".WaPesan::rupiah($pinjaman->nominal_diminta ?? $pinjaman->nominal).', usulan: '.WaPesan::rupiah($nominalFinal)." ({$tenorFinal} bln). Kas operasional saat itu: ".WaPesan::rupiah($kasSaldo).', proyeksi sisa: '.WaPesan::rupiah($kasSaldo - $nominalFinal)
+                .($mandiriKetua ? ' (pengajuan mandiri Ketua: diteruskan ke daftar Pencairan Bendahara).' : ''),
             dataLama: ['status' => 'approved_admin'],
-            dataBaru: ['status' => 'approved_bendahara', 'nominal_disetujui_bendahara' => $nominalFinal, 'tenor_disetujui_bendahara' => $tenorFinal, 'kas_saldo_bendahara' => $kasSaldo, 'catatan_bendahara' => $catatan]
+            dataBaru: array_merge(['status' => $payload['status'], 'nominal_disetujui_bendahara' => $nominalFinal, 'tenor_disetujui_bendahara' => $tenorFinal, 'kas_saldo_bendahara' => $kasSaldo, 'catatan_bendahara' => $catatan])
         );
+
+        if ($mandiriKetua) {
+            $this->kirimWaPersetujuanAkhirBulan($pinjaman->refresh());
+        }
     }
 
     public function rejectBendahara(Pinjaman $pinjaman, string $catatan): void
     {
         $this->tolakBilaSelfApproval($pinjaman);
         if ($pinjaman->status !== 'approved_admin') {
-            throw new \RuntimeException('Hanya pinjaman berstatus Diteruskan Sekretaris yang dapat ditolak Bendahara.');
+            throw new RuntimeException('Hanya pinjaman berstatus Diteruskan Sekretaris yang dapat ditolak Bendahara.');
         }
 
         $statusLama = $pinjaman->status;
@@ -178,35 +200,11 @@ class PersetujuanPinjamanService
         );
     }
 
-    /**
-     * Pencairan pinjaman pengajuan mandiri Ketua oleh Bendahara
-     * (status approved_bendahara + cair_oleh_bendahara). Prosesnya identik
-     * dengan approveKetua: aktifkan, bentuk jadwal, catat jurnal keluar,
-     * kirim WA formal + lampiran Bukti Peminjaman.
-     */
-    public function cairBendahara(Pinjaman $pinjaman, string $catatan): void
-    {
-        $this->tolakBilaSelfApproval($pinjaman);
-        if ($pinjaman->status !== 'approved_bendahara' || ! $pinjaman->cair_oleh_bendahara) {
-            throw new \RuntimeException('Pinjaman ini tidak dalam status menunggu pencairan Bendahara.');
-        }
-
-        // Jalur mandiri Ketua: usulan Bendahara = final (tanpa edit Ketua).
-        $this->cairkan(
-            $pinjaman,
-            $catatan,
-            'pinjaman_cair_bendahara',
-            'dicairkan oleh Bendahara (pengajuan mandiri Ketua)',
-            $pinjaman->nominal_disetujui_bendahara !== null ? (float) $pinjaman->nominal_disetujui_bendahara : null,
-            $pinjaman->tenor_disetujui_bendahara,
-        );
-    }
-
     public function approveKetua(Pinjaman $pinjaman, string $catatan, ?float $nominal = null, ?int $tenorBulan = null): void
     {
         $this->tolakBilaSelfApproval($pinjaman);
-        if ($pinjaman->status !== 'approved_bendahara') {
-            throw new \RuntimeException('Hanya pinjaman berstatus Disetujui Bendahara yang dapat disetujui Ketua.');
+        if ($pinjaman->status !== 'approved_bendahara' || $pinjaman->cair_oleh_bendahara) {
+            throw new RuntimeException('Hanya pinjaman berstatus Disetujui Bendahara yang dapat disetujui Ketua.');
         }
 
         $nominalFinal = $nominal ?? (float) ($pinjaman->nominal_disetujui_bendahara ?? $pinjaman->nominal);
@@ -218,101 +216,243 @@ class PersetujuanPinjamanService
             $pinjaman->tenor_disetujui_bendahara ?? $pinjaman->tenor_bulan
         );
 
-        $this->cairkan($pinjaman, $catatan, 'pinjaman_setujui_ketua', 'disetujui & dicairkan oleh Ketua', $nominalFinal, $tenorFinal);
+        $kasSebelum = $this->jurnalKas->saldoOperasional();
+
+        $pinjaman->update([
+            'status' => 'approved_ketua',
+            'nominal' => $nominalFinal,
+            'tenor_bulan' => $tenorFinal,
+            'nominal_disetujui' => $nominalFinal,
+            'tenor_disetujui' => $tenorFinal,
+            'kas_saldo_ketua' => $kasSebelum,
+            'catatan_ketua' => $catatan,
+            'disetujui_ketua_pada' => now(),
+        ]);
+
+        $pinjaman->refresh();
+
+        $trail = 'Diminta: '.WaPesan::rupiah($pinjaman->nominal_diminta ?? $nominalFinal)
+            .($pinjaman->nominal_disetujui_bendahara ? ', Bendahara: '.WaPesan::rupiah($pinjaman->nominal_disetujui_bendahara) : '')
+            .', Disetujui Ketua: '.WaPesan::rupiah($nominalFinal);
+
+        AuditLog::catat(
+            aksi: 'pinjaman_setujui_ketua',
+            keterangan: "Pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) disetujui Ketua (menunggu pencairan Bendahara di akhir bulan). {$trail}.",
+            dataLama: ['status' => 'approved_bendahara'],
+            dataBaru: [
+                'status' => 'approved_ketua',
+                'nominal' => $nominalFinal,
+                'tenor_bulan' => $tenorFinal,
+                'kas_saldo_ketua' => $kasSebelum,
+                'catatan_ketua' => $catatan,
+                'disetujui_ketua_pada' => $pinjaman->disetujui_ketua_pada?->toDateTimeString(),
+            ]
+        );
+
+        $this->kirimWaPersetujuanAkhirBulan($pinjaman);
     }
 
-    private function cairkan(Pinjaman $pinjaman, string $catatan, string $aksi = 'pinjaman_cair', string $deskripsi = 'dicairkan', ?float $nominalFinal = null, ?int $tenorFinal = null): void
-    {
-        $statusLama = $pinjaman->status;
-        $nominalFinal ??= (float) ($pinjaman->nominal_disetujui_bendahara ?? $pinjaman->nominal);
-        $tenorFinal ??= $pinjaman->tenor_disetujui_bendahara ?? $pinjaman->tenor_bulan;
+    public function cairkanBendahara(
+        Pinjaman $pinjaman,
+        ?UploadedFile $buktiTransfer,
+        string $tanggalPencairan,
+        ?string $catatan,
+        ?int $aktorId = null,
+    ): void {
+        $this->tolakBilaSelfApproval($pinjaman);
+        if ($pinjaman->status !== 'approved_ketua') {
+            throw new RuntimeException('Hanya pinjaman berstatus Disetujui Ketua yang dapat dicairkan oleh Bendahara.');
+        }
+
+        $tglCair = Carbon::parse($tanggalPencairan)->startOfDay();
+        if ($tglCair->greaterThan(now()->startOfDay())) {
+            throw new RuntimeException('Tanggal pencairan tidak boleh melebihi hari ini.');
+        }
+
+        $aktorId ??= auth()->id();
+        $buktiBytes = $buktiTransfer ? $buktiTransfer->get() : null;
+        $fileMeta = $buktiTransfer ? $this->simpanBuktiPrivat($buktiTransfer, $tglCair) : null;
+
+        $nominalFinal = (float) ($pinjaman->nominal_disetujui ?? $pinjaman->nominal);
+        $tenorFinal = (int) ($pinjaman->tenor_disetujui ?? $pinjaman->tenor_bulan);
         $kasSebelum = 0.0;
         $saldoBank = 0.0;
         $nomorDokumen = $pinjaman->nomor_dokumen
             ?? app(PenomoranDokumenService::class)->berikutnya(
                 PenomoranDokumenService::JENIS_PINJAMAN,
-                now()
+                $tglCair
             );
-        DB::transaction(function () use ($pinjaman, $catatan, $nomorDokumen, $nominalFinal, $tenorFinal, &$kasSebelum, &$saldoBank) {
+
+        DB::transaction(function () use ($pinjaman, $catatan, $nomorDokumen, $nominalFinal, $tenorFinal, $tglCair, $fileMeta, $aktorId, &$kasSebelum, &$saldoBank) {
+            $pinjamanLocked = Pinjaman::lockForUpdate()->findOrFail($pinjaman->id);
+            if ($pinjamanLocked->status !== 'approved_ketua') {
+                throw new RuntimeException('Status pinjaman sudah berubah. Muat ulang daftar pencairan.');
+            }
+
             $kas = KasKoperasi::lockForUpdate()->firstOrFail();
             $kasSebelum = $this->jurnalKas->saldoOperasional($kas);
             $saldoBank = (float) $kas->saldo_bank;
 
             if ($nominalFinal > $saldoBank) {
-                throw new \RuntimeException(
+                throw new RuntimeException(
                     'Melebihi saldo bank. Saldo bank saat ini: '.WaPesan::rupiah($saldoBank)
-                    .', nominal diminta: '.WaPesan::rupiah($nominalFinal).'.'
+                    .', nominal dicairkan: '.WaPesan::rupiah($nominalFinal).'.'
                 );
             }
 
-            $pinjaman->update([
+            $update = [
                 'status' => 'aktif',
                 'nominal' => $nominalFinal,
                 'tenor_bulan' => $tenorFinal,
                 'nominal_disetujui' => $nominalFinal,
                 'tenor_disetujui' => $tenorFinal,
                 'kas_saldo_ketua' => $kasSebelum,
-                'catatan_ketua' => $catatan,
-                'tanggal_pencairan' => now(),
+                'kas_sisa_ketua' => $kasSebelum - $nominalFinal,
+                'tanggal_pencairan' => $tglCair->toDateString(),
+                'dicairkan_oleh' => $aktorId,
+                'catatan_pencairan' => $catatan ? trim($catatan) : null,
                 'nomor_dokumen' => $nomorDokumen,
-            ]);
+            ];
 
-            $this->bunga->simpanJadwal($pinjaman);
+            if ($fileMeta) {
+                $update['bukti_pencairan_path'] = $fileMeta['path'];
+                $update['bukti_pencairan_nama_asli'] = $fileMeta['nama_asli'];
+                $update['bukti_pencairan_mime'] = $fileMeta['mime'];
+            }
 
-            // Validasi saldo cukup otomatis ditangani JurnalKasService (lempar exception kalau kurang)
+            $pinjamanLocked->update($update);
+
+            $this->bunga->simpanJadwal($pinjamanLocked);
+
             $this->jurnalKas->catat(
                 tipe: 'keluar',
                 kategori: 'pencairan_pinjaman',
                 kantong: 'pinjaman',
                 jumlah: $nominalFinal,
-                keterangan: "Pencairan pinjaman - {$pinjaman->anggota->nama}",
-                referensiId: $pinjaman->id,
-                tanggal: now()->format('Y-m-d'),
-                userId: auth()->id(),
+                keterangan: "Pencairan pinjaman - {$pinjamanLocked->anggota->nama}",
+                referensiId: $pinjamanLocked->id,
+                tanggal: $tglCair->toDateString(),
+                userId: $aktorId,
             );
-
-            $pinjaman->update(['kas_sisa_ketua' => $kasSebelum - $nominalFinal]);
         });
 
         $pinjaman->refresh();
 
         $trail = 'Diminta: '.WaPesan::rupiah($pinjaman->nominal_diminta ?? $nominalFinal)
             .($pinjaman->nominal_disetujui_bendahara ? ', Bendahara: '.WaPesan::rupiah($pinjaman->nominal_disetujui_bendahara) : '')
-            .', Final: '.WaPesan::rupiah($nominalFinal);
+            .', Final Cair: '.WaPesan::rupiah($nominalFinal);
 
         AuditLog::catat(
-            aksi: $aksi,
-            keterangan: "Pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) {$deskripsi}. {$trail}. Kas operasional sebelum: ".WaPesan::rupiah($kasSebelum).', sisa: '.WaPesan::rupiah($kasSebelum - $nominalFinal).', saldo bank: '.WaPesan::rupiah($saldoBank),
-            dataLama: ['status' => $statusLama],
-            dataBaru: ['status' => 'aktif', 'nominal' => $nominalFinal, 'tenor_bulan' => $tenorFinal, 'kas_saldo_ketua' => $kasSebelum, 'kas_sisa_ketua' => $kasSebelum - $nominalFinal, 'saldo_bank' => $saldoBank, 'catatan_ketua' => $catatan, 'tanggal_pencairan' => now()->toDateTimeString()]
+            aksi: 'pinjaman_dicairkan',
+            keterangan: "Pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) ditransfer dan dicairkan Bendahara. {$trail}. Kas operasional sebelum: ".WaPesan::rupiah($kasSebelum).', sisa: '.WaPesan::rupiah($kasSebelum - $nominalFinal).', saldo bank: '.WaPesan::rupiah($saldoBank),
+            dataLama: ['status' => 'approved_ketua'],
+            dataBaru: [
+                'status' => 'aktif',
+                'nominal' => $nominalFinal,
+                'tenor_bulan' => $tenorFinal,
+                'kas_saldo_ketua' => $kasSebelum,
+                'kas_sisa_ketua' => $kasSebelum - $nominalFinal,
+                'saldo_bank' => $saldoBank,
+                'dicairkan_oleh' => $aktorId,
+                'catatan_pencairan' => $catatan,
+                'tanggal_pencairan' => $tglCair->toDateString(),
+                'ada_bukti_pencairan' => (bool) $fileMeta,
+            ],
+            userId: $aktorId,
         );
 
-        $isi = "Dengan hormat,\n\nSelamat! Pengajuan pinjaman Anda telah *DISETUJUI* oleh Ketua dan dana telah dicairkan pada "
-            .now()->translatedFormat('d F Y').".\n\nRincian pencairan:\n"
+        $cicilanPertama = $pinjaman->angsuran()->orderBy('cicilan_ke')->first();
+        $jatuhTempoPertamaLabel = $cicilanPertama?->tanggal_jatuh_tempo?->locale('id')->translatedFormat('d F Y') ?? '-';
+
+        $isiTransfer = "Dengan hormat,\n\nDana pinjaman Anda telah *DICAIRKAN / DITRANSFER* oleh Bendahara Koperasi pada "
+            .$tglCair->copy()->locale('id')->translatedFormat('d F Y').".\n\nRincian pencairan:\n"
+            ."- Nomor Referensi: #{$pinjaman->id}\n"
+            ."- Nomor Dokumen: {$pinjaman->nomor_dokumen}\n"
+            .'- Nominal ditransfer: '.WaPesan::rupiah($nominalFinal).' ('.TerbilangHelper::angkaKeTerbilang($nominalFinal)." rupiah)\n"
+            ."- Tenor: {$tenorFinal} bulan\n"
+            .'- Bunga: '.$pinjaman->persentase_bunga."% per bulan (metode menurun)\n"
+            .'- Rekening tujuan: '.$pinjaman->snapshot_bank.' '.$pinjaman->snapshot_no_rekening.' a.n. '.$pinjaman->snapshot_atas_nama."\n"
+            ."- Jatuh tempo angsuran ke-1: *{$jatuhTempoPertamaLabel}*\n\n"
+            .($fileMeta
+                ? "Terlampir *Bukti Transfer Pencairan* pada pesan ini. Selanjutnya dokumen *Bukti Peminjaman & Jadwal Angsuran* akan dikirimkan pada pesan berikutnya.\n\n"
+                : "Anda juga dapat memantau rincian jadwal angsuran di Portal Anggota.\n\n")
+            .'Terima kasih atas kepercayaan Anda.';
+
+        $pesanTransfer = WaPesan::susun($pinjaman->anggota->nama, $pinjaman->anggota->no_karyawan, $isiTransfer);
+        if ($fileMeta && $buktiBytes !== null) {
+            WaService::keAnggotaDokumen(
+                $pinjaman->anggota,
+                'pinjaman_dicairkan',
+                $pesanTransfer,
+                $buktiBytes,
+                $fileMeta['nama_asli'],
+                $fileMeta['mime'],
+            );
+        } else {
+            WaService::keAnggota($pinjaman->anggota, 'pinjaman_dicairkan', $pesanTransfer);
+        }
+
+        $isiDokumen = "Berikut terlampir dokumen resmi *Bukti Peminjaman & Jadwal Angsuran* untuk Pinjaman #{$pinjaman->id} ({$pinjaman->nomor_dokumen}). Mohon lakukan pembayaran angsuran sesuai tanggal jatuh tempo yang tercantum.";
+        WaService::keAnggotaDokumen(
+            $pinjaman->anggota,
+            'pinjaman_bukti_akad',
+            WaPesan::susun($pinjaman->anggota->nama, $pinjaman->anggota->no_karyawan, $isiDokumen),
+            Pdf::loadView('wa.bukti-pinjaman', $pinjaman->dataBukti())->output(),
+            "Bukti-Peminjaman-{$pinjaman->id}.pdf",
+            'application/pdf',
+        );
+    }
+
+    private function kirimWaPersetujuanAkhirBulan(Pinjaman $pinjaman): void
+    {
+        $pinjaman->loadMissing('anggota');
+        $nominalFinal = (float) ($pinjaman->nominal_disetujui ?? $pinjaman->nominal);
+        $tenorFinal = (int) ($pinjaman->tenor_disetujui ?? $pinjaman->tenor_bulan);
+
+        $isi = "Dengan hormat,\n\nSelamat! Pengajuan pinjaman Anda telah *DISETUJUI* oleh Ketua Koperasi pada "
+            .now()->locale('id')->translatedFormat('d F Y').".\n\nRincian persetujuan:\n"
             ."- Nomor Referensi: #{$pinjaman->id}\n"
             .'- Nominal diminta: '.WaPesan::rupiah($pinjaman->nominal_diminta ?? $nominalFinal)."\n"
             .($pinjaman->nominal_disetujui_bendahara ? '- Nominal usulan Bendahara: '.WaPesan::rupiah($pinjaman->nominal_disetujui_bendahara)."\n" : '')
-            .'- Nominal dicairkan: '.WaPesan::rupiah($nominalFinal).' ('.TerbilangHelper::angkaKeTerbilang($nominalFinal).")\n"
+            .'- Nominal disetujui: '.WaPesan::rupiah($nominalFinal).' ('.TerbilangHelper::angkaKeTerbilang($nominalFinal)." rupiah)\n"
             ."- Tenor: {$tenorFinal} bulan\n"
             .'- Bunga: '.$pinjaman->persentase_bunga."% per bulan (metode menurun)\n"
             .'- Rekening tujuan: '.$pinjaman->snapshot_bank.' '.$pinjaman->snapshot_no_rekening.' a.n. '.$pinjaman->snapshot_atas_nama."\n\n"
-            ."Dokumen *Bukti Peminjaman* terlampir pada pesan ini, memuat rincian jadwal angsuran Anda. Mohon lakukan pembayaran angsuran sesuai tanggal jatuh tempo yang tercantum.\n\n"
+            ."*Informasi Pencairan:*\n"
+            .'Dana pinjaman akan *dicairkan pada akhir bulan* oleh Bendahara Koperasi. '
+            ."Pemberitahuan lanjutan beserta *bukti transfer* akan kami kirimkan kembali melalui WhatsApp setelah dana ditransfer.\n\n"
             .'Terima kasih atas kepercayaan Anda.';
 
-        WaService::keAnggotaDokumen(
+        WaService::keAnggota(
             $pinjaman->anggota,
             'pinjaman_disetujui_ketua',
             WaPesan::susun($pinjaman->anggota->nama, $pinjaman->anggota->no_karyawan, $isi),
-            Pdf::loadView('wa.bukti-pinjaman', $pinjaman->dataBukti())->output(),
-            "Bukti-Peminjaman-{$pinjaman->id}.pdf",
         );
+    }
+
+    /**
+     * @return array{path: string, nama_asli: string, mime: string}
+     */
+    private function simpanBuktiPrivat(UploadedFile $file, Carbon $tanggal): array
+    {
+        $folder = sprintf('pinjaman/bukti-pencairan/%04d/%02d', $tanggal->year, $tanggal->month);
+        $path = Storage::disk('local')->putFile($folder, $file);
+        if (! $path) {
+            throw new RuntimeException('Gagal menyimpan file bukti transfer ke storage.');
+        }
+
+        return [
+            'path' => $path,
+            'nama_asli' => $file->getClientOriginalName(),
+            'mime' => $file->getClientMimeType() ?: 'application/octet-stream',
+        ];
     }
 
     public function rejectKetua(Pinjaman $pinjaman, string $catatan): void
     {
         $this->tolakBilaSelfApproval($pinjaman);
         if ($pinjaman->status !== 'approved_bendahara') {
-            throw new \RuntimeException('Hanya pinjaman berstatus Disetujui Bendahara yang dapat ditolak Ketua.');
+            throw new RuntimeException('Hanya pinjaman berstatus Disetujui Bendahara yang dapat ditolak Ketua.');
         }
 
         $statusLama = $pinjaman->status;

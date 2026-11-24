@@ -383,7 +383,7 @@ class EligibilitasPinjamanService
 
         // 2. Ada pengajuan pinjaman sedang diproses
         $adaPinjamanDiproses = $anggota->pinjaman()
-            ->whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara'])
+            ->whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara', 'approved_ketua'])
             ->exists();
 
         if ($adaPinjamanDiproses) {

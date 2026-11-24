@@ -103,6 +103,10 @@ class HandleInertiaRequests extends Middleware
                     $notifications['menunggu_perubahan_tenor_ketua'] = PengajuanPercepatan::where('status', 'approved_bendahara')->count();
                 }
 
+                if ($permissions->contains('pinjaman.cairkan')) {
+                    $notifications['menunggu_pencairan_pinjaman'] = Pinjaman::where('status', 'approved_ketua')->count();
+                }
+
                 if ($permissions->contains('limit.approve-ketua')) {
                     $notifications['menunggu_pengajuan_limit'] = PengajuanLimit::where('status', 'approved_bendahara')->count();
                 }
@@ -115,9 +119,26 @@ class HandleInertiaRequests extends Middleware
                     $notifications['menunggu_penghapusan_pinjaman'] = app(PenghapusanPinjamanService::class)->hitungAntreanUntukUser($user);
                 }
 
-                if ($permissions->contains('tabungan.kelola')) {
-                    $notifications['menunggu_tabungan'] = RekeningTabungan::where('status', 'diajukan')->count()
-                        + PengajuanTransaksiTabungan::where('status', 'menunggu')->count();
+                if ($permissions->contains('tabungan.tinjau-admin')) {
+                    $notifications['menunggu_tabungan_admin'] = RekeningTabungan::where('status', 'diajukan')->count()
+                        + PengajuanTransaksiTabungan::whereIn('jenis', PengajuanTransaksiTabungan::JENIS_PENARIKAN)
+                            ->where('status', 'menunggu')
+                            ->count();
+                }
+
+                if ($permissions->contains('tabungan.kelola') || $permissions->contains('tabungan.tinjau-bendahara')) {
+                    $notifications['menunggu_tabungan'] = RekeningTabungan::where('status', 'approved_admin')->count()
+                        + PengajuanTransaksiTabungan::where('jenis', 'setor')->where('status', 'menunggu')->count()
+                        + PengajuanTransaksiTabungan::whereIn('jenis', PengajuanTransaksiTabungan::JENIS_PENARIKAN)
+                            ->whereIn('status', ['approved_admin', 'approved_ketua'])
+                            ->count();
+                }
+
+                if ($permissions->contains('tabungan.approve-ketua')) {
+                    $notifications['menunggu_tabungan_ketua'] = RekeningTabungan::where('status', 'approved_bendahara')->count()
+                        + PengajuanTransaksiTabungan::whereIn('jenis', PengajuanTransaksiTabungan::JENIS_PENARIKAN)
+                            ->where('status', 'approved_bendahara')
+                            ->count();
                 }
 
                 return $notifications;

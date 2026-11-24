@@ -3,7 +3,7 @@ import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import {
     ArrowLeft, ArrowDownCircle, ArrowUpCircle, CheckCircle2, Clock, Copy, Check,
-    Eye, EyeOff, FileText, Info, Percent, ShieldCheck, Upload, Wallet, XCircle,
+    Eye, EyeOff, FileText, Info, Lock, Percent, ShieldCheck, Upload, Wallet, XCircle,
 } from 'lucide-react';
 import Button from '@/Components/ui/Button';
 import Card from '@/Components/ui/Card';
@@ -191,7 +191,7 @@ export default function Index({
                         <p className="text-sm text-slate-200 mt-1.5 max-w-2xl">
                             Dihitung dari saldo harian Anda dan otomatis dikreditkan ke saldo tabungan setiap akhir bulan.
                         </p>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-5">
                             <div className="rounded-xl bg-white/10 border border-white/10 px-3.5 py-2.5">
                                 <p className="text-[11px] text-slate-300">Minimal Setor</p>
                                 <p className="text-sm font-bold tabular-nums mt-0.5">{formatRupiah(setting.min_setor)}</p>
@@ -204,7 +204,23 @@ export default function Index({
                                 <p className="text-[11px] text-slate-300">Minimal Penarikan</p>
                                 <p className="text-sm font-bold tabular-nums mt-0.5">{formatRupiah(setting.min_tarik)}</p>
                             </div>
+                            <div className="rounded-xl bg-white/10 border border-white/10 px-3.5 py-2.5">
+                                <p className="text-[11px] text-slate-300">Masa Tunggu Tarik</p>
+                                <p className="text-sm font-bold tabular-nums mt-0.5">
+                                    {(setting.masa_tunggu_tarik_bulan ?? 12) > 0
+                                        ? `${setting.masa_tunggu_tarik_bulan ?? 12} Bulan`
+                                        : 'Tanpa Tunggu'}
+                                </p>
+                            </div>
                         </div>
+                        {(setting.masa_tunggu_tarik_bulan ?? 12) > 0 && (
+                            <p className="text-xs text-amber-200/95 mt-4 flex items-start gap-2 bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5">
+                                <Lock size={14} className="shrink-0 mt-0.5 text-amber-300" />
+                                <span>
+                                    Selama {setting.masa_tunggu_tarik_bulan ?? 12} bulan pertama sejak rekening aktif, saldo belum dapat ditarik — namun Anda tetap bebas menambah setoran tabungan kapan saja (pengecualian berlaku apabila anggota resign).
+                                </span>
+                            </p>
+                        )}
                     </div>
 
                     <Card>
@@ -250,22 +266,43 @@ export default function Index({
                 </div>
             )}
 
-            {/* STATE 2: PENGAJUAN SEDANG DIPROSES */}
-            {statusRekening === 'diajukan' && (
+            {/* STATE 2: PENGAJUAN SEDANG DIPROSES (3 TAHAP) */}
+            {['diajukan', 'approved_admin', 'approved_bendahara'].includes(statusRekening) && (
                 <Card className="border-amber-200/80">
                     <div className="flex items-start gap-3.5">
                         <span className="w-11 h-11 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
                             <Clock size={22} />
                         </span>
-                        <div>
+                        <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                                 <h2 className="text-base font-bold text-slate-800">Pengajuan Pembukaan Rekening Diproses</h2>
-                                <StatusBadge status="diajukan" />
+                                <StatusBadge status={statusRekening} />
                             </div>
                             <p className="text-sm text-slate-600 mt-1">
-                                Pengajuan Anda tanggal <strong>{rekening.tanggal_pengajuan}</strong> sedang menunggu persetujuan Bendahara Koperasi.
-                                Setelah disetujui, nomor rekening akan terbit otomatis dan Anda dapat langsung melakukan setoran.
+                                Pengajuan Anda tanggal <strong>{rekening.tanggal_pengajuan}</strong> sedang melalui proses persetujuan berjenjang (Sekretaris &rarr; Bendahara &rarr; Ketua Koperasi).
+                                Setelah disetujui Ketua Koperasi, nomor rekening akan terbit otomatis dan Anda dapat langsung melakukan setoran.
                             </p>
+                            <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                {[
+                                    { label: '1. Verifikasi Sekretaris', selesai: ['approved_admin', 'approved_bendahara'].includes(statusRekening), aktif: statusRekening === 'diajukan' },
+                                    { label: '2. Tinjauan Bendahara', selesai: statusRekening === 'approved_bendahara', aktif: statusRekening === 'approved_admin' },
+                                    { label: '3. Persetujuan Ketua', selesai: false, aktif: statusRekening === 'approved_bendahara' },
+                                ].map((step) => (
+                                    <div
+                                        key={step.label}
+                                        className={`px-3 py-2 rounded-xl border text-xs font-semibold flex items-center gap-2 ${
+                                            step.selesai
+                                                ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                                                : step.aktif
+                                                ? 'bg-amber-50 border-amber-200 text-amber-800'
+                                                : 'bg-slate-50 border-slate-200 text-slate-400'
+                                        }`}
+                                    >
+                                        {step.selesai ? <CheckCircle2 size={14} /> : <Clock size={14} />}
+                                        <span>{step.label}</span>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </Card>
@@ -337,16 +374,39 @@ export default function Index({
                                 <ArrowDownCircle size={17} />
                                 Setor Tabungan
                             </button>
-                            <button
-                                type="button"
-                                onClick={() => setShowTarikDrawer(true)}
-                                className="min-h-[44px] rounded-xl bg-white/15 border border-white/20 text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-white/25 transition-colors"
-                            >
-                                <ArrowUpCircle size={17} />
-                                Tarik Tabungan
-                            </button>
+                            {rekening.bisa_tarik !== false ? (
+                                <button
+                                    type="button"
+                                    onClick={() => setShowTarikDrawer(true)}
+                                    className="min-h-[44px] rounded-xl bg-white/15 border border-white/20 text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-white/25 transition-colors"
+                                >
+                                    <ArrowUpCircle size={17} />
+                                    Tarik Tabungan
+                                </button>
+                            ) : (
+                                <button
+                                    type="button"
+                                    disabled
+                                    title={`Penarikan baru dibuka mulai ${rekening.tanggal_bisa_tarik ?? '-'}`}
+                                    className="min-h-[44px] rounded-xl bg-white/10 border border-white/10 text-slate-300 font-semibold text-sm flex items-center justify-center gap-2 cursor-not-allowed opacity-75"
+                                >
+                                    <Lock size={16} />
+                                    Terkunci (1 Tahun)
+                                </button>
+                            )}
                         </div>
                     </div>
+
+                    {rekening.bisa_tarik === false && (
+                        <Card padding="sm" className="border-amber-200/80 bg-amber-50/70">
+                            <div className="flex items-start gap-2.5 text-xs sm:text-sm text-amber-900">
+                                <Lock size={16} className="shrink-0 mt-0.5 text-amber-600" />
+                                <p>
+                                    Penarikan tabungan baru dapat dilakukan mulai <strong>{rekening.tanggal_bisa_tarik}</strong> ({setting.masa_tunggu_tarik_bulan ?? 12} bulan sejak pembukaan rekening{rekening.sisa_hari_kunci_tarik > 0 ? `, tersisa ${rekening.sisa_hari_kunci_tarik} hari` : ''}). Anda tetap dapat menambah setoran tabungan kapan saja.
+                                </p>
+                            </div>
+                        </Card>
+                    )}
 
                     {/* Info Rekening Setoran Koperasi */}
                     <Card padding="sm" className="bg-slate-50/70">
@@ -389,6 +449,15 @@ export default function Index({
                                             <p className="text-xs text-slate-500 mt-0.5">
                                                 Tgl {p.tanggal_transaksi} &bull; Diajukan {p.created_at}
                                             </p>
+                                            {p.jenis !== 'setor' && p.status !== 'ditolak' && (
+                                                <p className="text-xs text-slate-600 mt-1">
+                                                    {p.status === 'menunggu' && 'Menunggu verifikasi Sekretaris (Tahap 1)'}
+                                                    {p.status === 'approved_admin' && 'Lolos Sekretaris • Menunggu tinjauan Bendahara (Tahap 2)'}
+                                                    {p.status === 'approved_bendahara' && 'Disetujui Bendahara • Menunggu persetujuan Ketua Koperasi (Tahap 3)'}
+                                                    {p.status === 'approved_ketua' && 'Disetujui Ketua • Menunggu transfer & unggah bukti Bendahara'}
+                                                    {p.status === 'disetujui' && `Dicairkan pada ${p.tanggal_pencairan ?? p.tanggal_transaksi}`}
+                                                </p>
+                                            )}
                                             {p.status === 'ditolak' && p.catatan_pengurus && (
                                                 <p className="text-xs text-red-600 mt-1 font-medium">Alasan: {p.catatan_pengurus}</p>
                                             )}
@@ -398,8 +467,13 @@ export default function Index({
                                                 <Nominal nilai={p.nominal} tampil={nominalTampil} />
                                             </p>
                                             {p.bukti_url && (
-                                                <a href={p.bukti_url} target="_blank" rel="noreferrer" className="text-xs font-semibold text-brand-navy hover:underline">
-                                                    Lihat bukti
+                                                <a href={p.bukti_url} target="_blank" rel="noreferrer" className="block text-xs font-semibold text-brand-navy hover:underline">
+                                                    Lihat bukti setor
+                                                </a>
+                                            )}
+                                            {p.bukti_pencairan_url && (
+                                                <a href={p.bukti_pencairan_url} target="_blank" rel="noreferrer" className="block text-xs font-semibold text-emerald-700 hover:underline">
+                                                    Lihat bukti pencairan
                                                 </a>
                                             )}
                                         </div>
@@ -562,6 +636,7 @@ export default function Index({
                         <DrawerSection title="Detail Setoran" icon={Upload}>
                             <FormField label="Nominal Setor (Rp)" error={setorForm.errors.nominal || setorForm.errors.setor} hint={`Minimal ${formatRupiah(setting.min_setor)}`} required>
                                 <CurrencyField
+                                    data-autofocus
                                     value={setorForm.data.nominal}
                                     onChange={(e) => setorForm.setData('nominal', e.target.value)}
                                     placeholder="Contoh: 250.000"
@@ -626,19 +701,7 @@ export default function Index({
             >
                 <form onSubmit={submitTarik} className="flex-1 min-h-0 flex flex-col">
                     <DrawerBody>
-                        <DrawerSection title="Pilihan Penarikan" icon={ArrowUpCircle}>
-                            <label className="flex items-start gap-2.5 cursor-pointer rounded-xl border border-slate-200 p-3 mb-3 hover:bg-slate-50">
-                                <input
-                                    type="checkbox"
-                                    checked={tarikForm.data.tutup_rekening}
-                                    onChange={(e) => tarikForm.setData('tutup_rekening', e.target.checked)}
-                                    className="mt-0.5 w-4 h-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500"
-                                />
-                                <span className="text-xs sm:text-sm text-slate-700">
-                                    <strong>Tutup Rekening</strong> — tarik seluruh saldo beserta bunga berjalan pro-rata hingga hari pencairan.
-                                </span>
-                            </label>
-
+                        <DrawerSection title="Detail Penarikan" icon={ArrowUpCircle}>
                             {!tarikForm.data.tutup_rekening && (
                                 <FormField
                                     label="Nominal Penarikan (Rp)"
@@ -647,6 +710,7 @@ export default function Index({
                                     required
                                 >
                                     <CurrencyField
+                                        data-autofocus
                                         value={tarikForm.data.nominal}
                                         onChange={(e) => tarikForm.setData('nominal', e.target.value)}
                                         placeholder="Contoh: 100.000"
@@ -658,7 +722,11 @@ export default function Index({
                             )}
 
                             <FormField label="Kanal Pencairan" error={tarikForm.errors.kanal} required>
-                                <Select value={tarikForm.data.kanal} onChange={(e) => tarikForm.setData('kanal', e.target.value)}>
+                                <Select
+                                    data-autofocus={tarikForm.data.tutup_rekening ? true : undefined}
+                                    value={tarikForm.data.kanal}
+                                    onChange={(e) => tarikForm.setData('kanal', e.target.value)}
+                                >
                                     <option value="transfer">Transfer ke Rekening Bank Saya</option>
                                     <option value="tunai">Ambil Tunai di Koperasi</option>
                                 </Select>
@@ -700,6 +768,18 @@ export default function Index({
                                     placeholder="Keperluan atau catatan tambahan"
                                 />
                             </FormField>
+
+                            <label className="flex items-start gap-2.5 cursor-pointer rounded-xl border border-slate-200 p-3 mt-1 mb-3 hover:bg-slate-50">
+                                <input
+                                    type="checkbox"
+                                    checked={tarikForm.data.tutup_rekening}
+                                    onChange={(e) => tarikForm.setData('tutup_rekening', e.target.checked)}
+                                    className="mt-0.5 w-4 h-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500"
+                                />
+                                <span className="text-xs sm:text-sm text-slate-700">
+                                    <strong>Tutup Rekening</strong> — tarik seluruh saldo beserta bunga berjalan pro-rata hingga hari pencairan.
+                                </span>
+                            </label>
 
                             {hasPin && (
                                 <FormField label="PIN Keamanan (6 Digit)" error={tarikForm.errors.pin} required>

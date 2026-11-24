@@ -285,9 +285,17 @@ class TabunganTransaksiService
                 throw new RuntimeException('Rekening tabungan tidak aktif.');
             }
 
+            $masaTunggu = (int) ($setting->masa_tunggu_tarik_bulan ?? 12);
+            if (! $rekLocked->bisaTarik(now(), $masaTunggu)) {
+                $tglBisaTarik = $rekLocked->tanggalBisaTarik($masaTunggu)?->locale('id')->translatedFormat('d M Y') ?? '-';
+                throw new RuntimeException(
+                    "Penarikan tabungan baru dapat dilakukan mulai {$tglBisaTarik} (masa tunggu {$masaTunggu} bulan sejak pembukaan rekening). Anda tetap dapat menambah setoran tabungan kapan saja."
+                );
+            }
+
             $masihMenunggu = PengajuanTransaksiTabungan::where('rekening_tabungan_id', $rekLocked->id)
-                ->whereIn('jenis', ['tarik', 'tutup_rekening'])
-                ->where('status', 'menunggu')
+                ->whereIn('jenis', PengajuanTransaksiTabungan::JENIS_PENARIKAN)
+                ->whereIn('status', PengajuanTransaksiTabungan::STATUS_MENUNGGU)
                 ->exists();
 
             if ($masihMenunggu) {
@@ -364,24 +372,155 @@ class TabunganTransaksiService
         });
     }
 
-    public function setujuiTarik(
+    public function approveAdminTarik(
+        PengajuanTransaksiTabungan $pengajuan,
+        ?string $catatan,
+        int $aktorId,
+    ): PengajuanTransaksiTabungan {
+        return DB::transaction(function () use ($pengajuan, $catatan, $aktorId) {
+            $pengLocked = PengajuanTransaksiTabungan::lockForUpdate()->findOrFail($pengajuan->id);
+            $pengLocked->loadMissing('anggota', 'rekening');
+            $this->tolakBilaSelfApprovalPengajuan($pengLocked, $aktorId);
+
+            if ($pengLocked->status !== 'menunggu' || ! in_array($pengLocked->jenis, PengajuanTransaksiTabungan::JENIS_PENARIKAN, true)) {
+                throw new RuntimeException('Hanya pengajuan penarikan berstatus Menunggu yang dapat diverifikasi Sekretaris.');
+            }
+
+            $rekening = RekeningTabungan::lockForUpdate()->findOrFail($pengLocked->rekening_tabungan_id);
+            if ($rekening->status !== 'aktif') {
+                throw new RuntimeException('Rekening tabungan tidak aktif.');
+            }
+
+            $this->validasiSaldoPenarikan($pengLocked, $rekening);
+
+            $catatanBersih = $catatan ? trim($catatan) : null;
+            $pengLocked->update([
+                'status' => 'approved_admin',
+                'admin_oleh' => $aktorId,
+                'disetujui_admin_pada' => now(),
+                'catatan_admin' => $catatanBersih,
+            ]);
+
+            AuditLog::catat(
+                aksi: 'tabungan_tarik_disetujui_admin',
+                keterangan: "Verifikasi Sekretaris pengajuan {$pengLocked->jenis} tabungan {$pengLocked->anggota?->nama} ({$rekening->no_rekening}) diteruskan ke Bendahara.",
+                dataLama: ['status' => 'menunggu'],
+                dataBaru: ['status' => 'approved_admin', 'pengajuan_id' => $pengLocked->id, 'catatan_admin' => $catatanBersih],
+                userId: $aktorId,
+            );
+
+            return $pengLocked->refresh();
+        });
+    }
+
+    public function approveBendaharaTarik(
+        PengajuanTransaksiTabungan $pengajuan,
+        ?string $catatan,
+        int $aktorId,
+    ): PengajuanTransaksiTabungan {
+        return DB::transaction(function () use ($pengajuan, $catatan, $aktorId) {
+            $pengLocked = PengajuanTransaksiTabungan::lockForUpdate()->findOrFail($pengajuan->id);
+            $pengLocked->loadMissing('anggota', 'rekening');
+            $this->tolakBilaSelfApprovalPengajuan($pengLocked, $aktorId);
+
+            if ($pengLocked->status !== 'approved_admin' || ! in_array($pengLocked->jenis, PengajuanTransaksiTabungan::JENIS_PENARIKAN, true)) {
+                throw new RuntimeException('Hanya pengajuan penarikan yang sudah lolos Sekretaris yang dapat ditinjau Bendahara.');
+            }
+
+            $rekening = RekeningTabungan::lockForUpdate()->findOrFail($pengLocked->rekening_tabungan_id);
+            if ($rekening->status !== 'aktif') {
+                throw new RuntimeException('Rekening tabungan tidak aktif.');
+            }
+
+            $this->validasiSaldoPenarikan($pengLocked, $rekening);
+
+            $catatanBersih = $catatan ? trim($catatan) : null;
+            $pengLocked->update([
+                'status' => 'approved_bendahara',
+                'bendahara_oleh' => $aktorId,
+                'disetujui_bendahara_pada' => now(),
+                'catatan_bendahara' => $catatanBersih,
+            ]);
+
+            AuditLog::catat(
+                aksi: 'tabungan_tarik_disetujui_bendahara',
+                keterangan: "Tinjauan Bendahara pengajuan {$pengLocked->jenis} tabungan {$pengLocked->anggota?->nama} ({$rekening->no_rekening}) diteruskan ke Ketua Koperasi.",
+                dataLama: ['status' => 'approved_admin'],
+                dataBaru: ['status' => 'approved_bendahara', 'pengajuan_id' => $pengLocked->id, 'catatan_bendahara' => $catatanBersih],
+                userId: $aktorId,
+            );
+
+            return $pengLocked->refresh();
+        });
+    }
+
+    public function approveKetuaTarik(
+        PengajuanTransaksiTabungan $pengajuan,
+        ?string $catatan,
+        int $aktorId,
+    ): PengajuanTransaksiTabungan {
+        return DB::transaction(function () use ($pengajuan, $catatan, $aktorId) {
+            $pengLocked = PengajuanTransaksiTabungan::lockForUpdate()->findOrFail($pengajuan->id);
+            $pengLocked->loadMissing('anggota', 'rekening');
+            $this->tolakBilaSelfApprovalPengajuan($pengLocked, $aktorId);
+
+            if ($pengLocked->status !== 'approved_bendahara' || ! in_array($pengLocked->jenis, PengajuanTransaksiTabungan::JENIS_PENARIKAN, true)) {
+                throw new RuntimeException('Hanya pengajuan penarikan yang sudah ditinjau Bendahara yang dapat disetujui Ketua Koperasi.');
+            }
+
+            $rekening = RekeningTabungan::lockForUpdate()->findOrFail($pengLocked->rekening_tabungan_id);
+            if ($rekening->status !== 'aktif') {
+                throw new RuntimeException('Rekening tabungan tidak aktif.');
+            }
+
+            $this->validasiSaldoPenarikan($pengLocked, $rekening);
+
+            $catatanBersih = $catatan ? trim($catatan) : null;
+            $pengLocked->update([
+                'status' => 'approved_ketua',
+                'ketua_oleh' => $aktorId,
+                'disetujui_ketua_pada' => now(),
+                'catatan_ketua' => $catatanBersih,
+            ]);
+
+            AuditLog::catat(
+                aksi: 'tabungan_tarik_disetujui_ketua',
+                keterangan: "Persetujuan Ketua pengajuan {$pengLocked->jenis} tabungan {$pengLocked->anggota?->nama} ({$rekening->no_rekening}), menunggu pencairan Bendahara.",
+                dataLama: ['status' => 'approved_bendahara'],
+                dataBaru: ['status' => 'approved_ketua', 'pengajuan_id' => $pengLocked->id, 'catatan_ketua' => $catatanBersih],
+                userId: $aktorId,
+            );
+
+            return $pengLocked->refresh();
+        });
+    }
+
+    public function cairkanTarik(
         PengajuanTransaksiTabungan $pengajuan,
         string $akunKas,
         ?UploadedFile $buktiPencairan,
         ?string $catatan,
         int $aktorId,
+        ?string $tanggalPencairan = null,
     ): ?TabunganTransaksi {
         if (! in_array($akunKas, ['bank', 'kas_kecil'], true)) {
             throw new RuntimeException("Akun kas '{$akunKas}' tidak valid.");
         }
 
-        $sekarang = now();
-        $fileMeta = $buktiPencairan ? $this->simpanBuktiPrivat($buktiPencairan, 'pencairan', $sekarang) : null;
+        $tglCair = $tanggalPencairan ? Carbon::parse($tanggalPencairan)->startOfDay() : now()->startOfDay();
+        if ($tglCair->greaterThan(now()->startOfDay())) {
+            throw new RuntimeException('Tanggal pencairan tidak boleh melebihi hari ini.');
+        }
 
-        return DB::transaction(function () use ($pengajuan, $akunKas, $fileMeta, $catatan, $aktorId, $sekarang) {
+        $fileMeta = $buktiPencairan ? $this->simpanBuktiPrivat($buktiPencairan, 'pencairan', $tglCair) : null;
+
+        return DB::transaction(function () use ($pengajuan, $akunKas, $fileMeta, $catatan, $aktorId, $tglCair) {
             $pengLocked = PengajuanTransaksiTabungan::lockForUpdate()->findOrFail($pengajuan->id);
-            if ($pengLocked->status !== 'menunggu' || ! in_array($pengLocked->jenis, ['tarik', 'tutup_rekening'], true)) {
-                throw new RuntimeException('Pengajuan penarikan ini sudah diproses atau tidak valid.');
+            $pengLocked->loadMissing('anggota');
+            $this->tolakBilaSelfApprovalPengajuan($pengLocked, $aktorId);
+
+            if ($pengLocked->status !== 'approved_ketua' || ! in_array($pengLocked->jenis, PengajuanTransaksiTabungan::JENIS_PENARIKAN, true)) {
+                throw new RuntimeException('Hanya pengajuan penarikan berstatus Disetujui Ketua yang dapat dicairkan.');
             }
 
             $rekening = RekeningTabungan::lockForUpdate()->findOrFail($pengLocked->rekening_tabungan_id);
@@ -392,23 +531,16 @@ class TabunganTransaksiService
             }
 
             $isTutup = $pengLocked->jenis === 'tutup_rekening';
-            $tanggalCair = $sekarang->toDateString();
+            $tanggalCair = $tglCair->toDateString();
             $nama = $rekening->anggota?->nama ?? '-';
 
             if ($isTutup) {
-                $this->bungaService->kreditkanBungaPenutupan($rekening, $sekarang, $aktorId);
+                $this->bungaService->kreditkanBungaPenutupan($rekening, $tglCair, $aktorId);
                 $rekening->refresh();
                 $nominalCair = (float) $rekening->saldo;
             } else {
                 $nominalCair = (float) $pengLocked->nominal;
-                $setting = SettingTabungan::current();
-                $saldoSekarang = (float) $rekening->saldo;
-                if ($nominalCair > $saldoSekarang) {
-                    throw new RuntimeException('Saldo tabungan anggota tidak lagi mencukupi.');
-                }
-                if (($saldoSekarang - $nominalCair) < (float) $setting->saldo_minimal) {
-                    throw new RuntimeException('Sisa saldo tidak boleh di bawah saldo minimal mengendap.');
-                }
+                $this->validasiSaldoPenarikan($pengLocked, $rekening);
             }
 
             $trx = null;
@@ -458,12 +590,16 @@ class TabunganTransaksiService
             }
             $rekening->update($updateRek);
 
+            $catatanBersih = $catatan ? trim($catatan) : null;
             $pengLocked->update([
                 'status' => 'disetujui',
                 'nominal' => $nominalCair,
                 'diproses_oleh' => $aktorId,
                 'diproses_pada' => now(),
-                'catatan_pengurus' => $catatan ? trim($catatan) : null,
+                'catatan_pengurus' => $catatanBersih ?? $pengLocked->catatan_ketua,
+                'dicairkan_oleh' => $aktorId,
+                'tanggal_pencairan' => $tanggalCair,
+                'catatan_pencairan' => $catatanBersih,
                 'bukti_pencairan_path' => $fileMeta['path'] ?? null,
                 'bukti_pencairan_nama_asli' => $fileMeta['nama_asli'] ?? null,
                 'bukti_pencairan_mime' => $fileMeta['mime'] ?? null,
@@ -473,14 +609,16 @@ class TabunganTransaksiService
             AuditLog::catat(
                 aksi: $isTutup ? 'tabungan_rekening_ditutup' : 'tabungan_tarik_disetujui',
                 keterangan: ($isTutup ? 'Penutupan rekening tabungan ' : 'Penarikan tabungan ')
-                    ."{$nama} ({$rekening->no_rekening}) sebesar Rp ".number_format($nominalCair, 0, ',', '.')." via {$akunKas}",
-                dataLama: ['status' => 'menunggu', 'saldo_sebelum' => $saldoSebelum],
+                    ."{$nama} ({$rekening->no_rekening}) dicairkan Rp ".number_format($nominalCair, 0, ',', '.')." via {$akunKas}",
+                dataLama: ['status' => 'approved_ketua', 'saldo_sebelum' => $saldoSebelum],
                 dataBaru: [
                     'status' => 'disetujui',
                     'pengajuan_id' => $pengLocked->id,
                     'transaksi_id' => $trx?->id,
                     'nominal_cair' => $nominalCair,
                     'saldo_sesudah' => $saldoSesudah,
+                    'tanggal_pencairan' => $tanggalCair,
+                    'ada_bukti_pencairan' => (bool) $fileMeta,
                 ],
                 userId: $aktorId,
             );
@@ -489,32 +627,70 @@ class TabunganTransaksiService
         });
     }
 
-    public function tolakPengajuan(PengajuanTransaksiTabungan $pengajuan, string $catatan, int $aktorId): PengajuanTransaksiTabungan
-    {
+    public function tolakPengajuan(
+        PengajuanTransaksiTabungan $pengajuan,
+        string $catatan,
+        int $aktorId,
+        ?string $tahap = null,
+    ): PengajuanTransaksiTabungan {
         $catatan = trim($catatan);
         if (mb_strlen($catatan) < 3) {
             throw new RuntimeException('Alasan penolakan minimal 3 karakter.');
         }
 
-        return DB::transaction(function () use ($pengajuan, $catatan, $aktorId) {
+        return DB::transaction(function () use ($pengajuan, $catatan, $aktorId, $tahap) {
             $pengLocked = PengajuanTransaksiTabungan::lockForUpdate()->findOrFail($pengajuan->id);
             $pengLocked->loadMissing('anggota', 'rekening');
+            $this->tolakBilaSelfApprovalPengajuan($pengLocked, $aktorId);
 
-            if ($pengLocked->status !== 'menunggu') {
-                throw new RuntimeException('Pengajuan ini sudah diproses.');
+            if ($pengLocked->jenis === 'setor') {
+                if ($pengLocked->status !== 'menunggu') {
+                    throw new RuntimeException('Pengajuan setoran ini sudah diproses.');
+                }
+            } else {
+                $diizinkan = match ($tahap) {
+                    'admin' => ['menunggu'],
+                    'bendahara' => ['approved_admin'],
+                    'ketua' => ['approved_bendahara'],
+                    'pencairan' => ['approved_ketua'],
+                    default => PengajuanTransaksiTabungan::STATUS_MENUNGGU,
+                };
+
+                if (! in_array($pengLocked->status, $diizinkan, true)) {
+                    throw new RuntimeException('Status pengajuan tidak sesuai dengan tahap penolakan ini.');
+                }
             }
 
-            $pengLocked->update([
+            $statusLama = $pengLocked->status;
+            $update = [
                 'status' => 'ditolak',
                 'diproses_oleh' => $aktorId,
                 'diproses_pada' => now(),
                 'catatan_pengurus' => $catatan,
-            ]);
+            ];
+
+            if ($pengLocked->jenis !== 'setor') {
+                if ($statusLama === 'menunggu') {
+                    $update['admin_oleh'] = $aktorId;
+                    $update['catatan_admin'] = $catatan;
+                } elseif ($statusLama === 'approved_admin') {
+                    $update['bendahara_oleh'] = $aktorId;
+                    $update['catatan_bendahara'] = $catatan;
+                } elseif ($statusLama === 'approved_bendahara') {
+                    $update['ketua_oleh'] = $aktorId;
+                    $update['catatan_ketua'] = $catatan;
+                } elseif ($statusLama === 'approved_ketua') {
+                    $update['dicairkan_oleh'] = $aktorId;
+                    $update['catatan_pencairan'] = $catatan;
+                }
+            }
+
+            $pengLocked->update($update);
 
             AuditLog::catat(
                 aksi: 'tabungan_transaksi_ditolak',
                 keterangan: "Pengajuan {$pengLocked->jenis} tabungan {$pengLocked->anggota?->nama} ({$pengLocked->rekening?->no_rekening}) ditolak: {$catatan}",
-                dataLama: ['status' => 'menunggu'],
+                dataLama: ['status' => $statusLama],
                 dataBaru: [
                     'status' => 'ditolak',
                     'pengajuan_id' => $pengLocked->id,
@@ -525,6 +701,33 @@ class TabunganTransaksiService
 
             return $pengLocked->refresh();
         });
+    }
+
+    private function validasiSaldoPenarikan(PengajuanTransaksiTabungan $pengajuan, RekeningTabungan $rekening): void
+    {
+        if ($pengajuan->jenis === 'tutup_rekening') {
+            return;
+        }
+
+        $nominalCair = (float) $pengajuan->nominal;
+        $setting = SettingTabungan::current();
+        $saldoSekarang = (float) $rekening->saldo;
+
+        if ($nominalCair > $saldoSekarang) {
+            throw new RuntimeException('Saldo tabungan anggota tidak mencukupi.');
+        }
+
+        if (($saldoSekarang - $nominalCair) < (float) $setting->saldo_minimal) {
+            throw new RuntimeException('Sisa saldo tidak boleh di bawah saldo minimal mengendap.');
+        }
+    }
+
+    private function tolakBilaSelfApprovalPengajuan(PengajuanTransaksiTabungan $pengajuan, int $aktorId): void
+    {
+        $pengajuan->loadMissing('anggota');
+        if ((int) $pengajuan->anggota?->user_id === $aktorId) {
+            throw new RuntimeException('Anda tidak diperbolehkan memproses pengajuan tabungan milik Anda sendiri.');
+        }
     }
 
     public function batalkanTransaksi(TabunganTransaksi $transaksi, string $alasan, int $aktorId): TabunganTransaksi

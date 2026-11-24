@@ -9,7 +9,9 @@ use App\Models\PengajuanPercepatan;
 use App\Models\Pinjaman;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\Concerns\MembuatDataUji;
 use Tests\TestCase;
@@ -133,7 +135,18 @@ class MobilePengurusTest extends TestCase
 
         $this->headerToken($ketua)->withHeader('Idempotency-Key', Str::uuid()->toString())
             ->postJson("/api/v1/pengurus/pinjaman/{$p->id}/approve", [
-                'catatan' => 'Disetujui dan dicairkan ketua.',
+                'catatan' => 'Disetujui Ketua untuk pencairan akhir bulan.',
+            ])
+            ->assertOk()
+            ->assertJsonPath('pinjaman.status', 'approved_ketua');
+
+        Storage::fake('local');
+        $bendaharaCair = $this->tokenIzin('BEN-980004-CAIR', ['pinjaman.cairkan', 'pinjaman.lihat']);
+        $this->headerToken($bendaharaCair)->withHeader('Idempotency-Key', Str::uuid()->toString())
+            ->post("/api/v1/pengurus/pinjaman/{$p->id}/approve", [
+                'tanggal_pencairan' => now()->toDateString(),
+                'bukti_pencairan' => UploadedFile::fake()->image('bukti-api.jpg'),
+                'catatan' => 'Sudah ditransfer ke rekening anggota.',
             ])
             ->assertOk()
             ->assertJsonPath('pinjaman.status', 'aktif');
@@ -148,21 +161,33 @@ class MobilePengurusTest extends TestCase
     public function test_pencairan_mandiri_oleh_bendahara(): void
     {
         Queue::fake();
+        Storage::fake('local');
         $anggota = $this->buatAnggota('TOP-980005');
         $p = $this->buatDiajukan($anggota, [
-            'status' => 'approved_bendahara',
+            'status' => 'approved_admin',
             'cair_oleh_bendahara' => true,
-            'nominal_disetujui_bendahara' => 1_000_000,
-            'tenor_disetujui_bendahara' => 3,
         ]);
 
-        $token = $this->tokenIzin('BEN-980005', ['pinjaman.tinjau-bendahara', 'pinjaman.lihat']);
+        $token = $this->tokenIzin('BEN-980005', ['pinjaman.tinjau-bendahara', 'pinjaman.cairkan', 'pinjaman.lihat']);
+
+        $this->headerToken($token)->withHeader('Idempotency-Key', Str::uuid()->toString())
+            ->postJson("/api/v1/pengurus/pinjaman/{$p->id}/approve", [
+                'catatan' => 'Disetujui bendahara untuk ketua mandiri.',
+                'nominal' => 1_000_000,
+                'tenor_bulan' => 3,
+            ])
+            ->assertOk()
+            ->assertJsonPath('pinjaman.status', 'approved_ketua');
 
         $res = $this->headerToken($token)->getJson('/api/v1/pengurus/pinjaman?tahap=pencairan')->assertOk();
         $this->assertContains($p->id, collect($res->json('data'))->pluck('id')->all());
 
         $this->headerToken($token)->withHeader('Idempotency-Key', Str::uuid()->toString())
-            ->postJson("/api/v1/pengurus/pinjaman/{$p->id}/approve", ['catatan' => 'Dicairkan untuk ketua mandiri.'])
+            ->post("/api/v1/pengurus/pinjaman/{$p->id}/approve", [
+                'tanggal_pencairan' => now()->toDateString(),
+                'bukti_pencairan' => UploadedFile::fake()->image('bukti-mandiri.jpg'),
+                'catatan' => 'Dicairkan untuk ketua mandiri.',
+            ])
             ->assertOk()
             ->assertJsonPath('pinjaman.status', 'aktif');
     }

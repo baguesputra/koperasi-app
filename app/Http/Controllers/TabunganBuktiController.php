@@ -35,7 +35,13 @@ class TabunganBuktiController extends Controller
             abort(403);
         }
 
-        if ($user->can('tabungan.lihat')) {
+        if ($user->hasAnyPermission([
+            'tabungan.lihat',
+            'tabungan.kelola',
+            'tabungan.tinjau-admin',
+            'tabungan.tinjau-bendahara',
+            'tabungan.approve-ketua',
+        ])) {
             return;
         }
 

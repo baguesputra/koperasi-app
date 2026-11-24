@@ -74,7 +74,10 @@ class DashboardController extends Controller
         $pinjamanAntre = $hitungStatus(Pinjaman::class);
         $menungguTinjauanAdmin = (int) ($pinjamanAntre['diajukan'] ?? 0);
         $menungguTinjauanBendahara = (int) ($pinjamanAntre['approved_admin'] ?? 0);
-        $menungguApprovalKetua = (int) ($pinjamanAntre['approved_bendahara'] ?? 0);
+        $menungguApprovalKetua = Pinjaman::where('status', 'approved_bendahara')
+            ->where('cair_oleh_bendahara', false)
+            ->count();
+        $menungguPencairanPinjaman = Pinjaman::where('status', 'approved_ketua')->count();
 
         $percepatanAntre = $hitungStatus(PengajuanPercepatan::class);
         $menungguPerubahanTenorBendahara = (int) ($percepatanAntre['diajukan'] ?? 0);
@@ -85,8 +88,19 @@ class DashboardController extends Controller
         $menungguPengajuanLimitBendahara = (int) ($limitAntre['diajukan'] ?? 0);
         $menungguPengajuanLimit = (int) ($limitAntre['approved_bendahara'] ?? 0);
         $menungguAktivasi = PengajuanAktivasi::where('status', 'diajukan')->count();
-        $menungguTabungan = RekeningTabungan::where('status', 'diajukan')->count()
-            + PengajuanTransaksiTabungan::where('status', 'menunggu')->count();
+        $menungguTabunganAdmin = RekeningTabungan::where('status', 'diajukan')->count()
+            + PengajuanTransaksiTabungan::whereIn('jenis', PengajuanTransaksiTabungan::JENIS_PENARIKAN)
+                ->where('status', 'menunggu')
+                ->count();
+        $menungguTabungan = RekeningTabungan::where('status', 'approved_admin')->count()
+            + PengajuanTransaksiTabungan::where('jenis', 'setor')->where('status', 'menunggu')->count()
+            + PengajuanTransaksiTabungan::whereIn('jenis', PengajuanTransaksiTabungan::JENIS_PENARIKAN)
+                ->whereIn('status', ['approved_admin', 'approved_ketua'])
+                ->count();
+        $menungguTabunganKetua = RekeningTabungan::where('status', 'approved_bendahara')->count()
+            + PengajuanTransaksiTabungan::whereIn('jenis', PengajuanTransaksiTabungan::JENIS_PENARIKAN)
+                ->where('status', 'approved_bendahara')
+                ->count();
         $totalTabunganAnggota = (float) RekeningTabungan::where('status', 'aktif')->sum('saldo');
         $menungguPenghapusanSaya = app(PenghapusanPinjamanService::class)->hitungAntreanUntukUser(auth()->user());
         $penghapusanBerjalan = PengajuanPenghapusanPinjaman::whereIn('status', [
@@ -339,13 +353,16 @@ class DashboardController extends Controller
                 'menunggu_tinjauan_admin' => $menungguTinjauanAdmin,
                 'menunggu_tinjauan_bendahara' => $menungguTinjauanBendahara,
                 'menunggu_approval_ketua' => $menungguApprovalKetua,
+                'menunggu_pencairan_pinjaman' => $menungguPencairanPinjaman,
                 'perubahan_tenor' => $menungguPerubahanTenor,
                 'perubahan_tenor_bendahara' => $menungguPerubahanTenorBendahara,
                 'perubahan_tenor_ketua' => $menungguPerubahanTenorKetua,
                 'pengajuan_limit' => $menungguPengajuanLimit,
                 'pengajuan_limit_bendahara' => $menungguPengajuanLimitBendahara,
                 'aktivasi_anggota' => $menungguAktivasi,
+                'tabungan_admin_menunggu' => $menungguTabunganAdmin,
                 'tabungan_menunggu' => $menungguTabungan,
+                'tabungan_ketua_menunggu' => $menungguTabunganKetua,
                 'anggota_belum_simpanan' => $anggotaBelumSimpananBulanIni,
                 'angsuran_jatuh_tempo' => $angsuranJatuhTempoBulanIni,
                 'penghapusan_pinjaman_menunggu' => $menungguPenghapusanSaya,

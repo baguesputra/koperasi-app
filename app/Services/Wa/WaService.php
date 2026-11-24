@@ -14,12 +14,17 @@ class WaService
         KirimWaJob::dispatch($anggota?->no_hp, $anggota?->id, $event, $pesan);
     }
 
-    public static function keAnggotaDokumen(?Anggota $anggota, string $event, string $pesan, string $pdfBytes, string $filename): void
+    public static function keAnggotaDokumen(?Anggota $anggota, string $event, string $pesan, string $fileBytes, string $filename, string $mimetype = 'application/pdf'): void
     {
-        $path = 'wa/'.uniqid('wa_', true).'.pdf';
-        Storage::disk('local')->put($path, $pdfBytes);
+        $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION) ?: 'pdf');
+        $path = 'wa/'.uniqid('wa_', true).'.'.$ext;
+        Storage::disk('local')->put($path, $fileBytes);
 
-        KirimWaJob::dispatch($anggota?->no_hp, $anggota?->id, $event, $pesan, ['path' => $path, 'filename' => $filename]);
+        KirimWaJob::dispatch($anggota?->no_hp, $anggota?->id, $event, $pesan, [
+            'path' => $path,
+            'filename' => $filename,
+            'mimetype' => $mimetype,
+        ]);
     }
 
     public static function kePengurus(string $event, string $pesan): void

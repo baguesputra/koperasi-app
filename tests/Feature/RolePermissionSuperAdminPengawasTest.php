@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Pinjaman;
 use App\Models\ShuPeriode;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -92,22 +93,47 @@ class RolePermissionSuperAdminPengawasTest extends TestCase
         $this->get(route('role.index'))->assertForbidden();
     }
 
-    public function test_pengawas_hanya_bisa_view_dan_tarik_laporan_tanpa_bisa_mutasi(): void
+    public function test_pengawas_hanya_bisa_view_menu_yang_diizinkan_dan_export_laporan(): void
     {
         $pengawas = User::where('no_karyawan', 'WAS-000001')->firstOrFail();
         $this->assertTrue($pengawas->hasRole('pengawas'));
 
+        $anggota = $this->buatAnggota();
+        $pinjaman = Pinjaman::create([
+            'anggota_id' => $anggota->id,
+            'nominal' => 1_000_000,
+            'tenor_bulan' => 3,
+            'persentase_bunga' => 1.0,
+            'keperluan' => 'Tes akses pengawas',
+            'snapshot_bank' => 'BCA',
+            'snapshot_no_rekening' => '123456',
+            'snapshot_atas_nama' => $anggota->nama,
+            'status' => 'aktif',
+            'tanggal_pengajuan' => now(),
+            'tanggal_pencairan' => now(),
+        ]);
+
         $this->actingAs($pengawas);
 
-        // 1. Pengawas BISA melihat dashboard, data anggota, simpanan, pinjaman, kas, jurnal, laporan, dan SHU
+        // 1. Pengawas BISA melihat dashboard, data anggota, simpanan, tabungan, pinjaman, kas, laporan (+ export/PDF), dan penghapusan pinjaman
         $this->get(route('dashboard'))->assertOk();
         $this->get(route('anggota.index'))->assertOk();
         $this->get(route('simpanan.index'))->assertOk();
+        $this->get(route('simpanan.show', $anggota->id))->assertOk();
+        $this->get(route('tabungan.index'))->assertOk();
         $this->get(route('pinjaman.index'))->assertOk();
+        $this->get(route('pinjaman.show', $pinjaman->id))->assertOk();
         $this->get(route('kas-koperasi.index'))->assertOk();
-        $this->get(route('jurnal-kas.index'))->assertOk();
         $this->get(route('laporan.index'))->assertOk();
-        $this->get(route('shu.index'))->assertOk();
+        $this->get(route('laporan.show', 'arus-kas'))->assertOk();
+        $this->get(route('laporan.export', 'arus-kas'))->assertOk();
+        $this->get(route('laporan.pdf', 'arus-kas'))->assertOk();
+        $this->get(route('pengurus.penghapusan-pinjaman.index'))->assertOk();
+
+        // Portal anggota boleh diakses jika Pengawas memiliki profil anggota aktif (jika belum ada, minimal route terotentikasi tidak ditolak oleh permission)
+        if ($pengawas->anggota) {
+            $this->get(route('portal.dashboard'))->assertOk();
+        }
 
         $shu = ShuPeriode::create([
             'tahun_buku' => 2026,
@@ -123,11 +149,14 @@ class RolePermissionSuperAdminPengawasTest extends TestCase
             'status' => 'draft',
         ]);
 
-        // Pengawas BISA melihat detail SHU dan BISA download export Excel SHU
-        $this->get(route('shu.show', $shu->id))->assertOk();
-        $this->get(route('shu.export', $shu->id))->assertOk();
+        // 2. Pengawas DILARANG mengakses jurnal kas, SHU, cetak bukti pinjaman, dan pengaturan
+        $this->get(route('jurnal-kas.index'))->assertForbidden();
+        $this->get(route('shu.index'))->assertForbidden();
+        $this->get(route('shu.show', $shu->id))->assertForbidden();
+        $this->get(route('shu.export', $shu->id))->assertForbidden();
+        $this->get(route('pinjaman.cetak-bukti', $pinjaman->id))->assertForbidden();
 
-        // 2. Pengawas DILARANG melakukan aksi mutasi apapun
+        // 3. Pengawas DILARANG melakukan aksi mutasi apapun
         // Dilarang tambah anggota
         $this->post(route('anggota.store'), [
             'nama' => 'Penyusup',
@@ -148,11 +177,12 @@ class RolePermissionSuperAdminPengawasTest extends TestCase
         $this->get(route('bendahara.pinjaman.index'))->assertForbidden();
         $this->get(route('ketua.pinjaman.index'))->assertForbidden();
 
-        // 3. Akses Tab Pengaturan: Pengawas BISA lihat audit & kebijakan (read-only), dilarang mutasi
+        // 4. Pengawas DILARANG mengakses seluruh halaman & aksi Pengaturan (termasuk audit & kebijakan)
         session(['auth.password_confirmed_at' => time()]);
-        $this->get(route('pengaturan.index', ['tab' => 'audit']))->assertOk();
-        $this->get(route('pengaturan.index', ['tab' => 'aturan-pinjaman']))->assertOk();
-        $this->get(route('pengaturan.audit.export'))->assertOk();
+        $this->get(route('pengaturan.index'))->assertForbidden();
+        $this->get(route('pengaturan.index', ['tab' => 'audit']))->assertForbidden();
+        $this->get(route('pengaturan.index', ['tab' => 'aturan-pinjaman']))->assertForbidden();
+        $this->get(route('pengaturan.audit.export'))->assertForbidden();
 
         // Pengawas DILARANG melakukan mutasi kebijakan
         $this->post(route('pengaturan.bunga.update'), ['persentase' => 2.0])->assertForbidden();

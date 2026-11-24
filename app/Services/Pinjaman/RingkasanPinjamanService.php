@@ -13,13 +13,14 @@ class RingkasanPinjamanService
 
         // 1 single query agregat menggantikan 5 query terpisah untuk antrean berjalan
         $rows = Pinjaman::query()
-            ->whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara'])
+            ->whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara', 'approved_ketua'])
             ->selectRaw('
                 status,
                 cair_oleh_bendahara,
                 COUNT(*) as jumlah,
                 COALESCE(SUM(COALESCE(nominal_diminta, nominal)), 0) as total_usulan,
-                COALESCE(SUM(COALESCE(nominal_disetujui_bendahara, nominal_diminta, nominal)), 0) as total_disetujui_bendahara
+                COALESCE(SUM(COALESCE(nominal_disetujui_bendahara, nominal_diminta, nominal)), 0) as total_disetujui_bendahara,
+                COALESCE(SUM(COALESCE(nominal_disetujui, nominal)), 0) as total_disetujui_ketua
             ')
             ->groupBy('status', 'cair_oleh_bendahara')
             ->get();
@@ -32,6 +33,8 @@ class RingkasanPinjamanService
         $cairMandiriTotal = 0.0;
         $ketuaJumlah = 0;
         $ketuaTotal = 0.0;
+        $pencairanJumlah = 0;
+        $pencairanTotal = 0.0;
         $jumlahAntrean = 0;
         $totalAntrean = 0.0;
 
@@ -59,6 +62,11 @@ class RingkasanPinjamanService
                     $ketuaJumlah += $jml;
                     $ketuaTotal += $tot;
                 }
+            } elseif ($row->status === 'approved_ketua') {
+                $pencairanJumlah += $jml;
+                $tot = (float) $row->total_disetujui_ketua;
+                $pencairanTotal += $tot;
+                $totalAntrean += $tot;
             }
         }
 
@@ -98,6 +106,13 @@ class RingkasanPinjamanService
                 'jumlah' => $ketuaJumlah,
                 'total' => $ketuaTotal,
             ],
+            'pencairan' => [
+                'label' => 'Siap Dicairkan Bendahara',
+                'sublabel' => 'Sudah disetujui Ketua, menunggu transfer akhir bulan',
+                'tahap' => 'Tahap 4 (Pencairan)',
+                'jumlah' => $pencairanJumlah,
+                'total' => $pencairanTotal,
+            ],
             default => [
                 'label' => 'Beban Antrean Berjalan',
                 'sublabel' => 'Seluruh tahapan persetujuan',
@@ -109,7 +124,7 @@ class RingkasanPinjamanService
 
         $jumlahDisetujui = Pinjaman::query()
             ->whereNotNull('catatan_admin')
-            ->whereIn('status', ['approved_admin', 'approved_bendahara', 'aktif', 'lunas'])
+            ->whereIn('status', ['approved_admin', 'approved_bendahara', 'approved_ketua', 'aktif', 'lunas'])
             ->count();
 
         return [
@@ -125,6 +140,7 @@ class RingkasanPinjamanService
                 'admin' => ['label' => '1. Verifikasi Sekretaris', 'jumlah' => $adminJumlah, 'total' => $adminTotal],
                 'bendahara' => ['label' => '2. Usulan Bendahara', 'jumlah' => $bendaharaJumlah, 'total' => $bendaharaTotal],
                 'ketua' => ['label' => '3. Keputusan Ketua', 'jumlah' => $ketuaJumlah, 'total' => $ketuaTotal],
+                'pencairan' => ['label' => '4. Pencairan Bendahara', 'jumlah' => $pencairanJumlah, 'total' => $pencairanTotal],
                 'cair_mandiri' => ['label' => 'Pencairan Mandiri Ketua', 'jumlah' => $cairMandiriJumlah, 'total' => $cairMandiriTotal],
             ],
             'jumlah_disetujui' => $jumlahDisetujui,

@@ -1,4 +1,5 @@
-import { Printer, Wallet, CalendarDays, Layers, Receipt } from 'lucide-react';
+import { usePage } from '@inertiajs/react';
+import { Printer, Wallet, CalendarDays, Layers, Receipt, FileText, ExternalLink } from 'lucide-react';
 import {
     DrawerField,
     DrawerFieldGrid,
@@ -17,6 +18,9 @@ const angsuranStatusBadgeMap = {
 };
 
 export default function DetailDrawer({ pinjaman, angsuran, pelunasan_resign, jurnal_pelunasan }) {
+    const { auth } = usePage().props;
+    const roles = auth?.user?.roles ?? [];
+    const bisaCetakBukti = !(roles.includes('pengawas') && !roles.some((r) => ['super_admin', 'sekretaris', 'bendahara', 'ketua_koperasi'].includes(r)));
     const isResign = pinjaman.anggota_status === 'resign';
     const dilunasiViaResign = pelunasan_resign.total > 0;
     const lunasCount = angsuran.filter((a) => a.status === 'lunas').length;
@@ -52,12 +56,28 @@ export default function DetailDrawer({ pinjaman, angsuran, pelunasan_resign, jur
                 title="Ringkasan Pinjaman"
                 icon={Wallet}
                 padding="none"
-                action={pinjaman.status === 'aktif' && (
-                    <Button type="button" size="sm" onClick={bukaCetak} className="rounded-full shadow-sm">
-                        <Printer size={14} aria-hidden="true" />
-                        Cetak Bukti
-                    </Button>
-                )}
+                action={
+                    <div className="flex items-center gap-2">
+                        {pinjaman.bukti_pencairan_url && (
+                            <a
+                                href={pinjaman.bukti_pencairan_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-200 bg-white text-xs font-semibold text-brand-navy hover:bg-slate-50 shadow-2xs"
+                            >
+                                <FileText size={13} aria-hidden="true" />
+                                Bukti Transfer
+                                <ExternalLink size={11} aria-hidden="true" />
+                            </a>
+                        )}
+                        {bisaCetakBukti && pinjaman.status === 'aktif' && (
+                            <Button type="button" size="sm" onClick={bukaCetak} className="rounded-full shadow-sm">
+                                <Printer size={14} aria-hidden="true" />
+                                Cetak Bukti
+                            </Button>
+                        )}
+                    </div>
+                }
             >
                 <dl className="grid grid-cols-3 divide-x divide-slate-100 text-center">
                     <div className="px-3 py-3">

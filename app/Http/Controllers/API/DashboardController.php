@@ -78,8 +78,8 @@ class DashboardController extends Controller
             ];
         }
 
-        $pengajuanBerjalan = $anggota->pinjaman()->with(['anggota', 'pengaju'])
-            ->whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara'])
+        $pengajuanBerjalan = $anggota->pinjaman()->with(['anggota', 'pengaju', 'dicairkanOleh:id,name'])
+            ->whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara', 'approved_ketua'])
             ->latest('tanggal_pengajuan')
             ->first();
 
@@ -96,7 +96,7 @@ class DashboardController extends Controller
                 ->orderBy('tanggal_pengajuan')
                 ->get();
 
-        $pengajuanDitolak = $anggota->pinjaman()->with(['anggota', 'pengaju'])
+        $pengajuanDitolak = $anggota->pinjaman()->with(['anggota', 'pengaju', 'dicairkanOleh:id,name'])
             ->where('status', 'ditolak')
             ->latest('updated_at')
             ->first();
@@ -224,9 +224,7 @@ class DashboardController extends Controller
         $ketuaMenunggu = (int) ($pinjamanAntre['approved_bendahara']->jumlah ?? 0)
             - (int) ($pinjamanAntre['approved_bendahara']->cair ?? 0);
 
-        $pencairan = Pinjaman::where('status', 'approved_bendahara')
-            ->where('cair_oleh_bendahara', true)
-            ->count();
+        $pencairan = Pinjaman::where('status', 'approved_ketua')->count();
 
         $limitAntre = PengajuanLimit::whereIn('status', ['diajukan', 'approved_bendahara'])
             ->selectRaw('status, COUNT(*) as jumlah')

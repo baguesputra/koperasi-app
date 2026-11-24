@@ -43,6 +43,15 @@ class RiwayatController extends Controller
                     'tenor_disetujui' => $p->tenor_disetujui,
                     'status' => $p->status,
                     'tanggal_pengajuan' => $p->tanggal_pengajuan->format('d M Y'),
+                    'tanggal_pencairan' => $p->tanggal_pencairan?->format('d M Y'),
+                    'disetujui_ketua_pada' => $p->disetujui_ketua_pada?->format('d M Y'),
+                    'bukti_pencairan_url' => $p->bukti_pencairan_path ? route('pinjaman.bukti-pencairan', $p->id) : null,
+                    'keperluan' => $p->keperluan,
+                    'rekening' => [
+                        'bank' => $p->snapshot_bank,
+                        'no_rekening' => $p->snapshot_no_rekening,
+                        'atas_nama' => $p->snapshot_atas_nama,
+                    ],
                     'catatan_bendahara' => $p->catatan_bendahara,
                     'catatan_ketua' => $p->catatan_ketua,
                     'angsuran' => $p->jadwalAktif()->values()->map(fn ($a) => [

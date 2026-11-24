@@ -29,7 +29,7 @@ class TabunganController extends Controller
     public function index(Request $request): Response
     {
         $tabAktif = (string) $request->input('tab', 'setor');
-        if (! in_array($tabAktif, ['buka', 'setor', 'tarik', 'bunga'], true)) {
+        if (! in_array($tabAktif, ['buka', 'setor', 'tarik', 'pencairan', 'bunga'], true)) {
             $tabAktif = 'setor';
         }
 
@@ -38,8 +38,11 @@ class TabunganController extends Controller
             $periodeBunga = now()->format('Y-m');
         }
 
-        $antreanBuka = RekeningTabungan::with('anggota:id,nama,no_karyawan,cabang,foto_url,tanggal_jadi_anggota')
-            ->where('status', 'diajukan')
+        $antreanBuka = RekeningTabungan::with([
+            'anggota:id,nama,no_karyawan,cabang,foto_url,tanggal_jadi_anggota',
+            'adminOleh:id,name',
+        ])
+            ->where('status', 'approved_admin')
             ->orderBy('tanggal_pengajuan')
             ->orderBy('id')
             ->get()
@@ -49,6 +52,9 @@ class TabunganController extends Controller
                 'suku_bunga_saat_buka' => (float) $r->suku_bunga_saat_buka,
                 'versi_syarat' => $r->versi_syarat,
                 'tanggal_pengajuan' => $r->tanggal_pengajuan?->format('d M Y'),
+                'admin_oleh' => $r->adminOleh?->name,
+                'catatan_admin' => $r->catatan_admin,
+                'disetujui_admin_pada' => $r->disetujui_admin_pada?->format('d M Y H:i'),
                 'anggota' => $r->anggota ? [
                     'id' => $r->anggota->id,
                     'nama' => $r->anggota->nama,
@@ -75,6 +81,15 @@ class TabunganController extends Controller
             'bukti_mime' => $p->bukti_mime,
             'bukti_nama_asli' => $p->bukti_nama_asli,
             'bukti_url' => $p->bukti_path ? route('tabungan.bukti.pengajuan', ['pengajuan' => $p->id, 'tipe' => 'setor']) : null,
+            'admin_oleh' => $p->adminOleh?->name,
+            'catatan_admin' => $p->catatan_admin,
+            'disetujui_admin_pada' => $p->disetujui_admin_pada?->format('d M Y H:i'),
+            'bendahara_oleh' => $p->bendaharaOleh?->name,
+            'catatan_bendahara' => $p->catatan_bendahara,
+            'disetujui_bendahara_pada' => $p->disetujui_bendahara_pada?->format('d M Y H:i'),
+            'ketua_oleh' => $p->ketuaOleh?->name,
+            'catatan_ketua' => $p->catatan_ketua,
+            'disetujui_ketua_pada' => $p->disetujui_ketua_pada?->format('d M Y H:i'),
             'created_at' => $p->created_at?->format('d M Y H:i'),
             'anggota' => $p->anggota ? [
                 'id' => $p->anggota->id,
@@ -98,10 +113,25 @@ class TabunganController extends Controller
         $antreanTarik = PengajuanTransaksiTabungan::with([
             'anggota:id,nama,no_karyawan,cabang,foto_url',
             'rekening:id,no_rekening,saldo',
+            'adminOleh:id,name',
         ])
-            ->where('status', 'menunggu')
-            ->whereIn('jenis', ['tarik', 'tutup_rekening'])
+            ->where('status', 'approved_admin')
+            ->whereIn('jenis', PengajuanTransaksiTabungan::JENIS_PENARIKAN)
             ->orderBy('created_at')
+            ->get()
+            ->map($mapPengajuan);
+
+        $antreanPencairan = PengajuanTransaksiTabungan::with([
+            'anggota:id,nama,no_karyawan,cabang,foto_url',
+            'rekening:id,no_rekening,saldo',
+            'adminOleh:id,name',
+            'bendaharaOleh:id,name',
+            'ketuaOleh:id,name',
+        ])
+            ->where('status', 'approved_ketua')
+            ->whereIn('jenis', PengajuanTransaksiTabungan::JENIS_PENARIKAN)
+            ->orderBy('disetujui_ketua_pada')
+            ->orderBy('id')
             ->get()
             ->map($mapPengajuan);
 
@@ -127,6 +157,7 @@ class TabunganController extends Controller
             'antreanBuka' => $antreanBuka,
             'antreanSetor' => $antreanSetor,
             'antreanTarik' => $antreanTarik,
+            'antreanPencairan' => $antreanPencairan,
             'previewBunga' => $tabAktif === 'bunga' ? $this->bungaService->previewPostingPeriode($periodeBunga) : null,
             'rekeningAktifOptions' => $rekeningAktifOptions,
             'kasFisik' => [
@@ -142,6 +173,7 @@ class TabunganController extends Controller
                 'buka' => $antreanBuka->count(),
                 'setor' => $antreanSetor->count(),
                 'tarik' => $antreanTarik->count(),
+                'pencairan' => $antreanPencairan->count(),
             ],
         ]);
     }
@@ -151,7 +183,7 @@ class TabunganController extends Controller
         $request->validate(['catatan' => ['nullable', 'string', 'max:255']]);
 
         try {
-            $rek = $this->rekeningService->setujuiBuka(
+            $this->rekeningService->approveBendaharaBuka(
                 rekening: $rekening,
                 catatan: $request->input('catatan'),
                 aktorId: $request->user()->id,
@@ -160,7 +192,7 @@ class TabunganController extends Controller
             return back()->withErrors(['aksi' => $e->getMessage()]);
         }
 
-        return back()->with('status', "Rekening tabungan {$rek->no_rekening} berhasil disetujui dan aktif.");
+        return back()->with('status', 'Tinjauan Bendahara selesai. Pengajuan pembukaan rekening diteruskan ke Ketua Koperasi.');
     }
 
     public function tolakBuka(Request $request, RekeningTabungan $rekening): RedirectResponse
@@ -172,6 +204,7 @@ class TabunganController extends Controller
                 rekening: $rekening,
                 catatan: (string) $request->input('catatan'),
                 aktorId: $request->user()->id,
+                tahap: 'bendahara',
             );
         } catch (RuntimeException $e) {
             return back()->withErrors(['catatan' => $e->getMessage()]);
@@ -198,19 +231,43 @@ class TabunganController extends Controller
             return back()->with('status', "Setoran tabungan berhasil diverifikasi ({$trx->no_bukti}).");
         }
 
-        $request->validate([
+        $request->validate(['catatan' => ['nullable', 'string', 'max:255']]);
+
+        try {
+            $this->transaksiService->approveBendaharaTarik(
+                pengajuan: $pengajuan,
+                catatan: $request->input('catatan'),
+                aktorId: $request->user()->id,
+            );
+        } catch (RuntimeException $e) {
+            return back()->withErrors(['aksi' => $e->getMessage()]);
+        }
+
+        return back()->with('status', 'Tinjauan Bendahara selesai. Pengajuan penarikan diteruskan ke Ketua Koperasi.');
+    }
+
+    public function cairPengajuan(Request $request, PengajuanTransaksiTabungan $pengajuan): RedirectResponse
+    {
+        $data = $request->validate([
             'akun_kas' => ['required', 'in:bank,kas_kecil'],
-            'bukti_pencairan' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
+            'tanggal_pencairan' => ['required', 'date', 'before_or_equal:today'],
+            'bukti_pencairan' => ['required', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
             'catatan' => ['nullable', 'string', 'max:255'],
+        ], [
+            'tanggal_pencairan.before_or_equal' => 'Tanggal pencairan tidak boleh melebihi hari ini.',
+            'bukti_pencairan.required' => 'Bukti transfer/pencairan wajib dilampirkan.',
+            'bukti_pencairan.mimes' => 'Bukti pencairan harus berupa file JPG, PNG, WEBP, atau PDF.',
+            'bukti_pencairan.max' => 'Ukuran bukti pencairan maksimal 5 MB.',
         ]);
 
         try {
-            $this->transaksiService->setujuiTarik(
+            $this->transaksiService->cairkanTarik(
                 pengajuan: $pengajuan,
-                akunKas: (string) $request->input('akun_kas'),
+                akunKas: (string) $data['akun_kas'],
                 buktiPencairan: $request->file('bukti_pencairan'),
-                catatan: $request->input('catatan'),
+                catatan: $data['catatan'] ?? null,
                 aktorId: $request->user()->id,
+                tanggalPencairan: (string) $data['tanggal_pencairan'],
             );
         } catch (RuntimeException $e) {
             return back()->withErrors(['aksi' => $e->getMessage()]);
@@ -227,11 +284,16 @@ class TabunganController extends Controller
     {
         $request->validate(['catatan' => ['required', 'string', 'min:3', 'max:255']]);
 
+        $tahap = $pengajuan->jenis === 'setor'
+            ? null
+            : ($pengajuan->status === 'approved_ketua' ? 'pencairan' : 'bendahara');
+
         try {
             $this->transaksiService->tolakPengajuan(
                 pengajuan: $pengajuan,
                 catatan: (string) $request->input('catatan'),
                 aktorId: $request->user()->id,
+                tahap: $tahap,
             );
         } catch (RuntimeException $e) {
             return back()->withErrors(['catatan' => $e->getMessage()]);

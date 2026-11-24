@@ -39,6 +39,10 @@ const statusPengajuanLabel = {
         text: 'Menunggu persetujuan Ketua Koperasi',
         step: 3,
     },
+    approved_ketua: {
+        text: 'Disetujui Ketua — Pencairan dana dijadwalkan pada akhir bulan oleh Bendahara',
+        step: 4,
+    },
 };
 
 const tipeLabel = {
@@ -827,7 +831,7 @@ export default function Dashboard({
                             <span className="pd-action__state">
                                 {tabungan?.status === 'aktif'
                                     ? tabungan.no_rekening
-                                    : tabungan?.status === 'diajukan'
+                                    : ['diajukan', 'approved_admin', 'approved_bendahara'].includes(tabungan?.status)
                                     ? 'Menunggu verifikasi'
                                     : `Bunga ${sukuBungaTabunganAktif}% / tahun`}
                             </span>
@@ -835,7 +839,7 @@ export default function Dashboard({
                         <span className="pd-action__flag">
                             {tabungan?.status === 'aktif'
                                 ? 'Aktif'
-                                : tabungan?.status === 'diajukan'
+                                : ['diajukan', 'approved_admin', 'approved_bendahara'].includes(tabungan?.status)
                                 ? 'Diproses'
                                 : 'Buka'}
                         </span>
@@ -1025,7 +1029,9 @@ export default function Dashboard({
                 {pengajuanBerjalan &&
                     (() => {
                         const currentStep =
-                            pengajuanBerjalan.status === 'approved_bendahara'
+                            pengajuanBerjalan.status === 'approved_ketua'
+                                ? 4
+                                : pengajuanBerjalan.status === 'approved_bendahara'
                                 ? 3
                                 : pengajuanBerjalan.status === 'approved_admin'
                                 ? 2
@@ -1050,11 +1056,19 @@ export default function Dashboard({
                             },
                             {
                                 nama: 'Ketua Koperasi',
-                                selesai: false,
+                                selesai: currentStep > 3,
                                 kini: currentStep === 3,
-                                selesaiText: '',
+                                selesaiText: 'Disetujui',
                                 kiniText: 'Tahap persetujuan',
                                 tungguText: 'Menunggu Bendahara',
+                            },
+                            {
+                                nama: 'Pencairan Akhir Bulan',
+                                selesai: false,
+                                kini: currentStep === 4,
+                                selesaiText: 'Dicairkan',
+                                kiniText: 'Menunggu transfer Bendahara',
+                                tungguText: 'Menunggu Ketua',
                             },
                         ];
 
@@ -1062,10 +1076,17 @@ export default function Dashboard({
                             <section data-tour="application-tracker" className="pd-card">
                                 <div className="pd-card__head">
                                     <div>
-                                        <h2>Pengajuan pinjaman sedang diproses</h2>
+                                        <h2>
+                                            {pengajuanBerjalan.status === 'approved_ketua'
+                                                ? 'Pinjaman disetujui — Menunggu pencairan akhir bulan'
+                                                : 'Pengajuan pinjaman sedang diproses'}
+                                        </h2>
                                         {pengajuanBerjalan.tanggal_pengajuan ? (
                                             <p className="pd-card__note">
                                                 Diajukan {pengajuanBerjalan.tanggal_pengajuan}
+                                                {pengajuanBerjalan.disetujui_ketua_pada
+                                                    ? ` • Disetujui ${pengajuanBerjalan.disetujui_ketua_pada}`
+                                                    : ''}
                                             </p>
                                         ) : null}
                                     </div>
@@ -1077,11 +1098,14 @@ export default function Dashboard({
 
                                 <div className="pd-figure-row">
                                     <p className="pd-figure">
-                                        <Nominal nilai={pengajuanBerjalan.nominal} tampil={nominalTampil} />
+                                        <Nominal
+                                            nilai={pengajuanBerjalan.nominal_disetujui ?? pengajuanBerjalan.nominal}
+                                            tampil={nominalTampil}
+                                        />
                                     </p>
-                                    {pengajuanBerjalan.tenor_bulan ? (
+                                    {(pengajuanBerjalan.tenor_disetujui ?? pengajuanBerjalan.tenor_bulan) ? (
                                         <span className="pd-chip pd-chip--neutral">
-                                            Tenor {pengajuanBerjalan.tenor_bulan} bulan
+                                            Tenor {pengajuanBerjalan.tenor_disetujui ?? pengajuanBerjalan.tenor_bulan} bulan
                                         </span>
                                     ) : null}
                                 </div>
@@ -1127,20 +1151,29 @@ export default function Dashboard({
                                     {statusPengajuanLabel[pengajuanBerjalan.status]?.text ??
                                         'Menunggu pemeriksaan'}
                                     .
-                                    {pengajuanBerjalan.nominal_disetujui_bendahara ? (
+                                    {pengajuanBerjalan.status === 'approved_ketua' ? (
                                         <>
                                             {' '}
-                                            Usulan Bendahara{' '}
-                                            <strong>
-                                                <Nominal
-                                                    nilai={pengajuanBerjalan.nominal_disetujui_bendahara}
-                                                    tampil={nominalTampil}
-                                                />
-                                            </strong>
-                                            .
+                                            Pinjaman ini belum terhitung sebagai pinjaman aktif hingga ditransfer oleh Bendahara. Notifikasi WhatsApp beserta bukti transfer akan dikirimkan setelah pencairan selesai.
                                         </>
-                                    ) : null}{' '}
-                                    Pengajuan pinjaman baru dikunci hingga proses ini selesai diputuskan.
+                                    ) : (
+                                        <>
+                                            {pengajuanBerjalan.nominal_disetujui_bendahara ? (
+                                                <>
+                                                    {' '}
+                                                    Usulan Bendahara{' '}
+                                                    <strong>
+                                                        <Nominal
+                                                            nilai={pengajuanBerjalan.nominal_disetujui_bendahara}
+                                                            tampil={nominalTampil}
+                                                        />
+                                                    </strong>
+                                                    .
+                                                </>
+                                            ) : null}{' '}
+                                            Pengajuan pinjaman baru dikunci hingga proses ini selesai diputuskan.
+                                        </>
+                                    )}
                                 </p>
                             </section>
                         );
@@ -1219,6 +1252,20 @@ export default function Dashboard({
                                             </li>
                                         ))}
                                     </ul>
+                                )}
+
+                                {pinjamanAktif?.bukti_pencairan_url && (
+                                    <div className="mt-3 pt-3 border-t border-slate-100">
+                                        <a
+                                            href={pinjamanAktif.bukti_pencairan_url}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="pd-link pd-focus"
+                                        >
+                                            Lihat bukti transfer pencairan
+                                            <ArrowRight size={13} aria-hidden="true" />
+                                        </a>
+                                    </div>
                                 )}
 
                                 {angsuranBerikutnya && (
@@ -1439,13 +1486,17 @@ export default function Dashboard({
                                     </dl>
                                     {tabungan.pengajuan_menunggu_count > 0 && (
                                         <p className="pd-card__foot">
-                                            Ada {tabungan.pengajuan_menunggu_count} pengajuan transaksi yang menunggu verifikasi Bendahara.
+                                            Ada {tabungan.pengajuan_menunggu_count} pengajuan transaksi yang sedang dalam proses persetujuan / pencairan pengurus.
                                         </p>
                                     )}
                                 </>
-                            ) : tabungan?.status === 'diajukan' ? (
+                            ) : ['diajukan', 'approved_admin', 'approved_bendahara'].includes(tabungan?.status) ? (
                                 <p className="pd-card__foot">
-                                    Pengajuan pembukaan rekening tabungan Anda sedang ditinjau oleh Bendahara Koperasi.
+                                    {tabungan.status === 'diajukan'
+                                        ? 'Pengajuan pembukaan rekening tabungan Anda sedang menunggu verifikasi Sekretaris.'
+                                        : tabungan.status === 'approved_admin'
+                                        ? 'Pengajuan pembukaan rekening Anda lolos Sekretaris dan sedang ditinjau Bendahara.'
+                                        : 'Pengajuan pembukaan rekening Anda sudah ditinjau Bendahara dan menunggu persetujuan final Ketua Koperasi.'}
                                 </p>
                             ) : (
                                 <p className="pd-card__foot">

@@ -47,6 +47,7 @@ class BaileysGateway implements WaGateway
         $this->client()->post('/send-document', [
             'to' => $nomor,
             'filename' => $filename,
+            'mimetype' => $mimetype,
             'caption' => $caption,
             'base64' => $base64,
         ])->throw();

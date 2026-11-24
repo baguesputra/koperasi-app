@@ -49,7 +49,7 @@ class PinjamanController extends Controller
             ], 403));
         }
 
-        $pinjaman->loadMissing(['anggota', 'pengaju']);
+        $pinjaman->loadMissing(['anggota', 'pengaju', 'dicairkanOleh:id,name']);
 
         return response()->json([
             'data' => (new PinjamanResource($pinjaman))->resolve(),
@@ -258,7 +258,7 @@ class PinjamanController extends Controller
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
-        $pinjaman->loadMissing(['anggota', 'pengaju']);
+        $pinjaman->loadMissing(['anggota', 'pengaju', 'dicairkanOleh:id,name']);
 
         return response()->json([
             'message' => 'Pengajuan pinjaman berhasil dikirim.',
@@ -276,7 +276,7 @@ class PinjamanController extends Controller
     private function hasLoanApplicationInProgress(int $anggotaId): bool
     {
         return Pinjaman::where('anggota_id', $anggotaId)
-            ->whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara'])
+            ->whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara', 'approved_ketua'])
             ->exists();
     }
 }

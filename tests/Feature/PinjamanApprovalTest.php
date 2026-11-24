@@ -8,7 +8,9 @@ use App\Models\KasKoperasi;
 use App\Models\Pinjaman;
 use App\Services\Keuangan\JurnalKasService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Tests\Concerns\MembuatDataUji;
 use Tests\TestCase;
 
@@ -49,7 +51,7 @@ class PinjamanApprovalTest extends TestCase
         $this->assertSame(1, Pinjaman::where('anggota_id', $baru->id)->count());
         $pinjaman = Pinjaman::where('anggota_id', $baru->id)->sole();
 
-        // 2. Cair hingga aktif: admin → bendahara → ketua
+        // 2. Disetujui berjenjang admin → bendahara → ketua → pencairan bendahara
         $this->masuk('ADM-000001');
         $this->post(route('admin.pinjaman.approve', $pinjaman), ['catatan' => 'Dokumen lengkap, diteruskan.'])->assertStatus(302);
         $this->assertSame('approved_admin', $pinjaman->refresh()->status);
@@ -57,6 +59,15 @@ class PinjamanApprovalTest extends TestCase
         $this->post(route('bendahara.pinjaman.approve', $pinjaman), ['catatan' => 'Setuju, data lengkap.', 'nominal' => 1_000_000])->assertStatus(302);
         $this->masuk('KET-000001');
         $this->post(route('ketua.pinjaman.approve', $pinjaman), ['catatan' => 'Disetujui Ketua.', 'nominal' => 1_000_000])->assertStatus(302);
+        $this->assertSame('approved_ketua', $pinjaman->refresh()->status);
+
+        Storage::fake('local');
+        $this->masuk('BEN-000001');
+        $this->post(route('bendahara.pencairan-pinjaman.cair', $pinjaman), [
+            'tanggal_pencairan' => now()->toDateString(),
+            'bukti_pencairan' => UploadedFile::fake()->image('bukti-tf.jpg'),
+            'catatan' => 'Transfer pencairan berhasil.',
+        ])->assertStatus(302);
         $this->assertSame('aktif', $pinjaman->refresh()->status);
 
         // 3. Ajukan kedua saat masih ada pinjaman aktif → ditolak aturan anggota baru (< 1 tahun)
@@ -91,15 +102,39 @@ class PinjamanApprovalTest extends TestCase
         $this->post(route('bendahara.pinjaman.approve', $pinjaman), ['catatan' => 'Dokumen lengkap.', 'nominal' => 1_000_000])->assertRedirect();
         $this->assertSame('approved_bendahara', $pinjaman->refresh()->status);
 
-        // 4. Ketua menyetujui → cair
+        // 4. Ketua menyetujui → approved_ketua (belum potong kas), lalu Bendahara mencairkan + bukti transfer
+        Storage::fake('local');
         $saldoSebelum = (float) KasKoperasi::first()->saldo_bank;
         $this->masuk('KET-000001');
         $this->post(route('ketua.pinjaman.approve', $pinjaman), ['catatan' => 'Disetujui.', 'nominal' => 1_000_000])->assertRedirect();
 
         $pinjaman->refresh();
+        $this->assertSame('approved_ketua', $pinjaman->status);
+        $this->assertNull($pinjaman->tanggal_pencairan);
+        $this->assertCount(0, $pinjaman->angsuran()->get());
+        $this->assertSame($saldoSebelum, (float) KasKoperasi::first()->saldo_bank);
+
+        Queue::assertPushed(KirimWaJob::class, fn (KirimWaJob $job) => $this->propertiWa($job)['event'] === 'pinjaman_disetujui_ketua');
+
+        $this->masuk('BEN-000001');
+        $this->post(route('bendahara.pencairan-pinjaman.cair', $pinjaman), [
+            'tanggal_pencairan' => now()->toDateString(),
+            'bukti_pencairan' => UploadedFile::fake()->image('bukti-cair.jpg'),
+            'catatan' => 'Sudah ditransfer ke rekening anggota.',
+        ])->assertRedirect();
+
+        $pinjaman->refresh();
         $this->assertSame('aktif', $pinjaman->status);
         $this->assertNotNull($pinjaman->tanggal_pencairan);
-        $this->assertCount(3, $pinjaman->angsuran()->get());
+        $this->assertNotNull($pinjaman->bukti_pencairan_path);
+        Storage::disk('local')->assertExists($pinjaman->bukti_pencairan_path);
+
+        $daftarAngsuran = $pinjaman->angsuran()->orderBy('cicilan_ke')->get();
+        $this->assertCount(3, $daftarAngsuran);
+        $this->assertSame(
+            now()->addMonthsNoOverflow(1)->endOfMonth()->toDateString(),
+            $daftarAngsuran->first()->tanggal_jatuh_tempo->toDateString()
+        );
 
         // Jurnal pencairan keluar dari bank + saldo bank berkurang
         $this->assertDatabaseHas('jurnal_kas', [
@@ -117,10 +152,11 @@ class PinjamanApprovalTest extends TestCase
         ));
 
         $namaFileBukti = "Bukti-Peminjaman-{$pinjaman->id}.pdf";
+        Queue::assertPushed(KirimWaJob::class, fn (KirimWaJob $job) => $this->propertiWa($job)['event'] === 'pinjaman_dicairkan' && isset($this->propertiWa($job)['dokumen']));
         Queue::assertPushed(KirimWaJob::class, function (KirimWaJob $job) use ($namaFileBukti) {
             $p = $this->propertiWa($job);
 
-            return $p['event'] === 'pinjaman_disetujui_ketua'
+            return $p['event'] === 'pinjaman_bukti_akad'
                 && ($p['dokumen']['filename'] ?? '') === $namaFileBukti;
         });
     }
@@ -186,11 +222,20 @@ class PinjamanApprovalTest extends TestCase
         // Kas belum berkurang di tahap bendahara
         $this->assertEquals($kasAwal, app(JurnalKasService::class)->saldoOperasional());
 
-        // Ketua naikkan lagi ke 4.5jt → cair final
+        // Ketua naikkan lagi ke 4.5jt → approved_ketua → Bendahara cairkan final
         $this->masuk('KET-000001');
         $this->post(route('ketua.pinjaman.approve', $pinjaman), [
             'catatan' => 'Final disetujui.',
             'nominal' => 4_500_000,
+        ])->assertRedirect();
+
+        $this->assertSame('approved_ketua', $pinjaman->refresh()->status);
+
+        Storage::fake('local');
+        $this->masuk('BEN-000001');
+        $this->post(route('bendahara.pencairan-pinjaman.cair', $pinjaman), [
+            'tanggal_pencairan' => now()->toDateString(),
+            'bukti_pencairan' => UploadedFile::fake()->image('bukti-45jt.jpg'),
         ])->assertRedirect();
 
         $pinjaman->refresh();
@@ -242,9 +287,17 @@ class PinjamanApprovalTest extends TestCase
         $this->masuk('BEN-000001');
         $this->post(route('bendahara.pinjaman.approve', $pinjaman), ['catatan' => 'Dokumen lengkap, layak cair.', 'nominal' => 1_000_000])->assertRedirect();
 
-        // Konsep Kas Tunggal: cukup saldo bank → cair langsung, tanpa talangan.
+        // Konsep Kas Tunggal: Ketua setujui dulu, lalu Bendahara transfer & cairkan langsung jika saldo bank cukup.
         $this->masuk('KET-000001');
-        $this->post(route('ketua.pinjaman.approve', $pinjaman), ['catatan' => 'Cairkan.', 'nominal' => 1_000_000])->assertRedirect();
+        $this->post(route('ketua.pinjaman.approve', $pinjaman), ['catatan' => 'Setujui untuk pencairan akhir bulan.', 'nominal' => 1_000_000])->assertRedirect();
+        $this->assertSame('approved_ketua', $pinjaman->refresh()->status);
+
+        Storage::fake('local');
+        $this->masuk('BEN-000001');
+        $this->post(route('bendahara.pencairan-pinjaman.cair', $pinjaman), [
+            'tanggal_pencairan' => now()->toDateString(),
+            'bukti_pencairan' => UploadedFile::fake()->image('bukti-kas.jpg'),
+        ])->assertRedirect();
 
         $this->assertSame('aktif', $pinjaman->refresh()->status);
         $this->assertSame(1, JurnalKas::where('kategori', 'pencairan_pinjaman')->where('referensi_id', $pinjaman->id)->count());
@@ -359,8 +412,19 @@ class PinjamanApprovalTest extends TestCase
         $bankSebelum = (float) KasKoperasi::first()->saldo_bank;
 
         $this->post(route('ketua.pinjaman.approve', $p1), [
-            'catatan' => 'Cairkan final.',
+            'catatan' => 'Setujui final untuk pencairan.',
             'nominal' => 1_500_000,
+        ])->assertRedirect();
+
+        $ketuaSetelahSetuju = $ringkasan('KET-000001', 'ketua.pinjaman.index');
+        $this->assertSame($ketuaSebelum['jumlah_antrean'], $ketuaSetelahSetuju['jumlah_antrean']);
+        $this->assertEquals($bankSebelum, $ketuaSetelahSetuju['saldo_bank']);
+
+        Storage::fake('local');
+        $this->masuk('BEN-000001');
+        $this->post(route('bendahara.pencairan-pinjaman.cair', $p1), [
+            'tanggal_pencairan' => now()->toDateString(),
+            'bukti_pencairan' => UploadedFile::fake()->image('bukti-p1.jpg'),
         ])->assertRedirect();
 
         $ketuaSesudah = $ringkasan('KET-000001', 'ketua.pinjaman.index');

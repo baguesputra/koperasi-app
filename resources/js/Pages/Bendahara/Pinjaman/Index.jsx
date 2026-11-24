@@ -1,5 +1,5 @@
 import AppLayout from '@/Layouts/AppLayout';
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import Card from '@/Components/ui/Card';
@@ -49,10 +49,10 @@ export default function Index({ menungguTinjauan = [], menungguPencairan = [], r
                         <CountBadge count={menungguTinjauan.length} context="tab" />
                     </button>
                     {menungguPencairan.length > 0 && (
-                        <button onClick={() => setTab('cair')} className={tab === 'cair' ? tabAktif : tabNonAktif}>
-                            Pencairan Mandiri Ketua
+                        <Link href={route('bendahara.pencairan-pinjaman.index')} className={tabNonAktif}>
+                            Siap Dicairkan
                             <CountBadge count={menungguPencairan.length} tone="emerald" context="tab" />
-                        </button>
+                        </Link>
                     )}
                     <button onClick={() => setTab('riwayat')} className={tab === 'riwayat' ? tabAktif : tabNonAktif}>
                         Riwayat

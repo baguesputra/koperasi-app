@@ -25,14 +25,14 @@ class PinjamanController extends Controller
         'admin' => 'diajukan',
         'bendahara' => 'approved_admin',
         'ketua' => 'approved_bendahara',
-        'pencairan' => 'approved_bendahara',
+        'pencairan' => 'approved_ketua',
     ];
 
     private const TAHAP_IZIN = [
         'admin' => 'pinjaman.tinjau-admin',
         'bendahara' => 'pinjaman.tinjau-bendahara',
         'ketua' => 'pinjaman.approve-ketua',
-        'pencairan' => 'pinjaman.tinjau-bendahara',
+        'pencairan' => 'pinjaman.cairkan',
     ];
 
     private function tahapOrFail(Request $request): string
@@ -68,7 +68,7 @@ class PinjamanController extends Controller
         }
 
         if ($tab === 'riwayat') {
-            $query = Pinjaman::with(['anggota', 'pengaju'])
+            $query = Pinjaman::with(['anggota', 'pengaju', 'dicairkanOleh:id,name'])
                 ->latest('updated_at')
                 ->latest('id');
 
@@ -93,17 +93,15 @@ class PinjamanController extends Controller
             ]);
         }
 
-        $query = Pinjaman::with(['anggota', 'pengaju'])
+        $query = Pinjaman::with(['anggota', 'pengaju', 'dicairkanOleh:id,name'])
             ->where('status', self::TAHAP_STATUS[$tahap])
             ->orderByDesc('tanggal_pengajuan')
             ->orderByDesc('id');
 
-        // Tahap ketua: hanya yang cair manual oleh ketua (bukan jalur mandiri bendahara).
-        // Pencairan: hanya jalur mandiri (cair oleh bendahara).
+        // Tahap ketua: hanya yang belum diputus Ketua & bukan pengajuan mandiri Ketua.
+        // Pencairan: seluruh pinjaman berstatus approved_ketua menunggu transfer Bendahara.
         if ($tahap === 'ketua') {
             $query->where('cair_oleh_bendahara', false);
-        } elseif ($tahap === 'pencairan') {
-            $query->where('cair_oleh_bendahara', true);
         }
 
         $rows = $query->get();
@@ -175,9 +173,11 @@ class PinjamanController extends Controller
     public function approve(Request $request, Pinjaman $pinjaman): JsonResponse
     {
         $request->validate([
-            'catatan' => ['required', 'string', 'min:5', 'max:500'],
+            'catatan' => ['required_without:bukti_pencairan', 'nullable', 'string', 'min:5', 'max:500'],
             'nominal' => ['nullable', 'numeric', 'min:1'],
             'tenor_bulan' => ['nullable', 'integer', 'min:1', 'max:120'],
+            'tanggal_pencairan' => ['nullable', 'date', 'before_or_equal:today'],
+            'bukti_pencairan' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
         ]);
 
         $this->tolakBilaSelfApproval($request, $pinjaman);
@@ -189,14 +189,15 @@ class PinjamanController extends Controller
             $pesan = match ($pinjaman->status) {
                 'diajukan' => $this->approveAdmin($request, $pinjaman),
                 'approved_admin' => $this->approveBendahara($request, $pinjaman, $nominal, $tenor),
-                'approved_bendahara' => $this->cairkanTahap($request, $pinjaman, $nominal, $tenor),
+                'approved_bendahara' => $this->setujuiKetua($request, $pinjaman, $nominal, $tenor),
+                'approved_ketua' => $this->cairkanBendaharaTahap($request, $pinjaman),
                 default => throw new RuntimeException('Status pengajuan sudah berubah. Muat ulang antrean.'),
             };
         } catch (RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], $this->kodeKesalahanStatus($e));
         }
 
-        $pinjaman->refresh()->loadMissing(['anggota', 'pengaju']);
+        $pinjaman->refresh()->loadMissing(['anggota', 'pengaju', 'dicairkanOleh:id,name']);
 
         return response()->json([
             'message' => $pesan,
@@ -223,19 +224,15 @@ class PinjamanController extends Controller
 
         $this->persetujuan->approveBendahara($pinjaman, $request->catatan, $nominal, $tenor);
 
-        return 'Pengajuan disetujui. Menunggu keputusan Ketua.';
+        return $pinjaman->fresh()->status === 'approved_ketua'
+            ? 'Pengajuan disetujui. Menunggu pencairan Bendahara di akhir bulan.'
+            : 'Pengajuan disetujui. Menunggu keputusan Ketua.';
     }
 
-    private function cairkanTahap(Request $request, Pinjaman $pinjaman, ?float $nominal, ?int $tenor): string
+    private function setujuiKetua(Request $request, Pinjaman $pinjaman, ?float $nominal, ?int $tenor): string
     {
         if ($pinjaman->cair_oleh_bendahara) {
-            if (! $request->user()->can('pinjaman.tinjau-bendahara')) {
-                throw new RuntimeException('Anda tidak memiliki akses ke tahap pencairan.');
-            }
-
-            $this->persetujuan->cairBendahara($pinjaman, $request->catatan);
-
-            return 'Pinjaman disetujui dan dana telah dicairkan.';
+            throw new RuntimeException('Pengajuan mandiri Ketua tidak disetujui melalui tahap Ketua.');
         }
 
         if (! $request->user()->can('pinjaman.approve-ketua')) {
@@ -244,7 +241,24 @@ class PinjamanController extends Controller
 
         $this->persetujuan->approveKetua($pinjaman, $request->catatan, $nominal, $tenor);
 
-        return 'Pinjaman disetujui dan dana telah dicairkan.';
+        return 'Pinjaman disetujui Ketua. Pencairan dijadwalkan akhir bulan oleh Bendahara.';
+    }
+
+    private function cairkanBendaharaTahap(Request $request, Pinjaman $pinjaman): string
+    {
+        if (! $request->user()->can('pinjaman.cairkan')) {
+            throw new RuntimeException('Anda tidak memiliki akses ke tahap pencairan.');
+        }
+
+        $this->persetujuan->cairkanBendahara(
+            pinjaman: $pinjaman,
+            buktiTransfer: $request->file('bukti_pencairan'),
+            tanggalPencairan: (string) ($request->input('tanggal_pencairan') ?: now()->toDateString()),
+            catatan: $request->input('catatan'),
+            aktorId: $request->user()->id,
+        );
+
+        return 'Pinjaman berhasil dicairkan.';
     }
 
     /**
@@ -271,7 +285,7 @@ class PinjamanController extends Controller
             return response()->json(['message' => $e->getMessage()], $this->kodeKesalahanStatus($e));
         }
 
-        $pinjaman->refresh()->loadMissing(['anggota', 'pengaju']);
+        $pinjaman->refresh()->loadMissing(['anggota', 'pengaju', 'dicairkanOleh:id,name']);
 
         return response()->json([
             'message' => $pesan,

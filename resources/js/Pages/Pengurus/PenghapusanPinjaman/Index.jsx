@@ -445,6 +445,18 @@ export default function Index({
                             </div>
                         </div>
 
+                        <FormField label="Alasan Penghapusan Pinjaman" error={formAjukan.errors.alasan} required>
+                            <textarea
+                                data-autofocus
+                                rows={3}
+                                value={formAjukan.data.alasan}
+                                onChange={(e) => formAjukan.setData('alasan', e.target.value)}
+                                placeholder="Jelaskan kronologi tunggakan / alasan anggota tidak dapat ditagih lagi (misal: anggota menghilang, sudah tidak aktif bekerja, dan tidak dapat dihubungi)..."
+                                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:border-brand-green focus:outline-none focus:ring-2 focus:ring-brand-green/20"
+                                required
+                            />
+                        </FormField>
+
                         <div className="rounded-xl bg-amber-50/70 border border-amber-200/80 p-3.5 text-xs text-amber-900 space-y-1">
                             <p className="font-bold">Perlakuan Keuangan & Status Anggota:</p>
                             <p>
@@ -454,17 +466,6 @@ export default function Index({
                                 2. Saat disetujui final oleh Pengawas 1 (Ketua Pengawas), anggota dinonaktifkan agar tidak terbit tagihan iuran baru, namun simpanan lamanya tetap mengendap utuh.
                             </p>
                         </div>
-
-                        <FormField label="Alasan Penghapusan Pinjaman" error={formAjukan.errors.alasan} required>
-                            <textarea
-                                rows={4}
-                                value={formAjukan.data.alasan}
-                                onChange={(e) => formAjukan.setData('alasan', e.target.value)}
-                                placeholder="Jelaskan kronologi tunggakan / alasan anggota tidak dapat ditagih lagi (misal: anggota menghilang, sudah tidak aktif bekerja, dan tidak dapat dihubungi)..."
-                                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:border-brand-green focus:outline-none focus:ring-2 focus:ring-brand-green/20"
-                                required
-                            />
-                        </FormField>
 
                         <div className="grid grid-cols-2 gap-3 pt-2">
                             <Button type="button" variant="neutral" onClick={() => setDrawerAjukanOpen(false)}>

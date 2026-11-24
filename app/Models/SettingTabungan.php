@@ -23,6 +23,7 @@ class SettingTabungan extends Model
         'min_setor',
         'saldo_minimal',
         'min_tarik',
+        'masa_tunggu_tarik_bulan',
         'bank_tujuan_nama',
         'bank_tujuan_rekening',
         'bank_tujuan_atas_nama',
@@ -34,6 +35,7 @@ class SettingTabungan extends Model
         'min_setor' => 'decimal:2',
         'saldo_minimal' => 'decimal:2',
         'min_tarik' => 'decimal:2',
+        'masa_tunggu_tarik_bulan' => 'integer',
         'buka_rekening_aktif' => 'boolean',
     ];
 
@@ -49,8 +51,9 @@ class SettingTabungan extends Model
             'min_setor' => 50_000,
             'saldo_minimal' => 50_000,
             'min_tarik' => 50_000,
+            'masa_tunggu_tarik_bulan' => 12,
             'bank_tujuan_nama' => 'Bank Mandiri',
-            'bank_tujuan_rekening' => '000-00-0000000-0',
+            'bank_tujuan_rekening' => '000-0000000-0',
             'bank_tujuan_atas_nama' => 'Koperasi Karyawan Karya Mandiri',
             'buka_rekening_aktif' => true,
         ]);

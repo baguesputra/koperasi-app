@@ -344,6 +344,7 @@ export default function Show({
                         <DrawerSection title="Detail Setoran Tunai" icon={ArrowDownCircle}>
                             <FormField label="Nominal Setor (Rp)" error={setorForm.errors.nominal || setorForm.errors.setor_tunai} hint={`Minimal ${formatRupiah(minSetor)}`} required>
                                 <CurrencyField
+                                    data-autofocus
                                     value={setorForm.data.nominal}
                                     onChange={(e) => setorForm.setData('nominal', e.target.value)}
                                     placeholder="0"
@@ -413,6 +414,19 @@ export default function Show({
                 {trxBatal && (
                     <form onSubmit={submitBatal} className="flex-1 min-h-0 flex flex-col">
                         <DrawerBody>
+                            <DrawerSection title="Alasan Pembatalan" icon={RotateCcw}>
+                                <FormField label="Alasan Storno" error={batalForm.errors.alasan} required>
+                                    <TextField
+                                        data-autofocus
+                                        as="textarea"
+                                        rows={3}
+                                        value={batalForm.data.alasan}
+                                        onChange={(e) => batalForm.setData('alasan', e.target.value)}
+                                        placeholder="Jelaskan alasan pembatalan (min. 3 karakter)"
+                                        required
+                                    />
+                                </FormField>
+                            </DrawerSection>
                             <DrawerSection title="Rincian Transaksi yang Dibatalkan" icon={Wallet} tone="rose">
                                 <DrawerKeyValue
                                     rows={[
@@ -422,18 +436,6 @@ export default function Show({
                                         { label: 'Nominal', value: formatRupiah(trxBatal.nominal), bold: true },
                                     ]}
                                 />
-                            </DrawerSection>
-                            <DrawerSection title="Alasan Pembatalan" icon={RotateCcw}>
-                                <FormField label="Alasan Storno" error={batalForm.errors.alasan} required>
-                                    <TextField
-                                        as="textarea"
-                                        rows={3}
-                                        value={batalForm.data.alasan}
-                                        onChange={(e) => batalForm.setData('alasan', e.target.value)}
-                                        placeholder="Jelaskan alasan pembatalan (min. 3 karakter)"
-                                        required
-                                    />
-                                </FormField>
                             </DrawerSection>
                         </DrawerBody>
                         <DrawerFooter>

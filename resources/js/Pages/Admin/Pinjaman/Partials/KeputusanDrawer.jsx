@@ -24,6 +24,7 @@ export default function KeputusanDrawer({ pinjaman, onClose }) {
     const [aksi, setAksi] = useState(null); // 'approve' | 'reject' | null
     const formId = useId();
     const formRef = useRef(null);
+    const inputRef = useRef(null);
     const { data, setData, post, processing, errors } = useForm({
         catatan: '',
     });
@@ -31,9 +32,12 @@ export default function KeputusanDrawer({ pinjaman, onClose }) {
     const bisaDiproses = pinjaman.status === 'diajukan';
 
     useEffect(() => {
-        if (aksi && formRef.current) {
-            formRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
+        if (!aksi) return undefined;
+        const id = window.requestAnimationFrame(() => {
+            formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            inputRef.current?.focus({ preventScroll: true });
+        });
+        return () => window.cancelAnimationFrame(id);
     }, [aksi]);
 
     function submit(e) {
@@ -79,6 +83,41 @@ export default function KeputusanDrawer({ pinjaman, onClose }) {
                     )}
                 </DrawerHero>
 
+                {errors.keputusan && (
+                    <div className="flex items-start gap-2.5 bg-rose-50/50 border border-rose-200/80 rounded-xl p-3.5">
+                        <AlertCircle size={17} className="text-rose-500 shrink-0 mt-0.5" />
+                        <p className="text-sm font-medium text-rose-700">{errors.keputusan}</p>
+                    </div>
+                )}
+
+                {bisaDiproses && aksi && (
+                    <DrawerSection
+                        ref={formRef}
+                        title={aksi === 'approve' ? 'Konfirmasi Penerusan ke Tahap Berikutnya' : 'Konfirmasi Penolakan'}
+                        icon={aksi === 'approve' ? CheckCircle2 : XCircle}
+                        tone={aksi === 'approve' ? 'emerald' : 'rose'}
+                    >
+                        <form id={formId} onSubmit={submit} className="space-y-3">
+                            <div>
+                                <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">
+                                    Catatan {aksi === 'approve' ? 'Penerusan' : 'Penolakan'}
+                                </label>
+                                <textarea
+                                    ref={inputRef}
+                                    data-autofocus
+                                    value={data.catatan}
+                                    onChange={(e) => setData('catatan', e.target.value)}
+                                    rows={3}
+                                    placeholder={aksi === 'approve' ? 'Contoh: Dokumen lengkap, diteruskan ke Bendahara.' : 'Contoh: Dokumen belum lengkap.'}
+                                    className="w-full px-3.5 py-2.5 text-base sm:text-sm rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
+                                    autoFocus
+                                />
+                                {errors.catatan && <p className="text-xs sm:text-sm font-medium text-red-600 mt-1.5">{errors.catatan}</p>}
+                            </div>
+                        </form>
+                    </DrawerSection>
+                )}
+
                 {pinjaman.catatan_admin && (
                     <DrawerNoteCallout
                         label="Catatan Sekretaris"
@@ -114,39 +153,6 @@ export default function KeputusanDrawer({ pinjaman, onClose }) {
                         <p className="text-xs text-slate-500 mt-0.5">a.n. {pinjaman.rekening.atas_nama}</p>
                     </DrawerSection>
                 </div>
-
-                {errors.keputusan && (
-                    <div className="flex items-start gap-2.5 bg-rose-50/50 border border-rose-200/80 rounded-xl p-3.5">
-                        <AlertCircle size={17} className="text-rose-500 shrink-0 mt-0.5" />
-                        <p className="text-sm font-medium text-rose-700">{errors.keputusan}</p>
-                    </div>
-                )}
-
-                {bisaDiproses && aksi && (
-                    <DrawerSection
-                        ref={formRef}
-                        title={aksi === 'approve' ? 'Konfirmasi Penerusan ke Tahap Berikutnya' : 'Konfirmasi Penolakan'}
-                        icon={aksi === 'approve' ? CheckCircle2 : XCircle}
-                        tone={aksi === 'approve' ? 'emerald' : 'rose'}
-                    >
-                        <form id={formId} onSubmit={submit} className="space-y-3">
-                            <div>
-                                <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">
-                                    Catatan {aksi === 'approve' ? 'Penerusan' : 'Penolakan'}
-                                </label>
-                                <textarea
-                                    value={data.catatan}
-                                    onChange={(e) => setData('catatan', e.target.value)}
-                                    rows={3}
-                                    placeholder={aksi === 'approve' ? 'Contoh: Dokumen lengkap, diteruskan ke Bendahara.' : 'Contoh: Dokumen belum lengkap.'}
-                                    className="w-full px-3.5 py-2.5 text-base sm:text-sm rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
-                                    autoFocus
-                                />
-                                {errors.catatan && <p className="text-xs sm:text-sm font-medium text-red-600 mt-1.5">{errors.catatan}</p>}
-                            </div>
-                        </form>
-                    </DrawerSection>
-                )}
             </DrawerBody>
 
             <DrawerFooter>

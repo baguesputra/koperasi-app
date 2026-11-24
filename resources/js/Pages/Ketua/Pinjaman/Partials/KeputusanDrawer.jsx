@@ -28,6 +28,8 @@ export default function KeputusanDrawer({ pinjaman, onClose }) {
     const [aksi, setAksi] = useState(null);
     const formId = useId();
     const formRef = useRef(null);
+    const nominalInputRef = useRef(null);
+    const catatanInputRef = useRef(null);
     const { data, setData, post, processing, errors } = useForm({
         catatan: '',
         nominal: String(pinjaman.nominal_disetujui_bendahara ?? pinjaman.nominal_diminta ?? pinjaman.nominal),
@@ -38,9 +40,13 @@ export default function KeputusanDrawer({ pinjaman, onClose }) {
     const nominalFinal = Number(data.nominal) || 0;
 
     useEffect(() => {
-        if (aksi && formRef.current) {
-            formRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
+        if (!aksi) return undefined;
+        const id = window.requestAnimationFrame(() => {
+            formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            const target = aksi === 'approve' ? nominalInputRef.current : catatanInputRef.current;
+            target?.focus({ preventScroll: true });
+        });
+        return () => window.cancelAnimationFrame(id);
     }, [aksi]);
 
     function submit(e) {
@@ -80,57 +86,6 @@ export default function KeputusanDrawer({ pinjaman, onClose }) {
                     </div>
                 </DrawerHero>
 
-                {pinjaman.catatan_admin && (
-                    <DrawerNoteCallout
-                        label="Catatan dari Verifikasi Sekretaris"
-                        note={pinjaman.catatan_admin}
-                        tone="sky"
-                        icon={MessageSquareText}
-                    />
-                )}
-
-                {pinjaman.catatan_bendahara && (
-                    <DrawerNoteCallout
-                        label="Disetujui Bendahara — Catatan Bendahara"
-                        note={pinjaman.catatan_bendahara}
-                        tone="amber"
-                        icon={CheckCircle2}
-                    />
-                )}
-
-                <KartuKas
-                    kas={pinjaman.kas}
-                    nominalTahap={pinjaman.nominal_disetujui_bendahara ?? pinjaman.nominal_diminta}
-                    label="Nominal usulan Bendahara"
-                />
-
-                <JejakNominal pinjaman={pinjaman} finalLabel="Final (cair)" />
-
-                <DrawerSection title="Data Anggota" icon={User}>
-                    <DrawerFieldGrid cols={3}>
-                        <DrawerField label="Nama" value={pinjaman.anggota.nama} />
-                        <DrawerField label="No. Karyawan" value={pinjaman.anggota.no_karyawan} mono />
-                        <DrawerField label="Cabang" value={pinjaman.anggota.cabang} />
-                        <DrawerField label="Jabatan" value={jabatanLabel[pinjaman.anggota.jabatan] ?? pinjaman.anggota.jabatan} />
-                        <DrawerField label="Lama Keanggotaan" value={`${pinjaman.anggota.lama_keanggotaan_tahun} tahun`} />
-                        <DrawerField label="Reloan" value={pinjaman.sudah_pakai_privilege_reloan ? 'Ya' : 'Tidak'} />
-                    </DrawerFieldGrid>
-                </DrawerSection>
-
-                <RincianBebanPinjaman pinjaman={pinjaman} />
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                    <DrawerSection title="Keperluan Peminjaman" icon={FileText}>
-                        <p className="text-sm text-slate-700 leading-relaxed">{pinjaman.keperluan || '-'}</p>
-                    </DrawerSection>
-
-                    <DrawerSection title="Rekening Tujuan Pencairan" icon={Landmark}>
-                        <p className="text-sm font-bold text-slate-800">{pinjaman.rekening.bank}</p>
-                        <p className="text-sm font-semibold font-mono text-slate-700 mt-0.5">{pinjaman.rekening.no_rekening}</p>
-                        <p className="text-xs text-slate-500 mt-0.5">a.n. {pinjaman.rekening.atas_nama}</p>
-                    </DrawerSection>
-                </div>
-
                 {errors.keputusan && (
                     <div className="flex items-start gap-2.5 bg-rose-50/50 border border-rose-200/80 rounded-xl p-3.5">
                         <AlertCircle size={17} className="text-rose-500 shrink-0 mt-0.5" />
@@ -141,18 +96,23 @@ export default function KeputusanDrawer({ pinjaman, onClose }) {
                 {bisaDiproses && aksi && (
                     <DrawerSection
                         ref={formRef}
-                        title={aksi === 'approve' ? 'Otorisasi & Pencairan Final' : 'Konfirmasi Penolakan'}
+                        title={aksi === 'approve' ? 'Persetujuan Ketua Koperasi' : 'Konfirmasi Penolakan'}
                         icon={aksi === 'approve' ? CheckCircle2 : XCircle}
                         tone={aksi === 'reject' ? 'rose' : 'emerald'}
                     >
                         <form id={formId} onSubmit={submit} className="space-y-3.5">
                             {aksi === 'approve' && (
                                 <div className="space-y-3">
+                                    <div className="rounded-xl bg-emerald-50/70 border border-emerald-200/80 px-3.5 py-2.5 text-xs text-emerald-900">
+                                        Setelah disetujui, saldo kas <strong>belum</strong> dipotong. Bendahara akan mengeksekusi transfer pencairan &amp; mengunggah bukti transfer pada akhir bulan.
+                                    </div>
                                     <div>
                                         <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">
-                                            Nominal Final Cair (maks <span className="privacy-blur">{formatRupiah(pinjaman.limit_tersedia)}</span>)
+                                            Nominal Disetujui (maks <span className="privacy-blur">{formatRupiah(pinjaman.limit_tersedia)}</span>)
                                         </label>
                                         <CurrencyField
+                                            ref={nominalInputRef}
+                                            data-autofocus
                                             value={data.nominal}
                                             onChange={(e) => setData('nominal', e.target.value)}
                                             className="font-bold privacy-blur"
@@ -196,10 +156,12 @@ export default function KeputusanDrawer({ pinjaman, onClose }) {
                                     Catatan {aksi === 'approve' ? 'Persetujuan' : 'Penolakan'}
                                 </label>
                                 <textarea
+                                    ref={catatanInputRef}
+                                    data-autofocus={aksi !== 'approve' ? true : undefined}
                                     value={data.catatan}
                                     onChange={(e) => setData('catatan', e.target.value)}
                                     rows={3}
-                                    placeholder={aksi === 'approve' ? 'Contoh: Layak dicairkan, saldo mencukupi.' : 'Contoh: Belum memenuhi ketentuan.'}
+                                    placeholder={aksi === 'approve' ? 'Contoh: Disetujui, pencairan akhir bulan oleh Bendahara.' : 'Contoh: Belum memenuhi ketentuan.'}
                                     className="w-full px-3.5 py-2.5 text-base sm:text-sm rounded-xl border border-slate-300 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
                                     autoFocus={aksi !== 'approve'}
                                 />
@@ -208,6 +170,57 @@ export default function KeputusanDrawer({ pinjaman, onClose }) {
                         </form>
                     </DrawerSection>
                 )}
+
+                {pinjaman.catatan_admin && (
+                    <DrawerNoteCallout
+                        label="Catatan dari Verifikasi Sekretaris"
+                        note={pinjaman.catatan_admin}
+                        tone="sky"
+                        icon={MessageSquareText}
+                    />
+                )}
+
+                {pinjaman.catatan_bendahara && (
+                    <DrawerNoteCallout
+                        label="Disetujui Bendahara — Catatan Bendahara"
+                        note={pinjaman.catatan_bendahara}
+                        tone="amber"
+                        icon={CheckCircle2}
+                    />
+                )}
+
+                <KartuKas
+                    kas={pinjaman.kas}
+                    nominalTahap={pinjaman.nominal_disetujui_bendahara ?? pinjaman.nominal_diminta}
+                    label="Nominal usulan Bendahara"
+                />
+
+                <JejakNominal pinjaman={pinjaman} finalLabel="Disetujui Ketua" />
+
+                <DrawerSection title="Data Anggota" icon={User}>
+                    <DrawerFieldGrid cols={3}>
+                        <DrawerField label="Nama" value={pinjaman.anggota.nama} />
+                        <DrawerField label="No. Karyawan" value={pinjaman.anggota.no_karyawan} mono />
+                        <DrawerField label="Cabang" value={pinjaman.anggota.cabang} />
+                        <DrawerField label="Jabatan" value={jabatanLabel[pinjaman.anggota.jabatan] ?? pinjaman.anggota.jabatan} />
+                        <DrawerField label="Lama Keanggotaan" value={`${pinjaman.anggota.lama_keanggotaan_tahun} tahun`} />
+                        <DrawerField label="Reloan" value={pinjaman.sudah_pakai_privilege_reloan ? 'Ya' : 'Tidak'} />
+                    </DrawerFieldGrid>
+                </DrawerSection>
+
+                <RincianBebanPinjaman pinjaman={pinjaman} />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                    <DrawerSection title="Keperluan Peminjaman" icon={FileText}>
+                        <p className="text-sm text-slate-700 leading-relaxed">{pinjaman.keperluan || '-'}</p>
+                    </DrawerSection>
+
+                    <DrawerSection title="Rekening Tujuan Pencairan" icon={Landmark}>
+                        <p className="text-sm font-bold text-slate-800">{pinjaman.rekening.bank}</p>
+                        <p className="text-sm font-semibold font-mono text-slate-700 mt-0.5">{pinjaman.rekening.no_rekening}</p>
+                        <p className="text-xs text-slate-500 mt-0.5">a.n. {pinjaman.rekening.atas_nama}</p>
+                    </DrawerSection>
+                </div>
             </DrawerBody>
 
             <DrawerFooter>

@@ -7,6 +7,8 @@ use App\Models\KasKoperasi;
 use App\Models\Pinjaman;
 use App\Services\Keuangan\JurnalKasService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\Concerns\MembuatDataUji;
 use Tests\TestCase;
 
@@ -19,6 +21,7 @@ class KasPaguOperasionalTest extends TestCase
     {
         parent::setUp();
         $this->seed();
+        Storage::fake('local');
     }
 
     private function ajukan($anggota, float $nominal = 1_000_000, int $tenor = 3): Pinjaman
@@ -63,10 +66,24 @@ class KasPaguOperasionalTest extends TestCase
         $this->post(route('bendahara.pinjaman.approve', $pinjaman), ['catatan' => 'Setuju, data lengkap.', 'nominal' => 1_000_000])
             ->assertStatus(302);
 
+        // Ketua approve -> status approved_ketua, kas BELUM berkurang
         $this->masuk('KET-000001');
         $this->post(route('ketua.pinjaman.approve', $pinjaman), ['catatan' => 'Disetujui Ketua.', 'nominal' => 1_000_000])
             ->assertStatus(302);
 
+        $this->assertSame('approved_ketua', $pinjaman->refresh()->status);
+        $this->assertEquals($bankSebelum, (float) KasKoperasi::first()->saldo_bank);
+        $this->assertSame(0, JurnalKas::where('kategori', 'pencairan_pinjaman')->where('referensi_id', $pinjaman->id)->count());
+
+        // Bendahara eksekusi transfer + upload bukti pencairan -> kas baru berkurang & aktif
+        $this->masuk('BEN-000001');
+        $this->post(route('bendahara.pencairan-pinjaman.cair', $pinjaman), [
+            'tanggal_pencairan' => now()->toDateString(),
+            'bukti_pencairan' => UploadedFile::fake()->image('bukti-tf.jpg'),
+            'catatan' => 'Sudah ditransfer akhir bulan.',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertSame('aktif', $pinjaman->refresh()->status);
         $this->assertEquals($bankSebelum - 1_000_000, (float) KasKoperasi::first()->saldo_bank);
         $this->assertSame(1, JurnalKas::where('kategori', 'pencairan_pinjaman')->where('referensi_id', $pinjaman->id)->count());
     }
@@ -89,10 +106,18 @@ class KasPaguOperasionalTest extends TestCase
             ->assertStatus(302);
 
         $this->masuk('KET-000001');
-        $this->post(route('ketua.pinjaman.approve', $pinjaman), ['catatan' => 'Cairkan.', 'nominal' => 1_000_000])
-            ->assertSessionHasErrors('keputusan');
+        $this->post(route('ketua.pinjaman.approve', $pinjaman), ['catatan' => 'Disetujui Ketua.', 'nominal' => 1_000_000])
+            ->assertStatus(302);
+        $this->assertSame('approved_ketua', $pinjaman->refresh()->status);
 
-        $this->assertSame('approved_bendahara', $pinjaman->refresh()->status);
+        $this->masuk('BEN-000001');
+        $this->post(route('bendahara.pencairan-pinjaman.cair', $pinjaman), [
+            'tanggal_pencairan' => now()->toDateString(),
+            'bukti_pencairan' => UploadedFile::fake()->image('bukti-tf.jpg'),
+            'catatan' => 'Cairkan.',
+        ])->assertSessionHasErrors('keputusan');
+
+        $this->assertSame('approved_ketua', $pinjaman->refresh()->status);
         $this->assertSame(0, JurnalKas::where('kategori', 'pencairan_pinjaman')->where('referensi_id', $pinjaman->id)->count());
     }
 

@@ -68,7 +68,7 @@ class PerhitunganBungaService
                 ...$baris,
                 'status' => 'belum_bayar',
                 'tanggal_jatuh_tempo' => $pinjaman->tanggal_pencairan->copy()
-                    ->addMonths($baris['cicilan_ke'] - 1)
+                    ->addMonthsNoOverflow($baris['cicilan_ke'])
                     ->endOfMonth(),
             ]);
         }

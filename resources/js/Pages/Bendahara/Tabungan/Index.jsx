@@ -1,8 +1,8 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, router, useForm } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
-    ArrowDownCircle, ArrowUpCircle, CheckCircle2, ExternalLink, FileText,
+    ArrowDownCircle, ArrowUpCircle, Banknote, Check, CheckCircle2, Copy, ExternalLink, FileText,
     Landmark, Percent, Plus, UserCheck, Wallet, XCircle,
 } from 'lucide-react';
 import Button from '@/Components/ui/Button';
@@ -35,24 +35,49 @@ export default function Index({
     antreanBuka = [],
     antreanSetor = [],
     antreanTarik = [],
+    antreanPencairan = [],
     previewBunga = null,
     rekeningAktifOptions = [],
     kasFisik = { saldo_bank: 0, saldo_kas_kecil: 0 },
     setting = { min_setor: 50000, saldo_minimal: 50000, suku_bunga_aktif: 2 },
-    counts = { buka: 0, setor: 0, tarik: 0 },
+    counts = { buka: 0, setor: 0, tarik: 0, pencairan: 0 },
 }) {
     const [bukaDipilih, setBukaDipilih] = useState(null);
     const [pengajuanDipilih, setPengajuanDipilih] = useState(null);
+    const [pencairanDipilih, setPencairanDipilih] = useState(null);
     const [showTolakMode, setShowTolakMode] = useState(false);
     const [showSetorTunai, setShowSetorTunai] = useState(false);
+    const [salinBerhasil, setSalinBerhasil] = useState(false);
+
+    const bukaCatatanRef = useRef(null);
+    const pengajuanCatatanRef = useRef(null);
+    const pencairanCatatanRef = useRef(null);
 
     const hariIni = new Date().toISOString().slice(0, 10);
 
     const keputusanForm = useForm({
         catatan: '',
         akun_kas: 'bank',
+        tanggal_pencairan: hariIni,
         bukti_pencairan: null,
     });
+
+    useEffect(() => {
+        if (!showTolakMode) return undefined;
+        const id = window.requestAnimationFrame(() => {
+            if (bukaDipilih) bukaCatatanRef.current?.focus({ preventScroll: false });
+            else if (pengajuanDipilih) pengajuanCatatanRef.current?.focus({ preventScroll: false });
+            else if (pencairanDipilih) pencairanCatatanRef.current?.focus({ preventScroll: false });
+        });
+        return () => window.cancelAnimationFrame(id);
+    }, [showTolakMode, bukaDipilih, pengajuanDipilih, pencairanDipilih]);
+
+    function salinNoRek(noRek) {
+        if (!noRek || !navigator.clipboard) return;
+        navigator.clipboard.writeText(noRek);
+        setSalinBerhasil(true);
+        setTimeout(() => setSalinBerhasil(false), 1800);
+    }
 
     const setorTunaiForm = useForm({
         rekening_tabungan_id: rekeningAktifOptions[0]?.id ?? '',
@@ -76,8 +101,15 @@ export default function Index({
     function tutupDrawers() {
         setBukaDipilih(null);
         setPengajuanDipilih(null);
+        setPencairanDipilih(null);
         setShowTolakMode(false);
-        keputusanForm.reset('catatan', 'bukti_pencairan');
+        setSalinBerhasil(false);
+        keputusanForm.setData({
+            catatan: '',
+            akun_kas: 'bank',
+            tanggal_pencairan: hariIni,
+            bukti_pencairan: null,
+        });
         keputusanForm.clearErrors();
     }
 
@@ -112,11 +144,24 @@ export default function Index({
 
     function tolakPengajuan(e) {
         e.preventDefault();
-        if (!pengajuanDipilih) return;
+        const target = pengajuanDipilih || pencairanDipilih;
+        if (!target) return;
         keputusanForm.post(
-            route('bendahara.tabungan.pengajuan.tolak', pengajuanDipilih.id),
+            route('bendahara.tabungan.pengajuan.tolak', target.id),
             withIdempotencyKey({ preserveScroll: true, onSuccess: tutupDrawers })
         );
+    }
+
+    function submitCairPengajuan(e) {
+        e.preventDefault();
+        if (!pencairanDipilih) return;
+        keputusanForm.post(route('bendahara.tabungan.pengajuan.cair', pencairanDipilih.id), {
+            ...withIdempotencyKey({
+                forceFormData: true,
+                preserveScroll: true,
+                onSuccess: tutupDrawers,
+            }),
+        });
     }
 
     function submitSetorTunai(e) {
@@ -142,8 +187,9 @@ export default function Index({
 
     const tabs = [
         { key: 'setor', label: 'Verifikasi Setoran', count: counts.setor },
-        { key: 'tarik', label: 'Pengajuan Penarikan', count: counts.tarik },
-        { key: 'buka', label: 'Buka Rekening', count: counts.buka },
+        { key: 'tarik', label: 'Tinjau Penarikan', count: counts.tarik },
+        { key: 'pencairan', label: 'Pencairan Penarikan', count: counts.pencairan },
+        { key: 'buka', label: 'Tinjau Buka Rekening', count: counts.buka },
         { key: 'bunga', label: 'Posting Bunga Bulanan', count: 0 },
     ];
 
@@ -286,7 +332,7 @@ export default function Index({
                                 {antreanTarik.length === 0 ? (
                                     <tr>
                                         <td colSpan={6} className="px-4 py-12 text-center text-slate-400">
-                                            Tidak ada pengajuan penarikan yang menunggu pencairan.
+                                            Tidak ada pengajuan penarikan yang menunggu tinjauan Bendahara.
                                         </td>
                                     </tr>
                                 ) : (
@@ -296,7 +342,6 @@ export default function Index({
                                             onClick={() => {
                                                 setPengajuanDipilih(p);
                                                 setShowTolakMode(false);
-                                                keputusanForm.setData('akun_kas', p.kanal === 'tunai' ? 'kas_kecil' : 'bank');
                                             }}
                                             className="hover:bg-[#F2FBF5] transition-colors cursor-pointer"
                                         >
@@ -326,10 +371,100 @@ export default function Index({
                                                         e.stopPropagation();
                                                         setPengajuanDipilih(p);
                                                         setShowTolakMode(false);
-                                                        keputusanForm.setData('akun_kas', p.kanal === 'tunai' ? 'kas_kecil' : 'bank');
                                                     }}
                                                 >
-                                                    Proses
+                                                    Tinjau
+                                                </Button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </Card>
+            )}
+
+            {/* TAB 3: PENCAIRAN PENARIKAN (DISETUJUI KETUA) */}
+            {tabAktif === 'pencairan' && (
+                <Card padding="none" className="overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse text-sm">
+                            <thead>
+                                <tr className="bg-[#F8FAFC] border-b border-slate-200/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                                    <th className="px-4 py-3">Anggota</th>
+                                    <th className="px-4 py-3">Jenis &amp; Tujuan Transfer</th>
+                                    <th className="px-4 py-3 text-right">Nominal Cair</th>
+                                    <th className="px-4 py-3">Disetujui Ketua</th>
+                                    <th className="px-4 py-3">Status</th>
+                                    <th className="px-4 py-3 text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {antreanPencairan.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={6} className="px-4 py-12 text-center text-slate-400">
+                                            Tidak ada penarikan tabungan yang menunggu transfer &amp; unggah bukti Bendahara.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    antreanPencairan.map((p) => (
+                                        <tr
+                                            key={p.id}
+                                            onClick={() => {
+                                                setPencairanDipilih(p);
+                                                setShowTolakMode(false);
+                                                setSalinBerhasil(false);
+                                                keputusanForm.setData((prev) => ({
+                                                    ...prev,
+                                                    akun_kas: p.kanal === 'tunai' ? 'kas_kecil' : 'bank',
+                                                    tanggal_pencairan: hariIni,
+                                                    bukti_pencairan: null,
+                                                    catatan: '',
+                                                }));
+                                            }}
+                                            className="hover:bg-[#F2FBF5] transition-colors cursor-pointer"
+                                        >
+                                            <td className="px-4 py-2.5">
+                                                <div className="flex items-center gap-2.5">
+                                                    <FotoAnggota src={p.anggota?.foto_url} nama={p.anggota?.nama} size="sm" />
+                                                    <div>
+                                                        <p className="font-semibold text-slate-800">{p.anggota?.nama}</p>
+                                                        <p className="text-xs text-slate-500">{p.no_rekening}</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-2.5">
+                                                <p className="font-semibold text-slate-800">
+                                                    {p.jenis === 'tutup_rekening' ? 'Tutup Rekening' : 'Penarikan Saldo'}
+                                                </p>
+                                                <p className="text-xs text-slate-500">
+                                                    {p.rekening_tujuan
+                                                        ? `${p.rekening_tujuan.nama_bank} • ${p.rekening_tujuan.no_rekening}`
+                                                        : `Via ${p.kanal}`}
+                                                </p>
+                                            </td>
+                                            <td className="px-4 py-2.5 text-right font-bold text-rose-600 tabular-nums privacy-blur">{formatRupiah(p.nominal)}</td>
+                                            <td className="px-4 py-2.5 text-xs text-slate-600">{p.disetujui_ketua_pada ?? '-'}</td>
+                                            <td className="px-4 py-2.5"><StatusBadge status={p.status} /></td>
+                                            <td className="px-4 py-2.5 text-right">
+                                                <Button
+                                                    size="sm"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setPencairanDipilih(p);
+                                                        setShowTolakMode(false);
+                                                        setSalinBerhasil(false);
+                                                        keputusanForm.setData((prev) => ({
+                                                            ...prev,
+                                                            akun_kas: p.kanal === 'tunai' ? 'kas_kecil' : 'bank',
+                                                            tanggal_pencairan: hariIni,
+                                                            bukti_pencairan: null,
+                                                            catatan: '',
+                                                        }));
+                                                    }}
+                                                >
+                                                    <Banknote size={14} /> Cairkan &amp; Bukti
                                                 </Button>
                                             </td>
                                         </tr>
@@ -523,14 +658,25 @@ export default function Index({
                             <DrawerSection title={showTolakMode ? 'Alasan Penolakan' : 'Catatan Bendahara (Opsional)'} tone={showTolakMode ? 'rose' : 'default'}>
                                 <FormField label={showTolakMode ? 'Alasan Penolakan (wajib)' : 'Catatan'} error={keputusanForm.errors.catatan || keputusanForm.errors.aksi} required={showTolakMode}>
                                     <TextField
+                                        ref={bukaCatatanRef}
+                                        data-autofocus
                                         as="textarea"
-                                        rows={3}
+                                        rows={2}
                                         value={keputusanForm.data.catatan}
                                         onChange={(e) => keputusanForm.setData('catatan', e.target.value)}
-                                        placeholder={showTolakMode ? 'Tuliskan alasan penolakan (min. 3 karakter)...' : 'Catatan tambahan untuk anggota...'}
+                                        placeholder={showTolakMode ? 'Tuliskan alasan penolakan (min. 3 karakter)...' : 'Catatan tinjauan untuk Ketua Koperasi...'}
                                         required={showTolakMode}
                                     />
                                 </FormField>
+                            </DrawerSection>
+
+                            <DrawerSection title="Verifikasi Sekretaris (Tahap 1)">
+                                <DrawerKeyValue
+                                    rows={[
+                                        { label: 'Diverifikasi Oleh', value: `${bukaDipilih.admin_oleh ?? '-'} (${bukaDipilih.disetujui_admin_pada ?? '-'})` },
+                                        { label: 'Catatan Sekretaris', value: bukaDipilih.catatan_admin || '-' },
+                                    ]}
+                                />
                             </DrawerSection>
                         </DrawerBody>
 
@@ -548,7 +694,7 @@ export default function Index({
                                         <XCircle size={15} /> Tolak
                                     </Button>
                                     <Button type="submit" size="drawer" disabled={keputusanForm.processing}>
-                                        <CheckCircle2 size={15} /> {keputusanForm.processing ? 'Menyetujui...' : 'Setujui & Terbitkan Rekening'}
+                                        <CheckCircle2 size={15} /> {keputusanForm.processing ? 'Meneruskan...' : 'Setujui & Teruskan ke Ketua'}
                                     </Button>
                                 </DrawerFooterActions>
                             )}
@@ -629,6 +775,21 @@ export default function Index({
                                 </DrawerSection>
                             )}
 
+                            <DrawerSection title={showTolakMode ? 'Alasan Penolakan' : 'Catatan Bendahara (Opsional)'} tone={showTolakMode ? 'rose' : 'default'}>
+                                <FormField label={showTolakMode ? 'Alasan Penolakan (wajib)' : 'Catatan'} error={keputusanForm.errors.catatan || keputusanForm.errors.aksi} required={showTolakMode}>
+                                    <TextField
+                                        ref={pengajuanCatatanRef}
+                                        data-autofocus
+                                        as="textarea"
+                                        rows={2}
+                                        value={keputusanForm.data.catatan}
+                                        onChange={(e) => keputusanForm.setData('catatan', e.target.value)}
+                                        placeholder={showTolakMode ? 'Mis. Nominal tidak sesuai mutasi bank / bukti buram' : 'Catatan verifikasi'}
+                                        required={showTolakMode}
+                                    />
+                                </FormField>
+                            </DrawerSection>
+
                             {pengajuanDipilih.jenis !== 'setor' && pengajuanDipilih.rekening_tujuan && (
                                 <DrawerSection title="Rekening Tujuan Transfer Anggota" icon={Landmark}>
                                     <DrawerKeyValue
@@ -641,37 +802,16 @@ export default function Index({
                                 </DrawerSection>
                             )}
 
-                            {!showTolakMode && pengajuanDipilih.jenis !== 'setor' && (
-                                <DrawerSection title="Sumber Dana Pencairan" icon={Wallet}>
-                                    <FormField label="Sumber Kas Fisik" error={keputusanForm.errors.akun_kas || keputusanForm.errors.aksi} required>
-                                        <Select value={keputusanForm.data.akun_kas} onChange={(e) => keputusanForm.setData('akun_kas', e.target.value)}>
-                                            <option value="bank">Bank Koperasi (Saldo {formatRupiah(kasFisik.saldo_bank)})</option>
-                                            <option value="kas_kecil">Kas Kecil (Saldo {formatRupiah(kasFisik.saldo_kas_kecil)})</option>
-                                        </Select>
-                                    </FormField>
-                                    <FormField label="Bukti Pencairan / Transfer (Opsional)" error={keputusanForm.errors.bukti_pencairan}>
-                                        <input
-                                            type="file"
-                                            accept=".jpg,.jpeg,.png,.webp,.pdf"
-                                            onChange={(e) => keputusanForm.setData('bukti_pencairan', e.target.files?.[0] ?? null)}
-                                            className="block w-full text-xs text-slate-600 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-brand-navy/10 file:text-brand-navy"
-                                        />
-                                    </FormField>
+                            {pengajuanDipilih.jenis !== 'setor' && (
+                                <DrawerSection title="Verifikasi Sekretaris (Tahap 1)">
+                                    <DrawerKeyValue
+                                        rows={[
+                                            { label: 'Diverifikasi Oleh', value: `${pengajuanDipilih.admin_oleh ?? '-'} (${pengajuanDipilih.disetujui_admin_pada ?? '-'})` },
+                                            { label: 'Catatan Sekretaris', value: pengajuanDipilih.catatan_admin || '-' },
+                                        ]}
+                                    />
                                 </DrawerSection>
                             )}
-
-                            <DrawerSection title={showTolakMode ? 'Alasan Penolakan' : 'Catatan Bendahara (Opsional)'} tone={showTolakMode ? 'rose' : 'default'}>
-                                <FormField label={showTolakMode ? 'Alasan Penolakan (wajib)' : 'Catatan'} error={keputusanForm.errors.catatan || keputusanForm.errors.aksi} required={showTolakMode}>
-                                    <TextField
-                                        as="textarea"
-                                        rows={2}
-                                        value={keputusanForm.data.catatan}
-                                        onChange={(e) => keputusanForm.setData('catatan', e.target.value)}
-                                        placeholder={showTolakMode ? 'Mis. Nominal tidak sesuai mutasi bank / bukti buram' : 'Catatan verifikasi'}
-                                        required={showTolakMode}
-                                    />
-                                </FormField>
-                            </DrawerSection>
                         </DrawerBody>
 
                         <DrawerFooter>
@@ -693,9 +833,164 @@ export default function Index({
                                             ? 'Memproses...'
                                             : pengajuanDipilih.jenis === 'setor'
                                             ? 'Setujui & Tambah Saldo'
-                                            : pengajuanDipilih.jenis === 'tutup_rekening'
+                                            : 'Setujui & Teruskan ke Ketua'}
+                                    </Button>
+                                </DrawerFooterActions>
+                            )}
+                        </DrawerFooter>
+                    </form>
+                )}
+            </Drawer>
+
+            {/* DRAWER PENCAIRAN PENARIKAN (TAHAP FINAL BENDAHARA) */}
+            <Drawer
+                show={Boolean(pencairanDipilih)}
+                title={pencairanDipilih?.jenis === 'tutup_rekening' ? 'Cairkan & Tutup Rekening Tabungan' : 'Cairkan Penarikan Tabungan'}
+                description={pencairanDipilih ? `${pencairanDipilih.anggota?.nama} • ${pencairanDipilih.no_rekening}` : ''}
+                badge={pencairanDipilih ? <StatusBadge status={pencairanDipilih.status} /> : null}
+                onClose={tutupDrawers}
+                layout="split"
+            >
+                {pencairanDipilih && (
+                    <form onSubmit={showTolakMode ? tolakPengajuan : submitCairPengajuan} className="flex-1 min-h-0 flex flex-col">
+                        <DrawerBody>
+                            <DrawerSection title="Ringkasan Transfer" icon={Banknote} tone="emerald">
+                                <div className="flex items-start justify-between gap-3">
+                                    <div>
+                                        <p className="text-[11px] font-medium text-slate-500">Nominal Cair</p>
+                                        <p className="text-xl sm:text-2xl font-extrabold text-rose-600 tabular-nums privacy-blur mt-0.5">
+                                            {formatRupiah(pencairanDipilih.nominal)}
+                                        </p>
+                                        <p className="text-xs text-slate-500 mt-0.5">
+                                            Saldo rekening saat ini: <span className="font-semibold text-slate-700 privacy-blur">{formatRupiah(pencairanDipilih.saldo_rekening)}</span>
+                                        </p>
+                                    </div>
+                                    <div className="text-right text-xs text-slate-500">
+                                        <p className="font-semibold text-slate-700">{pencairanDipilih.anggota?.no_karyawan}</p>
+                                        <p className="mt-0.5 capitalize">Kanal: {pencairanDipilih.kanal}</p>
+                                    </div>
+                                </div>
+
+                                {pencairanDipilih.rekening_tujuan && (
+                                    <div className="mt-3 pt-3 border-t border-emerald-100/80 flex items-center justify-between gap-3">
+                                        <div className="min-w-0">
+                                            <p className="text-[11px] font-medium text-slate-500 flex items-center gap-1">
+                                                <Landmark size={12} /> Rekening Tujuan Transfer
+                                            </p>
+                                            <p className="text-sm font-bold text-slate-800 mt-0.5">
+                                                {pencairanDipilih.rekening_tujuan.nama_bank}{' '}
+                                                <span className="font-mono text-brand-navy">{pencairanDipilih.rekening_tujuan.no_rekening}</span>
+                                            </p>
+                                            <p className="text-xs text-slate-500">a.n. {pencairanDipilih.rekening_tujuan.atas_nama}</p>
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="neutral"
+                                            onClick={() => salinNoRek(pencairanDipilih.rekening_tujuan.no_rekening)}
+                                        >
+                                            {salinBerhasil ? <Check size={14} /> : <Copy size={14} />}
+                                            {salinBerhasil ? 'Tersalin' : 'Salin'}
+                                        </Button>
+                                    </div>
+                                )}
+                            </DrawerSection>
+
+                            {showTolakMode ? (
+                                <DrawerSection title="Alasan Penolakan" tone="rose">
+                                    <FormField label="Alasan Penolakan (wajib)" error={keputusanForm.errors.catatan || keputusanForm.errors.aksi} required>
+                                        <TextField
+                                            ref={pencairanCatatanRef}
+                                            data-autofocus
+                                            as="textarea"
+                                            rows={3}
+                                            value={keputusanForm.data.catatan}
+                                            onChange={(e) => keputusanForm.setData('catatan', e.target.value)}
+                                            placeholder="Mis. Rekening tujuan bermasalah / ditolak bank"
+                                            required
+                                        />
+                                    </FormField>
+                                </DrawerSection>
+                            ) : (
+                                <DrawerSection title="Bukti Transfer & Pencairan" icon={Wallet}>
+                                    <FormField
+                                        label="Bukti Transfer / Pencairan (Wajib)"
+                                        error={keputusanForm.errors.bukti_pencairan || keputusanForm.errors.aksi}
+                                        hint={keputusanForm.data.bukti_pencairan ? `File dipilih: ${keputusanForm.data.bukti_pencairan.name}` : 'Format JPG, PNG, WEBP, atau PDF (maks. 5 MB)'}
+                                        required
+                                    >
+                                        <input
+                                            data-autofocus
+                                            type="file"
+                                            accept=".jpg,.jpeg,.png,.webp,.pdf"
+                                            onChange={(e) => keputusanForm.setData('bukti_pencairan', e.target.files?.[0] ?? null)}
+                                            className="block w-full text-xs text-slate-600 rounded-xl border border-dashed border-slate-300 bg-slate-50/70 px-3 py-2 focus:outline-none focus:border-brand-green focus:ring-[3px] focus:ring-brand-green/15 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-brand-navy file:text-white cursor-pointer"
+                                            required
+                                        />
+                                    </FormField>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <FormField label="Sumber Kas Fisik" error={keputusanForm.errors.akun_kas} required>
+                                            <Select value={keputusanForm.data.akun_kas} onChange={(e) => keputusanForm.setData('akun_kas', e.target.value)}>
+                                                <option value="bank">Bank ({formatRupiah(kasFisik.saldo_bank)})</option>
+                                                <option value="kas_kecil">Kas Kecil ({formatRupiah(kasFisik.saldo_kas_kecil)})</option>
+                                            </Select>
+                                        </FormField>
+
+                                        <FormField label="Tanggal Pencairan" error={keputusanForm.errors.tanggal_pencairan} required>
+                                            <TextField
+                                                type="date"
+                                                max={hariIni}
+                                                value={keputusanForm.data.tanggal_pencairan}
+                                                onChange={(e) => keputusanForm.setData('tanggal_pencairan', e.target.value)}
+                                                required
+                                            />
+                                        </FormField>
+                                    </div>
+
+                                    <FormField label="Catatan Pencairan (Opsional)" error={keputusanForm.errors.catatan}>
+                                        <TextField
+                                            as="textarea"
+                                            rows={2}
+                                            value={keputusanForm.data.catatan}
+                                            onChange={(e) => keputusanForm.setData('catatan', e.target.value)}
+                                            placeholder="Nomor referensi transfer atau catatan tambahan"
+                                        />
+                                    </FormField>
+                                </DrawerSection>
+                            )}
+
+                            <DrawerSection title="Jejak Persetujuan 3 Tahap">
+                                <DrawerKeyValue
+                                    rows={[
+                                        { label: '1. Sekretaris', value: `${pencairanDipilih.admin_oleh ?? '-'}${pencairanDipilih.catatan_admin ? ` — ${pencairanDipilih.catatan_admin}` : ''}` },
+                                        { label: '2. Bendahara', value: `${pencairanDipilih.bendahara_oleh ?? '-'}${pencairanDipilih.catatan_bendahara ? ` — ${pencairanDipilih.catatan_bendahara}` : ''}` },
+                                        { label: '3. Ketua Koperasi', value: `${pencairanDipilih.ketua_oleh ?? '-'} (${pencairanDipilih.disetujui_ketua_pada ?? '-'})${pencairanDipilih.catatan_ketua ? ` — ${pencairanDipilih.catatan_ketua}` : ''}` },
+                                    ]}
+                                />
+                            </DrawerSection>
+                        </DrawerBody>
+
+                        <DrawerFooter>
+                            {showTolakMode ? (
+                                <DrawerFooterActions cols={2} stackOnMobile>
+                                    <Button type="button" variant="neutral" size="drawer" onClick={() => setShowTolakMode(false)}>Kembali</Button>
+                                    <Button type="submit" variant="danger" size="drawer" disabled={keputusanForm.processing}>
+                                        {keputusanForm.processing ? 'Menolak...' : 'Konfirmasi Tolak'}
+                                    </Button>
+                                </DrawerFooterActions>
+                            ) : (
+                                <DrawerFooterActions cols={2} stackOnMobile>
+                                    <Button type="button" variant="dangerSoft" size="drawer" onClick={() => setShowTolakMode(true)}>
+                                        <XCircle size={15} /> Batalkan / Tolak
+                                    </Button>
+                                    <Button type="submit" size="drawer" disabled={keputusanForm.processing || !keputusanForm.data.bukti_pencairan}>
+                                        <CheckCircle2 size={15} />{' '}
+                                        {keputusanForm.processing
+                                            ? 'Mencairkan...'
+                                            : pencairanDipilih.jenis === 'tutup_rekening'
                                             ? 'Cairkan & Tutup Rekening'
-                                            : 'Setujui & Cairkan'}
+                                            : 'Simpan Bukti & Cairkan'}
                                     </Button>
                                 </DrawerFooterActions>
                             )}
@@ -717,6 +1012,7 @@ export default function Index({
                         <DrawerSection title="Pilih Rekening & Nominal" icon={ArrowDownCircle}>
                             <FormField label="Rekening Tabungan Anggota" error={setorTunaiForm.errors.rekening_tabungan_id} required>
                                 <Select
+                                    data-autofocus={rekeningAktifOptions.length > 1 ? true : undefined}
                                     value={setorTunaiForm.data.rekening_tabungan_id}
                                     onChange={(e) => setorTunaiForm.setData('rekening_tabungan_id', e.target.value)}
                                     required
@@ -731,6 +1027,7 @@ export default function Index({
 
                             <FormField label="Nominal Setor (Rp)" error={setorTunaiForm.errors.nominal || setorTunaiForm.errors.setor_tunai} hint={`Minimal ${formatRupiah(setting.min_setor)}`} required>
                                 <CurrencyField
+                                    data-autofocus={rekeningAktifOptions.length <= 1 ? true : undefined}
                                     value={setorTunaiForm.data.nominal}
                                     onChange={(e) => setorTunaiForm.setData('nominal', e.target.value)}
                                     placeholder="0"

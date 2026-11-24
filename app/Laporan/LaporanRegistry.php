@@ -61,6 +61,7 @@ class LaporanRegistry
         'diajukan' => 'Diajukan',
         'approved_admin' => 'Disetujui Sekretaris',
         'approved_bendahara' => 'Disetujui Bendahara',
+        'approved_ketua' => 'Disetujui Ketua (Menunggu Pencairan)',
         'aktif' => 'Aktif',
         'lunas' => 'Lunas',
         'ditolak' => 'Ditolak',

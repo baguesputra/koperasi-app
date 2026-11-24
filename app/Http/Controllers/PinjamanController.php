@@ -57,6 +57,8 @@ class PinjamanController extends Controller
                     'status' => $p->status,
                     'tanggal_pengajuan' => $p->tanggal_pengajuan->format('d M Y'),
                     'tanggal_cair' => $p->tanggal_pencairan?->format('d M Y'),
+                    'ada_bukti_pencairan' => (bool) $p->bukti_pencairan_path,
+                    'bukti_pencairan_url' => $p->bukti_pencairan_path ? route('pinjaman.bukti-pencairan', $p->id) : null,
                     'keperluan' => $p->keperluan,
                     'pelunasan_resign_total' => 0.0,
                     'tanggal_pelunasan_resign' => null,
@@ -202,6 +204,8 @@ class PinjamanController extends Controller
                 'status' => $pinjaman->status,
                 'tanggal_pengajuan' => $pinjaman->tanggal_pengajuan->format('d M Y'),
                 'tanggal_cair' => $pinjaman->tanggal_pencairan?->format('d M Y'),
+                'ada_bukti_pencairan' => (bool) $pinjaman->bukti_pencairan_path,
+                'bukti_pencairan_url' => $pinjaman->bukti_pencairan_path ? route('pinjaman.bukti-pencairan', $pinjaman->id) : null,
                 'keperluan' => $pinjaman->keperluan,
             ],
             'angsuran' => $angsuranList,
@@ -249,6 +253,13 @@ class PinjamanController extends Controller
 
     public function cetakBukti(Request $request, Pinjaman $pinjaman)
     {
+        $user = $request->user();
+        abort_if(
+            $user && $user->hasRole('pengawas') && ! $user->hasAnyRole(['super_admin', 'sekretaris', 'bendahara', 'ketua_koperasi']),
+            403,
+            'Akses pengawas pada data pinjaman hanya bersifat lihat (view-only).'
+        );
+
         abort_unless($pinjaman->status === 'aktif', 403, 'Bukti peminjaman hanya tersedia untuk pinjaman dengan status Aktif.');
 
         if ($request->query('download')) {

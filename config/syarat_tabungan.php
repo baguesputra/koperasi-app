@@ -6,7 +6,7 @@
  */
 
 return [
-    'versi' => 'v1.0-2026-11-23',
+    'versi' => 'v1.1-2026-11',
 
     'poin' => [
         [
@@ -25,8 +25,8 @@ return [
             'wajib_contreng' => false,
         ],
         [
-            'judul' => 'Penarikan dan Saldo Mengendap',
-            'deskripsi' => 'Penarikan saldo dapat diajukan sewaktu-waktu melalui Portal Anggota dengan tetap menyisakan saldo minimal mengendap, kecuali saat mengajukan penutupan rekening.',
+            'judul' => 'Ketentuan Penarikan & Masa Tunggu 1 Tahun',
+            'deskripsi' => 'Saldo tabungan belum dapat ditarik (termasuk tutup rekening sukarela) selama 1 tahun (12 bulan) pertama sejak rekening aktif. Selama masa tersebut Anda tetap dapat menambah setoran kapan saja dan tetap memperoleh bunga bulanan. Setelah 1 tahun, penarikan wajib menyisakan saldo minimal mengendap kecuali saat menutup rekening.',
             'wajib_contreng' => false,
         ],
         [

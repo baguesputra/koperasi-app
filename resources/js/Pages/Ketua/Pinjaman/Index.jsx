@@ -34,7 +34,7 @@ export default function Index({ menungguApproval, riwayat, ringkasanKas }) {
         <AppLayout>
             <Head title="Approval Pinjaman" />
 
-            <PageHeader title="Approval Pinjaman" subtitle={`${menungguApproval.length} pengajuan menunggu approval final Anda`} />
+            <PageHeader title="Approval Pinjaman" subtitle={`${menungguApproval.length} pengajuan menunggu persetujuan Ketua (pencairan dilakukan Bendahara akhir bulan)`} />
 
             <RingkasanKas ringkasan={ringkasanKas} />
 

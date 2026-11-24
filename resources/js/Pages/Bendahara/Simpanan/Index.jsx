@@ -831,19 +831,6 @@ export default function Index({
                                 </div>
                             </DrawerSection>
 
-                            <DrawerSection title="Rincian Komponen" icon={Wallet}>
-                                <DrawerKeyValue
-                                    rows={[
-                                        { label: 'Anggota', value: itemBatal.nama },
-                                        { label: 'No. Karyawan / Cabang', value: `${itemBatal.no_karyawan} • ${itemBatal.cabang}` },
-                                        { label: 'Periode', value: itemBatal.bulan_periode_label ?? labelBulan },
-                                        { label: 'Simpanan Wajib', value: formatRupiah(itemBatal.nominal_wajib), privacy: true },
-                                        { label: 'Dana Sosial', value: formatRupiah(itemBatal.nominal_dana_sosial), privacy: true },
-                                        { label: 'Total Dibalikkan', value: formatRupiah(itemBatal.nominal_total), tone: 'rose', emphasize: true, privacy: true },
-                                    ]}
-                                />
-                            </DrawerSection>
-
                             {itemBatal.bisa_dibatalkan ? (
                                 <DrawerSection title="Rollback Konfirmasi Simpanan" icon={RotateCcw} tone="rose">
                                     <form id={batalFormId} onSubmit={submitBatal}>
@@ -854,6 +841,7 @@ export default function Index({
                                             hint="Contoh: Salah contreng anggota saat konfirmasi massal"
                                         >
                                             <TextField
+                                                data-autofocus
                                                 size="sm"
                                                 as="textarea"
                                                 rows={3}
@@ -872,6 +860,19 @@ export default function Index({
                                     </p>
                                 </DrawerSection>
                             )}
+
+                            <DrawerSection title="Rincian Komponen" icon={Wallet}>
+                                <DrawerKeyValue
+                                    rows={[
+                                        { label: 'Anggota', value: itemBatal.nama },
+                                        { label: 'No. Karyawan / Cabang', value: `${itemBatal.no_karyawan} • ${itemBatal.cabang}` },
+                                        { label: 'Periode', value: itemBatal.bulan_periode_label ?? labelBulan },
+                                        { label: 'Simpanan Wajib', value: formatRupiah(itemBatal.nominal_wajib), privacy: true },
+                                        { label: 'Dana Sosial', value: formatRupiah(itemBatal.nominal_dana_sosial), privacy: true },
+                                        { label: 'Total Dibalikkan', value: formatRupiah(itemBatal.nominal_total), tone: 'rose', emphasize: true, privacy: true },
+                                    ]}
+                                />
+                            </DrawerSection>
                         </DrawerBody>
 
                         <DrawerFooter>
@@ -946,6 +947,7 @@ export default function Index({
                                             hint={`Kekurangan saat ini ${itemDimuka.kekurangan_bulan} bulan untuk genap 6 bulan keanggotaan.`}
                                         >
                                             <TextField
+                                                data-autofocus
                                                 as="select"
                                                 size="sm"
                                                 value={jumlahBulanDipilih}

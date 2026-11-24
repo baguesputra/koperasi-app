@@ -28,6 +28,7 @@ export default function TabAturanTabungan({
         min_setor: settingTabungan?.min_setor ?? 50000,
         saldo_minimal: settingTabungan?.saldo_minimal ?? 50000,
         min_tarik: settingTabungan?.min_tarik ?? 50000,
+        masa_tunggu_tarik_bulan: settingTabungan?.masa_tunggu_tarik_bulan ?? 12,
         bank_tujuan_nama: settingTabungan?.bank_tujuan_nama ?? '',
         bank_tujuan_rekening: settingTabungan?.bank_tujuan_rekening ?? '',
         bank_tujuan_atas_nama: settingTabungan?.bank_tujuan_atas_nama ?? '',
@@ -263,6 +264,26 @@ export default function TabAturanTabungan({
                                 value={ketentuanForm.data.min_tarik}
                                 onChange={(e) => ketentuanForm.setData('min_tarik', e.target.value)}
                                 disabled={readOnly}
+                                required
+                            />
+                        </FormField>
+
+                        <FormField
+                            label="Masa Tunggu Penarikan (Bulan)"
+                            hint="Lama simpanan belum dapat ditarik sejak rekening aktif (default 12 bulan / 1 tahun)."
+                            error={ketentuanForm.errors.masa_tunggu_tarik_bulan}
+                            required
+                        >
+                            <TextField
+                                size="sm"
+                                type="number"
+                                min="0"
+                                max="120"
+                                suffix="bln"
+                                value={ketentuanForm.data.masa_tunggu_tarik_bulan}
+                                onChange={(e) => ketentuanForm.setData('masa_tunggu_tarik_bulan', e.target.value)}
+                                disabled={readOnly}
+                                className="tabular-nums"
                                 required
                             />
                         </FormField>

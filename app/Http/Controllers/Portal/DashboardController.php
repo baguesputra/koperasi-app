@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Anggota;
 use App\Models\Angsuran;
 use App\Models\PengajuanPercepatan;
+use App\Models\PengajuanTransaksiTabungan;
+use App\Models\RekeningTabungan;
 use App\Models\SettingBungaTabungan;
 use App\Models\SettingSimpanan;
 use App\Models\TabelTenor;
@@ -43,9 +45,9 @@ class DashboardController extends Controller
         $cekTambahLimit = $this->eligibilitas->cekEligibilitasTambahLimit($anggota);
         $limitMaksimal = $this->eligibilitas->limitMaksimal($anggota);
 
-        // Pengajuan yang sedang berjalan (belum aktif/lunas/ditolak)
+        // Pengajuan yang sedang berjalan (belum aktif/lunas/ditolak; termasuk approved_ketua menunggu pencairan)
         $pengajuanBerjalan = $anggota->pinjaman()
-            ->whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara'])
+            ->whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara', 'approved_ketua'])
             ->latest('tanggal_pengajuan')
             ->first();
 
@@ -129,7 +131,7 @@ class DashboardController extends Controller
         $riwayatGabungan = $riwayatSimpanan->concat($riwayatAngsuran);
 
         $rekeningTabungan = $anggota->rekeningTabungan()
-            ->whereIn('status', ['aktif', 'diajukan'])
+            ->whereIn('status', ['aktif', ...RekeningTabungan::STATUS_MENUNGGU])
             ->orderByRaw("CASE status WHEN 'aktif' THEN 1 ELSE 2 END")
             ->latest('id')
             ->first();
@@ -145,7 +147,9 @@ class DashboardController extends Controller
                     'estimasi_bunga_bulan_ini' => (float) ($estimasi['bunga_bersih'] ?? 0),
                     'total_bunga' => (float) $rekeningTabungan->bungaPeriode()->sum('bunga_bersih'),
                     'suku_bunga_aktif' => SettingBungaTabungan::persentaseAktif(),
-                    'pengajuan_menunggu_count' => $rekeningTabungan->pengajuanTransaksi()->where('status', 'menunggu')->count(),
+                    'pengajuan_menunggu_count' => $rekeningTabungan->pengajuanTransaksi()
+                        ->whereIn('status', PengajuanTransaksiTabungan::STATUS_MENUNGGU)
+                        ->count(),
                 ];
 
                 $riwayatTabungan = $rekeningTabungan->transaksi()
@@ -172,7 +176,7 @@ class DashboardController extends Controller
                 $riwayatGabungan = $riwayatGabungan->concat($riwayatTabungan);
             } else {
                 $tabunganRingkasan = [
-                    'status' => 'diajukan',
+                    'status' => $rekeningTabungan->status,
                     'no_rekening' => null,
                     'saldo' => 0.0,
                     'estimasi_bunga_bulan_ini' => 0.0,
@@ -204,6 +208,8 @@ class DashboardController extends Controller
                 'total_angsuran' => $agg['total'],
                 'sisa_total_bayar' => $agg['sisa_bayar'],
                 'sudah_pakai_percepatan' => (bool) $p->sudah_pakai_percepatan,
+                'tanggal_pencairan' => $p->tanggal_pencairan?->format('d M Y'),
+                'bukti_pencairan_url' => $p->bukti_pencairan_path ? route('pinjaman.bukti-pencairan', $p->id) : null,
             ];
         });
 
@@ -254,17 +260,23 @@ class DashboardController extends Controller
                     'sisa_angsuran' => $agg['sisa'],
                     'total_angsuran' => $agg['total'],
                     'sisa_total_bayar' => $agg['sisa_bayar'],
+                    'tanggal_pencairan' => $pinjamanAktif->tanggal_pencairan?->format('d M Y'),
+                    'bukti_pencairan_url' => $pinjamanAktif->bukti_pencairan_path ? route('pinjaman.bukti-pencairan', $pinjamanAktif->id) : null,
                 ];
             })() : null,
             'pinjamanAktifList' => $pinjamanAktifList,
             'pinjamanAktifCount' => $pinjamanAktifList->count(),
             'pengajuanPercepatanMenunggu' => $pengajuanPercepatanMenunggu,
             'pengajuanBerjalan' => $pengajuanBerjalan ? [
+                'id' => $pengajuanBerjalan->id,
                 'nominal' => (float) $pengajuanBerjalan->nominal,
                 'nominal_diminta' => (float) ($pengajuanBerjalan->nominal_diminta ?? $pengajuanBerjalan->nominal),
                 'nominal_disetujui_bendahara' => $pengajuanBerjalan->nominal_disetujui_bendahara !== null ? (float) $pengajuanBerjalan->nominal_disetujui_bendahara : null,
+                'nominal_disetujui' => $pengajuanBerjalan->nominal_disetujui !== null ? (float) $pengajuanBerjalan->nominal_disetujui : null,
                 'tenor_bulan' => (int) $pengajuanBerjalan->tenor_bulan,
+                'tenor_disetujui' => $pengajuanBerjalan->tenor_disetujui !== null ? (int) $pengajuanBerjalan->tenor_disetujui : null,
                 'tanggal_pengajuan' => $pengajuanBerjalan->tanggal_pengajuan?->format('d M Y'),
+                'disetujui_ketua_pada' => $pengajuanBerjalan->disetujui_ketua_pada?->format('d M Y'),
                 'status' => $pengajuanBerjalan->status,
             ] : null,
             'pengajuanLimitBerjalan' => $pengajuanLimitBerjalan ? [

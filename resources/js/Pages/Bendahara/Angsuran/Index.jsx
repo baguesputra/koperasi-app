@@ -747,6 +747,36 @@ export default function Index({
                                 </div>
                             </DrawerSection>
 
+                            {itemBatal.bisa_dibatalkan ? (
+                                <DrawerSection title="Rollback Konfirmasi Angsuran" icon={RotateCcw} tone="rose">
+                                    <form id={batalFormId} onSubmit={submitBatal}>
+                                        <FormField
+                                            label="Alasan Pembatalan / Rollback"
+                                            error={batalForm.errors.alasan}
+                                            required
+                                            hint="Contoh: Salah contreng cicilan anggota saat konfirmasi massal"
+                                        >
+                                            <TextField
+                                                data-autofocus
+                                                size="sm"
+                                                as="textarea"
+                                                rows={3}
+                                                value={batalForm.data.alasan}
+                                                onChange={(e) => batalForm.setData('alasan', e.target.value)}
+                                                placeholder="Jelaskan alasan pembatalan konfirmasi angsuran ini..."
+                                                required
+                                            />
+                                        </FormField>
+                                    </form>
+                                </DrawerSection>
+                            ) : (
+                                <DrawerSection title="Status Rollback" icon={AlertCircle} tone="amber">
+                                    <p className="text-xs sm:text-sm text-amber-900">
+                                        {itemBatal.alasan_tidak_bisa_batal ?? 'Angsuran ini tidak memenuhi syarat untuk dibatalkan.'}
+                                    </p>
+                                </DrawerSection>
+                            )}
+
                             <DrawerSection title="Rincian Angsuran" icon={Wallet}>
                                 <DrawerKeyValue
                                     rows={[
@@ -775,35 +805,6 @@ export default function Index({
                                     ]}
                                 />
                             </DrawerSection>
-
-                            {itemBatal.bisa_dibatalkan ? (
-                                <DrawerSection title="Rollback Konfirmasi Angsuran" icon={RotateCcw} tone="rose">
-                                    <form id={batalFormId} onSubmit={submitBatal}>
-                                        <FormField
-                                            label="Alasan Pembatalan / Rollback"
-                                            error={batalForm.errors.alasan}
-                                            required
-                                            hint="Contoh: Salah contreng cicilan anggota saat konfirmasi massal"
-                                        >
-                                            <TextField
-                                                size="sm"
-                                                as="textarea"
-                                                rows={3}
-                                                value={batalForm.data.alasan}
-                                                onChange={(e) => batalForm.setData('alasan', e.target.value)}
-                                                placeholder="Jelaskan alasan pembatalan konfirmasi angsuran ini..."
-                                                required
-                                            />
-                                        </FormField>
-                                    </form>
-                                </DrawerSection>
-                            ) : (
-                                <DrawerSection title="Status Rollback" icon={AlertCircle} tone="amber">
-                                    <p className="text-xs sm:text-sm text-amber-900">
-                                        {itemBatal.alasan_tidak_bisa_batal ?? 'Angsuran ini tidak memenuhi syarat untuk dibatalkan.'}
-                                    </p>
-                                </DrawerSection>
-                            )}
                         </DrawerBody>
 
                         <DrawerFooter>

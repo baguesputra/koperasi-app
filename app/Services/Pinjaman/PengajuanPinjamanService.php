@@ -43,7 +43,7 @@ class PengajuanPinjamanService
         }
 
         $adaPinjamanBerjalan = Pinjaman::where('anggota_id', $anggota->id)
-            ->whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara'])
+            ->whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara', 'approved_ketua'])
             ->exists();
 
         if ($adaPinjamanBerjalan) {

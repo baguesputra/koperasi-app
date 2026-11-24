@@ -43,12 +43,18 @@ class Pinjaman extends Model
         'tanggal_pengajuan',
         'tanggal_pencairan',
         'disetujui_pada',
+        'disetujui_ketua_pada',
+        'dicairkan_oleh',
         'versi_syarat',
         'ip_address_setuju',
         'user_agent_setuju',
         'catatan_admin',
         'catatan_bendahara',
         'catatan_ketua',
+        'catatan_pencairan',
+        'bukti_pencairan_path',
+        'bukti_pencairan_nama_asli',
+        'bukti_pencairan_mime',
         'sudah_pakai_percepatan',
         'verification_revoked_at',
     ];
@@ -61,6 +67,7 @@ class Pinjaman extends Model
         'tanggal_pengajuan' => 'date',
         'tanggal_pencairan' => 'date',
         'disetujui_pada' => 'datetime',
+        'disetujui_ketua_pada' => 'datetime',
         'sudah_pakai_percepatan' => 'boolean',
         'verification_revoked_at' => 'datetime',
     ];
@@ -78,6 +85,11 @@ class Pinjaman extends Model
     public function pengaju(): BelongsTo
     {
         return $this->belongsTo(User::class, 'pengaju_user_id');
+    }
+
+    public function dicairkanOleh(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'dicairkan_oleh');
     }
 
     public function angsuran(): HasMany
@@ -220,14 +232,16 @@ class Pinjaman extends Model
         $ditolakAdmin = $ditolak && ! empty($this->catatan_admin) && ! $adaKeputusanBendahara && empty($this->catatan_ketua);
         $ditolakBendahara = $ditolak && $adaKeputusanBendahara && empty($this->catatan_ketua);
         $ditolakKetua = $ditolak && ! empty($this->catatan_ketua);
-        $adminDone = in_array($this->status, ['approved_admin', 'approved_bendahara', 'approved_ketua', 'aktif', 'lunas'], true)
+        $adminDone = in_array($this->status, ['approved_admin', 'approved_bendahara', 'approved_ketua', 'aktif', 'lunas', 'dihapusbukukan'], true)
             || $ditolakBendahara || $ditolakKetua;
-        $bendaharaDone = in_array($this->status, ['approved_bendahara', 'approved_ketua', 'aktif', 'lunas'], true) || $ditolakKetua;
-        $ketuaDone = in_array($this->status, ['approved_ketua', 'aktif', 'lunas'], true);
+        $bendaharaDone = in_array($this->status, ['approved_bendahara', 'approved_ketua', 'aktif', 'lunas', 'dihapusbukukan'], true) || $ditolakKetua;
+        $ketuaDone = in_array($this->status, ['approved_ketua', 'aktif', 'lunas', 'dihapusbukukan'], true);
+        $cairDone = in_array($this->status, ['aktif', 'lunas', 'dihapusbukukan'], true);
 
         $adminData = $this->parseApprovalNote($this->catatan_admin);
         $bendaharaData = $this->parseApprovalNote($this->catatan_bendahara);
         $ketuaData = $this->parseApprovalNote($this->catatan_ketua);
+        $this->loadMissing('dicairkanOleh');
 
         return [
             [
@@ -253,10 +267,17 @@ class Pinjaman extends Model
             ],
             [
                 'label' => 'Persetujuan Ketua',
-                'date' => $ketuaData['date'] ?? ($this->disetujui_pada?->translatedFormat('d F Y, H:i') ?? '-'),
-                'user' => $ketuaData['user'] ?? 'Belum tercatat',
+                'date' => $ketuaData['date'] ?? ($this->disetujui_ketua_pada?->translatedFormat('d F Y, H:i') ?? $this->disetujui_pada?->translatedFormat('d F Y, H:i') ?? '-'),
+                'user' => $ketuaData['user'] ?? ($ketuaDone ? 'Ketua Koperasi' : 'Belum tercatat'),
                 'status' => $ditolakKetua ? 'rejected' : ($ketuaDone ? 'done' : ($bendaharaDone ? 'current' : 'pending')),
                 'icon' => 'user-check',
+            ],
+            [
+                'label' => 'Pencairan & Transfer Bendahara',
+                'date' => $cairDone ? ($this->tanggal_pencairan?->translatedFormat('d F Y') ?? '-') : '-',
+                'user' => $cairDone ? ($this->dicairkanOleh?->name ?? 'Bendahara') : 'Menunggu pencairan akhir bulan',
+                'status' => $ditolak ? 'pending' : ($cairDone ? 'done' : ($this->status === 'approved_ketua' ? 'current' : 'pending')),
+                'icon' => 'banknote',
             ],
         ];
     }

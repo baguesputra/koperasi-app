@@ -101,6 +101,15 @@ export default function Index({
     const [jurnalBatal, setJurnalBatal] = useState(null);
     const transaksiFormId = useId();
     const batalFormId = useId();
+    const nominalInputRef = useRef(null);
+
+    useEffect(() => {
+        if (!showDrawer) return undefined;
+        const id = window.requestAnimationFrame(() => {
+            nominalInputRef.current?.focus({ preventScroll: true });
+        });
+        return () => window.cancelAnimationFrame(id);
+    }, [showDrawer, tabDrawer]);
     const [cari, setCari] = useState(filters.cari ?? '');
     const cariDebounced = useDebouncedValue(cari);
     const pertama = useRef(true);
@@ -1361,6 +1370,8 @@ export default function Index({
 
                                     <FormField label="Nominal Pemasukan" error={pemasukanForm.errors.jumlah} required>
                                         <CurrencyField
+                                            ref={tabDrawer === 'pemasukan' ? nominalInputRef : undefined}
+                                            data-autofocus
                                             size="sm"
                                             value={pemasukanForm.data.jumlah}
                                             onChange={(e) => pemasukanForm.setData('jumlah', e.target.value)}
@@ -1449,6 +1460,8 @@ export default function Index({
 
                                     <FormField label="Nominal Pengeluaran" error={pengeluaranForm.errors.jumlah} required>
                                         <CurrencyField
+                                            ref={tabDrawer === 'pengeluaran' ? nominalInputRef : undefined}
+                                            data-autofocus
                                             size="sm"
                                             value={pengeluaranForm.data.jumlah}
                                             onChange={(e) => pengeluaranForm.setData('jumlah', e.target.value)}
@@ -1500,6 +1513,8 @@ export default function Index({
                                     <form id={transaksiFormId} onSubmit={submitSisih} className="space-y-1">
                                         <FormField label="Nominal Transfer" error={sisihForm.errors.jumlah} required>
                                             <CurrencyField
+                                                ref={tabDrawer === 'sisih' ? nominalInputRef : undefined}
+                                                data-autofocus
                                                 size="sm"
                                                 value={sisihForm.data.jumlah}
                                                 onChange={(e) => sisihForm.setData('jumlah', e.target.value)}

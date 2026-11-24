@@ -520,6 +520,7 @@ class PengaturanController extends Controller
             'min_setor' => ['required', 'numeric', 'min:0', 'max:999999999'],
             'saldo_minimal' => ['required', 'numeric', 'min:0', 'max:999999999'],
             'min_tarik' => ['required', 'numeric', 'min:0', 'max:999999999'],
+            'masa_tunggu_tarik_bulan' => ['sometimes', 'required', 'integer', 'min:0', 'max:120'],
             'bank_tujuan_nama' => ['required', 'string', 'max:100'],
             'bank_tujuan_rekening' => ['required', 'string', 'max:100'],
             'bank_tujuan_atas_nama' => ['required', 'string', 'max:150'],
@@ -528,7 +529,7 @@ class PengaturanController extends Controller
 
         $setting = SettingTabungan::current();
         $dataLama = $setting->only([
-            'metode_bunga', 'min_setor', 'saldo_minimal', 'min_tarik',
+            'metode_bunga', 'min_setor', 'saldo_minimal', 'min_tarik', 'masa_tunggu_tarik_bulan',
             'bank_tujuan_nama', 'bank_tujuan_rekening', 'bank_tujuan_atas_nama', 'buka_rekening_aktif',
         ]);
 

@@ -114,6 +114,7 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                 { label: 'Verifikasi Awal', value: actionable.menunggu_tinjauan_admin ?? 0, href: route('admin.pinjaman.index'), permission: 'pinjaman.tinjau-admin' },
                 { label: 'Verifikasi', value: actionable.menunggu_tinjauan_bendahara ?? 0, href: route('bendahara.pinjaman.index'), permission: 'pinjaman.tinjau-bendahara' },
                 { label: 'Persetujuan', value: actionable.menunggu_approval_ketua ?? 0, href: route('ketua.pinjaman.index'), permission: 'pinjaman.approve-ketua' },
+                { label: 'Pencairan Pinjaman', value: actionable.menunggu_pencairan_pinjaman ?? 0, href: route('bendahara.pencairan-pinjaman.index'), permission: 'pinjaman.cairkan' },
                 ...(bisaApprovePenghapusan ? [{
                     label: 'Penghapusan Pinjaman',
                     value: actionable.penghapusan_pinjaman_menunggu ?? 0,
@@ -141,7 +142,9 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
             aksi: [
                 { label: 'Aktivasi', value: actionable.aktivasi_anggota ?? 0, href: route('ketua.aktivasi.index'), permission: 'aktivasi.approve-ketua' },
                 { label: 'Simpanan Wajib', value: actionable.anggota_belum_simpanan ?? 0, href: route('bendahara.simpanan.index'), permission: 'simpanan.konfirmasi' },
-                { label: 'Tabungan Anggota', value: actionable.tabungan_menunggu ?? 0, href: route('bendahara.tabungan.index'), permission: 'tabungan.kelola' },
+                { label: 'Verifikasi Tabungan', value: actionable.tabungan_admin_menunggu ?? 0, href: route('admin.tabungan.index'), permission: 'tabungan.tinjau-admin' },
+                { label: 'Proses Tabungan', value: actionable.tabungan_menunggu ?? 0, href: route('bendahara.tabungan.index'), permission: 'tabungan.kelola' },
+                { label: 'Setujui Tabungan', value: actionable.tabungan_ketua_menunggu ?? 0, href: route('ketua.tabungan.index'), permission: 'tabungan.approve-ketua' },
             ],
         },
     ]

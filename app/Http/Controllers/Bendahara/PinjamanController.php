@@ -33,17 +33,15 @@ class PinjamanController extends Controller
             ->get()
             ->map(fn ($p) => $this->format->format($p, withLimit: false));
 
-        // Pinjaman yang diajukan sendiri oleh Ketua: setelah disetujui bendahara,
-        // pencairannya dilakukan oleh bendahara (bukan Ketua) agar tak self-approve.
+        // Daftar pinjaman yang telah disetujui Ketua (termasuk mandiri Ketua) menunggu pencairan di menu Pencairan Pinjaman.
         $menungguPencairan = Pinjaman::with('anggota')
-            ->where('status', 'approved_bendahara')
-            ->where('cair_oleh_bendahara', true)
+            ->where('status', 'approved_ketua')
             ->latest('tanggal_pengajuan')
             ->get()
             ->map(fn ($p) => $this->format->format($p, withLimit: false));
 
         $riwayat = Pinjaman::with('anggota')
-            ->whereIn('status', ['approved_bendahara', 'aktif', 'lunas', 'ditolak'])
+            ->whereIn('status', ['approved_bendahara', 'approved_ketua', 'aktif', 'lunas', 'ditolak', 'dihapusbukukan'])
             ->whereNotNull('catatan_bendahara')
             ->latest('updated_at')
             ->take(20)
@@ -80,8 +78,12 @@ class PinjamanController extends Controller
             return back()->withErrors(['keputusan' => $e->getMessage()]);
         }
 
+        $pesan = $pinjaman->fresh()->status === 'approved_ketua'
+            ? 'Pengajuan pinjaman disetujui dan masuk ke daftar Pencairan Pinjaman akhir bulan.'
+            : 'Pengajuan pinjaman disetujui dan diteruskan ke Ketua Koperasi.';
+
         return redirect()->route('bendahara.pinjaman.index')
-            ->with('status', 'Pengajuan pinjaman disetujui dan diteruskan ke Ketua Koperasi.');
+            ->with('status', $pesan);
     }
 
     public function reject(KeputusanPinjamanNominalRequest $request, Pinjaman $pinjaman)
@@ -122,7 +124,7 @@ class PinjamanController extends Controller
             'total_bunga' => array_sum(array_column($jadwal, 'nominal_bunga')),
             'total_bayar' => array_sum(array_column($jadwal, 'total_bayar')),
             'cicilan_pertama' => $jadwal[0] ?? null,
-            'cicilan_terakhir' => !empty($jadwal) ? end($jadwal) : null,
+            'cicilan_terakhir' => ! empty($jadwal) ? end($jadwal) : null,
             'cicilan_rata_rata' => count($jadwal) > 0 ? round(array_sum(array_column($jadwal, 'total_bayar')) / count($jadwal), 2) : 0,
             'kas_saldo' => $saldoBank,
             'kas_sisa' => $saldoBank - $nominal,
@@ -131,13 +133,7 @@ class PinjamanController extends Controller
 
     public function cair(KeputusanPinjamanNominalRequest $request, Pinjaman $pinjaman)
     {
-        try {
-            $this->persetujuan->cairBendahara($pinjaman, $request->catatan);
-        } catch (RuntimeException $e) {
-            return back()->withErrors(['keputusan' => $e->getMessage()]);
-        }
-
-        return redirect()->route('bendahara.pinjaman.index')
-            ->with('status', 'Pinjaman disetujui dan dana telah dicairkan.');
+        return redirect()->route('bendahara.pencairan-pinjaman.index')
+            ->with('status', 'Silakan selesaikan transfer & unggah bukti transfer melalui menu Pencairan Pinjaman.');
     }
 }

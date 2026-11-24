@@ -5,7 +5,7 @@ import {
     TransitionChild,
 } from '@headlessui/react';
 import { X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export default function Drawer({
     children,
@@ -17,11 +17,13 @@ export default function Drawer({
     footer = null,
     surface = 'alabaster',
     layout = 'scroll',
+    initialFocus,
     onClose = () => {},
     maxWidth = 'xl',
     mobileMode = 'fullscreen',
 }) {
     const isOpen = Boolean(show || open);
+    const panelRef = useRef(null);
     const maxWidthClass = {
         lg: 'max-w-lg',
         xl: 'max-w-xl',
@@ -47,9 +49,29 @@ export default function Drawer({
             : `${maxWidthClass} border-l border-slate-200/80 shadow-[-12px_0_40px_-10px_rgba(15,30,54,0.18)]`
     }`;
 
+    useEffect(() => {
+        if (!isOpen) return undefined;
+
+        const frameId = window.requestAnimationFrame(() => {
+            const panel = panelRef.current;
+            if (!panel) return;
+
+            const active = document.activeElement;
+            const isInputActive = active && panel.contains(active) && ['INPUT', 'TEXTAREA', 'SELECT'].includes(active.tagName);
+            if (isInputActive) return;
+
+            const target = panel.querySelector('[data-autofocus]:not([disabled]), [autofocus]:not([disabled])');
+            if (target && typeof target.focus === 'function') {
+                target.focus({ preventScroll: true });
+            }
+        });
+
+        return () => window.cancelAnimationFrame(frameId);
+    }, [isOpen]);
+
     return (
         <Transition show={isOpen} leave="duration-200">
-            <Dialog as="div" className="fixed inset-0 z-50 overflow-hidden" onClose={onClose}>
+            <Dialog as="div" className="fixed inset-0 z-50 overflow-hidden" initialFocus={initialFocus} onClose={onClose}>
                 <TransitionChild
                     enter="ease-out duration-300"
                     enterFrom="opacity-0"
@@ -70,7 +92,7 @@ export default function Drawer({
                         leaveFrom={isFullscreenMobile ? 'translate-y-0' : 'translate-x-0'}
                         leaveTo={isFullscreenMobile ? 'translate-y-full' : 'translate-x-full'}
                     >
-                        <DialogPanel className={panelClass}>
+                        <DialogPanel ref={panelRef} className={panelClass}>
                             <div className="shrink-0 bg-white border-b border-slate-200/80 relative">
                                 <div className="flex items-start justify-between gap-3 px-4 py-3 sm:px-5 sm:py-3.5">
                                     <div className="min-w-0 flex-1">

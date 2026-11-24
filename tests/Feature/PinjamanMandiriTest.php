@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\Pinjaman;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
@@ -16,6 +18,7 @@ class PinjamanMandiriTest extends TestCase
     {
         parent::setUp();
         $this->seed();
+        Storage::fake('local');
     }
 
     private function login(string $noKaryawan): User
@@ -107,22 +110,26 @@ class PinjamanMandiriTest extends TestCase
         $this->post(route('admin.pinjaman.approve', $pinjaman), ['catatan' => 'Diteruskan ke Bendahara.'])
             ->assertRedirect();
 
-        // Bendahara menyetujui
+        // Bendahara menyetujui -> masuk status approved_ketua (siap dicairkan di menu Pencairan Pinjaman)
         $this->login('BEN-000001');
         $this->post(route('bendahara.pinjaman.approve', $pinjaman), ['catatan' => 'Data lengkap.', 'nominal' => 500_000])
             ->assertRedirect();
 
         $pinjaman->refresh();
-        $this->assertEquals('approved_bendahara', $pinjaman->status);
+        $this->assertEquals('approved_ketua', $pinjaman->status);
         $this->assertTrue($pinjaman->cair_oleh_bendahara);
 
-        // Bendahara mencairkan (bukan Ketua)
-        $this->post(route('bendahara.pinjaman.cair', $pinjaman), ['catatan' => 'Dana dicairkan.'])
-            ->assertRedirect();
+        // Bendahara mencairkan lewat menu Pencairan Pinjaman (+ bukti transfer)
+        $this->post(route('bendahara.pencairan-pinjaman.cair', $pinjaman), [
+            'tanggal_pencairan' => now()->toDateString(),
+            'bukti_pencairan' => UploadedFile::fake()->image('bukti-mandiri.jpg'),
+            'catatan' => 'Dana dicairkan.',
+        ])->assertRedirect()->assertSessionHasNoErrors();
 
         $pinjaman->refresh();
         $this->assertEquals('aktif', $pinjaman->status);
         $this->assertNotNull($pinjaman->tanggal_pencairan);
+        $this->assertNotNull($pinjaman->bukti_pencairan_path);
         $this->assertCount($pinjaman->tenor_bulan, $pinjaman->angsuran()->get());
     }
 
@@ -146,8 +153,8 @@ class PinjamanMandiriTest extends TestCase
             ->exists();
         $this->assertFalse($masukAntreanKetua);
 
-        // Sebaliknya muncul di antrean pencairan Bendahara
-        $masukAntreanCairBendahara = Pinjaman::where('status', 'approved_bendahara')
+        // Sebaliknya masuk status approved_ketua & muncul di menu Pencairan Pinjaman Bendahara
+        $masukAntreanCairBendahara = Pinjaman::where('status', 'approved_ketua')
             ->where('cair_oleh_bendahara', true)
             ->where('id', $pinjaman->id)
             ->exists();

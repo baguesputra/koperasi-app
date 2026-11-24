@@ -27,7 +27,7 @@ class PinjamanResource extends JsonResource
         $jadwal = $this->jadwalAktif();
         $berikutnya = $jadwal->where('status', 'belum_bayar')->sortBy('cicilan_ke')->first();
 
-        $sedangReview = in_array($this->status, ['diajukan', 'approved_admin', 'approved_bendahara'], true);
+        $sedangReview = in_array($this->status, ['diajukan', 'approved_admin', 'approved_bendahara', 'approved_ketua'], true);
         $eligibilitas = app(EligibilitasPinjamanService::class);
 
         $barisBeban = $jadwal->isNotEmpty()
@@ -65,6 +65,8 @@ class PinjamanResource extends JsonResource
             'tanggal_pengajuan' => $this->tanggal_pengajuan?->format('Y-m-d'),
             'tanggal_pencairan' => $this->tanggal_pencairan?->format('Y-m-d'),
             'disetujui_pada' => $this->disetujui_pada?->format('Y-m-d'),
+            'disetujui_ketua_pada' => $this->disetujui_ketua_pada?->format('Y-m-d'),
+            'bukti_pencairan_url' => $this->bukti_pencairan_path ? route('pinjaman.bukti-pencairan', $this->id) : null,
             'catatan_admin' => $this->catatan_admin,
             'catatan_bendahara' => $this->catatan_bendahara,
             'catatan_ketua' => $this->catatan_ketua,
@@ -151,10 +153,11 @@ class PinjamanResource extends JsonResource
         $ditolakAdmin = $ditolak && ! empty($this->catatan_admin) && ! $adaKeputusanBendahara && empty($this->catatan_ketua);
         $ditolakBendahara = $ditolak && $adaKeputusanBendahara && empty($this->catatan_ketua);
         $ditolakKetua = $ditolak && ! empty($this->catatan_ketua);
-        $adminDone = in_array($this->status, ['approved_admin', 'approved_bendahara', 'approved_ketua', 'aktif', 'lunas'], true)
+        $adminDone = in_array($this->status, ['approved_admin', 'approved_bendahara', 'approved_ketua', 'aktif', 'lunas', 'dihapusbukukan'], true)
             || $ditolakBendahara || $ditolakKetua;
-        $bendaharaDone = in_array($this->status, ['approved_bendahara', 'approved_ketua', 'aktif', 'lunas'], true) || $ditolakKetua;
-        $ketuaDone = in_array($this->status, ['approved_ketua', 'aktif', 'lunas'], true);
+        $bendaharaDone = in_array($this->status, ['approved_bendahara', 'approved_ketua', 'aktif', 'lunas', 'dihapusbukukan'], true) || $ditolakKetua;
+        $ketuaDone = in_array($this->status, ['approved_ketua', 'aktif', 'lunas', 'dihapusbukukan'], true);
+        $cairDone = in_array($this->status, ['aktif', 'lunas', 'dihapusbukukan'], true);
 
         return [
             [
@@ -179,11 +182,20 @@ class PinjamanResource extends JsonResource
                 'catatan' => $adaKeputusanBendahara ? $this->catatan_bendahara : null,
             ],
             [
-                'label' => $this->cair_oleh_bendahara ? 'Pencairan Bendahara' : 'Persetujuan Ketua',
+                'label' => $this->cair_oleh_bendahara ? 'Persetujuan Pengajuan Mandiri' : 'Persetujuan Ketua',
                 'status' => $ditolakKetua ? 'rejected' : ($ketuaDone ? 'done' : ($bendaharaDone ? 'current' : 'pending')),
-                'tanggal' => $this->disetujui_pada?->format('Y-m-d'),
+                'tanggal' => ($this->disetujui_ketua_pada ?? $this->disetujui_pada)?->format('Y-m-d'),
                 'oleh' => $ketuaDone ? ($this->cair_oleh_bendahara ? 'Bendahara' : 'Ketua Koperasi') : null,
                 'catatan' => $this->catatan_ketua,
+            ],
+            [
+                'label' => 'Pencairan Bendahara',
+                'status' => $ditolak ? 'pending' : ($cairDone ? 'done' : ($this->status === 'approved_ketua' ? 'current' : 'pending')),
+                'tanggal' => $this->tanggal_pencairan?->format('Y-m-d'),
+                'oleh' => $cairDone
+                    ? ($this->relationLoaded('dicairkanOleh') ? ($this->dicairkanOleh?->name ?? 'Bendahara') : 'Bendahara')
+                    : null,
+                'catatan' => $this->catatan_pencairan,
             ],
         ];
     }

@@ -6,7 +6,7 @@ import PrivacyIcon from '@/Components/ui/PrivacyIcon';
 import {
     LayoutDashboard, Users, UserCheck, PiggyBank, HeartHandshake,
     BookOpenText, ArrowLeftRight, HandCoins, FileSearch, ClipboardCheck,
-    BadgeCheck, CalendarCheck, Repeat, TrendingUp, FileX2,
+    BadgeCheck, Banknote, CalendarCheck, Repeat, TrendingUp, FileX2,
     Wallet, Percent, FileBarChart,
     ChevronLeft, ChevronRight, ChevronDown, Settings, LogOut,
 } from 'lucide-react';
@@ -44,7 +44,9 @@ const menuGroups = [
             { label: 'Data Simpanan', routeName: 'simpanan.index', icon: PiggyBank, permission: 'simpanan.lihat' },
             { label: 'Konfirmasi Simpanan', routeName: 'bendahara.simpanan.index', icon: HeartHandshake, permission: 'simpanan.konfirmasi' },
             { label: 'Rekening Tabungan', routeName: 'tabungan.index', icon: BookOpenText, permission: 'tabungan.lihat' },
+            { label: 'Verifikasi Tabungan', routeName: 'admin.tabungan.index', icon: FileSearch, permission: 'tabungan.tinjau-admin' },
             { label: 'Proses Tabungan', routeName: 'bendahara.tabungan.index', icon: ArrowLeftRight, permission: 'tabungan.kelola' },
+            { label: 'Setujui Tabungan', routeName: 'ketua.tabungan.index', icon: BadgeCheck, permission: 'tabungan.approve-ketua' },
         ],
     },
     {
@@ -55,6 +57,7 @@ const menuGroups = [
             { label: 'Verifikasi Awal', routeName: 'admin.pinjaman.index', icon: FileSearch, permission: 'pinjaman.tinjau-admin' },
             { label: 'Tinjau Pinjaman', routeName: 'bendahara.pinjaman.index', icon: ClipboardCheck, permission: 'pinjaman.tinjau-bendahara' },
             { label: 'Setujui Pinjaman', routeName: 'ketua.pinjaman.index', icon: BadgeCheck, permission: 'pinjaman.approve-ketua' },
+            { label: 'Pencairan Pinjaman', routeName: 'bendahara.pencairan-pinjaman.index', icon: Banknote, permission: 'pinjaman.cairkan' },
             { label: 'Konfirmasi Angsuran', routeName: 'bendahara.angsuran.index', icon: CalendarCheck, permission: 'angsuran.konfirmasi' },
             { label: 'Tinjau Ubah Tenor', routeName: 'bendahara.percepatan.index', icon: Repeat, permission: 'pinjaman.tinjau-bendahara' },
             { label: 'Setujui Ubah Tenor', routeName: 'ketua.percepatan.index', icon: Repeat, permission: 'pinjaman.approve-ketua' },
@@ -131,12 +134,15 @@ export default function Sidebar({ collapsed = false, expanding = false, mobile =
         'admin.pinjaman.index': notifications?.menunggu_tinjauan_admin ?? 0,
         'bendahara.pinjaman.index': notifications?.menunggu_tinjauan_bendahara ?? 0,
         'ketua.pinjaman.index': notifications?.menunggu_approval_ketua ?? 0,
+        'bendahara.pencairan-pinjaman.index': notifications?.menunggu_pencairan_pinjaman ?? 0,
         'bendahara.percepatan.index': notifications?.menunggu_perubahan_tenor_bendahara ?? 0,
         'ketua.percepatan.index': notifications?.menunggu_perubahan_tenor_ketua ?? 0,
         'bendahara.pengajuan-limit.index': notifications?.menunggu_pengajuan_limit_bendahara ?? 0,
         'ketua.pengajuan-limit.index': notifications?.menunggu_pengajuan_limit ?? 0,
         'ketua.aktivasi.index': notifications?.menunggu_aktivasi ?? 0,
+        'admin.tabungan.index': notifications?.menunggu_tabungan_admin ?? 0,
         'bendahara.tabungan.index': notifications?.menunggu_tabungan ?? 0,
+        'ketua.tabungan.index': notifications?.menunggu_tabungan_ketua ?? 0,
         'pengurus.penghapusan-pinjaman.index': notifications?.menunggu_penghapusan_pinjaman ?? 0,
     };
 

@@ -1,5 +1,5 @@
 import AppLayout from '@/Layouts/AppLayout';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import { CheckCircle2, Clock, BadgeCheck, Search, XCircle, Wallet, ChevronRight, ChevronDown, X, RefreshCw, Printer, HandCoins } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import useDebouncedValue from '@/Utils/useDebouncedValue';
@@ -35,6 +35,9 @@ function progresAngsuran(angsuran = []) {
 }
 
 export default function Index({ pinjaman, filters, statistik, cabangAktif, daftarCabang = [] }) {
+    const { auth } = usePage().props;
+    const roles = auth?.user?.roles ?? [];
+    const bisaCetakBukti = !(roles.includes('pengawas') && !roles.some((r) => ['super_admin', 'sekretaris', 'bendahara', 'ketua_koperasi'].includes(r)));
     const daftarCabangAman = Array.isArray(daftarCabang) ? daftarCabang : Object.values(daftarCabang ?? {});
     const [cari, setCari] = useState(filters.cari ?? '');
     const cariDebounced = useDebouncedValue(cari);
@@ -317,13 +320,15 @@ export default function Index({ pinjaman, filters, statistik, cabangAktif, dafta
                                 <th className="hidden lg:table-cell px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Tenor</th>
                                 <th className="hidden lg:table-cell px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Tanggal</th>
                                 <th className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Status</th>
-                                <th className="px-4 py-2.5 text-right text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap"><span className="sr-only">Cetak</span></th>
+                                {bisaCetakBukti && (
+                                    <th className="px-4 py-2.5 text-right text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap"><span className="sr-only">Cetak</span></th>
+                                )}
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 bg-white">
                             {pinjaman.data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-10 text-center">
+                                    <td colSpan={bisaCetakBukti ? 6 : 5} className="px-4 py-10 text-center">
                                         <p className="text-sm font-semibold text-slate-600">Tidak ada data ditemukan</p>
                                         <p className="text-sm text-slate-500 mt-1">Coba ubah kata kunci atau filter.</p>
                                         {filterAktif && (
@@ -370,20 +375,22 @@ export default function Index({ pinjaman, filters, statistik, cabangAktif, dafta
                                             <td className="px-4 py-2.5">
                                                 <StatusBadge status={p.status} />
                                             </td>
-                                            <td className="px-4 py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
-                                                {p.status === 'aktif' ? (
-                                                    <button
-                                                        onClick={(e) => bukaCetak(e, p)}
-                                                        aria-label={`Cetak bukti pinjaman ${p.nama}`}
-                                                        title="Cetak bukti"
-                                                        className="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-transparent text-slate-400 transition-all duration-200 hover:text-brand-green-dark hover:bg-brand-green-light hover:border-brand-green/30 hover:shadow-sm"
-                                                    >
-                                                        <Printer size={16} />
-                                                    </button>
-                                                ) : (
-                                                    <span className="inline-block w-9" aria-hidden="true" />
-                                                )}
-                                            </td>
+                                            {bisaCetakBukti && (
+                                                <td className="px-4 py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
+                                                    {p.status === 'aktif' ? (
+                                                        <button
+                                                            onClick={(e) => bukaCetak(e, p)}
+                                                            aria-label={`Cetak bukti pinjaman ${p.nama}`}
+                                                            title="Cetak bukti"
+                                                            className="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-transparent text-slate-400 transition-all duration-200 hover:text-brand-green-dark hover:bg-brand-green-light hover:border-brand-green/30 hover:shadow-sm"
+                                                        >
+                                                            <Printer size={16} />
+                                                        </button>
+                                                    ) : (
+                                                        <span className="inline-block w-9" aria-hidden="true" />
+                                                    )}
+                                                </td>
+                                            )}
                                         </tr>
                                     );
                                 })

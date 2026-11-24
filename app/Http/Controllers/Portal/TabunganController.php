@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Portal;
 
 use App\Http\Controllers\Controller;
+use App\Models\PengajuanTransaksiTabungan;
+use App\Models\RekeningTabungan;
 use App\Models\SettingBungaTabungan;
 use App\Models\SettingTabungan;
 use App\Services\Security\PinSecurityService;
@@ -33,7 +35,7 @@ class TabunganController extends Controller
         $bungaAktif = SettingBungaTabungan::persentaseAktif();
 
         $rekeningAktif = $anggota->rekeningTabungan()->where('status', 'aktif')->latest('id')->first();
-        $rekeningDiajukan = $anggota->rekeningTabungan()->where('status', 'diajukan')->latest('id')->first();
+        $rekeningDiajukan = $anggota->rekeningTabungan()->whereIn('status', RekeningTabungan::STATUS_MENUNGGU)->latest('id')->first();
         $rekeningTerakhir = $rekeningAktif
             ?? $rekeningDiajukan
             ?? $anggota->rekeningTabungan()->latest('id')->first();
@@ -59,8 +61,9 @@ class TabunganController extends Controller
 
             $pengajuanList = $rekeningAktif->pengajuanTransaksi()
                 ->where(function ($q) {
-                    $q->where('status', 'menunggu')
-                        ->orWhere(fn ($qq) => $qq->where('status', 'ditolak')->where('updated_at', '>=', now()->subDays(30)));
+                    $q->whereIn('status', PengajuanTransaksiTabungan::STATUS_MENUNGGU)
+                        ->orWhere(fn ($qq) => $qq->where('status', 'ditolak')->where('updated_at', '>=', now()->subDays(30)))
+                        ->orWhere(fn ($qq) => $qq->where('status', 'disetujui')->whereNotNull('bukti_pencairan_path')->where('updated_at', '>=', now()->subDays(30)));
                 })
                 ->latest('id')
                 ->limit(10)
@@ -73,10 +76,17 @@ class TabunganController extends Controller
                     'tanggal_transaksi' => $p->tanggal_transaksi?->format('d M Y'),
                     'status' => $p->status,
                     'catatan_anggota' => $p->catatan_anggota,
+                    'catatan_admin' => $p->catatan_admin,
+                    'catatan_bendahara' => $p->catatan_bendahara,
+                    'catatan_ketua' => $p->catatan_ketua,
+                    'catatan_pencairan' => $p->catatan_pencairan,
                     'catatan_pengurus' => $p->catatan_pengurus,
+                    'tanggal_pencairan' => $p->tanggal_pencairan?->format('d M Y'),
                     'rekening_tujuan' => $p->rekening_tujuan_snapshot,
                     'ada_bukti' => (bool) $p->bukti_path,
                     'bukti_url' => $p->bukti_path ? route('tabungan.bukti.pengajuan', ['pengajuan' => $p->id, 'tipe' => 'setor']) : null,
+                    'ada_bukti_pencairan' => (bool) $p->bukti_pencairan_path,
+                    'bukti_pencairan_url' => $p->bukti_pencairan_path ? route('tabungan.bukti.pengajuan', ['pengajuan' => $p->id, 'tipe' => 'pencairan']) : null,
                     'created_at' => $p->created_at?->format('d M Y H:i'),
                 ]);
 
@@ -131,6 +141,8 @@ class TabunganController extends Controller
             ->orderBy('id')
             ->get(['id', 'nama_bank', 'no_rekening', 'atas_nama', 'is_default']);
 
+        $masaTungguBulan = (int) ($setting->masa_tunggu_tarik_bulan ?? 12);
+
         return Inertia::render('Portal/Tabungan/Index', [
             'rekening' => $rekeningTerakhir ? [
                 'id' => $rekeningTerakhir->id,
@@ -142,6 +154,14 @@ class TabunganController extends Controller
                 'tanggal_buka' => $rekeningTerakhir->tanggal_buka?->format('d M Y'),
                 'tanggal_tutup' => $rekeningTerakhir->tanggal_tutup?->format('d M Y'),
                 'catatan_pengurus' => $rekeningTerakhir->catatan_pengurus,
+                'catatan_admin' => $rekeningTerakhir->catatan_admin,
+                'catatan_bendahara' => $rekeningTerakhir->catatan_bendahara,
+                'catatan_ketua' => $rekeningTerakhir->catatan_ketua,
+                'disetujui_admin_pada' => $rekeningTerakhir->disetujui_admin_pada?->format('d M Y H:i'),
+                'disetujui_bendahara_pada' => $rekeningTerakhir->disetujui_bendahara_pada?->format('d M Y H:i'),
+                'bisa_tarik' => $rekeningTerakhir->bisaTarik(now(), $masaTungguBulan),
+                'tanggal_bisa_tarik' => $rekeningTerakhir->tanggalBisaTarik($masaTungguBulan)?->locale('id')->translatedFormat('d M Y'),
+                'sisa_hari_kunci_tarik' => $rekeningTerakhir->sisaHariKunciTarik(now(), $masaTungguBulan),
             ] : null,
             'setting' => [
                 'suku_bunga_aktif' => $bungaAktif,
@@ -150,6 +170,7 @@ class TabunganController extends Controller
                 'min_setor' => (float) $setting->min_setor,
                 'saldo_minimal' => (float) $setting->saldo_minimal,
                 'min_tarik' => (float) $setting->min_tarik,
+                'masa_tunggu_tarik_bulan' => $masaTungguBulan,
                 'bank_tujuan_nama' => $setting->bank_tujuan_nama,
                 'bank_tujuan_rekening' => $setting->bank_tujuan_rekening,
                 'bank_tujuan_atas_nama' => $setting->bank_tujuan_atas_nama,

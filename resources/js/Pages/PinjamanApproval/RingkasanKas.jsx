@@ -6,6 +6,7 @@ const PIPELINE_STAGES = [
     { key: 'admin', label: 'Sekretaris' },
     { key: 'bendahara', label: 'Bendahara' },
     { key: 'ketua', label: 'Ketua' },
+    { key: 'pencairan', label: 'Pencairan' },
 ];
 
 /**

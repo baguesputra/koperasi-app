@@ -163,7 +163,7 @@ class NotificationController extends Controller
         $rows = [];
 
         $berjalan = Pinjaman::where('anggota_id', $anggota->id)
-            ->whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara'])
+            ->whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara', 'approved_ketua'])
             ->latest('tanggal_pengajuan')
             ->get(['id', 'status', 'nominal', 'tanggal_pengajuan']);
 
@@ -246,6 +246,12 @@ class NotificationController extends Controller
             $antrean['limit Ketua'] = [
                 'jumlah' => PengajuanLimit::where('status', 'approved_bendahara')->count(),
                 'ref' => 'limit',
+            ];
+        }
+        if ($boleh('pinjaman.cairkan')) {
+            $antrean['pencairan pinjaman'] = [
+                'jumlah' => Pinjaman::where('status', 'approved_ketua')->count(),
+                'ref' => 'pencairan',
             ];
         }
         if ($boleh('aktivasi.approve-ketua')) {

@@ -35,7 +35,7 @@ class PinjamanController extends Controller
             ->map(fn ($p) => $this->format->format($p, withLimit: false));
 
         $riwayat = Pinjaman::with('anggota')
-            ->whereIn('status', ['aktif', 'lunas', 'ditolak'])
+            ->whereIn('status', ['approved_ketua', 'aktif', 'lunas', 'ditolak', 'dihapusbukukan'])
             ->whereNotNull('catatan_ketua')
             ->latest('updated_at')
             ->take(20)
@@ -72,7 +72,7 @@ class PinjamanController extends Controller
         }
 
         return redirect()->route('ketua.pinjaman.index')
-            ->with('status', 'Pinjaman disetujui dan dana telah dicairkan.');
+            ->with('status', 'Pinjaman disetujui dan diteruskan ke Bendahara untuk pencairan akhir bulan.');
     }
 
     public function preview(Pinjaman $pinjaman)
@@ -109,7 +109,7 @@ class PinjamanController extends Controller
             'total_bunga' => array_sum(array_column($jadwal, 'nominal_bunga')),
             'total_bayar' => array_sum(array_column($jadwal, 'total_bayar')),
             'cicilan_pertama' => $jadwal[0] ?? null,
-            'cicilan_terakhir' => !empty($jadwal) ? end($jadwal) : null,
+            'cicilan_terakhir' => ! empty($jadwal) ? end($jadwal) : null,
             'cicilan_rata_rata' => count($jadwal) > 0 ? round(array_sum(array_column($jadwal, 'total_bayar')) / count($jadwal), 2) : 0,
             'kas_saldo' => $saldoBank,
             'kas_sisa' => $saldoBank - $nominal,

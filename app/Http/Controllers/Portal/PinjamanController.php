@@ -263,7 +263,7 @@ class PinjamanController extends Controller
     private function hasLoanApplicationInProgress(int $anggotaId): bool
     {
         return Pinjaman::where('anggota_id', $anggotaId)
-            ->whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara'])
+            ->whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara', 'approved_ketua'])
             ->exists();
     }
 }

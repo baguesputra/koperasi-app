@@ -9,10 +9,13 @@ import Nominal, { usePrivasiNominal } from '@/Components/ui/Nominal';
 
 const statusLabel = {
     diajukan: 'Diajukan',
+    approved_admin: 'Diteruskan Sekretaris',
     approved_bendahara: 'Disetujui Bendahara',
+    approved_ketua: 'Disetujui (Menunggu Cair)',
     aktif: 'Aktif',
     lunas: 'Lunas',
     ditolak: 'Ditolak',
+    dihapusbukukan: 'Dihapusbukukan',
 };
 
 const statusStyle = {
@@ -20,7 +23,10 @@ const statusStyle = {
     lunas: 'bg-brand-green-light text-brand-green-dark',
     ditolak: 'bg-red-50 text-red-600',
     diajukan: 'bg-amber-50 text-amber-700',
+    approved_admin: 'bg-sky-50 text-sky-700',
     approved_bendahara: 'bg-amber-50 text-amber-700',
+    approved_ketua: 'bg-emerald-50 text-emerald-700',
+    dihapusbukukan: 'bg-rose-50 text-rose-700',
 };
 
 const statusIcon = {
@@ -28,7 +34,10 @@ const statusIcon = {
     lunas: CheckCircle2,
     ditolak: XCircle,
     diajukan: Clock,
+    approved_admin: Clock,
     approved_bendahara: Clock,
+    approved_ketua: CheckCircle2,
+    dihapusbukukan: XCircle,
 };
 
 const jenisSimpananLabel = { pokok: 'Simpanan Pokok', wajib: 'Simpanan Wajib', dana_sosial: 'Dana Sosial' };
@@ -237,6 +246,34 @@ function RiwayatPinjaman({ pinjaman, nominalTampil }) {
                                         <p className="text-xs text-slate-400 mb-0.5">Rekening Tujuan</p>
                                         <p className="text-sm font-semibold text-slate-700">{p.rekening.bank} &bull; {p.rekening.no_rekening}</p>
                                         <p className="text-xs text-slate-400">a.n. {p.rekening.atas_nama}</p>
+                                    </div>
+                                )}
+
+                                {p.status === 'approved_ketua' && (
+                                    <div className="p-4 bg-emerald-50 border-b border-emerald-100">
+                                        <p className="text-sm font-semibold text-emerald-800 mb-0.5">Pinjaman Disetujui — Menunggu Pencairan Akhir Bulan</p>
+                                        <p className="text-xs sm:text-sm text-emerald-700">
+                                            Pengajuan pinjaman Anda telah disetujui Ketua dan dijadwalkan cair pada akhir bulan oleh Bendahara. Notifikasi WhatsApp beserta bukti transfer akan dikirimkan setelah dana ditransfer.
+                                        </p>
+                                    </div>
+                                )}
+
+                                {(p.tanggal_pencairan || p.bukti_pencairan_url) && (
+                                    <div className="p-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-slate-50/50">
+                                        <div>
+                                            <p className="text-xs text-slate-400">Tanggal Pencairan</p>
+                                            <p className="text-sm font-semibold text-slate-700">{p.tanggal_pencairan || '-'}</p>
+                                        </div>
+                                        {p.bukti_pencairan_url && (
+                                            <a
+                                                href={p.bukti_pencairan_url}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-navy text-white text-xs font-semibold hover:opacity-95"
+                                            >
+                                                Lihat Bukti Transfer
+                                            </a>
+                                        )}
                                     </div>
                                 )}
 

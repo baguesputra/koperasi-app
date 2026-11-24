@@ -76,7 +76,7 @@ class PinjamanAdminTest extends TestCase
         $this->assertSame('Dokumen tidak memenuhi syarat.', $pinjaman->catatan_admin);
 
         $timeline = $pinjaman->getVerificationTimeline();
-        $this->assertCount(4, $timeline);
+        $this->assertCount(5, $timeline);
         $this->assertSame('Verifikasi Sekretaris', $timeline[1]['label']);
         $this->assertSame('rejected', $timeline[1]['status']);
     }
