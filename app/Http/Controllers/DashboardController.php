@@ -92,11 +92,15 @@ class DashboardController extends Controller
             + PengajuanTransaksiTabungan::whereIn('jenis', PengajuanTransaksiTabungan::JENIS_PENARIKAN)
                 ->where('status', 'menunggu')
                 ->count();
-        $menungguTabungan = RekeningTabungan::where('status', 'approved_admin')->count()
+        $tabunganBendaharaMenunggu = RekeningTabungan::where('status', 'approved_admin')->count()
             + PengajuanTransaksiTabungan::where('jenis', 'setor')->where('status', 'menunggu')->count()
             + PengajuanTransaksiTabungan::whereIn('jenis', PengajuanTransaksiTabungan::JENIS_PENARIKAN)
-                ->whereIn('status', ['approved_admin', 'approved_ketua'])
+                ->where('status', 'approved_admin')
                 ->count();
+        $pencairanTabunganMenunggu = PengajuanTransaksiTabungan::whereIn('jenis', PengajuanTransaksiTabungan::JENIS_PENARIKAN)
+            ->where('status', 'approved_ketua')
+            ->count();
+        $menungguTabungan = $tabunganBendaharaMenunggu + $pencairanTabunganMenunggu;
         $menungguTabunganKetua = RekeningTabungan::where('status', 'approved_bendahara')->count()
             + PengajuanTransaksiTabungan::whereIn('jenis', PengajuanTransaksiTabungan::JENIS_PENARIKAN)
                 ->where('status', 'approved_bendahara')
@@ -362,6 +366,8 @@ class DashboardController extends Controller
                 'aktivasi_anggota' => $menungguAktivasi,
                 'tabungan_admin_menunggu' => $menungguTabunganAdmin,
                 'tabungan_menunggu' => $menungguTabungan,
+                'tabungan_bendahara_menunggu' => $tabunganBendaharaMenunggu,
+                'pencairan_tabungan_menunggu' => $pencairanTabunganMenunggu,
                 'tabungan_ketua_menunggu' => $menungguTabunganKetua,
                 'anggota_belum_simpanan' => $anggotaBelumSimpananBulanIni,
                 'angsuran_jatuh_tempo' => $angsuranJatuhTempoBulanIni,

@@ -53,7 +53,7 @@ class PercepatanController extends Controller
 
         $this->service->approveKetua($percepatan, $request->catatan, $request->bulan_berlaku);
 
-        return redirect()->route('ketua.percepatan.index')->with('status', 'Pengajuan disetujui dan diterapkan.');
+        return $this->redirectSetelahAksi($request, 'ketua.percepatan.index', 'Pengajuan disetujui dan diterapkan.');
     }
 
     public function reject(Request $request, PengajuanPercepatan $percepatan)
@@ -62,7 +62,7 @@ class PercepatanController extends Controller
 
         $this->service->rejectKetua($percepatan, $request->catatan);
 
-        return redirect()->route('ketua.percepatan.index')->with('status', 'Pengajuan ditolak.');
+        return $this->redirectSetelahAksi($request, 'ketua.percepatan.index', 'Pengajuan ditolak.');
     }
 
     private function tipeLabel($tipe)

@@ -99,7 +99,10 @@ class PencairanPinjamanController extends Controller
             return back()->withErrors(['keputusan' => $e->getMessage()]);
         }
 
-        return redirect()->route('bendahara.pencairan-pinjaman.index')
-            ->with('status', "Pinjaman #{$pinjaman->id} berhasil dicairkan, saldo kas diperbarui, dan notifikasi WA + bukti transfer telah dikirim.");
+        return $this->redirectSetelahAksi(
+            $request,
+            'bendahara.pencairan-pinjaman.index',
+            "Pinjaman #{$pinjaman->id} berhasil dicairkan, saldo kas diperbarui, dan notifikasi WA + bukti transfer telah dikirim."
+        );
     }
 }

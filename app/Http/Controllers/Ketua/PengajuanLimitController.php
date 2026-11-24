@@ -7,6 +7,7 @@ use App\Http\Requests\KeputusanLimitRequest;
 use App\Models\PengajuanLimit;
 use App\Models\Pinjaman;
 use App\Services\Pinjaman\PengajuanLimitService;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 use RuntimeException;
@@ -54,8 +55,7 @@ class PengajuanLimitController extends Controller
             return back()->withErrors(['keputusan' => $e->getMessage()]);
         }
 
-        return redirect()->route('ketua.pengajuan-limit.index')
-            ->with('status', 'Pengajuan limit disetujui.');
+        return $this->redirectSetelahAksi($request, 'ketua.pengajuan-limit.index', 'Pengajuan limit disetujui.');
     }
 
     public function reject(KeputusanLimitRequest $request, PengajuanLimit $pengajuanLimit)
@@ -66,8 +66,7 @@ class PengajuanLimitController extends Controller
             return back()->withErrors(['keputusan' => $e->getMessage()]);
         }
 
-        return redirect()->route('ketua.pengajuan-limit.index')
-            ->with('status', 'Pengajuan limit ditolak.');
+        return $this->redirectSetelahAksi($request, 'ketua.pengajuan-limit.index', 'Pengajuan limit ditolak.');
     }
 
     /**
@@ -75,7 +74,7 @@ class PengajuanLimitController extends Controller
      * Dipakai index (banyak baris) agar formatItem tidak query per baris.
      * Return: ['aktif' => [anggota_id => Collection], 'pending' => [anggota_id => Pinjaman]]
      */
-    public static function preloadPinjaman(\Illuminate\Support\Collection $pengajuan): array
+    public static function preloadPinjaman(Collection $pengajuan): array
     {
         $anggotaIds = $pengajuan->pluck('anggota_id')->unique()->values();
         if ($anggotaIds->isEmpty()) {

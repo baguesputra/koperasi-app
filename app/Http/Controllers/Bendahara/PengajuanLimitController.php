@@ -55,8 +55,11 @@ class PengajuanLimitController extends Controller
             return back()->withErrors(['keputusan' => $e->getMessage()]);
         }
 
-        return redirect()->route('bendahara.pengajuan-limit.index')
-            ->with('status', 'Pengajuan limit disetujui dan diteruskan ke Ketua.');
+        return $this->redirectSetelahAksi(
+            $request,
+            'bendahara.pengajuan-limit.index',
+            'Pengajuan limit disetujui dan diteruskan ke Ketua.'
+        );
     }
 
     public function reject(KeputusanLimitRequest $request, PengajuanLimit $pengajuanLimit)
@@ -67,7 +70,6 @@ class PengajuanLimitController extends Controller
             return back()->withErrors(['keputusan' => $e->getMessage()]);
         }
 
-        return redirect()->route('bendahara.pengajuan-limit.index')
-            ->with('status', 'Pengajuan limit ditolak.');
+        return $this->redirectSetelahAksi($request, 'bendahara.pengajuan-limit.index', 'Pengajuan limit ditolak.');
     }
 }

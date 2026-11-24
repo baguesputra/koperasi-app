@@ -48,14 +48,14 @@ class PercepatanController extends Controller
     {
         $this->service->approveBendahara($percepatan, $request->catatan);
 
-        return redirect()->route('bendahara.percepatan.index')->with('status', 'Pengajuan disetujui, diteruskan ke Ketua.');
+        return $this->redirectSetelahAksi($request, 'bendahara.percepatan.index', 'Pengajuan disetujui, diteruskan ke Ketua.');
     }
 
     public function reject(KeputusanPinjamanRequest $request, PengajuanPercepatan $percepatan)
     {
         $this->service->rejectBendahara($percepatan, $request->catatan);
 
-        return redirect()->route('bendahara.percepatan.index')->with('status', 'Pengajuan ditolak.');
+        return $this->redirectSetelahAksi($request, 'bendahara.percepatan.index', 'Pengajuan ditolak.');
     }
 
     private function tipeLabel($tipe)

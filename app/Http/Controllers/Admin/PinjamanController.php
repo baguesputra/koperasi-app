@@ -51,8 +51,11 @@ class PinjamanController extends Controller
             return back()->withErrors(['keputusan' => $e->getMessage()]);
         }
 
-        return redirect()->route('admin.pinjaman.index')
-            ->with('status', 'Pengajuan pinjaman diteruskan ke Bendahara.');
+        return $this->redirectSetelahAksi(
+            $request,
+            'admin.pinjaman.index',
+            'Pengajuan pinjaman diteruskan ke Bendahara.'
+        );
     }
 
     public function reject(KeputusanPinjamanRequest $request, Pinjaman $pinjaman)
@@ -63,7 +66,10 @@ class PinjamanController extends Controller
             return back()->withErrors(['keputusan' => $e->getMessage()]);
         }
 
-        return redirect()->route('admin.pinjaman.index')
-            ->with('status', 'Pengajuan pinjaman ditolak.');
+        return $this->redirectSetelahAksi(
+            $request,
+            'admin.pinjaman.index',
+            'Pengajuan pinjaman ditolak.'
+        );
     }
 }

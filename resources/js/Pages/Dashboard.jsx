@@ -111,14 +111,14 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
         {
             label: 'Pinjaman', icon: ClipboardCheck,
             aksi: [
-                { label: 'Verifikasi Awal', value: actionable.menunggu_tinjauan_admin ?? 0, href: route('admin.pinjaman.index'), permission: 'pinjaman.tinjau-admin' },
-                { label: 'Verifikasi', value: actionable.menunggu_tinjauan_bendahara ?? 0, href: route('bendahara.pinjaman.index'), permission: 'pinjaman.tinjau-bendahara' },
-                { label: 'Persetujuan', value: actionable.menunggu_approval_ketua ?? 0, href: route('ketua.pinjaman.index'), permission: 'pinjaman.approve-ketua' },
-                { label: 'Pencairan Pinjaman', value: actionable.menunggu_pencairan_pinjaman ?? 0, href: route('bendahara.pencairan-pinjaman.index'), permission: 'pinjaman.cairkan' },
+                { label: 'Verifikasi Awal', value: actionable.menunggu_tinjauan_admin ?? 0, href: route('persetujuan.index', { kategori: 'pinjaman', tahap: 'admin' }), permission: 'pinjaman.tinjau-admin' },
+                { label: 'Verifikasi', value: actionable.menunggu_tinjauan_bendahara ?? 0, href: route('persetujuan.index', { kategori: 'pinjaman', tahap: 'bendahara' }), permission: 'pinjaman.tinjau-bendahara' },
+                { label: 'Persetujuan', value: actionable.menunggu_approval_ketua ?? 0, href: route('persetujuan.index', { kategori: 'pinjaman', tahap: 'ketua' }), permission: 'pinjaman.approve-ketua' },
+                { label: 'Pencairan Pinjaman', value: actionable.menunggu_pencairan_pinjaman ?? 0, href: route('persetujuan.index', { kategori: 'pencairan', sub: 'pinjaman' }), permission: 'pinjaman.cairkan' },
                 ...(bisaApprovePenghapusan ? [{
                     label: 'Penghapusan Pinjaman',
                     value: actionable.penghapusan_pinjaman_menunggu ?? 0,
-                    href: route('pengurus.penghapusan-pinjaman.index'),
+                    href: route('persetujuan.index', { kategori: 'penghapusan' }),
                     permission: 'penghapusan-pinjaman.lihat',
                 }] : []),
             ],
@@ -126,25 +126,26 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
         {
             label: 'Perubahan Tenor', icon: FileClock,
             aksi: [
-                { label: 'Verifikasi', value: (actionable.perubahan_tenor_bendahara ?? actionable.perubahan_tenor) ?? 0, href: route('bendahara.percepatan.index'), permission: 'pinjaman.tinjau-bendahara' },
-                { label: 'Persetujuan', value: (actionable.perubahan_tenor_ketua ?? actionable.perubahan_tenor) ?? 0, href: route('ketua.percepatan.index'), permission: 'pinjaman.approve-ketua' },
+                { label: 'Verifikasi', value: (actionable.perubahan_tenor_bendahara ?? actionable.perubahan_tenor) ?? 0, href: route('persetujuan.index', { kategori: 'percepatan', tahap: 'bendahara' }), permission: 'pinjaman.tinjau-bendahara' },
+                { label: 'Persetujuan', value: (actionable.perubahan_tenor_ketua ?? actionable.perubahan_tenor) ?? 0, href: route('persetujuan.index', { kategori: 'percepatan', tahap: 'ketua' }), permission: 'pinjaman.approve-ketua' },
             ],
         },
         {
             label: 'Kenaikan Limit', icon: Gauge,
             aksi: [
-                { label: 'Verifikasi', value: actionable.pengajuan_limit_bendahara ?? 0, href: route('bendahara.pengajuan-limit.index'), permission: 'limit.tinjau-bendahara' },
-                { label: 'Persetujuan', value: actionable.pengajuan_limit ?? 0, href: route('ketua.pengajuan-limit.index'), permission: 'limit.approve-ketua' },
+                { label: 'Verifikasi', value: actionable.pengajuan_limit_bendahara ?? 0, href: route('persetujuan.index', { kategori: 'limit', tahap: 'bendahara' }), permission: 'limit.tinjau-bendahara' },
+                { label: 'Persetujuan', value: actionable.pengajuan_limit ?? 0, href: route('persetujuan.index', { kategori: 'limit', tahap: 'ketua' }), permission: 'limit.approve-ketua' },
             ],
         },
         {
             label: 'Keanggotaan', icon: Users,
             aksi: [
-                { label: 'Aktivasi', value: actionable.aktivasi_anggota ?? 0, href: route('ketua.aktivasi.index'), permission: 'aktivasi.approve-ketua' },
+                { label: 'Aktivasi', value: actionable.aktivasi_anggota ?? 0, href: route('persetujuan.index', { kategori: 'aktivasi' }), permission: 'aktivasi.approve-ketua' },
                 { label: 'Simpanan Wajib', value: actionable.anggota_belum_simpanan ?? 0, href: route('bendahara.simpanan.index'), permission: 'simpanan.konfirmasi' },
-                { label: 'Verifikasi Tabungan', value: actionable.tabungan_admin_menunggu ?? 0, href: route('admin.tabungan.index'), permission: 'tabungan.tinjau-admin' },
-                { label: 'Proses Tabungan', value: actionable.tabungan_menunggu ?? 0, href: route('bendahara.tabungan.index'), permission: 'tabungan.kelola' },
-                { label: 'Setujui Tabungan', value: actionable.tabungan_ketua_menunggu ?? 0, href: route('ketua.tabungan.index'), permission: 'tabungan.approve-ketua' },
+                { label: 'Verifikasi Tabungan', value: actionable.tabungan_admin_menunggu ?? 0, href: route('persetujuan.index', { kategori: 'tabungan', tahap: 'admin' }), permission: 'tabungan.tinjau-admin' },
+                { label: 'Tinjau Tabungan', value: actionable.tabungan_bendahara_menunggu ?? actionable.tabungan_menunggu ?? 0, href: route('persetujuan.index', { kategori: 'tabungan', tahap: 'bendahara' }), permission: 'tabungan.kelola' },
+                { label: 'Pencairan Tabungan', value: actionable.pencairan_tabungan_menunggu ?? 0, href: route('persetujuan.index', { kategori: 'pencairan', sub: 'tabungan' }), permission: 'tabungan.kelola' },
+                { label: 'Setujui Tabungan', value: actionable.tabungan_ketua_menunggu ?? 0, href: route('persetujuan.index', { kategori: 'tabungan', tahap: 'ketua' }), permission: 'tabungan.approve-ketua' },
             ],
         },
     ]

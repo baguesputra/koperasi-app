@@ -2,14 +2,8 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\PengajuanAktivasi;
-use App\Models\PengajuanLimit;
-use App\Models\PengajuanPercepatan;
-use App\Models\PengajuanTransaksiTabungan;
-use App\Models\Pinjaman;
-use App\Models\RekeningTabungan;
 use App\Models\SettingChipNominal;
-use App\Services\Pinjaman\PenghapusanPinjamanService;
+use App\Services\Persetujuan\PersetujuanHubService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Middleware;
@@ -81,67 +75,7 @@ class HandleInertiaRequests extends Middleware
                     return [];
                 }
 
-                $notifications = [];
-
-                if ($permissions->contains('pinjaman.tinjau-admin')) {
-                    $notifications['menunggu_tinjauan_admin'] = Pinjaman::where('status', 'diajukan')->count();
-                }
-
-                if ($permissions->contains('pinjaman.tinjau-bendahara')) {
-                    $notifications['menunggu_tinjauan_bendahara'] = Pinjaman::where('status', 'approved_admin')->count();
-                    $notifications['menunggu_perubahan_tenor_bendahara'] = PengajuanPercepatan::where('status', 'diajukan')->count();
-                }
-
-                if ($permissions->contains('limit.tinjau-bendahara')) {
-                    $notifications['menunggu_pengajuan_limit_bendahara'] = PengajuanLimit::where('status', 'diajukan')->count();
-                }
-
-                if ($permissions->contains('pinjaman.approve-ketua')) {
-                    $notifications['menunggu_approval_ketua'] = Pinjaman::where('status', 'approved_bendahara')
-                        ->where('cair_oleh_bendahara', false)
-                        ->count();
-                    $notifications['menunggu_perubahan_tenor_ketua'] = PengajuanPercepatan::where('status', 'approved_bendahara')->count();
-                }
-
-                if ($permissions->contains('pinjaman.cairkan')) {
-                    $notifications['menunggu_pencairan_pinjaman'] = Pinjaman::where('status', 'approved_ketua')->count();
-                }
-
-                if ($permissions->contains('limit.approve-ketua')) {
-                    $notifications['menunggu_pengajuan_limit'] = PengajuanLimit::where('status', 'approved_bendahara')->count();
-                }
-
-                if ($permissions->contains('aktivasi.approve-ketua')) {
-                    $notifications['menunggu_aktivasi'] = PengajuanAktivasi::where('status', 'diajukan')->count();
-                }
-
-                if ($permissions->contains('penghapusan-pinjaman.lihat')) {
-                    $notifications['menunggu_penghapusan_pinjaman'] = app(PenghapusanPinjamanService::class)->hitungAntreanUntukUser($user);
-                }
-
-                if ($permissions->contains('tabungan.tinjau-admin')) {
-                    $notifications['menunggu_tabungan_admin'] = RekeningTabungan::where('status', 'diajukan')->count()
-                        + PengajuanTransaksiTabungan::whereIn('jenis', PengajuanTransaksiTabungan::JENIS_PENARIKAN)
-                            ->where('status', 'menunggu')
-                            ->count();
-                }
-
-                if ($permissions->contains('tabungan.kelola') || $permissions->contains('tabungan.tinjau-bendahara')) {
-                    $notifications['menunggu_tabungan'] = RekeningTabungan::where('status', 'approved_admin')->count()
-                        + PengajuanTransaksiTabungan::where('jenis', 'setor')->where('status', 'menunggu')->count()
-                        + PengajuanTransaksiTabungan::whereIn('jenis', PengajuanTransaksiTabungan::JENIS_PENARIKAN)
-                            ->whereIn('status', ['approved_admin', 'approved_ketua'])
-                            ->count();
-                }
-
-                if ($permissions->contains('tabungan.approve-ketua')) {
-                    $notifications['menunggu_tabungan_ketua'] = RekeningTabungan::where('status', 'approved_bendahara')->count()
-                        + PengajuanTransaksiTabungan::whereIn('jenis', PengajuanTransaksiTabungan::JENIS_PENARIKAN)
-                            ->where('status', 'approved_bendahara')
-                            ->count();
-                }
-
-                return $notifications;
+                return app(PersetujuanHubService::class)->ringkasanNotifikasi($user, $permissions);
             },
         ];
     }

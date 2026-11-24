@@ -82,8 +82,7 @@ class PinjamanController extends Controller
             ? 'Pengajuan pinjaman disetujui dan masuk ke daftar Pencairan Pinjaman akhir bulan.'
             : 'Pengajuan pinjaman disetujui dan diteruskan ke Ketua Koperasi.';
 
-        return redirect()->route('bendahara.pinjaman.index')
-            ->with('status', $pesan);
+        return $this->redirectSetelahAksi($request, 'bendahara.pinjaman.index', $pesan);
     }
 
     public function reject(KeputusanPinjamanNominalRequest $request, Pinjaman $pinjaman)
@@ -94,8 +93,7 @@ class PinjamanController extends Controller
             return back()->withErrors(['keputusan' => $e->getMessage()]);
         }
 
-        return redirect()->route('bendahara.pinjaman.index')
-            ->with('status', 'Pengajuan pinjaman ditolak.');
+        return $this->redirectSetelahAksi($request, 'bendahara.pinjaman.index', 'Pengajuan pinjaman ditolak.');
     }
 
     public function preview(Pinjaman $pinjaman)

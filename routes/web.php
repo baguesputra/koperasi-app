@@ -28,6 +28,7 @@ use App\Http\Controllers\Pengaturan\PenggunaController;
 use App\Http\Controllers\PengaturanController;
 use App\Http\Controllers\PengeluaranController;
 use App\Http\Controllers\Pengurus\PenghapusanPinjamanController;
+use App\Http\Controllers\PersetujuanController;
 use App\Http\Controllers\PinjamanBuktiController;
 use App\Http\Controllers\PinjamanController;
 use App\Http\Controllers\Portal\AktivasiController as PortalAktivasiController;
@@ -46,6 +47,7 @@ use App\Http\Controllers\SimpananController;
 use App\Http\Controllers\TabunganBuktiController;
 use App\Http\Controllers\TabunganController;
 use App\Http\Controllers\VerifikasiController;
+use App\Services\Persetujuan\PersetujuanHubService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -131,6 +133,10 @@ Route::middleware(['auth', 'permission:portal.akses'])->prefix('portal')->name('
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
+
+Route::get('/persetujuan', [PersetujuanController::class, 'index'])
+    ->middleware(['auth', 'permission:'.implode('|', PersetujuanHubService::ALL_PERMISSIONS)])
+    ->name('persetujuan.index');
 
 // ==========================================
 // LIHAT DATA (Admin/Bendahara/Ketua)

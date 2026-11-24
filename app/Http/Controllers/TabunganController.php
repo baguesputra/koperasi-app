@@ -75,6 +75,47 @@ class TabunganController extends Controller
         $tahunIni = (string) now()->year;
         $totalBungaTahunIni = (float) TabunganBungaPeriode::where('periode', 'like', "{$tahunIni}-%")->sum('bunga_bersih');
 
+        $bisaKelola = $request->user()->can('tabungan.kelola');
+        $tabAktif = (string) $request->input('tab', 'rekening');
+        if (! $bisaKelola || ! in_array($tabAktif, ['rekening', 'bunga'], true)) {
+            $tabAktif = 'rekening';
+        }
+
+        $periodeBunga = (string) $request->input('periode', now()->format('Y-m'));
+        if (! preg_match('/^\d{4}-\d{2}$/', $periodeBunga)) {
+            $periodeBunga = now()->format('Y-m');
+        }
+
+        $rekeningAktifOptions = collect();
+        $settingData = null;
+        $previewBunga = null;
+
+        if ($bisaKelola) {
+            $rekeningAktifOptions = RekeningTabungan::with('anggota:id,nama,no_karyawan,cabang')
+                ->where('status', 'aktif')
+                ->orderBy('no_rekening')
+                ->get(['id', 'anggota_id', 'no_rekening', 'saldo'])
+                ->map(fn ($r) => [
+                    'id' => $r->id,
+                    'no_rekening' => $r->no_rekening,
+                    'saldo' => (float) $r->saldo,
+                    'nama' => $r->anggota?->nama ?? '-',
+                    'no_karyawan' => $r->anggota?->no_karyawan ?? '-',
+                    'cabang' => $r->anggota?->cabang ?? '-',
+                ]);
+
+            $settingModel = SettingTabungan::current();
+            $settingData = [
+                'min_setor' => (float) $settingModel->min_setor,
+                'saldo_minimal' => (float) $settingModel->saldo_minimal,
+                'suku_bunga_aktif' => SettingBungaTabungan::persentaseAktif(),
+            ];
+
+            if ($tabAktif === 'bunga') {
+                $previewBunga = $this->bungaService->previewPostingPeriode($periodeBunga);
+            }
+        }
+
         return Inertia::render('Tabungan/Index', [
             'rekening' => $rekening,
             'filters' => [
@@ -90,6 +131,12 @@ class TabunganController extends Controller
                 'total_bunga_tahun_ini' => $totalBungaTahunIni,
                 'suku_bunga_aktif' => SettingBungaTabungan::persentaseAktif(),
             ],
+            'bisaKelola' => $bisaKelola,
+            'tabAktif' => $tabAktif,
+            'periodeBunga' => $periodeBunga,
+            'previewBunga' => $previewBunga,
+            'rekeningAktifOptions' => $rekeningAktifOptions,
+            'setting' => $settingData,
         ]);
     }
 

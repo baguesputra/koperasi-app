@@ -54,8 +54,7 @@ class AktivasiController extends Controller
             return back()->withErrors(['keputusan' => $e->getMessage()]);
         }
 
-        return redirect()->route('ketua.aktivasi.index')
-            ->with('status', 'Aktivasi keanggotaan disetujui.');
+        return $this->redirectSetelahAksi($request, 'ketua.aktivasi.index', 'Aktivasi keanggotaan disetujui.');
     }
 
     public function reject(KeputusanPinjamanRequest $request, PengajuanAktivasi $aktivasi)
@@ -66,8 +65,7 @@ class AktivasiController extends Controller
             return back()->withErrors(['keputusan' => $e->getMessage()]);
         }
 
-        return redirect()->route('ketua.aktivasi.index')
-            ->with('status', 'Pengajuan aktivasi ditolak.');
+        return $this->redirectSetelahAksi($request, 'ketua.aktivasi.index', 'Pengajuan aktivasi ditolak.');
     }
 
     public static function formatItem(): \Closure

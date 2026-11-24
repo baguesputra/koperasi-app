@@ -4,15 +4,46 @@ import { usePrivacy } from '@/Contexts/PrivacyContext';
 import CountBadge, { CountDot } from '@/Components/ui/CountBadge';
 import PrivacyIcon from '@/Components/ui/PrivacyIcon';
 import {
-    LayoutDashboard, Users, UserCheck, PiggyBank, HeartHandshake,
-    BookOpenText, ArrowLeftRight, HandCoins, FileSearch, ClipboardCheck,
-    BadgeCheck, Banknote, CalendarCheck, Repeat, TrendingUp, FileX2,
-    Wallet, Percent, FileBarChart,
+    LayoutDashboard, Users, PiggyBank, HeartHandshake,
+    BookOpenText, HandCoins, ClipboardCheck,
+    CalendarCheck, Wallet, Percent, FileBarChart,
     ChevronLeft, ChevronRight, ChevronDown, Settings, LogOut,
 } from 'lucide-react';
 
-const STORAGE_KEY = 'sidebar-groups-state-v1';
+const STORAGE_KEY = 'sidebar-groups-state-v2';
 const fokusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/40';
+
+const PERSETUJUAN_PERMISSIONS = [
+    'pinjaman.tinjau-admin',
+    'pinjaman.tinjau-bendahara',
+    'pinjaman.approve-ketua',
+    'pinjaman.cairkan',
+    'tabungan.tinjau-admin',
+    'tabungan.kelola',
+    'tabungan.tinjau-bendahara',
+    'tabungan.approve-ketua',
+    'limit.tinjau-bendahara',
+    'limit.approve-ketua',
+    'aktivasi.approve-ketua',
+    'penghapusan-pinjaman.lihat',
+];
+
+const PERSETUJUAN_ACTIVE_ROUTES = [
+    'persetujuan.*',
+    'admin.pinjaman.*',
+    'bendahara.pinjaman.*',
+    'ketua.pinjaman.*',
+    'bendahara.pencairan-pinjaman.*',
+    'admin.tabungan.*',
+    'bendahara.tabungan.*',
+    'ketua.tabungan.*',
+    'bendahara.percepatan.*',
+    'ketua.percepatan.*',
+    'bendahara.pengajuan-limit.*',
+    'ketua.pengajuan-limit.*',
+    'ketua.aktivasi.*',
+    'pengurus.penghapusan-pinjaman.*',
+];
 
 const PENGATURAN_PERMISSIONS = [
     'pengaturan.kelola',
@@ -26,44 +57,32 @@ const PENGATURAN_PERMISSIONS = [
 
 const pinnedItems = [
     { label: 'Dashboard', routeName: 'dashboard', icon: LayoutDashboard, permission: null },
+    {
+        label: 'Pusat Persetujuan',
+        routeName: 'persetujuan.index',
+        icon: ClipboardCheck,
+        anyPermissions: PERSETUJUAN_PERMISSIONS,
+        activeRoutes: PERSETUJUAN_ACTIVE_ROUTES,
+    },
 ];
 
 const menuGroups = [
     {
-        id: 'keanggotaan',
-        label: 'Keanggotaan',
+        id: 'operasional-rutin',
+        label: 'Operasional Rutin',
+        items: [
+            { label: 'Konfirmasi Simpanan', routeName: 'bendahara.simpanan.index', icon: HeartHandshake, permission: 'simpanan.konfirmasi' },
+            { label: 'Konfirmasi Angsuran', routeName: 'bendahara.angsuran.index', icon: CalendarCheck, permission: 'angsuran.konfirmasi' },
+        ],
+    },
+    {
+        id: 'data-keanggotaan',
+        label: 'Data & Keanggotaan',
         items: [
             { label: 'Data Anggota', routeName: 'anggota.index', icon: Users, permission: 'anggota.lihat' },
-            { label: 'Aktivasi Anggota', routeName: 'ketua.aktivasi.index', icon: UserCheck, permission: 'aktivasi.approve-ketua' },
-        ],
-    },
-    {
-        id: 'simpanan-tabungan',
-        label: 'Simpanan & Tabungan',
-        items: [
             { label: 'Data Simpanan', routeName: 'simpanan.index', icon: PiggyBank, permission: 'simpanan.lihat' },
-            { label: 'Konfirmasi Simpanan', routeName: 'bendahara.simpanan.index', icon: HeartHandshake, permission: 'simpanan.konfirmasi' },
             { label: 'Rekening Tabungan', routeName: 'tabungan.index', icon: BookOpenText, permission: 'tabungan.lihat' },
-            { label: 'Verifikasi Tabungan', routeName: 'admin.tabungan.index', icon: FileSearch, permission: 'tabungan.tinjau-admin' },
-            { label: 'Proses Tabungan', routeName: 'bendahara.tabungan.index', icon: ArrowLeftRight, permission: 'tabungan.kelola' },
-            { label: 'Setujui Tabungan', routeName: 'ketua.tabungan.index', icon: BadgeCheck, permission: 'tabungan.approve-ketua' },
-        ],
-    },
-    {
-        id: 'pinjaman-kredit',
-        label: 'Pinjaman',
-        items: [
             { label: 'Data Pinjaman', routeName: 'pinjaman.index', icon: HandCoins, permission: 'pinjaman.lihat' },
-            { label: 'Verifikasi Awal', routeName: 'admin.pinjaman.index', icon: FileSearch, permission: 'pinjaman.tinjau-admin' },
-            { label: 'Tinjau Pinjaman', routeName: 'bendahara.pinjaman.index', icon: ClipboardCheck, permission: 'pinjaman.tinjau-bendahara' },
-            { label: 'Setujui Pinjaman', routeName: 'ketua.pinjaman.index', icon: BadgeCheck, permission: 'pinjaman.approve-ketua' },
-            { label: 'Pencairan Pinjaman', routeName: 'bendahara.pencairan-pinjaman.index', icon: Banknote, permission: 'pinjaman.cairkan' },
-            { label: 'Konfirmasi Angsuran', routeName: 'bendahara.angsuran.index', icon: CalendarCheck, permission: 'angsuran.konfirmasi' },
-            { label: 'Tinjau Ubah Tenor', routeName: 'bendahara.percepatan.index', icon: Repeat, permission: 'pinjaman.tinjau-bendahara' },
-            { label: 'Setujui Ubah Tenor', routeName: 'ketua.percepatan.index', icon: Repeat, permission: 'pinjaman.approve-ketua' },
-            { label: 'Tinjau Tambah Limit', routeName: 'bendahara.pengajuan-limit.index', icon: TrendingUp, permission: 'limit.tinjau-bendahara' },
-            { label: 'Setujui Tambah Limit', routeName: 'ketua.pengajuan-limit.index', icon: TrendingUp, permission: 'limit.approve-ketua' },
-            { label: 'Penghapusan Pinjaman', routeName: 'pengurus.penghapusan-pinjaman.index', icon: FileX2, permission: 'penghapusan-pinjaman.lihat' },
         ],
     },
     {
@@ -104,16 +123,22 @@ function simpanPreferensiGrup(prefs) {
     }
 }
 
-/** Aktif bila route persis sama atau satu modul (prefix sama). */
-function sedangAktif(routeName) {
-    if (!routeName) {
+/** Aktif bila route persis sama atau cocok dengan salah satu pola modul. */
+function sedangAktif(itemOrRouteName) {
+    if (!itemOrRouteName) {
         return false;
     }
-    if (route().current(routeName)) {
+    if (typeof itemOrRouteName === 'object') {
+        if (Array.isArray(itemOrRouteName.activeRoutes)) {
+            return itemOrRouteName.activeRoutes.some((pattern) => route().current(pattern));
+        }
+        return sedangAktif(itemOrRouteName.routeName);
+    }
+    if (route().current(itemOrRouteName)) {
         return true;
     }
-    const prefix = routeName.replace(/\.index$/, '');
-    return prefix !== routeName && route().current(`${prefix}.*`);
+    const prefix = itemOrRouteName.replace(/\.index$/, '');
+    return prefix !== itemOrRouteName && route().current(`${prefix}.*`);
 }
 
 export default function Sidebar({ collapsed = false, expanding = false, mobile = false, onToggle, onNavigate }) {
@@ -131,31 +156,28 @@ export default function Sidebar({ collapsed = false, expanding = false, mobile =
         : null;
 
     const badgeAngka = {
-        'admin.pinjaman.index': notifications?.menunggu_tinjauan_admin ?? 0,
-        'bendahara.pinjaman.index': notifications?.menunggu_tinjauan_bendahara ?? 0,
-        'ketua.pinjaman.index': notifications?.menunggu_approval_ketua ?? 0,
-        'bendahara.pencairan-pinjaman.index': notifications?.menunggu_pencairan_pinjaman ?? 0,
-        'bendahara.percepatan.index': notifications?.menunggu_perubahan_tenor_bendahara ?? 0,
-        'ketua.percepatan.index': notifications?.menunggu_perubahan_tenor_ketua ?? 0,
-        'bendahara.pengajuan-limit.index': notifications?.menunggu_pengajuan_limit_bendahara ?? 0,
-        'ketua.pengajuan-limit.index': notifications?.menunggu_pengajuan_limit ?? 0,
-        'ketua.aktivasi.index': notifications?.menunggu_aktivasi ?? 0,
-        'admin.tabungan.index': notifications?.menunggu_tabungan_admin ?? 0,
-        'bendahara.tabungan.index': notifications?.menunggu_tabungan ?? 0,
-        'ketua.tabungan.index': notifications?.menunggu_tabungan_ketua ?? 0,
-        'pengurus.penghapusan-pinjaman.index': notifications?.menunggu_penghapusan_pinjaman ?? 0,
+        'persetujuan.index': notifications?.total_persetujuan ?? 0,
     };
 
-    function bisaAkses(permission) {
-        return permission === null || userPermissions.includes(permission);
+    function bisaAkses(itemOrPermission) {
+        if (itemOrPermission === null || itemOrPermission === undefined) {
+            return true;
+        }
+        if (typeof itemOrPermission === 'string') {
+            return userPermissions.includes(itemOrPermission);
+        }
+        if (Array.isArray(itemOrPermission.anyPermissions)) {
+            return itemOrPermission.anyPermissions.some((p) => userPermissions.includes(p));
+        }
+        return itemOrPermission.permission === null || userPermissions.includes(itemOrPermission.permission);
     }
 
-    const visiblePinnedItems = pinnedItems.filter((item) => bisaAkses(item.permission));
+    const visiblePinnedItems = pinnedItems.filter((item) => bisaAkses(item));
 
     const visibleGroups = menuGroups
         .map((group) => {
-            const items = group.items.filter((item) => bisaAkses(item.permission));
-            const hasActive = items.some((item) => sedangAktif(item.routeName));
+            const items = group.items.filter((item) => bisaAkses(item));
+            const hasActive = items.some((item) => sedangAktif(item));
             const totalBadge = items.reduce((sum, item) => sum + (badgeAngka[item.routeName] ?? 0), 0);
 
             return {
@@ -196,7 +218,7 @@ export default function Sidebar({ collapsed = false, expanding = false, mobile =
     // Pastikan grup dari rute tujuan terbuka otomatis saat berpindah halaman.
     useEffect(() => {
         const activeGroup = menuGroups.find((group) =>
-            group.items.some((item) => sedangAktif(item.routeName)),
+            group.items.some((item) => sedangAktif(item)),
         );
         if (!activeGroup) {
             return;
@@ -222,7 +244,7 @@ export default function Sidebar({ collapsed = false, expanding = false, mobile =
     function renderMenuItem(item, keySuffix, tersembunyi = false) {
         const Icon = item.icon;
         const href = item.routeName ? route(item.routeName) : '#';
-        const isActive = sedangAktif(item.routeName);
+        const isActive = sedangAktif(item);
         const badge = item.routeName ? (badgeAngka[item.routeName] ?? 0) : 0;
 
         if (item.disabled) {

@@ -71,8 +71,11 @@ class PinjamanController extends Controller
             return back()->withErrors(['keputusan' => $e->getMessage()]);
         }
 
-        return redirect()->route('ketua.pinjaman.index')
-            ->with('status', 'Pinjaman disetujui dan diteruskan ke Bendahara untuk pencairan akhir bulan.');
+        return $this->redirectSetelahAksi(
+            $request,
+            'ketua.pinjaman.index',
+            'Pinjaman disetujui dan diteruskan ke Bendahara untuk pencairan akhir bulan.'
+        );
     }
 
     public function preview(Pinjaman $pinjaman)
@@ -124,7 +127,6 @@ class PinjamanController extends Controller
             return back()->withErrors(['keputusan' => $e->getMessage()]);
         }
 
-        return redirect()->route('ketua.pinjaman.index')
-            ->with('status', 'Pengajuan pinjaman ditolak.');
+        return $this->redirectSetelahAksi($request, 'ketua.pinjaman.index', 'Pengajuan pinjaman ditolak.');
     }
 }

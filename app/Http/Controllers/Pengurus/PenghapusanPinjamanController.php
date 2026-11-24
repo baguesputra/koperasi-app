@@ -123,8 +123,11 @@ class PenghapusanPinjamanController extends Controller
             ? 'Ketua Koperasi'
             : 'Bendahara';
 
-        return redirect()->route('pengurus.penghapusan-pinjaman.index')
-            ->with('status', "Pengajuan penghapusan pinjaman berhasil dibuat dan menunggu persetujuan {$tahapBerikut}.");
+        return $this->redirectSetelahAksi(
+            $request,
+            'pengurus.penghapusan-pinjaman.index',
+            "Pengajuan penghapusan pinjaman berhasil dibuat dan menunggu persetujuan {$tahapBerikut}."
+        );
     }
 
     public function approve(Request $request, PengajuanPenghapusanPinjaman $pengajuan)
@@ -146,8 +149,7 @@ class PenghapusanPinjamanController extends Controller
             ? "Penghapusan pinjaman #{$hasil->pinjaman_id} disetujui final ({$hasil->nomor_dokumen}). Pinjaman telah dihapusbukukan."
             : 'Persetujuan berhasil dicatat dan diteruskan ke jenjang berikutnya.';
 
-        return redirect()->route('pengurus.penghapusan-pinjaman.index')
-            ->with('status', $pesan);
+        return $this->redirectSetelahAksi($request, 'pengurus.penghapusan-pinjaman.index', $pesan);
     }
 
     public function reject(Request $request, PengajuanPenghapusanPinjaman $pengajuan)
@@ -165,8 +167,11 @@ class PenghapusanPinjamanController extends Controller
             return back()->withErrors(['catatan' => $e->getMessage()]);
         }
 
-        return redirect()->route('pengurus.penghapusan-pinjaman.index')
-            ->with('status', 'Pengajuan penghapusan pinjaman telah ditolak.');
+        return $this->redirectSetelahAksi(
+            $request,
+            'pengurus.penghapusan-pinjaman.index',
+            'Pengajuan penghapusan pinjaman telah ditolak.'
+        );
     }
 
     private function labelPeranUser($user): string
