@@ -1269,87 +1269,254 @@ html.js .pd-lock__tip.is-open {
     line-height: 1.45;
 }
 
-/* ---- Application tracker ---------------------------------------- */
+/* ---- Application tracker (Konsep 1: Connected Stepper) ------------- */
 
-.pd-steps {
+.pd-tracker__title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.pd-tracker__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 9px;
+    border-radius: var(--radius-pill);
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+.pd-tracker__badge::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.pd-tracker__badge--payout {
+    background: var(--color-warn-soft);
+    color: var(--color-warn-ink);
+    border: 1px solid color-mix(in oklab, var(--color-warn) 30%, transparent);
+}
+
+.pd-tracker__badge--process {
+    background: var(--color-paper-3);
+    color: var(--color-ink-2);
+    border: 1px solid var(--color-rule);
+}
+
+.pd-tracker__hero {
+    align-items: center;
+    gap: 10px;
+}
+
+.pd-tracker__chips {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.pd-stepper {
     display: grid;
-    gap: var(--space-xs);
-    margin: 0;
+    grid-template-columns: 1fr;
+    margin: 4px 0 0;
     padding: 0;
     list-style: none;
 }
 
-.pd-step {
+.pd-stepper__item {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr);
+    column-gap: 12px;
+}
+
+.pd-stepper__rail {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: space-between;
-    gap: var(--space-sm);
-    padding: 0.65rem 0.85rem;
-    border: 1px solid var(--color-rule);
-    border-radius: 10px;
-    background: var(--color-paper);
 }
 
-@media (min-width: 34rem) {
-    .pd-steps {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: var(--space-sm);
-    }
-
-    .pd-step {
-        flex-direction: column;
-        align-items: flex-start;
-        justify-content: flex-start;
-        gap: 4px;
-        padding: 0.75rem 0.9rem;
-    }
-}
-
-.pd-step--done {
-    border-color: color-mix(in oklab, var(--color-accent) 32%, var(--color-rule));
-    background: #f4fbf7;
-}
-
-.pd-step--now {
-    border-color: color-mix(in oklab, var(--color-warn) 45%, var(--color-rule));
-    background: #fffbeb;
-}
-
-.pd-step__label {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: var(--text-sm);
-    font-weight: 600;
-    line-height: 1.3;
-    color: var(--color-ink);
-}
-
-.pd-step--done .pd-step__label {
-    color: var(--color-accent-dark);
-}
-
-.pd-step--now .pd-step__label {
-    color: var(--color-warn-ink);
-}
-
-.pd-step__num {
+.pd-stepper__node {
+    width: 28px;
+    height: 28px;
+    flex: none;
+    border-radius: 50%;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: var(--color-paper-4);
-    color: var(--color-muted);
-    font-size: 0.68rem;
+    font-size: 0.75rem;
     font-weight: 700;
+    background: #ffffff;
+    border: 1.5px solid var(--color-rule-2);
+    color: var(--color-muted);
+    transition:
+        background-color var(--dur-short) var(--ease-out),
+        border-color var(--dur-short) var(--ease-out),
+        box-shadow var(--dur-short) var(--ease-out);
 }
 
-.pd-step__state {
+.pd-stepper__item--done .pd-stepper__node {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: #ffffff;
+}
+
+.pd-stepper__item--now .pd-stepper__node {
+    background: var(--color-warn-soft);
+    border: 2px solid var(--color-warn);
+    color: var(--color-warn-ink);
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.14);
+}
+
+.pd-stepper__line {
+    width: 2px;
+    flex: 1;
+    min-height: 18px;
+    margin: 4px 0;
+    border-radius: 999px;
+    background: var(--color-rule);
+}
+
+.pd-stepper__line--done {
+    background: var(--color-accent);
+}
+
+.pd-stepper__meta {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 3px 0 16px;
+    min-width: 0;
+}
+
+.pd-stepper__item:last-child .pd-stepper__meta {
+    padding-bottom: 2px;
+}
+
+.pd-stepper__name {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    line-height: 1.3;
     color: var(--color-muted);
+}
+
+.pd-stepper__item--done .pd-stepper__name {
+    color: var(--color-ink);
+}
+
+.pd-stepper__item--now .pd-stepper__name {
+    color: var(--color-warn-ink);
+}
+
+.pd-stepper__desc {
     font-size: var(--text-xs);
     line-height: 1.35;
+    color: var(--color-muted);
+}
+
+.pd-stepper__item--done .pd-stepper__desc {
+    color: var(--color-accent-dark);
+}
+
+.pd-stepper__item--now .pd-stepper__desc {
+    color: var(--color-warn-ink);
+    font-weight: 500;
+}
+
+@media (min-width: 40rem) {
+    .pd-stepper {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        column-gap: 0;
+        padding: 4px 0 2px;
+    }
+
+    .pd-stepper__item {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .pd-stepper__rail {
+        flex-direction: row;
+        align-items: center;
+        width: 100%;
+    }
+
+    .pd-stepper__line {
+        width: auto;
+        height: 2px;
+        min-height: 0;
+        flex: 1;
+        margin: 0 10px;
+    }
+
+    .pd-stepper__meta {
+        display: grid;
+        gap: 2px;
+        padding: 0 12px 0 0;
+    }
+
+    .pd-stepper__item:last-child .pd-stepper__meta {
+        padding-right: 0;
+    }
+}
+
+.pd-tracker__callout {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 0.8rem 0.95rem;
+    border-radius: 10px;
+    border: 1px solid var(--color-rule);
+    background: var(--color-paper);
+}
+
+.pd-tracker__callout--payout {
+    border-color: color-mix(in oklab, var(--color-accent) 26%, var(--color-rule));
+    background: #f5fbf8;
+}
+
+.pd-tracker__callout-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-paper-3);
+    color: var(--color-ink-2);
+}
+
+.pd-tracker__callout--payout .pd-tracker__callout-icon {
+    background: #d1fae5;
+    color: var(--color-accent-dark);
+}
+
+.pd-tracker__callout-content {
+    min-width: 0;
+    flex: 1;
+}
+
+.pd-tracker__callout-title {
+    margin: 0;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--color-ink);
+    line-height: 1.45;
+}
+
+.pd-tracker__callout-body {
+    margin: 2px 0 0;
+    font-size: var(--text-xs);
+    color: var(--color-muted);
+    line-height: 1.5;
 }
 
 /* ---- Multi-loan breakdown ---------------------------------------- */

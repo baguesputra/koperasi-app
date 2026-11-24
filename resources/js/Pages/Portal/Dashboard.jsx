@@ -5,9 +5,11 @@ import { driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
 import {
     ArrowRight,
+    Check,
     CheckCircle2,
     ArrowDownCircle,
     Clock,
+    Landmark,
     XCircle,
     Info,
     CalendarDays,
@@ -50,6 +52,13 @@ const tipeLabel = {
     percepat: 'Perubahan Tenor (Percepat)',
     lunas_total: 'Pelunasan Dipercepat',
 };
+
+function formatRekeningTujuan(bank, noRekening, tampil) {
+    if (!bank && !noRekening) return null;
+    if (!noRekening) return bank;
+    const nomor = tampil ? String(noRekening) : `•••• ${String(noRekening).slice(-4)}`;
+    return bank ? `${bank} ${nomor}` : nomor;
+}
 
 function StatusRow({
     icon: Icon,
@@ -1024,7 +1033,7 @@ export default function Dashboard({
                 )}
 
                 {/* =================================================
-                    APPLICATION TRACKER
+                    APPLICATION TRACKER (Konsep 1: Connected Stepper)
                 ================================================== */}
                 {pengajuanBerjalan &&
                     (() => {
@@ -1037,38 +1046,54 @@ export default function Dashboard({
                                 ? 2
                                 : 1;
 
+                        const isApprovedKetua = pengajuanBerjalan.status === 'approved_ketua';
+                        const tenorTampil =
+                            pengajuanBerjalan.tenor_disetujui ?? pengajuanBerjalan.tenor_bulan;
+                        const nominalDiminta =
+                            pengajuanBerjalan.nominal_diminta ?? pengajuanBerjalan.nominal;
+                        const adaUsulanBerbeda =
+                            !isApprovedKetua &&
+                            pengajuanBerjalan.nominal_disetujui_bendahara != null &&
+                            Number(pengajuanBerjalan.nominal_disetujui_bendahara) !==
+                                Number(nominalDiminta);
+                        const rekeningTujuan = formatRekeningTujuan(
+                            pengajuanBerjalan.snapshot_bank,
+                            pengajuanBerjalan.snapshot_no_rekening,
+                            nominalTampil
+                        );
+
                         const langkah = [
                             {
                                 nama: 'Sekretaris',
                                 selesai: currentStep > 1,
                                 kini: currentStep === 1,
-                                selesaiText: 'Selesai diverifikasi',
+                                selesaiText: 'Diverifikasi',
                                 kiniText: 'Sedang diperiksa',
-                                tungguText: '',
+                                tungguText: 'Menunggu',
                             },
                             {
                                 nama: 'Bendahara',
                                 selesai: currentStep > 2,
                                 kini: currentStep === 2,
-                                selesaiText: 'Selesai diverifikasi',
-                                kiniText: 'Sedang diverifikasi',
-                                tungguText: 'Menunggu Sekretaris',
+                                selesaiText: 'Diverifikasi',
+                                kiniText: 'Sedang diperiksa',
+                                tungguText: 'Menunggu',
                             },
                             {
                                 nama: 'Ketua Koperasi',
                                 selesai: currentStep > 3,
                                 kini: currentStep === 3,
                                 selesaiText: 'Disetujui',
-                                kiniText: 'Tahap persetujuan',
-                                tungguText: 'Menunggu Bendahara',
+                                kiniText: 'Menunggu putusan',
+                                tungguText: 'Menunggu',
                             },
                             {
-                                nama: 'Pencairan Akhir Bulan',
+                                nama: 'Pencairan',
                                 selesai: false,
                                 kini: currentStep === 4,
                                 selesaiText: 'Dicairkan',
-                                kiniText: 'Menunggu transfer Bendahara',
-                                tungguText: 'Menunggu Ketua',
+                                kiniText: 'Akhir bulan',
+                                tungguText: 'Menunggu',
                             },
                         ];
 
@@ -1076,11 +1101,24 @@ export default function Dashboard({
                             <section data-tour="application-tracker" className="pd-card">
                                 <div className="pd-card__head">
                                     <div>
-                                        <h2>
-                                            {pengajuanBerjalan.status === 'approved_ketua'
-                                                ? 'Pinjaman disetujui — Menunggu pencairan akhir bulan'
-                                                : 'Pengajuan pinjaman sedang diproses'}
-                                        </h2>
+                                        <div className="pd-tracker__title-row">
+                                            <h2>
+                                                {isApprovedKetua
+                                                    ? 'Pinjaman disetujui'
+                                                    : 'Pengajuan pinjaman'}
+                                            </h2>
+                                            <span
+                                                className={`pd-tracker__badge ${
+                                                    isApprovedKetua
+                                                        ? 'pd-tracker__badge--payout'
+                                                        : 'pd-tracker__badge--process'
+                                                }`}
+                                            >
+                                                {isApprovedKetua
+                                                    ? 'Menunggu pencairan'
+                                                    : `Tahap ${currentStep} dari 4`}
+                                            </span>
+                                        </div>
                                         {pengajuanBerjalan.tanggal_pengajuan ? (
                                             <p className="pd-card__note">
                                                 Diajukan {pengajuanBerjalan.tanggal_pengajuan}
@@ -1096,21 +1134,35 @@ export default function Dashboard({
                                     </Link>
                                 </div>
 
-                                <div className="pd-figure-row">
+                                <div className="pd-figure-row pd-tracker__hero">
                                     <p className="pd-figure">
                                         <Nominal
-                                            nilai={pengajuanBerjalan.nominal_disetujui ?? pengajuanBerjalan.nominal}
+                                            nilai={
+                                                pengajuanBerjalan.nominal_disetujui ??
+                                                pengajuanBerjalan.nominal
+                                            }
                                             tampil={nominalTampil}
                                         />
                                     </p>
-                                    {(pengajuanBerjalan.tenor_disetujui ?? pengajuanBerjalan.tenor_bulan) ? (
-                                        <span className="pd-chip pd-chip--neutral">
-                                            Tenor {pengajuanBerjalan.tenor_disetujui ?? pengajuanBerjalan.tenor_bulan} bulan
-                                        </span>
-                                    ) : null}
+                                    <div className="pd-tracker__chips">
+                                        {tenorTampil ? (
+                                            <span className="pd-chip pd-chip--neutral">
+                                                Tenor {tenorTampil} bulan
+                                            </span>
+                                        ) : null}
+                                        {adaUsulanBerbeda ? (
+                                            <span className="pd-chip pd-chip--neutral">
+                                                Usulan Bendahara:{' '}
+                                                <Nominal
+                                                    nilai={pengajuanBerjalan.nominal_disetujui_bendahara}
+                                                    tampil={nominalTampil}
+                                                />
+                                            </span>
+                                        ) : null}
+                                    </div>
                                 </div>
 
-                                <ol className="pd-steps">
+                                <ol className="pd-stepper" aria-label="Tahapan pengajuan pinjaman">
                                     {langkah.map((l, idx) => {
                                         const status = l.selesai
                                             ? l.selesaiText
@@ -1121,60 +1173,105 @@ export default function Dashboard({
                                         return (
                                             <li
                                                 key={l.nama}
-                                                className={`pd-step ${
+                                                className={`pd-stepper__item ${
                                                     l.selesai
-                                                        ? 'pd-step--done'
+                                                        ? 'pd-stepper__item--done'
                                                         : l.kini
-                                                        ? 'pd-step--now'
+                                                        ? 'pd-stepper__item--now'
                                                         : ''
                                                 }`}
                                             >
-                                                <span className="pd-step__label">
-                                                    {l.selesai ? (
-                                                        <CheckCircle2 size={14} aria-hidden="true" />
-                                                    ) : l.kini ? (
-                                                        <Clock size={14} aria-hidden="true" />
-                                                    ) : (
-                                                        <span className="pd-step__num" aria-hidden="true">
-                                                            {idx + 1}
-                                                        </span>
+                                                <div className="pd-stepper__rail">
+                                                    <span className="pd-stepper__node" aria-hidden="true">
+                                                        {l.selesai ? (
+                                                            <Check size={14} strokeWidth={2.7} />
+                                                        ) : l.kini ? (
+                                                            <Clock size={14} strokeWidth={2.3} />
+                                                        ) : (
+                                                            idx + 1
+                                                        )}
+                                                    </span>
+                                                    {idx < langkah.length - 1 && (
+                                                        <span
+                                                            className={`pd-stepper__line ${
+                                                                l.selesai
+                                                                    ? 'pd-stepper__line--done'
+                                                                    : ''
+                                                            }`}
+                                                            aria-hidden="true"
+                                                        />
                                                     )}
-                                                    {l.nama}
-                                                </span>
-                                                <span className="pd-step__state">{status}</span>
+                                                </div>
+                                                <div className="pd-stepper__meta">
+                                                    <span className="pd-stepper__name">{l.nama}</span>
+                                                    <span className="pd-stepper__desc">{status}</span>
+                                                </div>
                                             </li>
                                         );
                                     })}
                                 </ol>
 
-                                <p className="pd-card__foot">
-                                    {statusPengajuanLabel[pengajuanBerjalan.status]?.text ??
-                                        'Menunggu pemeriksaan'}
-                                    .
-                                    {pengajuanBerjalan.status === 'approved_ketua' ? (
-                                        <>
-                                            {' '}
-                                            Pinjaman ini belum terhitung sebagai pinjaman aktif hingga ditransfer oleh Bendahara. Notifikasi WhatsApp beserta bukti transfer akan dikirimkan setelah pencairan selesai.
-                                        </>
-                                    ) : (
-                                        <>
-                                            {pengajuanBerjalan.nominal_disetujui_bendahara ? (
-                                                <>
-                                                    {' '}
-                                                    Usulan Bendahara{' '}
-                                                    <strong>
-                                                        <Nominal
-                                                            nilai={pengajuanBerjalan.nominal_disetujui_bendahara}
-                                                            tampil={nominalTampil}
-                                                        />
-                                                    </strong>
-                                                    .
-                                                </>
-                                            ) : null}{' '}
-                                            Pengajuan pinjaman baru dikunci hingga proses ini selesai diputuskan.
-                                        </>
-                                    )}
-                                </p>
+                                {isApprovedKetua ? (
+                                    <div className="pd-tracker__callout pd-tracker__callout--payout">
+                                        <span
+                                            className="pd-tracker__callout-icon"
+                                            aria-hidden="true"
+                                        >
+                                            <Landmark size={15} />
+                                        </span>
+                                        <div className="pd-tracker__callout-content">
+                                            <p className="pd-tracker__callout-title">
+                                                Pencairan dijadwalkan akhir bulan oleh Bendahara
+                                                {rekeningTujuan ? ` ke ${rekeningTujuan}` : ''}
+                                                {rekeningTujuan &&
+                                                pengajuanBerjalan.snapshot_atas_nama &&
+                                                nominalTampil
+                                                    ? ` a.n. ${pengajuanBerjalan.snapshot_atas_nama}`
+                                                    : ''}
+                                                .
+                                            </p>
+                                            <p className="pd-tracker__callout-body">
+                                                Pinjaman belum terhitung aktif hingga dana ditransfer.
+                                                Bukti transfer akan dikirim otomatis melalui WhatsApp.
+                                            </p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="pd-tracker__callout pd-tracker__callout--process">
+                                        <span
+                                            className="pd-tracker__callout-icon"
+                                            aria-hidden="true"
+                                        >
+                                            <Info size={15} />
+                                        </span>
+                                        <div className="pd-tracker__callout-content">
+                                            <p className="pd-tracker__callout-title">
+                                                {statusPengajuanLabel[pengajuanBerjalan.status]
+                                                    ?.text ?? 'Menunggu pemeriksaan'}
+                                                .
+                                            </p>
+                                            <p className="pd-tracker__callout-body">
+                                                {!adaUsulanBerbeda &&
+                                                pengajuanBerjalan.nominal_disetujui_bendahara ? (
+                                                    <>
+                                                        Usulan Bendahara{' '}
+                                                        <strong>
+                                                            <Nominal
+                                                                nilai={
+                                                                    pengajuanBerjalan.nominal_disetujui_bendahara
+                                                                }
+                                                                tampil={nominalTampil}
+                                                            />
+                                                        </strong>
+                                                        .{' '}
+                                                    </>
+                                                ) : null}
+                                                Pengajuan pinjaman baru dikunci hingga proses ini
+                                                selesai diputuskan.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
                             </section>
                         );
                     })()}
