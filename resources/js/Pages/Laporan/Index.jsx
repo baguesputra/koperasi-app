@@ -120,7 +120,7 @@ export default function Index({ kelompok = {} }) {
 
             <Card padding="none" className="overflow-hidden shadow-sm border-slate-200/80">
                 {/* Toolbar: Filter Chip Kategori + Search */}
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 px-4 py-3 bg-[#F8FAFC] border-b border-slate-200/70">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 px-4 py-3 bg-white border-b border-slate-200/70">
                     <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Filter kategori laporan">
                         <button
                             type="button"
@@ -202,10 +202,10 @@ export default function Index({ kelompok = {} }) {
                             const tone = KATEGORI_TONE[kategori] ?? TONE_DEFAULT;
                             return (
                                 <section key={kategori}>
-                                    <div className={`flex items-center justify-between px-4 sm:px-5 py-2 bg-[#F8FAFC] border-b border-slate-100 ${idx > 0 ? 'border-t border-slate-200/70' : ''}`}>
+                                    <div className={`flex items-center justify-between px-4 sm:px-5 py-2.5 bg-white border-b border-slate-100 ${idx > 0 ? 'border-t border-slate-200/70' : ''}`}>
                                         <div className="flex items-center gap-2">
                                             <span className={`w-2 h-2 rounded-full ${tone.dot}`} aria-hidden="true" />
-                                            <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                                            <h2 className="text-[11px] font-bold uppercase tracking-wider text-[#0F1E36]/80">
                                                 {kategori}
                                             </h2>
                                         </div>
@@ -237,7 +237,7 @@ export default function Index({ kelompok = {} }) {
                                                                 <p className="text-sm sm:text-[15px] font-bold text-slate-800 group-hover:text-brand-navy transition-colors">
                                                                     {l.judul}
                                                                 </p>
-                                                                <span className="md:hidden inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600">
+                                                                <span className="md:hidden inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white border border-slate-200/80 text-slate-600">
                                                                     {labelTipe}
                                                                 </span>
                                                             </div>
@@ -250,7 +250,7 @@ export default function Index({ kelompok = {} }) {
                                                     <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                                                         <span
                                                             title={`Periode default: ${infoDefault}`}
-                                                            className="hidden md:inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100/90 text-slate-600 border border-slate-200/70 whitespace-nowrap"
+                                                            className="hidden md:inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-white text-slate-600 border border-slate-200/80 whitespace-nowrap"
                                                         >
                                                             {labelTipe}
                                                         </span>
@@ -292,7 +292,7 @@ export default function Index({ kelompok = {} }) {
                 )}
 
                 {/* Footer hint */}
-                <div className="px-4 sm:px-5 py-2.5 bg-[#F8FAFC] border-t border-slate-100 text-[11px] text-slate-500 flex flex-wrap items-center justify-between gap-2">
+                <div className="px-4 sm:px-5 py-2.5 bg-white border-t border-slate-100 text-[11px] text-slate-500 flex flex-wrap items-center justify-between gap-2">
                     <span>Klik nama laporan untuk mengatur periode &amp; pratinjau data.</span>
                     <span>Ikon Excel/PDF di baris daftar mengunduh langsung dengan periode default laporan.</span>
                 </div>

@@ -8,6 +8,7 @@ import PageHeader from '@/Components/ui/PageHeader';
 import FormField from '@/Components/ui/FormField';
 import TextField from '@/Components/ui/TextField';
 import Select from '@/Components/ui/Select';
+import PrivacyWrapper from '@/Components/ui/PrivacyWrapper';
 import { ExcelIcon, PdfIcon } from '@/Components/ui/ExportIcons';
 import NeracaSkontro from './Partials/NeracaSkontro';
 import { formatRupiah } from '@/Utils/formatCurrency';
@@ -60,9 +61,9 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
     };
 
     const gayaBaris = (ri) => (hasil.gayaBaris?.[ri] === 'section'
-        ? 'bg-[#F1F5F9]'
+        ? 'bg-white border-b border-slate-200/75'
         : hasil.gayaBaris?.[ri] === 'subtotal'
-            ? 'bg-[#F7F9FC] font-bold border-y border-slate-200/70'
+            ? 'bg-white font-bold border-y border-slate-200/80 text-[#0F1E36]'
             : 'border-b border-slate-100 last:border-0 hover:bg-[#F2FBF5] transition-colors');
 
     return (
@@ -114,7 +115,7 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
                                 value={filter.bulan}
                                 onChange={(e) => e.target.value && terapkan({ bulan: e.target.value })}
                                 aria-label="Pilih bulan"
-                                className="md:w-48 rounded-full border-slate-200 bg-slate-50/60"
+                                className="md:w-48 rounded-full border-slate-200 bg-white"
                             />
                         </FormField>
                     )}
@@ -131,7 +132,7 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
                                 onBlur={komitTahun}
                                 onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
                                 aria-label="Pilih tahun"
-                                className="w-28 rounded-full border-slate-200 bg-slate-50/60 tabular-nums"
+                                className="w-28 rounded-full border-slate-200 bg-white tabular-nums"
                             />
                         </FormField>
                     )}
@@ -143,7 +144,7 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
                                 value={filter.tanggal}
                                 onChange={(e) => e.target.value && terapkan({ tanggal: e.target.value })}
                                 aria-label="Pilih tanggal"
-                                className="md:w-48 rounded-full border-slate-200 bg-slate-50/60"
+                                className="md:w-48 rounded-full border-slate-200 bg-white"
                             />
                         </FormField>
                     )}
@@ -153,7 +154,7 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
                                 size="sm"
                                 value={String(filter.semua_periode ?? '')}
                                 onChange={(e) => terapkan({ semua_periode: e.target.value })}
-                                className="md:w-52 rounded-full border-slate-200 bg-slate-50/60"
+                                className="md:w-52 rounded-full border-slate-200 bg-white"
                             >
                                 <option value="">Rentang Tanggal</option>
                                 <option value="1">Semua Periode (Lintas Tahun)</option>
@@ -169,7 +170,7 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
                                     value={filter.dari}
                                     onChange={(e) => e.target.value && terapkan({ dari: e.target.value })}
                                     aria-label="Bulan mulai"
-                                    className="md:w-44 rounded-full border-slate-200 bg-slate-50/60"
+                                    className="md:w-44 rounded-full border-slate-200 bg-white"
                                 />
                             </FormField>
                             <span className="pb-4 text-slate-400 text-sm">s/d</span>
@@ -180,7 +181,7 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
                                     value={filter.sampai}
                                     onChange={(e) => e.target.value && terapkan({ sampai: e.target.value })}
                                     aria-label="Bulan selesai"
-                                    className="md:w-44 rounded-full border-slate-200 bg-slate-50/60"
+                                    className="md:w-44 rounded-full border-slate-200 bg-white"
                                 />
                             </FormField>
                         </>
@@ -191,7 +192,7 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
                                 size="sm"
                                 value={filter.status_pinjaman}
                                 onChange={(e) => terapkan({ status_pinjaman: e.target.value })}
-                                className="md:w-44 rounded-full border-slate-200 bg-slate-50/60"
+                                className="md:w-44 rounded-full border-slate-200 bg-white"
                             >
                                 <option value="">Semua Status</option>
                                 {Object.entries(opsi.status_pinjaman).map(([nilai, label]) => <option key={nilai} value={nilai}>{label}</option>)}
@@ -204,7 +205,7 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
                                 size="sm"
                                 value={filter.cabang}
                                 onChange={(e) => terapkan({ cabang: e.target.value })}
-                                className="md:w-40 rounded-full border-slate-200 bg-slate-50/60"
+                                className="md:w-40 rounded-full border-slate-200 bg-white"
                             >
                                 <option value="">Semua Cabang</option>
                                 {(Array.isArray(opsi.cabang) ? opsi.cabang : Object.values(opsi.cabang ?? {})).map((c) => <option key={c} value={c}>{c}</option>)}
@@ -217,7 +218,7 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
                                 size="sm"
                                 value={filter.kantong}
                                 onChange={(e) => terapkan({ kantong: e.target.value })}
-                                className="md:w-44 rounded-full border-slate-200 bg-slate-50/60"
+                                className="md:w-44 rounded-full border-slate-200 bg-white"
                             >
                                 <option value="">Semua Pos Dana</option>
                                 {Object.entries(opsi.kantong).map(([nilai, label]) => <option key={nilai} value={nilai}>{label}</option>)}
@@ -230,7 +231,7 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
                                 size="sm"
                                 value={filter.status_anggota}
                                 onChange={(e) => terapkan({ status_anggota: e.target.value })}
-                                className="md:w-40 rounded-full border-slate-200 bg-slate-50/60"
+                                className="md:w-40 rounded-full border-slate-200 bg-white"
                             >
                                 <option value="">Semua Status</option>
                                 <option value="aktif">Aktif</option>
@@ -280,7 +281,7 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
                         <div className={`overflow-x-auto transition-opacity ${memuat ? 'opacity-50' : ''}`} aria-busy={memuat}>
                             <table className="w-full text-sm table-sticky-first">
                                 <thead>
-                                    <tr className="text-left border-b border-slate-200/80 bg-[#F8FAFC]">
+                                    <tr className="text-left border-b border-slate-200/80 bg-white">
                                         {hasil.kolom.map((label, i) => (
                                             <th key={i} scope="col" className={`px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap ${sel(i)}`}>{label}</th>
                                         ))}
@@ -289,8 +290,8 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
                                 <tbody className="bg-white">
                                     {hasil.rows.map((row, ri) => (
                                         hasil.gayaBaris?.[ri] === 'section' ? (
-                                            <tr key={ri} data-row-tone="section" className="bg-[#F1F5F9]">
-                                                <td colSpan={hasil.kolom.length} className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-brand-navy/80">{row[0]}</td>
+                                            <tr key={ri} data-row-tone="section" className="bg-white border-b border-slate-200/75">
+                                                <td colSpan={hasil.kolom.length} className="px-4 pt-4 pb-2 text-[11px] font-extrabold uppercase tracking-wider text-[#0F1E36]">{row[0]}</td>
                                             </tr>
                                         ) : (
                                             <tr key={ri} data-row-tone={hasil.gayaBaris?.[ri] || undefined} className={gayaBaris(ri)}>
@@ -303,9 +304,9 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
                                 </tbody>
                                 {hasil.totals && (
                                     <tfoot>
-                                        <tr className="border-t-2 border-slate-200/90 bg-[#F7F9FC]">
+                                        <tr className="border-t-2 border-[#0F1E36] bg-white">
                                             {hasil.totals.map((cell, i) => (
-                                                <td key={i} className={`px-4 py-3 font-bold text-slate-800 ${sel(i)}`}>{cell == null ? '' : tampilCell(i, cell, true)}</td>
+                                                <td key={i} className={`px-4 py-3 font-extrabold text-[#0F1E36] ${sel(i)}`}>{cell == null ? '' : tampilCell(i, cell, true)}</td>
                                             ))}
                                         </tr>
                                     </tfoot>
@@ -315,15 +316,21 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
                     )}
 
                     {(hasil.ringkasan?.length > 0 || hasil.catatan) && (
-                        <div className="p-4 border-t border-slate-100">
+                        <div className="p-4 border-t border-slate-100 bg-white">
                             {hasil.ringkasan?.length > 0 && (
-                                <dl className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-2">
-                                    {hasil.ringkasan?.map(([label, nilai]) => (
-                                        <div key={label} className="rounded-xl bg-slate-50/80 border border-slate-100 px-3 py-2">
-                                            <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{label}</dt>
-                                            <dd className="text-sm font-bold text-slate-800 tabular-nums mt-0.5">{nilai}</dd>
-                                        </div>
-                                    ))}
+                                <dl className="rounded-xl border border-slate-200/80 bg-white grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 overflow-hidden mb-2.5">
+                                    {hasil.ringkasan?.map(([label, nilai]) => {
+                                        const nilaiStr = String(nilai ?? '');
+                                        const perluMask = nilaiStr.includes('Rp') || nilaiStr.includes('IDR');
+                                        return (
+                                            <div key={label} className="px-4 py-2.5 min-w-0">
+                                                <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 truncate">{label}</dt>
+                                                <dd className="text-sm font-bold text-[#0F1E36] tabular-nums mt-0.5 truncate">
+                                                    {perluMask ? <PrivacyWrapper>{nilai}</PrivacyWrapper> : nilai}
+                                                </dd>
+                                            </div>
+                                        );
+                                    })}
                                 </dl>
                             )}
                             {hasil.catatan && <p className="text-xs italic text-slate-500">{hasil.catatan}</p>}

@@ -10,6 +10,8 @@ import Card from '@/Components/ui/Card';
 import Button from '@/Components/ui/Button';
 import Pagination from '@/Components/ui/Pagination';
 import PageHeader from '@/Components/ui/PageHeader';
+import PrivacyWrapper from '@/Components/ui/PrivacyWrapper';
+import { UnifiedLedgerStrip } from '@/Components/ui/SummaryLayout';
 import CurrencyField from '@/Components/ui/CurrencyField';
 import TextField from '@/Components/ui/TextField';
 import FormField from '@/Components/ui/FormField';
@@ -560,174 +562,63 @@ export default function Index({
                 )}
             </PageHeader>
 
-            {/* Interactive Multi-Account Switcher (Minimalist Compact Style) */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5" role="tablist" aria-label="Pilih akun kas">
-                {/* 1. Akun Semua Kas */}
-                {(() => {
-                    const isAktif = !kanalAktif;
-                    const totalSaldo = (saldoBank ?? 0) + (saldoKasKecil ?? 0);
-                    return (
-                        <button
-                            type="button"
-                            role="tab"
-                            aria-selected={isAktif}
-                            onClick={() => terapkan({ kanal: '' })}
-                            className={`group text-left p-3.5 sm:p-4 rounded-2xl border transition-all duration-200 flex flex-col justify-between ${fokusRing} ${
-                                isAktif
-                                    ? 'bg-gradient-to-br from-[#0B1527] via-[#0F1E36] to-[#0A2E1A] text-white border-slate-800 shadow-md shadow-brand-navy/20'
-                                    : 'bg-white text-slate-800 border-slate-200/80 shadow-[0_2px_10px_-3px_rgba(15,30,54,0.06)] hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_8px_20px_-6px_rgba(15,30,54,0.10)]'
-                            }`}
-                        >
-                            <div className="flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-2.5">
-                                    <span className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-                                        isAktif ? 'bg-white/10 text-emerald-400' : 'bg-gradient-to-br from-brand-navy/10 to-sky-100 text-brand-navy'
-                                    }`}>
-                                        <Landmark size={16} />
-                                    </span>
-                                    <div>
-                                        <h3 className={`text-xs font-bold uppercase tracking-wider ${isAktif ? 'text-white' : 'text-slate-800'}`}>
-                                            Semua Kas
-                                        </h3>
-                                        <p className={`text-[11px] ${isAktif ? 'text-slate-300/80' : 'text-slate-500'}`}>
-                                            Bank &amp; Kas Kecil
-                                        </p>
-                                    </div>
-                                </div>
-                                {isAktif ? (
-                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                                        <Check size={10} strokeWidth={3} />
-                                        Aktif
-                                    </span>
-                                ) : (
-                                    <span className="text-[11px] font-medium text-slate-500 group-hover:text-slate-700">
-                                        Pilih
-                                    </span>
-                                )}
-                            </div>
-
-                            <div className="mt-3">
-                                <p className={`text-[11px] font-medium ${isAktif ? 'text-slate-300/80' : 'text-slate-500'}`}>
-                                    Saldo Saat Ini
-                                </p>
-                                <p className={`text-xl sm:text-2xl font-extrabold tracking-tight tabular-nums privacy-blur mt-0.5 truncate ${isAktif ? 'text-white' : 'text-slate-900'}`}>
-                                    {formatRupiah(totalSaldo)}
-                                </p>
-                            </div>
-                        </button>
-                    );
-                })()}
-
-                {/* 2. Akun Bank */}
-                {(() => {
-                    const isAktif = kanalAktif === 'bank';
-                    return (
-                        <button
-                            type="button"
-                            role="tab"
-                            aria-selected={isAktif}
-                            onClick={() => terapkan({ kanal: 'bank' })}
-                            className={`group text-left p-3.5 sm:p-4 rounded-2xl border transition-all duration-200 flex flex-col justify-between ${fokusRing} ${
-                                isAktif
-                                    ? 'bg-gradient-to-br from-[#0B1527] via-[#0F1E36] to-[#0A2E1A] text-white border-slate-800 shadow-md shadow-brand-navy/20'
-                                    : 'bg-white text-slate-800 border-slate-200/80 shadow-[0_2px_10px_-3px_rgba(15,30,54,0.06)] hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_8px_20px_-6px_rgba(15,30,54,0.10)]'
-                            }`}
-                        >
-                            <div className="flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-2.5">
-                                    <span className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-                                        isAktif ? 'bg-white/10 text-emerald-400' : 'bg-gradient-to-br from-sky-50 to-indigo-100 text-sky-700'
-                                    }`}>
-                                        <Building2 size={16} />
-                                    </span>
-                                    <div>
-                                        <h3 className={`text-xs font-bold uppercase tracking-wider ${isAktif ? 'text-white' : 'text-slate-800'}`}>
-                                            Kas Bank
-                                        </h3>
-                                        <p className={`text-[11px] ${isAktif ? 'text-slate-300/80' : 'text-slate-500'}`}>
-                                            Rekening Utama
-                                        </p>
-                                    </div>
-                                </div>
-                                {isAktif ? (
-                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                                        <Check size={10} strokeWidth={3} />
-                                        Aktif
-                                    </span>
-                                ) : (
-                                    <span className="text-[11px] font-medium text-slate-500 group-hover:text-slate-700">
-                                        Pilih
-                                    </span>
-                                )}
-                            </div>
-
-                            <div className="mt-3">
-                                <p className={`text-[11px] font-medium ${isAktif ? 'text-slate-300/80' : 'text-slate-500'}`}>
-                                    Saldo Saat Ini
-                                </p>
-                                <p className={`text-xl sm:text-2xl font-extrabold tracking-tight tabular-nums privacy-blur mt-0.5 truncate ${isAktif ? 'text-white' : 'text-slate-900'}`}>
-                                    {formatRupiah(saldoBank ?? 0)}
-                                </p>
-                            </div>
-                        </button>
-                    );
-                })()}
-
-                {/* 3. Akun Kas Kecil */}
-                {(() => {
-                    const isAktif = kanalAktif === 'kas_kecil';
-                    return (
-                        <button
-                            type="button"
-                            role="tab"
-                            aria-selected={isAktif}
-                            onClick={() => terapkan({ kanal: 'kas_kecil' })}
-                            className={`group text-left p-3.5 sm:p-4 rounded-2xl border transition-all duration-200 flex flex-col justify-between ${fokusRing} ${
-                                isAktif
-                                    ? 'bg-gradient-to-br from-[#0B1527] via-[#0F1E36] to-[#0A2E1A] text-white border-slate-800 shadow-md shadow-brand-navy/20'
-                                    : 'bg-white text-slate-800 border-slate-200/80 shadow-[0_2px_10px_-3px_rgba(15,30,54,0.06)] hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_8px_20px_-6px_rgba(15,30,54,0.10)]'
-                            }`}
-                        >
-                            <div className="flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-2.5">
-                                    <span className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-                                        isAktif ? 'bg-white/10 text-emerald-400' : 'bg-gradient-to-br from-brand-green-light to-emerald-100 text-brand-green-dark'
-                                    }`}>
-                                        <Wallet size={16} />
-                                    </span>
-                                    <div>
-                                        <h3 className={`text-xs font-bold uppercase tracking-wider ${isAktif ? 'text-white' : 'text-slate-800'}`}>
-                                            Kas Kecil
-                                        </h3>
-                                        <p className={`text-[11px] ${isAktif ? 'text-slate-300/80' : 'text-slate-500'}`}>
-                                            Operasional Tunai
-                                        </p>
-                                    </div>
-                                </div>
-                                {isAktif ? (
-                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                                        <Check size={10} strokeWidth={3} />
-                                        Aktif
-                                    </span>
-                                ) : (
-                                    <span className="text-[11px] font-medium text-slate-500 group-hover:text-slate-700">
-                                        Pilih
-                                    </span>
-                                )}
-                            </div>
-
-                            <div className="mt-3">
-                                <p className={`text-[11px] font-medium ${isAktif ? 'text-slate-300/80' : 'text-slate-500'}`}>
-                                    Saldo Saat Ini
-                                </p>
-                                <p className={`text-xl sm:text-2xl font-extrabold tracking-tight tabular-nums privacy-blur mt-0.5 truncate ${isAktif ? 'text-white' : 'text-slate-900'}`}>
-                                    {formatRupiah(saldoKasKecil ?? 0)}
-                                </p>
-                            </div>
-                        </button>
-                    );
-                })()}
-            </div>
+            {/* Interactive Multi-Account Switcher (Dynamic Anchor Ledger Strip) */}
+            <UnifiedLedgerStrip
+                columns={3}
+                items={[
+                    {
+                        key: 'semua',
+                        variant: !kanalAktif ? 'anchor' : 'default',
+                        label: 'Semua Kas',
+                        icon: Landmark,
+                        tone: 'navy',
+                        value: formatRupiah((saldoBank ?? 0) + (saldoKasKecil ?? 0)),
+                        active: !kanalAktif,
+                        onClick: () => terapkan({ kanal: '' }),
+                        badge: !kanalAktif ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-400/20 text-emerald-200 border border-emerald-300/35 text-[10px] font-semibold">
+                                <Check size={9} strokeWidth={3} />
+                                Aktif
+                            </span>
+                        ) : null,
+                        meta: 'Bank & Kas Kecil',
+                    },
+                    {
+                        key: 'bank',
+                        variant: kanalAktif === 'bank' ? 'anchor' : 'default',
+                        label: 'Kas Bank',
+                        icon: Building2,
+                        tone: 'sky',
+                        value: formatRupiah(saldoBank ?? 0),
+                        active: kanalAktif === 'bank',
+                        onClick: () => terapkan({ kanal: 'bank' }),
+                        badge: kanalAktif === 'bank' ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-400/20 text-emerald-200 border border-emerald-300/35 text-[10px] font-semibold">
+                                <Check size={9} strokeWidth={3} />
+                                Aktif
+                            </span>
+                        ) : null,
+                        meta: 'Rekening operasional utama',
+                    },
+                    {
+                        key: 'kas_kecil',
+                        variant: kanalAktif === 'kas_kecil' ? 'anchor' : 'default',
+                        label: 'Kas Kecil',
+                        icon: Wallet,
+                        tone: 'green',
+                        value: formatRupiah(saldoKasKecil ?? 0),
+                        active: kanalAktif === 'kas_kecil',
+                        onClick: () => terapkan({ kanal: 'kas_kecil' }),
+                        badge: kanalAktif === 'kas_kecil' ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-400/20 text-emerald-200 border border-emerald-300/35 text-[10px] font-semibold">
+                                <Check size={9} strokeWidth={3} />
+                                Aktif
+                            </span>
+                        ) : null,
+                        meta: 'Kas operasional tunai',
+                    },
+                ]}
+            />
 
             {/* Filter Card: Ultra-Minimalist Single-Bar Layout */}
             <Card padding="sm" className="shadow-xs border-slate-200/80 mb-4">
@@ -780,12 +671,12 @@ export default function Index({
                             {/* Periode Popover Flyout */}
                             {showPeriodePopover && (
                                 <div className="absolute left-0 top-full mt-2 z-50 w-72 sm:w-80 p-3 bg-white rounded-2xl shadow-xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
-                                    <div className="flex items-center p-0.5 mb-3 rounded-lg bg-slate-100 border border-slate-200 text-xs">
+                                    <div className="flex items-center p-0.5 mb-3 rounded-lg bg-white border border-slate-200/90 text-xs">
                                         <button
                                             type="button"
                                             onClick={() => setTabPeriode('bulan')}
                                             className={`flex-1 py-1 rounded-md font-semibold transition-all ${
-                                                tabPeriode === 'bulan' ? 'bg-white text-slate-800 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+                                                tabPeriode === 'bulan' ? 'bg-[#0F1E36] text-white shadow-2xs' : 'text-slate-600 hover:text-[#0F1E36]'
                                             }`}
                                         >
                                             Per Bulan
@@ -794,7 +685,7 @@ export default function Index({
                                             type="button"
                                             onClick={() => setTabPeriode('rentang')}
                                             className={`flex-1 py-1 rounded-md font-semibold transition-all ${
-                                                tabPeriode === 'rentang' ? 'bg-white text-slate-800 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+                                                tabPeriode === 'rentang' ? 'bg-[#0F1E36] text-white shadow-2xs' : 'text-slate-600 hover:text-[#0F1E36]'
                                             }`}
                                         >
                                             Rentang Tanggal
@@ -811,14 +702,14 @@ export default function Index({
                                                     type="month"
                                                     value={tempBulan}
                                                     onChange={(e) => setTempBulan(e.target.value)}
-                                                    className="w-full px-2.5 py-1.5 text-xs font-semibold rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-green/30"
+                                                    className="w-full px-2.5 py-1.5 text-xs font-semibold rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-green/30"
                                                 />
                                             </div>
                                             <div className="flex items-center gap-1.5">
                                                 <button
                                                     type="button"
                                                     onClick={() => setTempBulan(kunciBulanIni)}
-                                                    className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+                                                    className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-white border border-slate-200/85 hover:border-slate-300 hover:bg-slate-50 text-slate-700 transition-colors"
                                                 >
                                                     Bulan Ini
                                                 </button>
@@ -829,7 +720,7 @@ export default function Index({
                                                         d.setMonth(d.getMonth() - 1);
                                                         setTempBulan(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
                                                     }}
-                                                    className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+                                                    className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-white border border-slate-200/85 hover:border-slate-300 hover:bg-slate-50 text-slate-700 transition-colors"
                                                 >
                                                     Bulan Lalu
                                                 </button>
@@ -858,7 +749,7 @@ export default function Index({
                                                         type="date"
                                                         value={tempDari}
                                                         onChange={(e) => setTempDari(e.target.value)}
-                                                        className="w-full px-2 py-1.5 text-xs font-medium rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-green/30"
+                                                        className="w-full px-2 py-1.5 text-xs font-medium rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-green/30"
                                                     />
                                                 </div>
                                                 <div>
@@ -869,7 +760,7 @@ export default function Index({
                                                         type="date"
                                                         value={tempSampai}
                                                         onChange={(e) => setTempSampai(e.target.value)}
-                                                        className="w-full px-2 py-1.5 text-xs font-medium rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-green/30"
+                                                        className="w-full px-2 py-1.5 text-xs font-medium rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-green/30"
                                                     />
                                                 </div>
                                             </div>
@@ -881,21 +772,21 @@ export default function Index({
                                                     <button
                                                         type="button"
                                                         onClick={() => setPresetRentang(1)}
-                                                        className="px-2 py-0.5 text-xs font-medium rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+                                                        className="px-2 py-0.5 text-xs font-medium rounded-md bg-white border border-slate-200/85 hover:border-slate-300 hover:bg-slate-50 text-slate-700 transition-colors"
                                                     >
                                                         Hari Ini
                                                     </button>
                                                     <button
                                                         type="button"
                                                         onClick={() => setPresetRentang(7)}
-                                                        className="px-2 py-0.5 text-xs font-medium rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+                                                        className="px-2 py-0.5 text-xs font-medium rounded-md bg-white border border-slate-200/85 hover:border-slate-300 hover:bg-slate-50 text-slate-700 transition-colors"
                                                     >
                                                         7 Hari
                                                     </button>
                                                     <button
                                                         type="button"
                                                         onClick={() => setPresetRentang(30)}
-                                                        className="px-2 py-0.5 text-xs font-medium rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+                                                        className="px-2 py-0.5 text-xs font-medium rounded-md bg-white border border-slate-200/85 hover:border-slate-300 hover:bg-slate-50 text-slate-700 transition-colors"
                                                     >
                                                         30 Hari
                                                     </button>
@@ -920,12 +811,12 @@ export default function Index({
                         </div>
 
                         {/* 2. Segmented Pill: Tipe Transaksi */}
-                        <div className="inline-flex items-center p-0.5 rounded-xl bg-slate-100 border border-slate-200/80 text-xs shrink-0">
+                        <div className="inline-flex items-center p-0.5 rounded-xl bg-white border border-slate-200/90 text-xs shrink-0 gap-0.5">
                             <button
                                 type="button"
                                 onClick={() => terapkan({ tipe: '' })}
                                 className={`px-2.5 py-1 rounded-lg font-semibold transition-all ${
-                                    !tipeFilter ? 'bg-white text-slate-800 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+                                    !tipeFilter ? 'bg-[#0F1E36] text-white shadow-2xs' : 'text-slate-600 hover:text-[#0F1E36] border border-transparent'
                                 }`}
                             >
                                 Semua
@@ -934,7 +825,7 @@ export default function Index({
                                 type="button"
                                 onClick={() => terapkan({ tipe: 'masuk' })}
                                 className={`px-2.5 py-1 rounded-lg font-semibold transition-all ${
-                                    tipeFilter === 'masuk' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-slate-500 hover:text-emerald-700'
+                                    tipeFilter === 'masuk' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80' : 'text-slate-600 hover:text-[#0F1E36] border border-transparent'
                                 }`}
                             >
                                 + Masuk
@@ -943,7 +834,7 @@ export default function Index({
                                 type="button"
                                 onClick={() => terapkan({ tipe: 'keluar' })}
                                 className={`px-2.5 py-1 rounded-lg font-semibold transition-all ${
-                                    tipeFilter === 'keluar' ? 'bg-white text-rose-700 shadow-2xs' : 'text-slate-500 hover:text-rose-700'
+                                    tipeFilter === 'keluar' ? 'bg-rose-50 text-rose-700 border border-rose-200/80' : 'text-slate-600 hover:text-[#0F1E36] border border-transparent'
                                 }`}
                             >
                                 − Keluar
@@ -978,7 +869,7 @@ export default function Index({
                                             value={kategoriCari}
                                             onChange={(e) => setKategoriCari(e.target.value)}
                                             placeholder="Cari kategori..."
-                                            className="w-full pl-8 pr-2.5 py-1.5 text-xs rounded-lg border border-slate-200/95 bg-slate-50/80 hover:bg-white focus:bg-white focus:border-brand-green focus:outline-none focus:ring-[3px] focus:ring-brand-green/15 transition-all"
+                                            className="w-full pl-8 pr-2.5 py-1.5 text-xs rounded-lg border border-slate-200/95 bg-white focus:border-brand-green focus:outline-none focus:ring-[3px] focus:ring-brand-green/15 transition-all"
                                         />
                                     </div>
                                     <div className="max-h-56 overflow-y-auto space-y-0.5 pr-1">
@@ -1056,10 +947,10 @@ export default function Index({
                             </button>
                         )}
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap bg-emerald-50 text-emerald-700 border border-emerald-200/60 tabular-nums">
-                            +{formatRupiahSingkat(ringkasanPeriode?.total_masuk ?? 0)}
+                            <PrivacyWrapper>+{formatRupiahSingkat(ringkasanPeriode?.total_masuk ?? 0)}</PrivacyWrapper>
                         </span>
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap bg-rose-50 text-rose-700 border border-rose-200/60 tabular-nums">
-                            -{formatRupiahSingkat(ringkasanPeriode?.total_keluar ?? 0)}
+                            <PrivacyWrapper>-{formatRupiahSingkat(ringkasanPeriode?.total_keluar ?? 0)}</PrivacyWrapper>
                         </span>
                     </div>
                 </div>
@@ -1111,7 +1002,7 @@ export default function Index({
                         <div className="overflow-x-auto">
                             <table className="hidden md:table w-full text-sm border-collapse">
                                 <thead>
-                                    <tr className="text-left text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/80 bg-[#F8FAFC]">
+                                    <tr className="text-left text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/80 bg-white">
                                         <th scope="col" className="py-2.5 pl-3 pr-2 w-24 whitespace-nowrap">Tgl</th>
                                         <th scope="col" className="py-2.5 pr-2 w-32 whitespace-nowrap">No. Bukti</th>
                                         <th scope="col" className="py-2.5 pr-2 whitespace-nowrap">Keterangan</th>
@@ -1123,14 +1014,14 @@ export default function Index({
                                 </thead>
                                 <tbody>
                                     {/* Baris Saldo Awal */}
-                                    <tr className="border-b border-slate-200/70 bg-[#F7F9FC]">
-                                        <td colSpan={4} className="py-2 pl-3 pr-2 text-xs font-bold text-slate-600">
+                                    <tr className="border-b border-slate-200/80 bg-white">
+                                        <td colSpan={4} className="py-2 pl-3 pr-2 text-xs font-bold text-[#0F1E36]">
                                             Saldo awal{labelAkunSaldo} {labelBulan}
                                         </td>
                                         <td colSpan={2} className="py-2 pr-2 text-right text-xs text-slate-500">
                                             {saldoValid ? '' : 'saldo terbatas filter'}
                                         </td>
-                                        <td className="py-2 pr-3 text-right font-bold tabular-nums text-slate-700 privacy-blur">
+                                        <td className="py-2 pr-3 text-right font-bold tabular-nums text-[#0F1E36] privacy-blur">
                                             {saldoValid ? formatRupiah(saldoAwal) : '—'}
                                         </td>
                                     </tr>
@@ -1187,8 +1078,8 @@ export default function Index({
                                     ))}
 
                                     {/* Baris Total Mutasi */}
-                                    <tr className="border-t-2 border-slate-200/90 bg-[#F7F9FC]">
-                                        <td colSpan={4} className="py-2.5 pl-3 pr-2 text-xs font-bold text-slate-700">
+                                    <tr className="border-t-2 border-[#0F1E36] bg-white">
+                                        <td colSpan={4} className="py-2.5 pl-3 pr-2 text-xs font-extrabold text-[#0F1E36]">
                                             Total {labelBulan}
                                         </td>
                                         <td className="py-2.5 pr-2 text-right font-bold tabular-nums text-emerald-700 privacy-blur">
@@ -1197,18 +1088,18 @@ export default function Index({
                                         <td className="py-2.5 pr-2 text-right font-bold tabular-nums text-rose-600 privacy-blur">
                                             - {formatRupiah(ringkasanPeriode?.total_keluar ?? 0)}
                                         </td>
-                                        <td className="py-2.5 pr-3 text-right font-bold tabular-nums text-slate-800 privacy-blur">
+                                        <td className="py-2.5 pr-3 text-right font-extrabold tabular-nums text-[#0F1E36] privacy-blur">
                                             {saldoValid ? formatRupiah(saldoAkhir) : '—'}
                                         </td>
                                     </tr>
 
                                     {/* Baris Saldo Akhir */}
                                     {saldoValid && (
-                                        <tr className="bg-[#F7F9FC] -mt-px">
+                                        <tr className="bg-white border-t border-slate-100">
                                             <td colSpan={6} className="py-1.5 pr-2 text-xs text-slate-500 text-right">
                                                 Saldo akhir{labelAkunSaldo} {labelBulan}
                                             </td>
-                                            <td className="py-1.5 pr-3 text-right text-xs font-bold tabular-nums text-slate-900 privacy-blur">
+                                            <td className="py-1.5 pr-3 text-right text-xs font-extrabold tabular-nums text-[#0F1E36] privacy-blur">
                                                 {formatRupiah(saldoAkhir)}
                                             </td>
                                         </tr>
@@ -1220,12 +1111,12 @@ export default function Index({
                         {/* Mobile List View */}
                         <ul className="md:hidden divide-y divide-slate-100">
                             {/* Saldo Awal Mobile */}
-                            <li className="flex items-center justify-between gap-3 py-2.5 bg-gradient-to-r from-brand-navy/[0.05] to-brand-green-light/20 border border-slate-200/60 rounded-lg px-2.5 -mx-1 mb-1">
+                            <li className="flex items-center justify-between gap-3 py-2.5 bg-white border border-slate-200/80 rounded-lg px-2.5 -mx-1 mb-1">
                                 <div>
-                                    <p className="text-xs font-bold text-slate-700">Saldo Awal {labelBulan}</p>
+                                    <p className="text-xs font-bold text-[#0F1E36]">Saldo Awal {labelBulan}</p>
                                     <p className="text-[10px] text-slate-400">Pembuka periode</p>
                                 </div>
-                                <p className="text-sm font-bold tabular-nums text-slate-700 privacy-blur">
+                                <p className="text-sm font-bold tabular-nums text-[#0F1E36] privacy-blur">
                                     {saldoValid ? formatRupiah(saldoAwal) : '—'}
                                 </p>
                             </li>
@@ -1269,12 +1160,12 @@ export default function Index({
 
                             {/* Saldo Akhir Mobile */}
                             {saldoValid && (
-                                <li className="flex items-center justify-between gap-3 py-2.5 bg-slate-50 rounded-lg px-2.5 -mx-1 mt-1">
+                                <li className="flex items-center justify-between gap-3 py-2.5 bg-white border border-slate-200/80 border-t-2 border-t-[#0F1E36] rounded-lg px-2.5 -mx-1 mt-1">
                                     <div>
-                                        <p className="text-xs font-bold text-slate-700">Saldo Akhir {labelBulan}</p>
+                                        <p className="text-xs font-bold text-[#0F1E36]">Saldo Akhir {labelBulan}</p>
                                         <p className="text-[10px] text-slate-400">Penutup periode</p>
                                     </div>
-                                    <p className="text-sm font-bold tabular-nums text-slate-900 privacy-blur">
+                                    <p className="text-sm font-extrabold tabular-nums text-[#0F1E36] privacy-blur">
                                         {formatRupiah(saldoAkhir)}
                                     </p>
                                 </li>
