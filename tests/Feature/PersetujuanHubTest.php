@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Anggota;
+use App\Models\Angsuran;
 use App\Models\PengajuanLimit;
 use App\Models\PengajuanPenghapusanPinjaman;
 use App\Models\PengajuanPercepatan;
@@ -10,6 +11,7 @@ use App\Models\PengajuanTransaksiTabungan;
 use App\Models\Pinjaman;
 use App\Models\RekeningTabungan;
 use App\Models\Simpanan;
+use App\Services\Pinjaman\PenghapusanPinjamanService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -416,5 +418,83 @@ class PersetujuanHubTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('notifications.menunggu_tinjauan_admin', $jumlahAwal - 1)
             );
+    }
+
+    public function test_pinjaman_menunggak_dimuat_lazy_via_optional_dan_jadwal_aktif_tanpa_n_plus_1(): void
+    {
+        Angsuran::query()->delete();
+        Pinjaman::query()->delete();
+
+        $anggota = $this->buatAnggota('HUB-900010');
+        $pinjaman = Pinjaman::create([
+            'anggota_id' => $anggota->id,
+            'nominal' => 1_200_000,
+            'tenor_bulan' => 3,
+            'persentase_bunga' => 1.5,
+            'keperluan' => 'Uji lazy prop dan jadwalAktif eager',
+            'snapshot_bank' => 'BCA',
+            'snapshot_no_rekening' => '11220011',
+            'snapshot_atas_nama' => $anggota->nama,
+            'status' => 'aktif',
+            'tanggal_pengajuan' => now()->subMonths(2),
+            'tanggal_pencairan' => now()->subMonths(2),
+        ]);
+
+        for ($i = 1; $i <= 3; $i++) {
+            Angsuran::create([
+                'pinjaman_id' => $pinjaman->id,
+                'cicilan_ke' => $i,
+                'nominal_pokok' => 400_000,
+                'nominal_bunga' => 18_000,
+                'total_bayar' => 418_000,
+                'status' => $i === 1 ? 'lunas' : 'belum_bayar',
+                'tanggal_jatuh_tempo' => now()->subMonths(2 - $i)->toDateString(),
+            ]);
+        }
+
+        // 1. Kunjungan awal /persetujuan tidak menjalankan query daftarPinjamanMenunggak
+        $this->masuk('ADM-000001');
+        $this->get(route('persetujuan.index'))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Persetujuan/Index')
+                ->where('inbox.bisaAjukanPenghapusan', true)
+                ->missing('inbox.pinjamanMenunggak')
+                ->missing('pinjamanMenunggak')
+                ->reloadOnly(['pinjamanMenunggak'], fn (AssertableInertia $reload) => $reload
+                    ->has('pinjamanMenunggak', 1)
+                    ->where('pinjamanMenunggak.0.pinjaman_id', $pinjaman->id)
+                    ->where('pinjamanMenunggak.0.sisa_cicilan', 2)
+                )
+            );
+
+        // 2. Pastikan Pinjaman::jadwalAktif() dan agregatJadwalAktif() memakai relasi eager (0 query tambahan)
+        $loaded = Pinjaman::with([
+            'angsuran' => fn ($q) => $q->where('status', '!=', 'digantikan')->orderBy('cicilan_ke'),
+            'pengajuanPercepatan' => fn ($q) => $q->where('status', 'aktif')->latest()->with('angsuranBaru'),
+        ])->findOrFail($pinjaman->id);
+
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        $agg = $loaded->agregatJadwalAktif();
+        $sisaCount = $loaded->sisaAngsuran();
+        $queriesAfterEager = DB::getQueryLog();
+        DB::disableQueryLog();
+
+        $this->assertCount(0, $queriesAfterEager);
+        $this->assertSame(3, $agg['total']);
+        $this->assertSame(2, $agg['sisa']);
+        $this->assertSame(2, $sisaCount);
+
+        // 3. daftarPinjamanMenunggak() tetap menghitung rincian secara akurat dalam query konstan (tanpa N+1)
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        $menunggakList = app(PenghapusanPinjamanService::class)->daftarPinjamanMenunggak();
+        $menunggakQueries = DB::getQueryLog();
+        DB::disableQueryLog();
+
+        $this->assertCount(1, $menunggakList);
+        $this->assertSame(800_000.0, (float) $menunggakList[0]['sisa_pokok']);
+        $this->assertLessThanOrEqual(5, count($menunggakQueries));
     }
 }

@@ -86,6 +86,8 @@ class TabunganController extends Controller
             $periodeBunga = now()->format('Y-m');
         }
 
+        $sukuBungaAktif = SettingBungaTabungan::persentaseAktif();
+
         $rekeningAktifOptions = collect();
         $settingData = null;
         $previewBunga = null;
@@ -108,7 +110,7 @@ class TabunganController extends Controller
             $settingData = [
                 'min_setor' => (float) $settingModel->min_setor,
                 'saldo_minimal' => (float) $settingModel->saldo_minimal,
-                'suku_bunga_aktif' => SettingBungaTabungan::persentaseAktif(),
+                'suku_bunga_aktif' => $sukuBungaAktif,
             ];
 
             if ($tabAktif === 'bunga') {
@@ -129,7 +131,7 @@ class TabunganController extends Controller
                 'jumlah_aktif' => (int) ($agregat->jumlah_aktif ?? 0),
                 'jumlah_diajukan' => (int) ($agregat->jumlah_diajukan ?? 0),
                 'total_bunga_tahun_ini' => $totalBungaTahunIni,
-                'suku_bunga_aktif' => SettingBungaTabungan::persentaseAktif(),
+                'suku_bunga_aktif' => $sukuBungaAktif,
             ],
             'bisaKelola' => $bisaKelola,
             'tabAktif' => $tabAktif,

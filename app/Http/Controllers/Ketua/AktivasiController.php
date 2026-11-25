@@ -32,10 +32,11 @@ class AktivasiController extends Controller
             ->get()
             ->map(self::formatItem());
 
+        $settingSimpanan = SettingSimpanan::whereIn('jenis', ['pokok', 'wajib', 'dana_sosial'])->pluck('nominal', 'jenis');
         $ketentuanFinansial = [
-            'simpanan_pokok' => (float) (SettingSimpanan::where('jenis', 'pokok')->value('nominal') ?? 50_000),
-            'simpanan_wajib' => (float) (SettingSimpanan::where('jenis', 'wajib')->value('nominal') ?? 45_000),
-            'dana_sosial' => (float) (SettingSimpanan::where('jenis', 'dana_sosial')->value('nominal') ?? 5_000),
+            'simpanan_pokok' => (float) ($settingSimpanan['pokok'] ?? 50_000),
+            'simpanan_wajib' => (float) ($settingSimpanan['wajib'] ?? 45_000),
+            'dana_sosial' => (float) ($settingSimpanan['dana_sosial'] ?? 5_000),
             'limit_awal' => (float) (SettingLimitPinjaman::orderBy('min_bulan')->value('limit_maksimal') ?? 1_000_000),
         ];
 

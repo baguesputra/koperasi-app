@@ -40,10 +40,14 @@ class DashboardController extends Controller
         $simpananPokok = (float) ($simpananAgg->pokok ?? 0);
         $simpananWajib = (float) ($simpananAgg->wajib ?? 0);
 
-        $pinjamanAktif = $anggota->pinjamanAktif();
-        $cekEligibilitas = $this->eligibilitas->cek($anggota);
-        $cekTambahLimit = $this->eligibilitas->cekEligibilitasTambahLimit($anggota);
-        $limitMaksimal = $this->eligibilitas->limitMaksimal($anggota);
+        $pinjamanAktifCollection = $anggota->pinjaman()
+            ->where('status', 'aktif')
+            ->with([
+                'angsuran' => fn ($q) => $q->where('status', '!=', 'digantikan')->orderBy('cicilan_ke'),
+                'pengajuanPercepatan' => fn ($q) => $q->where('status', 'aktif')->latest()->with('angsuranBaru'),
+            ])
+            ->get();
+        $pinjamanAktif = $pinjamanAktifCollection->first();
 
         // Pengajuan yang sedang berjalan (belum aktif/lunas/ditolak; termasuk approved_ketua menunggu pencairan)
         $pengajuanBerjalan = $anggota->pinjaman()
@@ -51,17 +55,28 @@ class DashboardController extends Controller
             ->latest('tanggal_pengajuan')
             ->first();
 
+        // Pengajuan limit yang sedang berjalan (diajukan ke bendahara / approved_bendahara ke ketua)
+        $pengajuanLimitBerjalan = $anggota->pengajuanLimit()
+            ->whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara'])
+            ->latest('tanggal_pengajuan')
+            ->first();
+
+        $aggAktif = $pinjamanAktifCollection->isEmpty() ? null : $anggota->pinjamanAktifDenganAgregat();
+        $cekEligibilitas = $this->eligibilitas->cek($anggota, $aggAktif, pakaiPreloadedAgg: true);
+        $cekTambahLimit = $this->eligibilitas->cekEligibilitasTambahLimit(
+            $anggota,
+            $aggAktif,
+            pakaiPreloadedAgg: true,
+            adaPinjamanDiproses: $pengajuanBerjalan !== null,
+            adaLimitDiproses: $pengajuanLimitBerjalan !== null,
+        );
+        $limitMaksimal = $this->eligibilitas->limitMaksimal($anggota);
+
         // Pengajuan yang baru saja ditolak (untuk ditampilkan sekali)
         $pengajuanDitolak = $anggota->pinjaman()
             ->where('status', 'ditolak')
             ->where('updated_at', '>=', now()->subDays(30))
             ->latest('updated_at')
-            ->first();
-
-        // Pengajuan limit yang sedang berjalan (diajukan ke bendahara / approved_bendahara ke ketua)
-        $pengajuanLimitBerjalan = $anggota->pengajuanLimit()
-            ->whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara'])
-            ->latest('tanggal_pengajuan')
             ->first();
 
         $resignMenunggu = null;
@@ -80,7 +95,10 @@ class DashboardController extends Controller
         $sisaTotalBayar = 0;
 
         if ($pinjamanAktif) {
-            $angsuranBelumBayar = $pinjamanAktif->angsuranBelumBayar()->orderBy('cicilan_ke')->get();
+            $angsuranBelumBayar = $pinjamanAktif->angsuran
+                ->where('status', 'belum_bayar')
+                ->sortBy('cicilan_ke')
+                ->values();
             $sisaTotalBayar = $angsuranBelumBayar->sum('total_bayar');
 
             $terdekat = $angsuranBelumBayar->first();
@@ -130,6 +148,8 @@ class DashboardController extends Controller
 
         $riwayatGabungan = $riwayatSimpanan->concat($riwayatAngsuran);
 
+        $sukuBungaTabunganAktif = SettingBungaTabungan::persentaseAktif();
+
         $rekeningTabungan = $anggota->rekeningTabungan()
             ->whereIn('status', ['aktif', ...RekeningTabungan::STATUS_MENUNGGU])
             ->orderByRaw("CASE status WHEN 'aktif' THEN 1 ELSE 2 END")
@@ -146,7 +166,7 @@ class DashboardController extends Controller
                     'saldo' => (float) $rekeningTabungan->saldo,
                     'estimasi_bunga_bulan_ini' => (float) ($estimasi['bunga_bersih'] ?? 0),
                     'total_bunga' => (float) $rekeningTabungan->bungaPeriode()->sum('bunga_bersih'),
-                    'suku_bunga_aktif' => SettingBungaTabungan::persentaseAktif(),
+                    'suku_bunga_aktif' => $sukuBungaTabunganAktif,
                     'pengajuan_menunggu_count' => $rekeningTabungan->pengajuanTransaksi()
                         ->whereIn('status', PengajuanTransaksiTabungan::STATUS_MENUNGGU)
                         ->count(),
@@ -181,7 +201,7 @@ class DashboardController extends Controller
                     'saldo' => 0.0,
                     'estimasi_bunga_bulan_ini' => 0.0,
                     'total_bunga' => 0.0,
-                    'suku_bunga_aktif' => SettingBungaTabungan::persentaseAktif(),
+                    'suku_bunga_aktif' => $sukuBungaTabunganAktif,
                     'pengajuan_menunggu_count' => 1,
                 ];
             }
@@ -197,7 +217,7 @@ class DashboardController extends Controller
         $tabelTenor = TabelTenor::orderBy('nominal_min')->get(['nominal_min', 'nominal_max', 'tenor_maksimal_bulan']);
         $settingSimpanan = SettingSimpanan::orderBy('id')->get(['jenis', 'label', 'nominal']);
 
-        $pinjamanAktifList = $anggota->pinjamanAktifList()->map(function ($p) {
+        $pinjamanAktifList = $pinjamanAktifCollection->map(function ($p) {
             $agg = $p->agregatJadwalAktif();
 
             return [
@@ -305,7 +325,7 @@ class DashboardController extends Controller
             'plafonKebijakan' => (float) $cekTambahLimit['plafon_koperasi'],
             'riwayatGabungan' => $riwayatGabungan,
             'tabungan' => $tabunganRingkasan,
-            'sukuBungaTabunganAktif' => SettingBungaTabungan::persentaseAktif(),
+            'sukuBungaTabunganAktif' => $sukuBungaTabunganAktif,
             'tabelTenor' => $tabelTenor,
             'settingSimpanan' => $settingSimpanan,
         ]);

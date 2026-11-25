@@ -18,8 +18,7 @@ class SimpananController extends Controller
         $statusAktif = $request->string('status');
 
         $query = Anggota::query()
-            ->with(['simpanan' => fn ($q) => $q->latest('tanggal_input')])
-            ->withSum(['simpanan as total_pokok_wajib' => fn ($q) => $q->whereIn('jenis', ['pokok', 'wajib'])], 'jumlah');
+            ->with(['simpanan' => fn ($q) => $q->latest('tanggal_input')]);
 
         if ($request->filled('cari')) {
             $cari = $request->string('cari');
@@ -53,7 +52,7 @@ class SimpananController extends Controller
                     'cabang' => $a->cabang,
                     'foto_url' => $a->foto_url,
                     'status' => $a->status,
-                    'total_simpanan' => (float) ($a->total_pokok_wajib ?? 0),
+                    'total_simpanan' => round($pokok + $wajib, 2),
                     'simpanan_pokok' => $pokok,
                     'simpanan_wajib' => $wajib,
                     'alokasi_pelunasan_resign' => (float) ($settlement['tagihan_pelunasan'] ?? 0),

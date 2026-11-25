@@ -28,7 +28,7 @@ class FormatPinjamanService
         return self::$saldoBankCache ??= (float) (KasKoperasi::query()->value('saldo_bank') ?? 0);
     }
 
-    public function format($p, bool $withLimit = true): array
+    public function format($p, bool $withLimit = true, ?float $saldoBank = null): array
     {
         $jadwal = $this->bunga->buatJadwal(
             (float) $p->nominal,
@@ -44,7 +44,7 @@ class FormatPinjamanService
         $pokokPerBulan = $jadwal[0]['nominal_pokok'] ?? 0;
         $bungaPertama = $jadwal[0]['nominal_bunga'] ?? 0;
 
-        $saldoBank = $this->ambilSaldoBank();
+        $saldoBank = $saldoBank ?? $this->ambilSaldoBank();
         $limitTersedia = $withLimit ? (float) $this->eligibilitas->limitTersedia($p->anggota) : 0.0;
         $tenorMaks = $this->eligibilitas->tenorMaksimal((float) ($p->nominal_diminta ?? $p->nominal));
 

@@ -148,7 +148,7 @@ export function PenghapusanDetailDrawer({ detail, peranSaya, onClose }) {
     );
 }
 
-export function AjukanPenghapusanDrawer({ pinjamanMenunggak = [], onClose }) {
+export function AjukanPenghapusanDrawer({ pinjamanMenunggak = [], loading = false, onClose }) {
     const [cari, setCari] = useState('');
     const [dipilih, setDipilih] = useState(null);
     const form = useForm({ pinjaman_id: '', alasan: '' });
@@ -209,7 +209,13 @@ export function AjukanPenghapusanDrawer({ pinjamanMenunggak = [], onClose }) {
                     </div>
 
                     <div className="space-y-2">
-                        {tersaring.length === 0 ? (
+                        {loading && tersaring.length === 0 ? (
+                            <div className="space-y-2 animate-pulse" aria-busy="true">
+                                <div className="h-16 rounded-xl bg-slate-100" />
+                                <div className="h-16 rounded-xl bg-slate-100" />
+                                <div className="h-16 rounded-xl bg-slate-100" />
+                            </div>
+                        ) : tersaring.length === 0 ? (
                             <p className="py-10 text-center text-sm text-slate-400">
                                 Tidak ada pinjaman aktif yang dapat diajukan penghapusan.
                             </p>

@@ -4,15 +4,22 @@ namespace App\Services\Pinjaman;
 
 use App\Models\KasKoperasi;
 use App\Models\Pinjaman;
+use Illuminate\Support\Collection;
 
 class RingkasanPinjamanService
 {
-    public function ringkasan(?string $peran = null): array
-    {
-        $saldoBank = (float) (KasKoperasi::query()->value('saldo_bank') ?? 0);
+    public function ringkasan(
+        ?string $peran = null,
+        ?KasKoperasi $kas = null,
+        ?Collection $pinjamanAgg = null,
+        bool $hitungJumlahDisetujui = true,
+    ): array {
+        $saldoBank = $kas !== null
+            ? (float) ($kas->saldo_bank ?? 0)
+            : (float) (KasKoperasi::query()->value('saldo_bank') ?? 0);
 
         // 1 single query agregat menggantikan 5 query terpisah untuk antrean berjalan
-        $rows = Pinjaman::query()
+        $rows = $pinjamanAgg ?? Pinjaman::query()
             ->whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara', 'approved_ketua'])
             ->selectRaw('
                 status,
@@ -44,16 +51,16 @@ class RingkasanPinjamanService
 
             if ($row->status === 'diajukan') {
                 $adminJumlah += $jml;
-                $tot = (float) $row->total_usulan;
+                $tot = (float) ($row->total_usulan ?? $row->sum_usulan ?? 0);
                 $adminTotal += $tot;
                 $totalAntrean += $tot;
             } elseif ($row->status === 'approved_admin') {
                 $bendaharaJumlah += $jml;
-                $tot = (float) $row->total_disetujui_bendahara;
+                $tot = (float) ($row->total_disetujui_bendahara ?? $row->sum_bendahara ?? 0);
                 $bendaharaTotal += $tot;
                 $totalAntrean += $tot;
             } elseif ($row->status === 'approved_bendahara') {
-                $tot = (float) $row->total_disetujui_bendahara;
+                $tot = (float) ($row->total_disetujui_bendahara ?? $row->sum_bendahara ?? 0);
                 $totalAntrean += $tot;
                 if ((bool) $row->cair_oleh_bendahara) {
                     $cairMandiriJumlah += $jml;
@@ -64,7 +71,7 @@ class RingkasanPinjamanService
                 }
             } elseif ($row->status === 'approved_ketua') {
                 $pencairanJumlah += $jml;
-                $tot = (float) $row->total_disetujui_ketua;
+                $tot = (float) ($row->total_disetujui_ketua ?? $row->sum_ketua ?? 0);
                 $pencairanTotal += $tot;
                 $totalAntrean += $tot;
             }
@@ -122,10 +129,12 @@ class RingkasanPinjamanService
             ],
         };
 
-        $jumlahDisetujui = Pinjaman::query()
-            ->whereNotNull('catatan_admin')
-            ->whereIn('status', ['approved_admin', 'approved_bendahara', 'approved_ketua', 'aktif', 'lunas'])
-            ->count();
+        $jumlahDisetujui = $hitungJumlahDisetujui
+            ? Pinjaman::query()
+                ->whereNotNull('catatan_admin')
+                ->whereIn('status', ['approved_admin', 'approved_bendahara', 'approved_ketua', 'aktif', 'lunas'])
+                ->count()
+            : 0;
 
         return [
             'peran' => $peran,

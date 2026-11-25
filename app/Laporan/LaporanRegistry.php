@@ -10,9 +10,9 @@ use App\Models\PengajuanPercepatan;
 use App\Models\Pengeluaran;
 use App\Models\Pinjaman;
 use App\Models\SettingSimpanan;
+use App\Models\ShuDetail;
 use App\Models\ShuPeriode;
 use App\Services\Keuangan\JurnalKasService;
-use App\Services\Keuangan\ShuService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -1410,7 +1410,7 @@ class LaporanRegistry
 
     /**
      * Akumulasi dana yang tidak dibagikan / sisa dana hasil pembagian SHU
-     * untuk tahun-tahun buku sebelum cutoff yang sudah final.
+     * untuk tahun-tahun buku sebelum cutoff yang sudah final (batch query anti-N+1).
      */
     private static function akumulasiSisaDanaShu(int $tahunCutoff): float
     {
@@ -1426,14 +1426,34 @@ class LaporanRegistry
             return 0.0;
         }
 
+        $detailAgg = ShuDetail::whereIn('shu_periode_id', $periodes->pluck('id'))
+            ->selectRaw('shu_periode_id, COALESCE(SUM(shu_bruto), 0) as bruto, COALESCE(SUM(shu_bersih), 0) as bersih')
+            ->groupBy('shu_periode_id')
+            ->get()
+            ->keyBy('shu_periode_id');
+
         $totalSisa = 0.0;
-        $svc = app(ShuService::class);
         foreach ($periodes as $p) {
-            $ringkas = $svc->ringkasan($p);
-            $danaTakDibagi = (float) ($ringkas['dana_tak_dibagi'] ?? 0);
-            $sisaAnggota = (float) ($ringkas['belum_diserahkan'] ?? $ringkas['sisa_dana']['anggota'] ?? 0);
-            $sisaPengurus = (float) ($ringkas['sisa_dana']['pengurus'] ?? 0);
-            $sisaPengawas = (float) ($ringkas['sisa_dana']['pengawas'] ?? 0);
+            $totalShu = (float) $p->total_shu;
+            $jasaSimpanan = round($totalShu * (float) ($p->pct_jasa_simpanan ?? 0), 2);
+            $jasaTransaksi = round($totalShu * (float) ($p->pct_jasa_transaksi ?? 0), 2);
+            $alokasiPengurus = round($totalShu * (float) ($p->pct_pengurus ?? 0), 2);
+            $alokasiPengawas = round($totalShu * (float) ($p->pct_pengawas ?? 0), 2);
+
+            $danaDibagi = $jasaSimpanan + $jasaTransaksi + $alokasiPengurus + $alokasiPengawas;
+            $danaTakDibagi = round($totalShu - $danaDibagi, 2);
+
+            $agg = $detailAgg->get($p->id);
+            $sisaAnggota = round((float) ($agg->bruto ?? 0) - (float) ($agg->bersih ?? 0), 2);
+
+            $rincianPengurus = $p->pengurus_rincian ?? [];
+            $totalPengurusRiil = ! empty($rincianPengurus) ? (float) collect($rincianPengurus)->sum('nominal') : 0.0;
+            $sisaPengurus = $totalPengurusRiil > 0 ? max(0.0, round($alokasiPengurus - $totalPengurusRiil, 2)) : 0.0;
+
+            $rincianPengawas = $p->pengawas_rincian ?? [];
+            $totalPengawasRiil = ! empty($rincianPengawas) ? (float) collect($rincianPengawas)->sum('nominal') : 0.0;
+            $sisaPengawas = $totalPengawasRiil > 0 ? max(0.0, round($alokasiPengawas - $totalPengawasRiil, 2)) : 0.0;
+
             $totalSisa += ($danaTakDibagi + $sisaAnggota + $sisaPengurus + $sisaPengawas);
         }
 

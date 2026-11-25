@@ -83,7 +83,10 @@ class PengajuanLimitController extends Controller
 
         $aktif = Pinjaman::whereIn('anggota_id', $anggotaIds)
             ->where('status', 'aktif')
-            ->with('angsuran:pinjaman_id,cicilan_ke,nominal_pokok,nominal_bunga,total_bayar,status,tanggal_jatuh_tempo')
+            ->with([
+                'angsuran:pinjaman_id,cicilan_ke,nominal_pokok,nominal_bunga,total_bayar,status,tanggal_jatuh_tempo',
+                'pengajuanPercepatan' => fn ($q) => $q->where('status', 'aktif')->latest()->with('angsuranBaru'),
+            ])
             ->get()
             ->groupBy('anggota_id')
             ->all();
@@ -111,7 +114,10 @@ class PengajuanLimitController extends Controller
                 ? ($cache['aktif'][$anggota->id] ?? collect())
                 : Pinjaman::where('anggota_id', $anggota->id)
                     ->where('status', 'aktif')
-                    ->with('angsuran:pinjaman_id,cicilan_ke,nominal_pokok,nominal_bunga,total_bayar,status,tanggal_jatuh_tempo')
+                    ->with([
+                        'angsuran:pinjaman_id,cicilan_ke,nominal_pokok,nominal_bunga,total_bayar,status,tanggal_jatuh_tempo',
+                        'pengajuanPercepatan' => fn ($q) => $q->where('status', 'aktif')->latest()->with('angsuranBaru'),
+                    ])
                     ->get();
 
             $pinjamanAktif = $daftarAktif

@@ -104,6 +104,17 @@ class Pinjaman extends Model
 
     public function sisaAngsuran(): int
     {
+        $attrs = $this->getAttributes();
+        if (array_key_exists('angsuran_belum_bayar_count', $attrs)) {
+            return (int) $attrs['angsuran_belum_bayar_count'];
+        }
+        if ($this->relationLoaded('angsuranBelumBayar')) {
+            return $this->getRelation('angsuranBelumBayar')->count();
+        }
+        if ($this->relationLoaded('angsuran')) {
+            return $this->getRelation('angsuran')->where('status', 'belum_bayar')->count();
+        }
+
         return $this->angsuranBelumBayar()->count();
     }
 
@@ -143,20 +154,44 @@ class Pinjaman extends Model
      */
     protected $jadwalAktifCache = null;
 
+    public function refresh()
+    {
+        $this->jadwalAktifCache = null;
+
+        return parent::refresh();
+    }
+
     public function jadwalAktif()
     {
         if ($this->jadwalAktifCache !== null) {
             return $this->jadwalAktifCache;
         }
 
-        $pengajuanAktif = $this->pengajuanPercepatan()->where('status', 'aktif')->latest()->first();
-        $lama = $this->angsuran()->where('status', '!=', 'digantikan')->orderBy('cicilan_ke')->get();
+        if ($this->relationLoaded('pengajuanPercepatan')) {
+            $pengajuanAktif = $this->getRelation('pengajuanPercepatan')
+                ->where('status', 'aktif')
+                ->sortByDesc(fn ($pp) => [$pp->created_at?->timestamp ?? 0, $pp->id])
+                ->first();
+        } else {
+            $pengajuanAktif = $this->pengajuanPercepatan()->where('status', 'aktif')->latest()->first();
+        }
+
+        if ($this->relationLoaded('angsuran')) {
+            $lama = $this->getRelation('angsuran')
+                ->where('status', '!=', 'digantikan')
+                ->sortBy('cicilan_ke')
+                ->values();
+        } else {
+            $lama = $this->angsuran()->where('status', '!=', 'digantikan')->orderBy('cicilan_ke')->get();
+        }
 
         if (! $pengajuanAktif) {
             return $this->jadwalAktifCache = $lama;
         }
 
-        $baru = $pengajuanAktif->angsuranBaru()->orderBy('cicilan_ke')->get();
+        $baru = $pengajuanAktif->relationLoaded('angsuranBaru')
+            ? $pengajuanAktif->getRelation('angsuranBaru')->sortBy('cicilan_ke')->values()
+            : $pengajuanAktif->angsuranBaru()->orderBy('cicilan_ke')->get();
 
         return $this->jadwalAktifCache = $lama->concat($baru);
     }

@@ -15,13 +15,20 @@ class PercepatanController extends Controller
 
     public function index(): Response
     {
-        $menunggu = PengajuanPercepatan::with('pinjaman.anggota')
+        $menunggu = PengajuanPercepatan::with([
+            'pinjaman' => fn ($q) => $q->with('anggota')
+                ->withCount('angsuranBelumBayar')
+                ->withSum('angsuranBelumBayar', 'nominal_pokok'),
+        ])
             ->where('status', 'approved_bendahara')
             ->latest('tanggal_pengajuan')
             ->get()
             ->map(fn ($p) => $this->formatDetail($p));
 
-        $riwayat = PengajuanPercepatan::with('pinjaman.anggota')
+        $riwayat = PengajuanPercepatan::with([
+            'pinjaman' => fn ($q) => $q->with('anggota')->withCount('angsuranBelumBayar'),
+            'angsuranBaru' => fn ($q) => $q->orderBy('cicilan_ke'),
+        ])
             ->whereIn('status', ['aktif', 'ditolak'])
             ->whereNotNull('catatan_ketua')
             ->latest('updated_at')
@@ -108,7 +115,11 @@ class PercepatanController extends Controller
         }
 
         if ($p->status === 'aktif') {
-            $data['angsuran_baru'] = $p->angsuranBaru()->orderBy('cicilan_ke')->get()->map(fn ($a) => [
+            $angsuranBaru = $p->relationLoaded('angsuranBaru')
+                ? $p->angsuranBaru->sortBy('cicilan_ke')->values()
+                : $p->angsuranBaru()->orderBy('cicilan_ke')->get();
+
+            $data['angsuran_baru'] = $angsuranBaru->map(fn ($a) => [
                 'id' => $a->id,
                 'cicilan_ke' => $a->cicilan_ke,
                 'nominal_pokok' => (float) $a->nominal_pokok,

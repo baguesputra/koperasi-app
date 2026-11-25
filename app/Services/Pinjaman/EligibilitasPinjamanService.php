@@ -173,7 +173,7 @@ class EligibilitasPinjamanService
      *   - Sisa <= 1, salah satu flag reloan sudah dipakai -> tolak (harus lunas dulu)
      *   - Sisa <= 1, semua flag reloan belum dipakai -> boleh (limit dikurangi rumus berjalan)
      */
-    public function cek(Anggota $anggota): array
+    public function cek(Anggota $anggota, ?array $preloadedAgg = null, bool $pakaiPreloadedAgg = false): array
     {
         // Anggota nonaktif / resign / menunggu tidak boleh mengajukan pinjaman.
         if ($anggota->status !== 'aktif') {
@@ -203,7 +203,7 @@ class EligibilitasPinjamanService
             ];
         }
 
-        $agg = $anggota->pinjamanAktifDenganAgregat();
+        $agg = $pakaiPreloadedAgg ? $preloadedAgg : $anggota->pinjamanAktifDenganAgregat();
 
         // Belum punya pinjaman aktif sama sekali -> pasti boleh
         if ($agg === null) {
@@ -347,8 +347,13 @@ class EligibilitasPinjamanService
      *     plafon_koperasi: float
      * }
      */
-    public function cekEligibilitasTambahLimit(Anggota $anggota): array
-    {
+    public function cekEligibilitasTambahLimit(
+        Anggota $anggota,
+        ?array $preloadedAgg = null,
+        bool $pakaiPreloadedAgg = false,
+        ?bool $adaPinjamanDiproses = null,
+        ?bool $adaLimitDiproses = null,
+    ): array {
         $limitSaatIni = $this->limitMaksimal($anggota);
         $plafonMaksimalKoperasi = $this->plafonTertinggiKoperasi();
 
@@ -382,7 +387,7 @@ class EligibilitasPinjamanService
         }
 
         // 2. Ada pengajuan pinjaman sedang diproses
-        $adaPinjamanDiproses = $anggota->pinjaman()
+        $adaPinjamanDiproses ??= $anggota->pinjaman()
             ->whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara', 'approved_ketua'])
             ->exists();
 
@@ -398,7 +403,7 @@ class EligibilitasPinjamanService
         }
 
         // 3. Ada pengajuan limit sedang diverifikasi
-        $adaLimitDiproses = PengajuanLimit::where('anggota_id', $anggota->id)
+        $adaLimitDiproses ??= PengajuanLimit::where('anggota_id', $anggota->id)
             ->whereIn('status', ['diajukan', 'approved_bendahara'])
             ->exists();
 
@@ -426,7 +431,7 @@ class EligibilitasPinjamanService
         }
 
         // 5. Pinjaman aktif berjalan (sisa angsuran > 1)
-        $agg = $anggota->pinjamanAktifDenganAgregat();
+        $agg = $pakaiPreloadedAgg ? $preloadedAgg : $anggota->pinjamanAktifDenganAgregat();
         if ($agg !== null) {
             $sisaAngsuran = (int) $agg['sisa_total'];
             if ($sisaAngsuran > self::MAKS_SISA_ANGSURAN_RELOAN) {

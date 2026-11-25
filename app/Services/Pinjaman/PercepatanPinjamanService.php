@@ -108,7 +108,16 @@ class PercepatanPinjamanService
      */
     public function preview(Pinjaman $pinjaman, string $tipe, ?int $tenorBaru): array
     {
-        $sisaPokok = (float) $pinjaman->angsuranBelumBayar()->sum('nominal_pokok');
+        $attrs = $pinjaman->getAttributes();
+        if (array_key_exists('angsuran_belum_bayar_sum_nominal_pokok', $attrs)) {
+            $sisaPokok = (float) ($attrs['angsuran_belum_bayar_sum_nominal_pokok'] ?? 0);
+        } elseif ($pinjaman->relationLoaded('angsuranBelumBayar')) {
+            $sisaPokok = (float) $pinjaman->getRelation('angsuranBelumBayar')->sum('nominal_pokok');
+        } elseif ($pinjaman->relationLoaded('angsuran')) {
+            $sisaPokok = (float) $pinjaman->getRelation('angsuran')->where('status', 'belum_bayar')->sum('nominal_pokok');
+        } else {
+            $sisaPokok = (float) $pinjaman->angsuranBelumBayar()->sum('nominal_pokok');
+        }
         $persentase = (float) $pinjaman->persentase_bunga / 100;
 
         if ($tipe === 'lunas_total') {

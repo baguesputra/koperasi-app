@@ -32,9 +32,9 @@ class SettingBungaTabungan extends Model
 
     public static function tarifAktifPada(?CarbonInterface $tanggal = null): ?self
     {
-        $tgl = ($tanggal ?? now())->toDateString();
+        $batasBerikut = ($tanggal ?? now())->copy()->addDay()->toDateString();
 
-        return static::whereDate('berlaku_dari_tanggal', '<=', $tgl)
+        return static::where('berlaku_dari_tanggal', '<', $batasBerikut)
             ->orderByDesc('berlaku_dari_tanggal')
             ->orderByDesc('id')
             ->first();

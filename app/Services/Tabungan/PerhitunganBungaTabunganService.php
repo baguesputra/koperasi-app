@@ -21,21 +21,31 @@ class PerhitunganBungaTabunganService
     /**
      * Hitung bunga tabungan untuk satu rekening pada periode YYYY-MM (opsional sampai batasTanggal).
      * Mendukung perubahan tarif bunga di tengah bulan dengan memecah segmen per tanggal berlaku.
+     *
+     * @param  array<string, mixed>|null  $konteks
      */
-    public function hitungPeriode(RekeningTabungan $rekening, string $periode, ?Carbon $batasTanggal = null): array
+    public function hitungPeriode(RekeningTabungan $rekening, string $periode, ?Carbon $batasTanggal = null, ?array $konteks = null): array
     {
         if (! preg_match('/^\d{4}-\d{2}$/', $periode)) {
             throw new RuntimeException("Format periode '{$periode}' tidak valid (wajib YYYY-MM).");
         }
 
-        $setting = SettingTabungan::current();
+        $setting = $konteks['setting'] ?? SettingTabungan::current();
         $metode = $setting->metode_bunga ?: 'saldo_harian';
 
         $awalBulan = Carbon::createFromFormat('Y-m', $periode)->startOfMonth()->startOfDay();
         $akhirBulan = $awalBulan->copy()->endOfMonth()->startOfDay();
 
+        $rateKosong = function () use ($konteks, $akhirBulan): float {
+            if (isset($konteks['tarif_histori'], $konteks['default_rate'])) {
+                return $this->cariTarifTanggal($konteks['tarif_histori'], $akhirBulan->toDateString(), (float) $konteks['default_rate']);
+            }
+
+            return SettingBungaTabungan::persentaseAktif($akhirBulan);
+        };
+
         if (! $rekening->tanggal_buka) {
-            return $this->hasilKosong($periode, $metode, SettingBungaTabungan::persentaseAktif($akhirBulan));
+            return $this->hasilKosong($periode, $metode, $rateKosong());
         }
 
         $tanggalBuka = $rekening->tanggal_buka->copy()->startOfDay();
@@ -53,19 +63,22 @@ class PerhitunganBungaTabunganService
         }
 
         if ($mulai->greaterThan($akhir)) {
-            return $this->hasilKosong($periode, $metode, SettingBungaTabungan::persentaseAktif($akhirBulan));
+            return $this->hasilKosong($periode, $metode, $rateKosong());
         }
 
-        $saldoSebelumPeriode = $this->saldoSebelumTanggal($rekening->id, $mulai);
+        $saldoSebelumPeriode = isset($konteks['saldo_sebelum'])
+            ? (float) $konteks['saldo_sebelum']
+            : $this->saldoSebelumTanggal($rekening->id, $mulai);
 
-        $mutasiRentang = TabunganTransaksi::where('rekening_tabungan_id', $rekening->id)
-            ->whereNull('dibatalkan_pada')
-            ->whereNull('koreksi_dari_id')
-            ->whereDate('tanggal', '>=', $mulai->toDateString())
-            ->whereDate('tanggal', '<=', $akhir->toDateString())
-            ->orderBy('tanggal')
-            ->orderBy('id')
-            ->get(['tanggal', 'jenis', 'nominal']);
+        $mutasiRentang = $konteks['mutasi_rentang']
+            ?? TabunganTransaksi::where('rekening_tabungan_id', $rekening->id)
+                ->whereNull('dibatalkan_pada')
+                ->whereNull('koreksi_dari_id')
+                ->where('tanggal', '>=', $mulai->toDateString())
+                ->where('tanggal', '<', $akhir->copy()->addDay()->toDateString())
+                ->orderBy('tanggal')
+                ->orderBy('id')
+                ->get(['tanggal', 'jenis', 'nominal']);
 
         $deltaPerHari = [];
         foreach ($mutasiRentang as $trx) {
@@ -74,13 +87,20 @@ class PerhitunganBungaTabunganService
             $deltaPerHari[$tgl] = ($deltaPerHari[$tgl] ?? 0.0) + $delta;
         }
 
-        $tarifHistori = SettingBungaTabungan::whereDate('berlaku_dari_tanggal', '<=', $akhir->toDateString())
-            ->orderByDesc('berlaku_dari_tanggal')
-            ->orderByDesc('id')
-            ->get(['persentase', 'berlaku_dari_tanggal']);
-
-        $tarifFallback = SettingBungaTabungan::orderBy('berlaku_dari_tanggal')->orderBy('id')->value('persentase');
-        $defaultRate = $tarifFallback !== null ? (float) $tarifFallback : 2.00;
+        if (isset($konteks['tarif_histori']) && array_key_exists('default_rate', $konteks)) {
+            $tarifHistori = $konteks['tarif_histori'];
+            $defaultRate = (float) $konteks['default_rate'];
+        } else {
+            $semuaTarif = SettingBungaTabungan::orderByDesc('berlaku_dari_tanggal')
+                ->orderByDesc('id')
+                ->get(['persentase', 'berlaku_dari_tanggal']);
+            $akhirStr = $akhir->toDateString();
+            $tarifHistori = $semuaTarif
+                ->filter(fn ($t) => $t->berlaku_dari_tanggal->toDateString() <= $akhirStr)
+                ->values();
+            $tarifFallback = $semuaTarif->sortBy([['berlaku_dari_tanggal', 'asc'], ['id', 'asc']])->first()?->persentase;
+            $defaultRate = $tarifFallback !== null ? (float) $tarifFallback : 2.00;
+        }
 
         $saldoBerjalan = $saldoSebelumPeriode;
         $daftarSaldoHarian = [];
@@ -218,12 +238,14 @@ class PerhitunganBungaTabunganService
             throw new RuntimeException("Format periode '{$periode}' tidak valid.");
         }
 
-        $akhirBulan = Carbon::createFromFormat('Y-m', $periode)->endOfMonth();
+        $awalBulan = Carbon::createFromFormat('Y-m', $periode)->startOfMonth()->startOfDay();
+        $akhirBulan = $awalBulan->copy()->endOfMonth()->startOfDay();
         $batasHitung = $periode === now()->format('Y-m') ? now() : $akhirBulan;
+        $batasHari = $batasHitung->copy()->startOfDay();
 
         $daftarRekening = RekeningTabungan::with('anggota:id,nama,no_karyawan,cabang')
             ->where('status', 'aktif')
-            ->whereDate('tanggal_buka', '<=', $akhirBulan->toDateString())
+            ->where('tanggal_buka', '<', $akhirBulan->copy()->addDay()->toDateString())
             ->orderBy('no_rekening')
             ->get();
 
@@ -231,6 +253,49 @@ class PerhitunganBungaTabunganService
             ->whereIn('rekening_tabungan_id', $daftarRekening->pluck('id'))
             ->get()
             ->keyBy('rekening_tabungan_id');
+
+        $belumIds = $daftarRekening->reject(fn ($r) => $sudahMap->has($r->id))->pluck('id')->all();
+
+        $konteksBatch = [];
+        $saldoAwalMap = collect();
+        $mutasiMap = collect();
+
+        if (! empty($belumIds)) {
+            $setting = SettingTabungan::current();
+            $semuaTarif = SettingBungaTabungan::orderByDesc('berlaku_dari_tanggal')
+                ->orderByDesc('id')
+                ->get(['persentase', 'berlaku_dari_tanggal']);
+            $batasStr = $batasHari->toDateString();
+            $tarifHistori = $semuaTarif
+                ->filter(fn ($t) => $t->berlaku_dari_tanggal->toDateString() <= $batasStr)
+                ->values();
+            $defaultRate = (float) ($semuaTarif->sortBy([['berlaku_dari_tanggal', 'asc'], ['id', 'asc']])->first()?->persentase ?? 2.00);
+
+            $konteksBatch = [
+                'setting' => $setting,
+                'tarif_histori' => $tarifHistori,
+                'default_rate' => $defaultRate,
+            ];
+
+            $awalBulanStr = $awalBulan->toDateString();
+            $saldoAwalMap = TabunganTransaksi::whereIn('rekening_tabungan_id', $belumIds)
+                ->whereNull('dibatalkan_pada')
+                ->whereNull('koreksi_dari_id')
+                ->where('tanggal', '<', $awalBulanStr)
+                ->selectRaw("rekening_tabungan_id, COALESCE(SUM(CASE WHEN jenis IN ('setor', 'bunga', 'koreksi_masuk') THEN nominal ELSE -nominal END), 0) as saldo")
+                ->groupBy('rekening_tabungan_id')
+                ->pluck('saldo', 'rekening_tabungan_id');
+
+            $mutasiMap = TabunganTransaksi::whereIn('rekening_tabungan_id', $belumIds)
+                ->whereNull('dibatalkan_pada')
+                ->whereNull('koreksi_dari_id')
+                ->where('tanggal', '>=', $awalBulanStr)
+                ->where('tanggal', '<', $batasHari->copy()->addDay()->toDateString())
+                ->orderBy('tanggal')
+                ->orderBy('id')
+                ->get(['rekening_tabungan_id', 'tanggal', 'jenis', 'nominal'])
+                ->groupBy('rekening_tabungan_id');
+        }
 
         $baris = [];
         $belumDiposting = 0;
@@ -255,7 +320,34 @@ class PerhitunganBungaTabunganService
                 ];
                 $totalBunga += $bunga;
             } else {
-                $hitung = $this->hitungPeriode($rek, $periode, $batasHitung);
+                $saldoSebelumRek = (float) ($saldoAwalMap[$rek->id] ?? 0);
+                $semuaMutasiRek = $mutasiMap->get($rek->id, collect());
+
+                $mulaiRek = ($rek->tanggal_buka && $rek->tanggal_buka->copy()->startOfDay()->greaterThan($awalBulan))
+                    ? $rek->tanggal_buka->copy()->startOfDay()
+                    : $awalBulan;
+                $akhirRek = $batasHari->lessThan($akhirBulan) ? $batasHari : $akhirBulan;
+                if ($rek->tanggal_tutup && $rek->tanggal_tutup->copy()->startOfDay()->lessThan($akhirRek)) {
+                    $akhirRek = $rek->tanggal_tutup->copy()->startOfDay();
+                }
+
+                $mulaiStr = $mulaiRek->toDateString();
+                $akhirStr = $akhirRek->toDateString();
+                $mutasiRentangRek = collect();
+                foreach ($semuaMutasiRek as $trx) {
+                    $tglTrx = $trx->tanggal->toDateString();
+                    if ($tglTrx < $mulaiStr) {
+                        $saldoSebelumRek += $trx->isKredit() ? (float) $trx->nominal : -(float) $trx->nominal;
+                    } elseif ($tglTrx <= $akhirStr) {
+                        $mutasiRentangRek->push($trx);
+                    }
+                }
+
+                $hitung = $this->hitungPeriode($rek, $periode, $batasHitung, [
+                    ...$konteksBatch,
+                    'saldo_sebelum' => $saldoSebelumRek,
+                    'mutasi_rentang' => $mutasiRentangRek,
+                ]);
                 $belumDiposting++;
                 $totalBunga += $hitung['bunga_bersih'];
                 $baris[] = [
@@ -299,16 +391,30 @@ class PerhitunganBungaTabunganService
         $tanggalEfektif = ($tanggalPosting ?? $akhirBulan)->copy()->startOfDay();
 
         $daftarIds = RekeningTabungan::where('status', 'aktif')
-            ->whereDate('tanggal_buka', '<=', $akhirBulan->toDateString())
+            ->where('tanggal_buka', '<', $akhirBulan->copy()->addDay()->toDateString())
             ->orderBy('id')
             ->pluck('id');
+
+        $konteksPosting = [];
+        if ($daftarIds->isNotEmpty()) {
+            $setting = SettingTabungan::current();
+            $semuaTarif = SettingBungaTabungan::orderByDesc('berlaku_dari_tanggal')
+                ->orderByDesc('id')
+                ->get(['persentase', 'berlaku_dari_tanggal']);
+            $batasStr = ($akhirBulan->lessThan($tanggalEfektif) ? $akhirBulan : $tanggalEfektif)->toDateString();
+            $konteksPosting = [
+                'setting' => $setting,
+                'tarif_histori' => $semuaTarif->filter(fn ($t) => $t->berlaku_dari_tanggal->toDateString() <= $batasStr)->values(),
+                'default_rate' => (float) ($semuaTarif->sortBy([['berlaku_dari_tanggal', 'asc'], ['id', 'asc']])->first()?->persentase ?? 2.00),
+            ];
+        }
 
         $diproses = 0;
         $dilewati = 0;
         $totalBunga = 0.0;
 
         foreach ($daftarIds as $rekeningId) {
-            $hasilRek = DB::transaction(function () use ($rekeningId, $periode, $tanggalEfektif, $aktorId) {
+            $hasilRek = DB::transaction(function () use ($rekeningId, $periode, $tanggalEfektif, $aktorId, $konteksPosting) {
                 $rekening = RekeningTabungan::lockForUpdate()->find($rekeningId);
                 if (! $rekening || $rekening->status !== 'aktif') {
                     return ['dilewati' => true, 'bunga' => 0.0];
@@ -322,7 +428,7 @@ class PerhitunganBungaTabunganService
                     return ['dilewati' => true, 'bunga' => 0.0];
                 }
 
-                $hitung = $this->hitungPeriode($rekening, $periode, $tanggalEfektif);
+                $hitung = $this->hitungPeriode($rekening, $periode, $tanggalEfektif, $konteksPosting);
                 $bunga = $hitung['bunga_bersih'];
                 $transaksiId = null;
 
@@ -478,7 +584,7 @@ class PerhitunganBungaTabunganService
         $agregat = TabunganTransaksi::where('rekening_tabungan_id', $rekeningId)
             ->whereNull('dibatalkan_pada')
             ->whereNull('koreksi_dari_id')
-            ->whereDate('tanggal', '<', $tanggal->toDateString())
+            ->where('tanggal', '<', $tanggal->toDateString())
             ->selectRaw("
                 COALESCE(SUM(CASE
                     WHEN jenis IN ('setor', 'bunga', 'koreksi_masuk') THEN nominal

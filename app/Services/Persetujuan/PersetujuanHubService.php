@@ -76,9 +76,20 @@ class PersetujuanHubService
 
         if ($needPinjamanAdmin || $needPinjamanBendahara || $needPinjamanKetua || $needPinjamanCair) {
             $pinjamanAgg = Pinjaman::whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara', 'approved_ketua'])
-                ->selectRaw('status, cair_oleh_bendahara, COUNT(*) as jumlah')
+                ->selectRaw('
+                    status,
+                    cair_oleh_bendahara,
+                    COUNT(*) as jumlah,
+                    COALESCE(SUM(COALESCE(nominal_diminta, nominal)), 0) as sum_usulan,
+                    COALESCE(SUM(COALESCE(nominal_disetujui_bendahara, nominal_diminta, nominal)), 0) as sum_bendahara,
+                    COALESCE(SUM(COALESCE(nominal_disetujui, nominal)), 0) as sum_ketua
+                ')
                 ->groupBy('status', 'cair_oleh_bendahara')
                 ->get();
+
+            if ($request) {
+                $request->attributes->set('persetujuan_hub.pinjaman_agg', $pinjamanAgg);
+            }
 
             $hitungPinjaman = fn (string $status, ?bool $cairOlehBendahara = null): int => (int) $pinjamanAgg
                 ->filter(fn ($row) => $row->status === $status && ($cairOlehBendahara === null || (bool) $row->cair_oleh_bendahara === $cairOlehBendahara))
@@ -182,6 +193,11 @@ class PersetujuanHubService
                 ->selectRaw('jenis, status, COUNT(*) as jumlah')
                 ->groupBy('jenis', 'status')
                 ->get();
+
+            if ($request) {
+                $request->attributes->set('persetujuan_hub.rek_agg', $rekAgg);
+                $request->attributes->set('persetujuan_hub.trx_agg', $trxAgg);
+            }
 
             $hitungTrx = fn (array $jenis, string $status): int => (int) $trxAgg
                 ->filter(fn ($row) => $row->status === $status && in_array($row->jenis, $jenis, true))
@@ -346,26 +362,50 @@ class PersetujuanHubService
     }
 
     /**
+     * Daftar pinjaman menunggak untuk drawer "Ajukan Penghapusan Pinjaman" (dimuat lazy saat drawer dibuka).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function daftarPinjamanMenunggak(User $user): array
+    {
+        return $user->can('penghapusan-pinjaman.ajukan')
+            ? $this->penghapusanService->daftarPinjamanMenunggak()->values()->all()
+            : [];
+    }
+
+    /**
      * Muat antrean terpadu (Konsep A — Unified Single-Stream Inbox) sesuai izin user.
      * View 'menunggu' (default) hanya memuat item pending + antrean penghapusan berjalan;
      * view 'riwayat' memuat riwayat keputusan hanya saat tab Riwayat dibuka.
      *
      * @param  Collection<int, string>  $permissions
+     * @param  array<string, int>|null  $notif
      * @return array<string, mixed>
      */
-    public function muatInboxTerpadu(User $user, Collection $permissions, string $view = 'menunggu'): array
+    public function muatInboxTerpadu(User $user, Collection $permissions, string $view = 'menunggu', ?array $notif = null): array
     {
+        $notif ??= $this->ringkasanNotifikasi($user, $permissions);
+        $request = app()->bound('request') ? request() : null;
+
         $butuhKasRingkas = $permissions->contains('pinjaman.tinjau-bendahara')
             || $permissions->contains('pinjaman.approve-ketua')
             || $permissions->contains('pinjaman.cairkan')
             || $permissions->contains('tabungan.kelola');
 
         $kasRingkas = null;
+        $saldoBank = null;
         if ($butuhKasRingkas) {
             $kas = KasKoperasi::first();
-            $ringkasanPinjaman = $this->ringkasanPinjaman->ringkasan();
+            $saldoBank = (float) ($kas?->saldo_bank ?? 0);
+            $pinjamanAgg = $request?->attributes->get('persetujuan_hub.pinjaman_agg');
+            $ringkasanPinjaman = $this->ringkasanPinjaman->ringkasan(
+                peran: null,
+                kas: $kas,
+                pinjamanAgg: $pinjamanAgg,
+                hitungJumlahDisetujui: false,
+            );
             $kasRingkas = [
-                'saldo_bank' => (float) ($kas?->saldo_bank ?? 0),
+                'saldo_bank' => $saldoBank,
                 'saldo_kas_kecil' => (float) ($kas?->saldo_kas_kecil ?? 0),
                 'total_antrean_pinjaman' => (float) ($ringkasanPinjaman['total_antrean'] ?? 0),
                 'jumlah_antrean_pinjaman' => (int) ($ringkasanPinjaman['jumlah_antrean'] ?? 0),
@@ -375,29 +415,32 @@ class PersetujuanHubService
             ];
         }
 
-        $ketentuanAktivasi = $permissions->contains('aktivasi.approve-ketua')
-            ? [
-                'simpanan_pokok' => (float) (SettingSimpanan::where('jenis', 'pokok')->value('nominal') ?? 50_000),
-                'simpanan_wajib' => (float) (SettingSimpanan::where('jenis', 'wajib')->value('nominal') ?? 45_000),
-                'dana_sosial' => (float) (SettingSimpanan::where('jenis', 'dana_sosial')->value('nominal') ?? 5_000),
+        $butuhKetentuanAktivasi = $permissions->contains('aktivasi.approve-ketua')
+            && ($view === 'riwayat' || ($notif['menunggu_aktivasi'] ?? 0) > 0);
+        $ketentuanAktivasi = null;
+        if ($butuhKetentuanAktivasi) {
+            $settingSimp = SettingSimpanan::whereIn('jenis', ['pokok', 'wajib', 'dana_sosial'])->pluck('nominal', 'jenis');
+            $ketentuanAktivasi = [
+                'simpanan_pokok' => (float) ($settingSimp['pokok'] ?? 50_000),
+                'simpanan_wajib' => (float) ($settingSimp['wajib'] ?? 45_000),
+                'dana_sosial' => (float) ($settingSimp['dana_sosial'] ?? 5_000),
                 'limit_awal' => (float) (SettingLimitPinjaman::orderBy('min_bulan')->value('limit_maksimal') ?? 1_000_000),
-            ]
-            : null;
+            ];
+        }
 
         $bisaAjukanPenghapusan = $user->can('penghapusan-pinjaman.ajukan');
         $peranPenghapusan = $this->labelPeranUser($user);
-        $pinjamanMenunggak = $bisaAjukanPenghapusan ? $this->penghapusanService->daftarPinjamanMenunggak()->values()->all() : [];
 
         $penghapusanLists = $permissions->contains('penghapusan-pinjaman.lihat')
-            ? $this->kumpulkanPenghapusan($user, $peranPenghapusan)
-            : ['menungguSaya' => collect(), 'sedangBerjalan' => collect(), 'riwayatSelesai' => collect()];
+            ? $this->kumpulkanPenghapusan($user, $peranPenghapusan, $view)
+            : ['menungguSaya' => collect(), 'sedangBerjalan' => collect(), 'riwayatSelesai' => collect(), 'jumlahBerjalan' => 0];
 
         $antrean = $view === 'menunggu'
-            ? $this->kumpulkanAntreanMenunggu($permissions, $penghapusanLists['menungguSaya'])
+            ? $this->kumpulkanAntreanMenunggu($permissions, $penghapusanLists['menungguSaya'], $notif, $saldoBank)
             : [];
 
         $riwayat = $view === 'riwayat'
-            ? $this->kumpulkanRiwayat($permissions, $penghapusanLists['riwayatSelesai'])
+            ? $this->kumpulkanRiwayat($permissions, $penghapusanLists['riwayatSelesai'], $saldoBank)
             : [];
 
         return [
@@ -405,8 +448,8 @@ class PersetujuanHubService
             'ketentuanAktivasi' => $ketentuanAktivasi,
             'bisaAjukanPenghapusan' => $bisaAjukanPenghapusan,
             'peranPenghapusan' => $peranPenghapusan,
-            'pinjamanMenunggak' => $pinjamanMenunggak,
             'sedangBerjalanPenghapusan' => $penghapusanLists['sedangBerjalan']->values()->all(),
+            'jumlahBerjalanPenghapusan' => $penghapusanLists['jumlahBerjalan'],
             'antrean' => $antrean,
             'riwayat' => $riwayat,
         ];
@@ -415,76 +458,83 @@ class PersetujuanHubService
     /**
      * @param  Collection<int, string>  $permissions
      * @param  Collection<int, array<string, mixed>>  $penghapusanMenunggu
+     * @param  array<string, int>  $notif
      * @return array<int, array<string, mixed>>
      */
-    private function kumpulkanAntreanMenunggu(Collection $permissions, Collection $penghapusanMenunggu): array
-    {
+    private function kumpulkanAntreanMenunggu(
+        Collection $permissions,
+        Collection $penghapusanMenunggu,
+        array $notif,
+        ?float $saldoBank = null,
+    ): array {
         $items = collect();
+        $request = app()->bound('request') ? request() : null;
+        $rekAgg = $request?->attributes->get('persetujuan_hub.rek_agg');
+        $trxAgg = $request?->attributes->get('persetujuan_hub.trx_agg');
 
-        // 1. Pinjaman (3 jenjang)
-        if ($permissions->contains('pinjaman.tinjau-admin')) {
-            Pinjaman::with('anggota')->where('status', 'diajukan')->get()
-                ->each(fn (Pinjaman $p) => $items->push($this->envelopePinjaman($p, 'admin', 'Sekretaris', 'Verifikasi')));
+        // 1. Pinjaman (3 jenjang) + Pencairan Pinjaman — 1 query whereIn + short-circuit via $notif
+        $canPinjAdmin = $permissions->contains('pinjaman.tinjau-admin') && ($notif['menunggu_tinjauan_admin'] ?? 0) > 0;
+        $canPinjBend = $permissions->contains('pinjaman.tinjau-bendahara') && ($notif['menunggu_tinjauan_bendahara'] ?? 0) > 0;
+        $canPinjKetua = $permissions->contains('pinjaman.approve-ketua') && ($notif['menunggu_approval_ketua'] ?? 0) > 0;
+        $canPinjCair = $permissions->contains('pinjaman.cairkan') && ($notif['menunggu_pencairan_pinjaman'] ?? 0) > 0;
+
+        $pinjamanStatuses = [];
+        if ($canPinjAdmin) {
+            $pinjamanStatuses[] = 'diajukan';
         }
-        if ($permissions->contains('pinjaman.tinjau-bendahara')) {
-            Pinjaman::with('anggota')->where('status', 'approved_admin')->get()
-                ->each(fn (Pinjaman $p) => $items->push($this->envelopePinjaman($p, 'bendahara', 'Bendahara', 'Tinjau')));
+        if ($canPinjBend) {
+            $pinjamanStatuses[] = 'approved_admin';
         }
-        if ($permissions->contains('pinjaman.approve-ketua')) {
-            Pinjaman::with('anggota')->where('status', 'approved_bendahara')->where('cair_oleh_bendahara', false)->get()
-                ->each(fn (Pinjaman $p) => $items->push($this->envelopePinjaman($p, 'ketua', 'Ketua', 'Putuskan')));
+        if ($canPinjKetua) {
+            $pinjamanStatuses[] = 'approved_bendahara';
+        }
+        if ($canPinjCair) {
+            $pinjamanStatuses[] = 'approved_ketua';
         }
 
-        // 2. Pencairan Dana (Pinjaman & Penarikan Tabungan approved_ketua)
-        if ($permissions->contains('pinjaman.cairkan')) {
-            Pinjaman::with('anggota')->where('status', 'approved_ketua')->get()
-                ->each(function (Pinjaman $p) use ($items) {
-                    $detail = $this->formatPinjaman->format($p, withLimit: false);
-                    $detail['disetujui_ketua_pada'] = $p->disetujui_ketua_pada?->format('d M Y H:i');
-                    $detail['catatan_ketua'] = $p->catatan_ketua;
-                    $nominal = (float) ($detail['nominal_disetujui'] ?? $p->nominal);
-                    $tenor = (int) ($detail['tenor_disetujui'] ?? $p->tenor_bulan);
+        if (! empty($pinjamanStatuses)) {
+            $saldoPinjaman = $saldoBank ?? (float) (KasKoperasi::query()->value('saldo_bank') ?? 0);
+            Pinjaman::with('anggota')->whereIn('status', $pinjamanStatuses)->get()
+                ->each(function (Pinjaman $p) use ($items, $canPinjAdmin, $canPinjBend, $canPinjKetua, $canPinjCair, $saldoPinjaman) {
+                    if ($p->status === 'diajukan' && $canPinjAdmin) {
+                        $items->push($this->envelopePinjaman($p, 'admin', 'Sekretaris', 'Verifikasi', false, $saldoPinjaman));
+                    } elseif ($p->status === 'approved_admin' && $canPinjBend) {
+                        $items->push($this->envelopePinjaman($p, 'bendahara', 'Bendahara', 'Tinjau', false, $saldoPinjaman));
+                    } elseif ($p->status === 'approved_bendahara' && $canPinjKetua && ! (bool) $p->cair_oleh_bendahara) {
+                        $items->push($this->envelopePinjaman($p, 'ketua', 'Ketua', 'Putuskan', false, $saldoPinjaman));
+                    } elseif ($p->status === 'approved_ketua' && $canPinjCair) {
+                        $detail = $this->formatPinjaman->format($p, withLimit: false, saldoBank: $saldoPinjaman);
+                        $detail['disetujui_ketua_pada'] = $p->disetujui_ketua_pada?->format('d M Y H:i');
+                        $detail['catatan_ketua'] = $p->catatan_ketua;
+                        $nominal = (float) ($detail['nominal_disetujui'] ?? $p->nominal);
+                        $tenor = (int) ($detail['tenor_disetujui'] ?? $p->tenor_bulan);
 
-                    $items->push([
-                        'uid' => "pencairan-pinjaman-{$p->id}",
-                        'kategori' => 'pencairan',
-                        'kategori_label' => 'Pencairan Dana',
-                        'jenis_kode' => 'cair_pinjaman',
-                        'jenis_label' => 'Pencairan Pinjaman',
-                        'warna' => 'emerald',
-                        'tahap' => 'bendahara',
-                        'tahap_label' => 'Bendahara',
-                        'anggota' => $this->ringkasAnggota($p->anggota),
-                        'ringkasan_utama' => 'Rp '.number_format($nominal, 0, ',', '.'),
-                        'ringkasan_sub' => trim("{$tenor} bln".($p->snapshot_bank ? " • {$p->snapshot_bank} {$p->snapshot_no_rekening}" : '')),
-                        'is_nominal' => true,
-                        'nada_nominal' => 'default',
-                        'tanggal' => ($p->disetujui_ketua_pada ?? $p->tanggal_pengajuan)?->format('d M Y') ?? '-',
-                        'sort_ts' => ($p->disetujui_ketua_pada ?? $p->tanggal_pengajuan)?->timestamp ?? 0,
-                        'status' => $p->status,
-                        'aksi_label' => 'Cairkan',
-                        'detail' => $detail,
-                    ]);
+                        $items->push([
+                            'uid' => "pencairan-pinjaman-{$p->id}",
+                            'kategori' => 'pencairan',
+                            'kategori_label' => 'Pencairan Dana',
+                            'jenis_kode' => 'cair_pinjaman',
+                            'jenis_label' => 'Pencairan Pinjaman',
+                            'warna' => 'emerald',
+                            'tahap' => 'bendahara',
+                            'tahap_label' => 'Bendahara',
+                            'anggota' => $this->ringkasAnggota($p->anggota),
+                            'ringkasan_utama' => 'Rp '.number_format($nominal, 0, ',', '.'),
+                            'ringkasan_sub' => trim("{$tenor} bln".($p->snapshot_bank ? " • {$p->snapshot_bank} {$p->snapshot_no_rekening}" : '')),
+                            'is_nominal' => true,
+                            'nada_nominal' => 'default',
+                            'tanggal' => ($p->disetujui_ketua_pada ?? $p->tanggal_pengajuan)?->format('d M Y') ?? '-',
+                            'sort_ts' => ($p->disetujui_ketua_pada ?? $p->tanggal_pengajuan)?->timestamp ?? 0,
+                            'status' => $p->status,
+                            'aksi_label' => 'Cairkan',
+                            'detail' => $detail,
+                        ]);
+                    }
                 });
         }
 
-        if ($permissions->contains('tabungan.kelola')) {
-            PengajuanTransaksiTabungan::with([
-                'anggota:id,nama,no_karyawan,cabang,foto_url',
-                'rekening:id,no_rekening,saldo,tanggal_buka',
-                'adminOleh:id,name',
-                'bendaharaOleh:id,name',
-                'ketuaOleh:id,name',
-            ])
-                ->where('status', 'approved_ketua')
-                ->whereIn('jenis', PengajuanTransaksiTabungan::JENIS_PENARIKAN)
-                ->get()
-                ->each(fn (PengajuanTransaksiTabungan $p) => $items->push(
-                    $this->envelopeTabunganTransaksi($p, 'pencairan', 'Pencairan Dana', 'cair_tabungan', 'bendahara', 'Bendahara', 'Cairkan')
-                ));
-        }
-
-        if ($permissions->contains('pinjaman.cairkan')) {
+        // 2. Pencairan Dana Resign
+        if ($permissions->contains('pinjaman.cairkan') && ($notif['menunggu_pencairan_resign'] ?? 0) > 0) {
             Anggota::where('status_pencairan_resign', 'menunggu')
                 ->orderBy('tanggal_resign')
                 ->orderBy('id')
@@ -492,78 +542,158 @@ class PersetujuanHubService
                 ->each(fn (Anggota $a) => $items->push($this->envelopePencairanResign($a)));
         }
 
-        // 3. Tabungan (Admin, Bendahara, Ketua)
-        if ($permissions->contains('tabungan.tinjau-admin')) {
-            RekeningTabungan::with('anggota:id,nama,no_karyawan,cabang,foto_url,tanggal_jadi_anggota')
-                ->where('status', 'diajukan')->get()
-                ->each(fn (RekeningTabungan $r) => $items->push($this->envelopeTabunganBuka($r, 'admin', 'Sekretaris', 'Verifikasi')));
+        // 3. Pembukaan Rekening Tabungan — 1 query whereIn + short-circuit via $rekAgg
+        $hasRek = fn (string $status): bool => $rekAgg === null || (int) ($rekAgg[$status] ?? 0) > 0;
+        $canTabAdmin = $permissions->contains('tabungan.tinjau-admin') && $hasRek('diajukan');
+        $canTabBend = ($permissions->contains('tabungan.kelola') || $permissions->contains('tabungan.tinjau-bendahara')) && $hasRek('approved_admin');
+        $canTabKetua = $permissions->contains('tabungan.approve-ketua') && $hasRek('approved_bendahara');
 
-            PengajuanTransaksiTabungan::with(['anggota:id,nama,no_karyawan,cabang,foto_url', 'rekening:id,no_rekening,saldo,tanggal_buka'])
-                ->where('status', 'menunggu')->whereIn('jenis', PengajuanTransaksiTabungan::JENIS_PENARIKAN)->get()
-                ->each(fn (PengajuanTransaksiTabungan $p) => $items->push(
-                    $this->envelopeTabunganTransaksi($p, 'tabungan', 'Tabungan', 'tabungan_tarik', 'admin', 'Sekretaris', 'Verifikasi')
-                ));
+        $rekStatuses = [];
+        if ($canTabAdmin) {
+            $rekStatuses[] = 'diajukan';
+        }
+        if ($canTabBend) {
+            $rekStatuses[] = 'approved_admin';
+        }
+        if ($canTabKetua) {
+            $rekStatuses[] = 'approved_bendahara';
         }
 
-        if ($permissions->contains('tabungan.kelola') || $permissions->contains('tabungan.tinjau-bendahara')) {
-            RekeningTabungan::with(['anggota:id,nama,no_karyawan,cabang,foto_url,tanggal_jadi_anggota', 'adminOleh:id,name'])
-                ->where('status', 'approved_admin')->get()
-                ->each(fn (RekeningTabungan $r) => $items->push($this->envelopeTabunganBuka($r, 'bendahara', 'Bendahara', 'Tinjau')));
-
-            PengajuanTransaksiTabungan::with(['anggota:id,nama,no_karyawan,cabang,foto_url', 'rekening:id,no_rekening,saldo,tanggal_buka'])
-                ->where('status', 'menunggu')->where('jenis', 'setor')->get()
-                ->each(fn (PengajuanTransaksiTabungan $p) => $items->push(
-                    $this->envelopeTabunganTransaksi($p, 'tabungan', 'Tabungan', 'tabungan_setor', 'bendahara', 'Bendahara', 'Periksa Bukti')
-                ));
-
-            PengajuanTransaksiTabungan::with(['anggota:id,nama,no_karyawan,cabang,foto_url', 'rekening:id,no_rekening,saldo,tanggal_buka', 'adminOleh:id,name'])
-                ->where('status', 'approved_admin')->whereIn('jenis', PengajuanTransaksiTabungan::JENIS_PENARIKAN)->get()
-                ->each(fn (PengajuanTransaksiTabungan $p) => $items->push(
-                    $this->envelopeTabunganTransaksi($p, 'tabungan', 'Tabungan', 'tabungan_tarik', 'bendahara', 'Bendahara', 'Tinjau')
-                ));
+        if (! empty($rekStatuses)) {
+            RekeningTabungan::with([
+                'anggota:id,nama,no_karyawan,cabang,foto_url,tanggal_jadi_anggota',
+                'adminOleh:id,name',
+                'bendaharaOleh:id,name',
+            ])
+                ->whereIn('status', $rekStatuses)
+                ->get()
+                ->each(function (RekeningTabungan $r) use ($items, $canTabAdmin, $canTabBend, $canTabKetua) {
+                    if ($r->status === 'diajukan' && $canTabAdmin) {
+                        $items->push($this->envelopeTabunganBuka($r, 'admin', 'Sekretaris', 'Verifikasi'));
+                    } elseif ($r->status === 'approved_admin' && $canTabBend) {
+                        $items->push($this->envelopeTabunganBuka($r, 'bendahara', 'Bendahara', 'Tinjau'));
+                    } elseif ($r->status === 'approved_bendahara' && $canTabKetua) {
+                        $items->push($this->envelopeTabunganBuka($r, 'ketua', 'Ketua', 'Putuskan'));
+                    }
+                });
         }
 
-        if ($permissions->contains('tabungan.approve-ketua')) {
-            RekeningTabungan::with(['anggota:id,nama,no_karyawan,cabang,foto_url,tanggal_jadi_anggota', 'adminOleh:id,name', 'bendaharaOleh:id,name'])
-                ->where('status', 'approved_bendahara')->get()
-                ->each(fn (RekeningTabungan $r) => $items->push($this->envelopeTabunganBuka($r, 'ketua', 'Ketua', 'Putuskan')));
+        // 4. Transaksi Tabungan (Setor, Penarikan/Tutup Rekening, Pencairan) — 1 query whereIn + short-circuit via $trxAgg
+        $hasTrx = fn (array $jenis, string $status): bool => $trxAgg === null
+            || (int) $trxAgg->filter(fn ($row) => $row->status === $status && in_array($row->jenis, $jenis, true))->sum('jumlah') > 0;
 
-            PengajuanTransaksiTabungan::with(['anggota:id,nama,no_karyawan,cabang,foto_url', 'rekening:id,no_rekening,saldo,tanggal_buka', 'adminOleh:id,name', 'bendaharaOleh:id,name'])
-                ->where('status', 'approved_bendahara')->whereIn('jenis', PengajuanTransaksiTabungan::JENIS_PENARIKAN)->get()
-                ->each(fn (PengajuanTransaksiTabungan $p) => $items->push(
-                    $this->envelopeTabunganTransaksi($p, 'tabungan', 'Tabungan', 'tabungan_tarik', 'ketua', 'Ketua', 'Putuskan')
-                ));
-        }
+        $bisaTrxBend = $permissions->contains('tabungan.kelola') || $permissions->contains('tabungan.tinjau-bendahara');
+        $needCairTab = $permissions->contains('tabungan.kelola') && $hasTrx(PengajuanTransaksiTabungan::JENIS_PENARIKAN, 'approved_ketua');
+        $needTrxAdminTarik = $permissions->contains('tabungan.tinjau-admin') && $hasTrx(PengajuanTransaksiTabungan::JENIS_PENARIKAN, 'menunggu');
+        $needTrxBendSetor = $bisaTrxBend && $hasTrx(['setor'], 'menunggu');
+        $needTrxBendTarik = $bisaTrxBend && $hasTrx(PengajuanTransaksiTabungan::JENIS_PENARIKAN, 'approved_admin');
+        $needTrxKetuaTarik = $permissions->contains('tabungan.approve-ketua') && $hasTrx(PengajuanTransaksiTabungan::JENIS_PENARIKAN, 'approved_bendahara');
 
-        // 4. Ubah Tenor / Percepatan
-        if ($permissions->contains('pinjaman.tinjau-bendahara')) {
-            PengajuanPercepatan::with('pinjaman.anggota')->where('status', 'diajukan')->get()
-                ->each(fn (PengajuanPercepatan $p) => $items->push($this->envelopePercepatan($p, 'bendahara', 'Bendahara', 'Tinjau')));
+        $trxStatuses = [];
+        if ($needTrxAdminTarik || $needTrxBendSetor) {
+            $trxStatuses[] = 'menunggu';
         }
-        if ($permissions->contains('pinjaman.approve-ketua')) {
-            PengajuanPercepatan::with('pinjaman.anggota')->where('status', 'approved_bendahara')->get()
-                ->each(fn (PengajuanPercepatan $p) => $items->push($this->envelopePercepatan($p, 'ketua', 'Ketua', 'Putuskan')));
+        if ($needTrxBendTarik) {
+            $trxStatuses[] = 'approved_admin';
         }
-
-        // 5. Tambah Limit
-        if ($permissions->contains('limit.tinjau-bendahara')) {
-            $limitBendahara = PengajuanLimit::with('anggota')->where('status', 'diajukan')->get();
-            $cache = KetuaPengajuanLimitController::preloadPinjaman($limitBendahara);
-            $limitBendahara->each(fn (PengajuanLimit $p) => $items->push($this->envelopeLimit($p, $cache, 'bendahara', 'Bendahara', 'Tinjau')));
+        if ($needTrxKetuaTarik) {
+            $trxStatuses[] = 'approved_bendahara';
         }
-        if ($permissions->contains('limit.approve-ketua')) {
-            $limitKetua = PengajuanLimit::with('anggota')->where('status', 'approved_bendahara')->get();
-            $cache = KetuaPengajuanLimitController::preloadPinjaman($limitKetua);
-            $limitKetua->each(fn (PengajuanLimit $p) => $items->push($this->envelopeLimit($p, $cache, 'ketua', 'Ketua', 'Putuskan')));
+        if ($needCairTab) {
+            $trxStatuses[] = 'approved_ketua';
         }
 
-        // 6. Aktivasi Anggota
-        if ($permissions->contains('aktivasi.approve-ketua')) {
+        if (! empty($trxStatuses)) {
+            PengajuanTransaksiTabungan::with([
+                'anggota:id,nama,no_karyawan,cabang,foto_url',
+                'rekening:id,no_rekening,saldo,tanggal_buka',
+                'adminOleh:id,name',
+                'bendaharaOleh:id,name',
+                'ketuaOleh:id,name',
+            ])
+                ->whereIn('status', $trxStatuses)
+                ->get()
+                ->each(function (PengajuanTransaksiTabungan $p) use (
+                    $items,
+                    $needCairTab,
+                    $needTrxAdminTarik,
+                    $needTrxBendSetor,
+                    $needTrxBendTarik,
+                    $needTrxKetuaTarik
+                ) {
+                    $isPenarikan = in_array($p->jenis, PengajuanTransaksiTabungan::JENIS_PENARIKAN, true);
+                    if ($p->status === 'approved_ketua' && $isPenarikan && $needCairTab) {
+                        $items->push($this->envelopeTabunganTransaksi($p, 'pencairan', 'Pencairan Dana', 'cair_tabungan', 'bendahara', 'Bendahara', 'Cairkan'));
+                    } elseif ($p->status === 'menunggu' && $isPenarikan && $needTrxAdminTarik) {
+                        $items->push($this->envelopeTabunganTransaksi($p, 'tabungan', 'Tabungan', 'tabungan_tarik', 'admin', 'Sekretaris', 'Verifikasi'));
+                    } elseif ($p->status === 'menunggu' && $p->jenis === 'setor' && $needTrxBendSetor) {
+                        $items->push($this->envelopeTabunganTransaksi($p, 'tabungan', 'Tabungan', 'tabungan_setor', 'bendahara', 'Bendahara', 'Periksa Bukti'));
+                    } elseif ($p->status === 'approved_admin' && $isPenarikan && $needTrxBendTarik) {
+                        $items->push($this->envelopeTabunganTransaksi($p, 'tabungan', 'Tabungan', 'tabungan_tarik', 'bendahara', 'Bendahara', 'Tinjau'));
+                    } elseif ($p->status === 'approved_bendahara' && $isPenarikan && $needTrxKetuaTarik) {
+                        $items->push($this->envelopeTabunganTransaksi($p, 'tabungan', 'Tabungan', 'tabungan_tarik', 'ketua', 'Ketua', 'Putuskan'));
+                    }
+                });
+        }
+
+        // 5. Ubah Tenor / Percepatan — 1 query whereIn + short-circuit + eager load count/sum anti-N+1
+        $canPercBend = $permissions->contains('pinjaman.tinjau-bendahara') && ($notif['menunggu_perubahan_tenor_bendahara'] ?? 0) > 0;
+        $canPercKetua = $permissions->contains('pinjaman.approve-ketua') && ($notif['menunggu_perubahan_tenor_ketua'] ?? 0) > 0;
+        $percStatuses = [];
+        if ($canPercBend) {
+            $percStatuses[] = 'diajukan';
+        }
+        if ($canPercKetua) {
+            $percStatuses[] = 'approved_bendahara';
+        }
+
+        if (! empty($percStatuses)) {
+            PengajuanPercepatan::with([
+                'pinjaman' => fn ($q) => $q->with('anggota')
+                    ->withCount('angsuranBelumBayar')
+                    ->withSum('angsuranBelumBayar', 'nominal_pokok'),
+            ])
+                ->whereIn('status', $percStatuses)
+                ->get()
+                ->each(function (PengajuanPercepatan $p) use ($items, $canPercBend, $canPercKetua) {
+                    if ($p->status === 'diajukan' && $canPercBend) {
+                        $items->push($this->envelopePercepatan($p, 'bendahara', 'Bendahara', 'Tinjau'));
+                    } elseif ($p->status === 'approved_bendahara' && $canPercKetua) {
+                        $items->push($this->envelopePercepatan($p, 'ketua', 'Ketua', 'Putuskan'));
+                    }
+                });
+        }
+
+        // 6. Tambah Limit — 1 query whereIn + 1 preloadPinjaman + short-circuit
+        $canLimBend = $permissions->contains('limit.tinjau-bendahara') && ($notif['menunggu_pengajuan_limit_bendahara'] ?? 0) > 0;
+        $canLimKetua = $permissions->contains('limit.approve-ketua') && ($notif['menunggu_pengajuan_limit'] ?? 0) > 0;
+        $limStatuses = [];
+        if ($canLimBend) {
+            $limStatuses[] = 'diajukan';
+        }
+        if ($canLimKetua) {
+            $limStatuses[] = 'approved_bendahara';
+        }
+
+        if (! empty($limStatuses)) {
+            $allLimits = PengajuanLimit::with('anggota')->whereIn('status', $limStatuses)->get();
+            $cache = KetuaPengajuanLimitController::preloadPinjaman($allLimits);
+            $allLimits->each(function (PengajuanLimit $p) use ($items, $cache, $canLimBend, $canLimKetua) {
+                if ($p->status === 'diajukan' && $canLimBend) {
+                    $items->push($this->envelopeLimit($p, $cache, 'bendahara', 'Bendahara', 'Tinjau'));
+                } elseif ($p->status === 'approved_bendahara' && $canLimKetua) {
+                    $items->push($this->envelopeLimit($p, $cache, 'ketua', 'Ketua', 'Putuskan'));
+                }
+            });
+        }
+
+        // 7. Aktivasi Anggota
+        if ($permissions->contains('aktivasi.approve-ketua') && ($notif['menunggu_aktivasi'] ?? 0) > 0) {
             PengajuanAktivasi::with(['anggota.user'])->where('status', 'diajukan')->get()
                 ->each(fn (PengajuanAktivasi $p) => $items->push($this->envelopeAktivasi($p, 'Setujui')));
         }
 
-        // 7. Penghapusan Pinjaman (khusus yang bisa diproses oleh user ini)
+        // 8. Penghapusan Pinjaman (khusus yang bisa diproses oleh user ini)
         $penghapusanMenunggu->each(fn ($item) => $items->push($item));
 
         return $items
@@ -577,24 +707,24 @@ class PersetujuanHubService
      * @param  Collection<int, array<string, mixed>>  $penghapusanRiwayat
      * @return array<int, array<string, mixed>>
      */
-    private function kumpulkanRiwayat(Collection $permissions, Collection $penghapusanRiwayat): array
+    private function kumpulkanRiwayat(Collection $permissions, Collection $penghapusanRiwayat, ?float $saldoBank = null): array
     {
         $items = collect();
 
         if ($permissions->contains('pinjaman.tinjau-admin')) {
             Pinjaman::with('anggota')->whereIn('status', ['approved_admin', 'approved_bendahara', 'aktif', 'lunas', 'ditolak'])
                 ->whereNotNull('catatan_admin')->latest('updated_at')->take(12)->get()
-                ->each(fn (Pinjaman $p) => $items->push($this->envelopePinjaman($p, 'admin', 'Sekretaris', 'Detail', true)));
+                ->each(fn (Pinjaman $p) => $items->push($this->envelopePinjaman($p, 'admin', 'Sekretaris', 'Detail', true, $saldoBank)));
         }
         if ($permissions->contains('pinjaman.tinjau-bendahara')) {
             Pinjaman::with('anggota')->whereIn('status', ['approved_bendahara', 'approved_ketua', 'aktif', 'lunas', 'ditolak', 'dihapusbukukan'])
                 ->whereNotNull('catatan_bendahara')->latest('updated_at')->take(12)->get()
-                ->each(fn (Pinjaman $p) => $items->push($this->envelopePinjaman($p, 'bendahara', 'Bendahara', 'Detail', true)));
+                ->each(fn (Pinjaman $p) => $items->push($this->envelopePinjaman($p, 'bendahara', 'Bendahara', 'Detail', true, $saldoBank)));
         }
         if ($permissions->contains('pinjaman.approve-ketua')) {
             Pinjaman::with('anggota')->whereIn('status', ['approved_ketua', 'aktif', 'lunas', 'ditolak', 'dihapusbukukan'])
                 ->whereNotNull('catatan_ketua')->latest('updated_at')->take(12)->get()
-                ->each(fn (Pinjaman $p) => $items->push($this->envelopePinjaman($p, 'ketua', 'Ketua', 'Detail', true)));
+                ->each(fn (Pinjaman $p) => $items->push($this->envelopePinjaman($p, 'ketua', 'Ketua', 'Detail', true, $saldoBank)));
         }
 
         if ($permissions->contains('pinjaman.cairkan')) {
@@ -684,12 +814,18 @@ class PersetujuanHubService
         }
 
         if ($permissions->contains('pinjaman.tinjau-bendahara')) {
-            PengajuanPercepatan::with('pinjaman.anggota')->whereIn('status', ['approved_bendahara', 'aktif', 'ditolak'])
+            PengajuanPercepatan::with([
+                'pinjaman' => fn ($q) => $q->with('anggota')->withCount('angsuranBelumBayar'),
+                'angsuranBaru' => fn ($q) => $q->orderBy('cicilan_ke'),
+            ])->whereIn('status', ['approved_bendahara', 'aktif', 'ditolak'])
                 ->whereNotNull('catatan_bendahara')->latest('updated_at')->take(10)->get()
                 ->each(fn (PengajuanPercepatan $p) => $items->push($this->envelopePercepatan($p, 'bendahara', 'Bendahara', 'Detail', true)));
         }
         if ($permissions->contains('pinjaman.approve-ketua')) {
-            PengajuanPercepatan::with('pinjaman.anggota')->whereIn('status', ['aktif', 'ditolak'])
+            PengajuanPercepatan::with([
+                'pinjaman' => fn ($q) => $q->with('anggota')->withCount('angsuranBelumBayar'),
+                'angsuranBaru' => fn ($q) => $q->orderBy('cicilan_ke'),
+            ])->whereIn('status', ['aktif', 'ditolak'])
                 ->whereNotNull('catatan_ketua')->latest('updated_at')->take(10)->get()
                 ->each(fn (PengajuanPercepatan $p) => $items->push($this->envelopePercepatan($p, 'ketua', 'Ketua', 'Detail', true)));
         }
@@ -725,9 +861,15 @@ class PersetujuanHubService
     /**
      * @return array<string, mixed>
      */
-    private function envelopePinjaman(Pinjaman $p, string $tahap, string $tahapLabel, string $aksiLabel, bool $isRiwayat = false): array
-    {
-        $detail = $this->formatPinjaman->format($p, withLimit: false);
+    private function envelopePinjaman(
+        Pinjaman $p,
+        string $tahap,
+        string $tahapLabel,
+        string $aksiLabel,
+        bool $isRiwayat = false,
+        ?float $saldoBank = null,
+    ): array {
+        $detail = $this->formatPinjaman->format($p, withLimit: false, saldoBank: $saldoBank);
         $nominal = (float) ($detail['nominal_disetujui_bendahara'] ?? $detail['nominal_diminta'] ?? $p->nominal);
         $tenor = (int) ($detail['tenor_disetujui_bendahara'] ?? $detail['tenor_diminta'] ?? $p->tenor_bulan);
 
@@ -944,11 +1086,19 @@ class PersetujuanHubService
     }
 
     /**
-     * @return array{menungguSaya: Collection, sedangBerjalan: Collection, riwayatSelesai: Collection}
+     * @return array{menungguSaya: Collection, sedangBerjalan: Collection, riwayatSelesai: Collection, jumlahBerjalan: int}
      */
-    private function kumpulkanPenghapusan(User $user, string $peranLabel): array
+    private function kumpulkanPenghapusan(User $user, string $peranLabel, string $view = 'menunggu'): array
     {
-        $daftar = PengajuanPenghapusanPinjaman::with([
+        $berjalanStatus = [
+            'diajukan',
+            'approved_bendahara',
+            'approved_ketua',
+            'approved_pengawas_3',
+            'approved_pengawas_2',
+        ];
+
+        $relations = [
             'pinjaman',
             'anggota',
             'pengaju:id,name,no_karyawan',
@@ -958,82 +1108,101 @@ class PersetujuanHubService
             'approverPengawas2:id,name,no_karyawan',
             'approverPengawas1:id,name,no_karyawan',
             'penolak:id,name,no_karyawan',
-        ])
+        ];
+
+        $formatItem = function (PengajuanPenghapusanPinjaman $p) use ($user, $peranLabel) {
+            $detail = [
+                'id' => $p->id,
+                'nomor_dokumen' => $p->nomor_dokumen,
+                'pinjaman_id' => $p->pinjaman_id,
+                'pinjaman_nomor_dokumen' => $p->pinjaman?->nomor_dokumen ?? ('#'.$p->pinjaman_id),
+                'tanggal_pengajuan' => $p->tanggal_pengajuan?->format('d M Y') ?? '-',
+                'disetujui_pada' => $p->disetujui_pada?->format('d M Y, H:i'),
+                'alasan' => $p->alasan,
+                'status' => $p->status,
+                'status_label' => PengajuanPenghapusanPinjaman::STATUS_LABEL[$p->status] ?? $p->status,
+                'nominal_pinjaman' => (float) $p->nominal_pinjaman,
+                'total_pokok_terbayar' => (float) $p->total_pokok_terbayar,
+                'total_bunga_terbayar' => (float) $p->total_bunga_terbayar,
+                'sisa_cicilan' => (int) $p->sisa_cicilan,
+                'sisa_pokok' => (float) $p->sisa_pokok,
+                'sisa_bunga' => (float) $p->sisa_bunga,
+                'sisa_total_tagihan' => (float) $p->sisa_total_tagihan,
+                'anggota' => [
+                    'id' => $p->anggota?->id,
+                    'nama' => $p->anggota?->nama ?? '-',
+                    'no_karyawan' => $p->anggota?->no_karyawan ?? '-',
+                    'no_anggota' => $p->anggota?->no_anggota ?? '-',
+                    'cabang' => $p->anggota?->cabang ?? '-',
+                    'foto_url' => $p->anggota?->foto_url,
+                    'status' => $p->anggota?->status ?? '-',
+                ],
+                'pengaju_nama' => $p->pengaju?->name ?? '-',
+                'bisa_diproses' => $this->penghapusanService->bisaDiprosesOleh($p, $user),
+                'timeline' => $p->getTimelineApproval(),
+            ];
+
+            $bisaDiproses = $detail['bisa_diproses'];
+
+            return [
+                'raw_status' => $p->status,
+                'bisa_diproses' => $bisaDiproses,
+                'envelope' => [
+                    'uid' => "penghapusan-{$p->id}",
+                    'kategori' => 'penghapusan',
+                    'kategori_label' => 'Penghapusan',
+                    'jenis_kode' => 'penghapusan',
+                    'jenis_label' => 'Penghapusan Pinjaman',
+                    'warna' => 'rose',
+                    'tahap' => null,
+                    'tahap_label' => $bisaDiproses ? $peranLabel : $detail['status_label'],
+                    'anggota' => $this->ringkasAnggota($p->anggota),
+                    'ringkasan_utama' => 'Rp '.number_format((float) $p->sisa_pokok, 0, ',', '.'),
+                    'ringkasan_sub' => "{$detail['sisa_cicilan']}x sisa cicilan • {$detail['status_label']}",
+                    'is_nominal' => true,
+                    'nada_nominal' => 'rose',
+                    'tanggal' => $detail['tanggal_pengajuan'],
+                    'sort_ts' => ($p->disetujui_pada ?? $p->tanggal_pengajuan ?? $p->created_at)?->timestamp ?? 0,
+                    'status' => $p->status,
+                    'aksi_label' => $bisaDiproses ? 'Putuskan' : 'Detail',
+                    'detail' => $detail,
+                ],
+            ];
+        };
+
+        if ($view === 'riwayat') {
+            $riwayatSelesai = PengajuanPenghapusanPinjaman::with($relations)
+                ->whereIn('status', ['disetujui', 'ditolak'])
+                ->latest('created_at')
+                ->latest('id')
+                ->take(15)
+                ->get()
+                ->map($formatItem)
+                ->pluck('envelope')
+                ->values();
+
+            $jumlahBerjalan = PengajuanPenghapusanPinjaman::whereIn('status', $berjalanStatus)->count();
+
+            return [
+                'menungguSaya' => collect(),
+                'sedangBerjalan' => collect(),
+                'riwayatSelesai' => $riwayatSelesai,
+                'jumlahBerjalan' => $jumlahBerjalan,
+            ];
+        }
+
+        $berjalan = PengajuanPenghapusanPinjaman::with($relations)
+            ->whereIn('status', $berjalanStatus)
             ->latest('created_at')
             ->latest('id')
             ->get()
-            ->map(function (PengajuanPenghapusanPinjaman $p) use ($user, $peranLabel) {
-                $detail = [
-                    'id' => $p->id,
-                    'nomor_dokumen' => $p->nomor_dokumen,
-                    'pinjaman_id' => $p->pinjaman_id,
-                    'pinjaman_nomor_dokumen' => $p->pinjaman?->nomor_dokumen ?? ('#'.$p->pinjaman_id),
-                    'tanggal_pengajuan' => $p->tanggal_pengajuan?->format('d M Y') ?? '-',
-                    'disetujui_pada' => $p->disetujui_pada?->format('d M Y, H:i'),
-                    'alasan' => $p->alasan,
-                    'status' => $p->status,
-                    'status_label' => PengajuanPenghapusanPinjaman::STATUS_LABEL[$p->status] ?? $p->status,
-                    'nominal_pinjaman' => (float) $p->nominal_pinjaman,
-                    'total_pokok_terbayar' => (float) $p->total_pokok_terbayar,
-                    'total_bunga_terbayar' => (float) $p->total_bunga_terbayar,
-                    'sisa_cicilan' => (int) $p->sisa_cicilan,
-                    'sisa_pokok' => (float) $p->sisa_pokok,
-                    'sisa_bunga' => (float) $p->sisa_bunga,
-                    'sisa_total_tagihan' => (float) $p->sisa_total_tagihan,
-                    'anggota' => [
-                        'id' => $p->anggota?->id,
-                        'nama' => $p->anggota?->nama ?? '-',
-                        'no_karyawan' => $p->anggota?->no_karyawan ?? '-',
-                        'no_anggota' => $p->anggota?->no_anggota ?? '-',
-                        'cabang' => $p->anggota?->cabang ?? '-',
-                        'foto_url' => $p->anggota?->foto_url,
-                        'status' => $p->anggota?->status ?? '-',
-                    ],
-                    'pengaju_nama' => $p->pengaju?->name ?? '-',
-                    'bisa_diproses' => $this->penghapusanService->bisaDiprosesOleh($p, $user),
-                    'timeline' => $p->getTimelineApproval(),
-                ];
-
-                $bisaDiproses = $detail['bisa_diproses'];
-
-                return [
-                    'raw_status' => $p->status,
-                    'bisa_diproses' => $bisaDiproses,
-                    'envelope' => [
-                        'uid' => "penghapusan-{$p->id}",
-                        'kategori' => 'penghapusan',
-                        'kategori_label' => 'Penghapusan',
-                        'jenis_kode' => 'penghapusan',
-                        'jenis_label' => 'Penghapusan Pinjaman',
-                        'warna' => 'rose',
-                        'tahap' => null,
-                        'tahap_label' => $bisaDiproses ? $peranLabel : $detail['status_label'],
-                        'anggota' => $this->ringkasAnggota($p->anggota),
-                        'ringkasan_utama' => 'Rp '.number_format((float) $p->sisa_pokok, 0, ',', '.'),
-                        'ringkasan_sub' => "{$detail['sisa_cicilan']}x sisa cicilan • {$detail['status_label']}",
-                        'is_nominal' => true,
-                        'nada_nominal' => 'rose',
-                        'tanggal' => $detail['tanggal_pengajuan'],
-                        'sort_ts' => ($p->disetujui_pada ?? $p->tanggal_pengajuan ?? $p->created_at)?->timestamp ?? 0,
-                        'status' => $p->status,
-                        'aksi_label' => $bisaDiproses ? 'Putuskan' : 'Detail',
-                        'detail' => $detail,
-                    ],
-                ];
-            });
-
-        $berjalanStatus = [
-            'diajukan',
-            'approved_bendahara',
-            'approved_ketua',
-            'approved_pengawas_3',
-            'approved_pengawas_2',
-        ];
+            ->map($formatItem);
 
         return [
-            'menungguSaya' => $daftar->where('bisa_diproses', true)->pluck('envelope')->values(),
-            'sedangBerjalan' => $daftar->whereIn('raw_status', $berjalanStatus)->pluck('envelope')->values(),
-            'riwayatSelesai' => $daftar->whereIn('raw_status', ['disetujui', 'ditolak'])->pluck('envelope')->values(),
+            'menungguSaya' => $berjalan->where('bisa_diproses', true)->pluck('envelope')->values(),
+            'sedangBerjalan' => $berjalan->pluck('envelope')->values(),
+            'riwayatSelesai' => collect(),
+            'jumlahBerjalan' => $berjalan->count(),
         ];
     }
 
@@ -1136,7 +1305,11 @@ class PersetujuanHubService
         }
 
         if ($p->status === 'aktif') {
-            $data['angsuran_baru'] = $p->angsuranBaru()->orderBy('cicilan_ke')->get()->map(fn ($a) => [
+            $angsuranBaru = $p->relationLoaded('angsuranBaru')
+                ? $p->angsuranBaru->sortBy('cicilan_ke')->values()
+                : $p->angsuranBaru()->orderBy('cicilan_ke')->get();
+
+            $data['angsuran_baru'] = $angsuranBaru->map(fn ($a) => [
                 'id' => $a->id,
                 'cicilan_ke' => $a->cicilan_ke,
                 'nominal_pokok' => (float) $a->nominal_pokok,

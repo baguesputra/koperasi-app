@@ -37,7 +37,7 @@ class PersetujuanController extends Controller
             ? $tahapReq
             : 'semua';
 
-        $inbox = $this->hub->muatInboxTerpadu($user, $permissions, $viewAktif);
+        $inbox = $this->hub->muatInboxTerpadu($user, $permissions, $viewAktif, $notif);
 
         return Inertia::render('Persetujuan/Index', [
             'tabs' => $tabs,
@@ -46,6 +46,7 @@ class PersetujuanController extends Controller
             'tahapFilter' => $tahapFilter,
             'totalMenunggu' => $notif['total_persetujuan'] ?? 0,
             'inbox' => $inbox,
+            'pinjamanMenunggak' => Inertia::optional(fn () => $this->hub->daftarPinjamanMenunggak($user)),
         ]);
     }
 }

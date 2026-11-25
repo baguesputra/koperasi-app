@@ -16,7 +16,6 @@ use App\Models\RekeningTabungan;
 use App\Models\Simpanan;
 use App\Models\TabunganTransaksi;
 use App\Services\Keuangan\JurnalKasService;
-use App\Services\Pinjaman\PenghapusanPinjamanService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -65,19 +64,24 @@ class DashboardController extends Controller
 
         $saldoDanaSosial = $jurnal->saldoDanaSosial($kas);
 
-        // Actionable items - 1 query agregat per tabel (bukan 2x count)
+        // Actionable items - 1 query agregat per tabel
         $hitungStatus = fn (string $model) => $model::whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara'])
             ->selectRaw('status, COUNT(*) as jumlah')
             ->groupBy('status')
             ->pluck('jumlah', 'status');
 
-        $pinjamanAntre = $hitungStatus(Pinjaman::class);
-        $menungguTinjauanAdmin = (int) ($pinjamanAntre['diajukan'] ?? 0);
-        $menungguTinjauanBendahara = (int) ($pinjamanAntre['approved_admin'] ?? 0);
-        $menungguApprovalKetua = Pinjaman::where('status', 'approved_bendahara')
-            ->where('cair_oleh_bendahara', false)
-            ->count();
-        $menungguPencairanPinjaman = Pinjaman::where('status', 'approved_ketua')->count();
+        $pinjamanAgg = Pinjaman::whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara', 'approved_ketua', 'aktif'])
+            ->selectRaw('status, cair_oleh_bendahara, COUNT(*) as jumlah, COALESCE(SUM(nominal), 0) as total_nominal')
+            ->groupBy('status', 'cair_oleh_bendahara')
+            ->get();
+
+        $menungguTinjauanAdmin = (int) $pinjamanAgg->where('status', 'diajukan')->sum('jumlah');
+        $menungguTinjauanBendahara = (int) $pinjamanAgg->where('status', 'approved_admin')->sum('jumlah');
+        $menungguApprovalKetua = (int) $pinjamanAgg
+            ->filter(fn ($r) => $r->status === 'approved_bendahara' && ! (bool) $r->cair_oleh_bendahara)
+            ->sum('jumlah');
+        $menungguPencairanPinjaman = (int) $pinjamanAgg->where('status', 'approved_ketua')->sum('jumlah');
+        $pinjamanOutstanding = (float) $pinjamanAgg->where('status', 'aktif')->sum('total_nominal');
         $menungguPencairanResign = Anggota::where('status_pencairan_resign', 'menunggu')->count();
 
         $percepatanAntre = $hitungStatus(PengajuanPercepatan::class);
@@ -89,32 +93,74 @@ class DashboardController extends Controller
         $menungguPengajuanLimitBendahara = (int) ($limitAntre['diajukan'] ?? 0);
         $menungguPengajuanLimit = (int) ($limitAntre['approved_bendahara'] ?? 0);
         $menungguAktivasi = PengajuanAktivasi::where('status', 'diajukan')->count();
-        $menungguTabunganAdmin = RekeningTabungan::where('status', 'diajukan')->count()
-            + PengajuanTransaksiTabungan::whereIn('jenis', PengajuanTransaksiTabungan::JENIS_PENARIKAN)
-                ->where('status', 'menunggu')
-                ->count();
-        $tabunganBendaharaMenunggu = RekeningTabungan::where('status', 'approved_admin')->count()
-            + PengajuanTransaksiTabungan::where('jenis', 'setor')->where('status', 'menunggu')->count()
-            + PengajuanTransaksiTabungan::whereIn('jenis', PengajuanTransaksiTabungan::JENIS_PENARIKAN)
-                ->where('status', 'approved_admin')
-                ->count();
-        $pencairanTabunganMenunggu = PengajuanTransaksiTabungan::whereIn('jenis', PengajuanTransaksiTabungan::JENIS_PENARIKAN)
-            ->where('status', 'approved_ketua')
-            ->count();
+
+        $rekAgg = RekeningTabungan::whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara', 'aktif'])
+            ->selectRaw('status, COUNT(*) as jumlah, COALESCE(SUM(saldo), 0) as total_saldo')
+            ->groupBy('status')
+            ->get()
+            ->keyBy('status');
+
+        $trxAgg = PengajuanTransaksiTabungan::whereIn('status', ['menunggu', 'approved_admin', 'approved_bendahara', 'approved_ketua'])
+            ->selectRaw('jenis, status, COUNT(*) as jumlah')
+            ->groupBy('jenis', 'status')
+            ->get();
+
+        $hitungTrx = fn (array $jenis, string $status): int => (int) $trxAgg
+            ->filter(fn ($row) => $row->status === $status && in_array($row->jenis, $jenis, true))
+            ->sum('jumlah');
+
+        $menungguTabunganAdmin = (int) ($rekAgg['diajukan']->jumlah ?? 0)
+            + $hitungTrx(PengajuanTransaksiTabungan::JENIS_PENARIKAN, 'menunggu');
+        $tabunganBendaharaMenunggu = (int) ($rekAgg['approved_admin']->jumlah ?? 0)
+            + $hitungTrx(['setor'], 'menunggu')
+            + $hitungTrx(PengajuanTransaksiTabungan::JENIS_PENARIKAN, 'approved_admin');
+        $pencairanTabunganMenunggu = $hitungTrx(PengajuanTransaksiTabungan::JENIS_PENARIKAN, 'approved_ketua');
         $menungguTabungan = $tabunganBendaharaMenunggu + $pencairanTabunganMenunggu;
-        $menungguTabunganKetua = RekeningTabungan::where('status', 'approved_bendahara')->count()
-            + PengajuanTransaksiTabungan::whereIn('jenis', PengajuanTransaksiTabungan::JENIS_PENARIKAN)
-                ->where('status', 'approved_bendahara')
-                ->count();
-        $totalTabunganAnggota = (float) RekeningTabungan::where('status', 'aktif')->sum('saldo');
-        $menungguPenghapusanSaya = app(PenghapusanPinjamanService::class)->hitungAntreanUntukUser(auth()->user());
-        $penghapusanBerjalan = PengajuanPenghapusanPinjaman::whereIn('status', [
+        $menungguTabunganKetua = (int) ($rekAgg['approved_bendahara']->jumlah ?? 0)
+            + $hitungTrx(PengajuanTransaksiTabungan::JENIS_PENARIKAN, 'approved_bendahara');
+        $totalTabunganAnggota = (float) ($rekAgg['aktif']->total_saldo ?? 0);
+
+        $userAktif = auth()->user();
+        $penghapusanStatusAktif = [
             'diajukan',
             'approved_bendahara',
             'approved_ketua',
             'approved_pengawas_3',
             'approved_pengawas_2',
-        ])->count();
+        ];
+        $penghapusanRows = PengajuanPenghapusanPinjaman::whereIn('status', $penghapusanStatusAktif)
+            ->selectRaw('status, CASE WHEN pengaju_user_id = ? THEN 1 ELSE 0 END as oleh_saya, COUNT(*) as jumlah', [$userAktif->id])
+            ->groupBy('status', 'oleh_saya')
+            ->get();
+        $penghapusanBerjalan = (int) $penghapusanRows->sum('jumlah');
+
+        if ($userAktif->hasRole('super_admin')) {
+            $menungguPenghapusanSaya = $penghapusanBerjalan;
+        } else {
+            $statusPenghapusanSaya = [];
+            if ($userAktif->can('penghapusan-pinjaman.approve-bendahara')) {
+                $statusPenghapusanSaya[] = 'diajukan';
+            }
+            if ($userAktif->can('penghapusan-pinjaman.approve-ketua')) {
+                $statusPenghapusanSaya[] = 'approved_bendahara';
+            }
+            if ($userAktif->can('penghapusan-pinjaman.approve-pengawas')) {
+                $level = $userAktif->levelPengawas();
+                if ($level === 3) {
+                    $statusPenghapusanSaya[] = 'approved_ketua';
+                } elseif ($level === 2) {
+                    $statusPenghapusanSaya[] = 'approved_pengawas_3';
+                } elseif ($level === 1) {
+                    $statusPenghapusanSaya[] = 'approved_pengawas_2';
+                }
+            }
+
+            $menungguPenghapusanSaya = empty($statusPenghapusanSaya)
+                ? 0
+                : (int) $penghapusanRows
+                    ->filter(fn ($row) => in_array($row->status, $statusPenghapusanSaya, true) && ! (bool) $row->oleh_saya)
+                    ->sum('jumlah');
+        }
 
         $rincianAntrean = [
             'limit_bendahara' => $menungguPengajuanLimitBendahara,
@@ -345,7 +391,7 @@ class DashboardController extends Controller
                 'saldo_kas_kecil' => (float) $kas->saldo_kas_kecil,
                 'total_simpanan_outstanding' => $totalSimpananOutstanding,
                 'total_simpanan_akumulasi' => $totalAkumulasiSimpanan,
-                'pinjaman_outstanding' => (float) Pinjaman::where('status', 'aktif')->sum('nominal'),
+                'pinjaman_outstanding' => $pinjamanOutstanding,
                 'saldo_dana_pinjaman' => (float) $saldoDanaPinjaman,
                 'saldo_pengembalian_simpanan' => (float) $kas->saldo_pengembalian_simpanan,
                 'saldo_dana_sosial' => (float) $saldoDanaSosial,

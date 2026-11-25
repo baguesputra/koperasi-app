@@ -99,6 +99,7 @@ export default function Index({
     tahapFilter = 'semua',
     totalMenunggu = 0,
     inbox = {},
+    pinjamanMenunggak = null,
 }) {
     const [kategori, setKategori] = useState(kategoriFilter);
     const [tahap, setTahap] = useState(tahapFilter);
@@ -106,6 +107,7 @@ export default function Index({
     const [itemDipilih, setItemDipilih] = useState(null);
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [ajukanOpen, setAjukanOpen] = useState(false);
+    const [loadingMenunggak, setLoadingMenunggak] = useState(false);
     const [pendingView, setPendingView] = useState(null);
 
     useEffect(() => {
@@ -116,10 +118,11 @@ export default function Index({
     const antrean = inbox.antrean ?? [];
     const riwayat = inbox.riwayat ?? [];
     const sedangBerjalanPenghapusan = inbox.sedangBerjalanPenghapusan ?? [];
+    const jumlahBerjalanPenghapusan = inbox.jumlahBerjalanPenghapusan ?? sedangBerjalanPenghapusan.length;
     const kasRingkas = inbox.kasRingkas ?? null;
     const ketentuanAktivasi = inbox.ketentuanAktivasi ?? null;
     const bisaAjukanPenghapusan = Boolean(inbox.bisaAjukanPenghapusan);
-    const pinjamanMenunggak = inbox.pinjamanMenunggak ?? [];
+    const daftarMenunggak = pinjamanMenunggak ?? inbox.pinjamanMenunggak ?? [];
     const peranPenghapusan = inbox.peranPenghapusan ?? 'Pengurus';
 
     const displayView = pendingView ?? viewAktif;
@@ -382,6 +385,13 @@ export default function Index({
                             onClick={() => {
                                 drawerLoaders.penghapusan();
                                 setAjukanOpen(true);
+                                setLoadingMenunggak(true);
+                                router.reload({
+                                    only: ['pinjamanMenunggak'],
+                                    preserveState: true,
+                                    preserveScroll: true,
+                                    onFinish: () => setLoadingMenunggak(false),
+                                });
                             }}
                         >
                             <Plus size={15} /> Ajukan Penghapusan
@@ -488,7 +498,7 @@ export default function Index({
                             {totalMenunggu > 0 && <CountBadge count={totalMenunggu} active={displayView === 'menunggu'} />}
                         </button>
 
-                        {sedangBerjalanPenghapusan.length > 0 && (
+                        {jumlahBerjalanPenghapusan > 0 && (
                             <button
                                 type="button"
                                 onMouseEnter={() => prefetchView('berjalan')}
@@ -500,7 +510,7 @@ export default function Index({
                                 }`}
                             >
                                 <span>Pantau Penghapusan</span>
-                                <CountBadge count={sedangBerjalanPenghapusan.length} tone="slate" active={displayView === 'berjalan'} />
+                                <CountBadge count={jumlahBerjalanPenghapusan} tone="slate" active={displayView === 'berjalan'} />
                             </button>
                         )}
 
@@ -762,7 +772,8 @@ export default function Index({
                     {ajukanOpen && (
                         <Suspense fallback={<DrawerSkeleton />}>
                             <LAZY_DRAWERS.penghapusan_ajukan
-                                pinjamanMenunggak={pinjamanMenunggak}
+                                pinjamanMenunggak={daftarMenunggak}
+                                loading={loadingMenunggak}
                                 onClose={() => setAjukanOpen(false)}
                             />
                         </Suspense>
