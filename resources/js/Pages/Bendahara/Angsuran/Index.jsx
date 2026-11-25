@@ -1,10 +1,11 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, router, useForm } from '@inertiajs/react';
 import { useEffect, useId, useMemo, useState } from 'react';
-import { TrendingUp, Wallet, Calendar, Check, ChevronLeft, ChevronRight, ChevronDown, Search, X, RefreshCw, MapPin, AlarmClock, RotateCcw, AlertCircle } from 'lucide-react';
+import { TrendingUp, Calendar, Check, ChevronLeft, ChevronRight, Search, X, RefreshCw, MapPin, AlarmClock, RotateCcw, AlertCircle } from 'lucide-react';
 import Card from '@/Components/ui/Card';
 import FotoAnggota from '@/Components/ui/FotoAnggota';
-import StatWidget from '@/Components/ui/StatWidget';
+import PrivacyWrapper from '@/Components/ui/PrivacyWrapper';
+import { UnifiedLedgerStrip } from '@/Components/ui/SummaryLayout';
 import Button from '@/Components/ui/Button';
 import PageHeader from '@/Components/ui/PageHeader';
 import TextField from '@/Components/ui/TextField';
@@ -43,7 +44,6 @@ export default function Index({
     const [terpilih, setTerpilih] = useState([]);
     const [processing, setProcessing] = useState(false);
     const [cari, setCari] = useState('');
-    const [rincianTerbuka, setRincianTerbuka] = useState(false);
     const [tabStatus, setTabStatus] = useState(tabAwal);
     const [itemBatal, setItemBatal] = useState(null);
     const batalFormId = useId();
@@ -197,86 +197,75 @@ export default function Index({
 
             <PageHeader title="Konfirmasi Angsuran" subtitle="Tandai angsuran yang sudah dipotong dari gaji anggota" />
 
-            <div className="rounded-2xl bg-gradient-to-r from-brand-navy to-brand-navy-light text-white px-5 py-4 mb-3 shadow-md shadow-brand-navy/20">
-                <div className="flex items-center gap-3">
-                    <span className="w-11 h-11 rounded-2xl bg-white/15 inline-flex items-center justify-center shrink-0">
-                        <Calendar size={22} />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                        <p className="text-xs text-white/70">Total Tagihan {labelBulan}</p>
-                        <p className="text-2xl font-bold tabular-nums leading-tight privacy-blur">{formatRupiah(totalTagihanBulanIni)}</p>
-                    </div>
-                    <button
-                        type="button"
-                        onClick={() => setRincianTerbuka((v) => !v)}
-                        aria-expanded={rincianTerbuka}
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-full px-3 py-1.5 transition-colors shrink-0"
-                    >
-                        Rincian
-                        <ChevronDown size={14} className={`transition-transform ${rincianTerbuka ? 'rotate-180' : ''}`} />
-                    </button>
-                </div>
-                {rincianTerbuka && (
-                    <dl className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-white/15 text-sm">
-                        <div className="rounded-xl bg-white/10 px-3 py-2">
-                            <dt className="text-xs text-white/70">Pendapatan bunga bulan ini</dt>
-                            <dd className="font-bold tabular-nums privacy-blur">{formatRupiah(totalPendapatanBungaBulanIni)}</dd>
-                        </div>
-                        <div className="rounded-xl bg-white/10 px-3 py-2">
-                            <dt className="text-xs text-white/70">Pendapatan bunga keseluruhan</dt>
-                            <dd className="font-bold tabular-nums privacy-blur">{formatRupiah(totalPendapatanBungaKeseluruhan)}</dd>
-                        </div>
-                        {Object.entries(tagihanPerCabang ?? {}).map(([c, nominal]) => (
-                            <div key={c} className="rounded-xl bg-white/10 px-3 py-2">
-                                <dt className="text-xs text-white/70">{c}</dt>
-                                <dd className="font-bold tabular-nums privacy-blur">{formatRupiah(nominal)}</dd>
-                            </div>
-                        ))}
-                        <div className="rounded-xl bg-white/10 px-3 py-2">
-                            <dt className="text-xs text-white/70">Jumlah angsuran {labelBulan}</dt>
-                            <dd className="font-bold tabular-nums">{daftarAngsuran.length} tagihan</dd>
-                        </div>
-                        <div className="rounded-xl bg-white/10 px-3 py-2">
-                            <dt className="text-xs text-white/70">Tunggakan terlambat</dt>
-                            <dd className="font-bold tabular-nums privacy-blur">
-                                {jumlahTerlambatWidget} tagihan • {formatRupiah(nominalTerlambatWidget)}
-                            </dd>
-                        </div>
-                    </dl>
-                )}
-            </div>
-
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
-                <button
-                    type="button"
-                    onClick={bukaTerlambatBulanIni}
-                    title="Lihat daftar angsuran terlambat"
-                    className={`text-left w-full rounded-xl cursor-pointer transition-all hover:brightness-[0.99] ${fokusRing}`}
-                >
-                    <StatWidget
-                        compact
-                        label="Terlambat"
-                        value={jumlahTerlambatWidget}
-                        icon={AlarmClock}
-                        tone="rose"
-                        caption={
+            <UnifiedLedgerStrip
+                columns={4}
+                items={[
+                    {
+                        key: 'tagihan',
+                        variant: 'anchor',
+                        label: `Tagihan ${labelBulan}`,
+                        icon: Calendar,
+                        value: formatRupiah(totalTagihanBulanIni),
+                        meta: (
+                            <>
+                                {daftarAngsuran.length} menunggu • Masuk{' '}
+                                <PrivacyWrapper>{formatRupiah(totalSudahDikonfirmasi)}</PrivacyWrapper>
+                            </>
+                        ),
+                    },
+                    {
+                        key: 'terlambat',
+                        label: 'Terlambat',
+                        icon: AlarmClock,
+                        tone: 'rose',
+                        value: jumlahTerlambatWidget,
+                        privacy: false,
+                        onClick: bukaTerlambatBulanIni,
+                        active: tabStatus === 'terlambat',
+                        valueTone: jumlahTerlambatWidget > 0 ? 'text-rose-600' : 'text-[#0F1E36]',
+                        meta:
                             nominalTerlambatWidget > 0 ? (
-                                <span className="privacy-blur">{formatRupiah(nominalTerlambatWidget)}</span>
+                                <>
+                                    <PrivacyWrapper>{formatRupiah(nominalTerlambatWidget)}</PrivacyWrapper> →
+                                </>
                             ) : isBulanLalu ? (
-                                'Dipindah ke bulan ini'
+                                'Dipindah ke bulan ini →'
                             ) : (
                                 'Tidak ada tunggakan'
-                            )
-                        }
-                    />
-                </button>
-                <StatWidget compact label="Menunggu" value={daftarAngsuran.length} icon={Wallet} tone="amber" />
-                <div className="col-span-2 lg:col-span-1">
-                    <StatWidget compact label="Pendapatan Bunga Bulan Ini" value={formatRupiah(totalPendapatanBungaBulanIni)} icon={TrendingUp} tone="green" />
-                </div>
-            </div>
+                            ),
+                    },
+                    {
+                        key: 'sudah',
+                        label: 'Sudah Konfirmasi',
+                        icon: Check,
+                        tone: 'green',
+                        value: dataSudah.length,
+                        privacy: false,
+                        onClick: () => gantiTab('sudah'),
+                        active: tabStatus === 'sudah',
+                        meta: (
+                            <>
+                                <PrivacyWrapper>{formatRupiah(totalSudahDikonfirmasi)}</PrivacyWrapper> masuk
+                            </>
+                        ),
+                    },
+                    {
+                        key: 'bunga',
+                        label: 'Pendapatan Bunga',
+                        icon: TrendingUp,
+                        tone: 'navy',
+                        value: formatRupiah(totalPendapatanBungaBulanIni),
+                        meta: (
+                            <>
+                                Total:{' '}
+                                <PrivacyWrapper>{formatRupiah(totalPendapatanBungaKeseluruhan)}</PrivacyWrapper>
+                            </>
+                        ),
+                    },
+                ]}
+            />
 
-            <div className="flex items-center gap-1.5 bg-gradient-to-r from-brand-navy/[0.05] via-slate-100/80 to-brand-green-light/30 border border-slate-200/80 p-1 rounded-full w-fit max-w-full overflow-x-auto mb-4">
+            <div className="flex items-center gap-1.5 bg-white border border-slate-200/85 shadow-2xs p-1 rounded-full w-fit max-w-full overflow-x-auto mb-3">
                 {tab.map((t) => {
                     const aktif = cabangAktif === t.key;
                     return (
@@ -284,14 +273,16 @@ export default function Index({
                             key={t.key}
                             onClick={() => pindahTab(t.key)}
                             aria-pressed={aktif}
-                            className={`inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-full whitespace-nowrap transition-all shrink-0 ${
-                                aktif ? 'bg-gradient-to-b from-white to-brand-green-light/25 text-brand-navy border border-brand-green/35 shadow-sm' : 'text-slate-600 hover:bg-white/75 hover:text-brand-navy'
+                            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs sm:text-sm font-semibold rounded-full whitespace-nowrap transition-all shrink-0 ${
+                                aktif
+                                    ? 'bg-[#0F1E36] text-white shadow-xs'
+                                    : 'text-slate-600 hover:bg-slate-100/80 hover:text-[#0F1E36]'
                             }`}
                         >
                             <MapPin size={15} />
                             {t.label}
-                            <span className="text-xs tabular-nums text-slate-400 privacy-blur">
-                                {formatRupiahSingkat(t.nominal)}
+                            <span className={`text-xs tabular-nums ${aktif ? 'text-white/75' : 'text-slate-400'}`}>
+                                <PrivacyWrapper>{formatRupiahSingkat(t.nominal)}</PrivacyWrapper>
                             </span>
                         </button>
                     );
@@ -301,14 +292,14 @@ export default function Index({
             <Card padding="sm" className="shadow-md border-slate-200/70 mb-4">
                 <div className="pb-3 mb-1 border-b border-slate-100">
                     {/* Segmented Status Switcher */}
-                    <div className="inline-flex flex-wrap items-center p-1 rounded-xl bg-gradient-to-r from-brand-navy/[0.04] to-brand-green-light/20 border border-slate-200/80 mb-3">
+                    <div className="inline-flex flex-wrap items-center p-1 rounded-xl bg-slate-100/80 border border-slate-200/80 mb-3 gap-0.5">
                         <button
                             type="button"
                             onClick={() => gantiTab('belum')}
                             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${fokusRing} ${
                                 tabStatus === 'belum'
-                                    ? 'bg-white text-slate-800 shadow-xs'
-                                    : 'text-slate-500 hover:text-slate-800'
+                                    ? 'bg-white text-[#0F1E36] shadow-2xs'
+                                    : 'text-slate-500 hover:text-[#0F1E36]'
                             }`}
                         >
                             Belum Dikonfirmasi ({daftarAngsuran.length})
@@ -318,7 +309,7 @@ export default function Index({
                             onClick={() => gantiTab('terlambat')}
                             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${fokusRing} ${
                                 tabStatus === 'terlambat'
-                                    ? 'bg-white text-rose-700 border border-rose-200/80 shadow-xs'
+                                    ? 'bg-white text-rose-700 border border-rose-200/80 shadow-2xs'
                                     : 'text-slate-600 hover:text-rose-700 border border-transparent'
                             }`}
                         >
@@ -329,8 +320,8 @@ export default function Index({
                             onClick={() => gantiTab('sudah')}
                             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${fokusRing} ${
                                 tabStatus === 'sudah'
-                                    ? 'bg-white text-emerald-700 border border-emerald-200/80 shadow-xs'
-                                    : 'text-slate-600 hover:text-brand-navy border border-transparent'
+                                    ? 'bg-white text-emerald-700 border border-emerald-200/80 shadow-2xs'
+                                    : 'text-slate-600 hover:text-[#0F1E36] border border-transparent'
                             }`}
                         >
                             Sudah Dikonfirmasi ({dataSudah.length})
@@ -384,7 +375,7 @@ export default function Index({
                             )}
                         </div>
                         <div className="flex items-center gap-2 md:ml-auto">
-                            <div className="flex items-center rounded-full border border-slate-200/80 bg-gradient-to-r from-slate-50/70 to-brand-green-light/20 overflow-hidden">
+                            <div className="flex items-center rounded-full border border-slate-200/85 bg-white hover:border-slate-300 transition-colors overflow-hidden">
                                 <button
                                     onClick={() => geserBulan(-1)}
                                     aria-label={`Bulan sebelum ${labelBulan}`}

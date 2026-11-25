@@ -7,6 +7,7 @@ import Button from '@/Components/ui/Button';
 import Card from '@/Components/ui/Card';
 import FotoAnggota from '@/Components/ui/FotoAnggota';
 import StatusBadge from '@/Components/ui/StatusBadge';
+import { UnifiedLedgerStrip } from '@/Components/ui/SummaryLayout';
 import PageHeader from '@/Components/ui/PageHeader';
 import TextField from '@/Components/ui/TextField';
 import Select from '@/Components/ui/Select';
@@ -110,148 +111,104 @@ export default function Index({ pinjaman, filters, statistik, cabangAktif, dafta
 
             <PageHeader title="Pinjaman" subtitle={`${pinjaman.total} pengajuan tercatat`} />
 
-            {/* KPI Stat Grid Terpadu — Menghilangkan Duplikasi Banner */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-                {/* 1. Total Pengajuan */}
-                <button
-                    type="button"
-                    onClick={() => terapkanFilter({ status: '' })}
-                    className={`text-left rounded-2xl p-4 border transition-all duration-200 cursor-pointer group flex flex-col justify-between ${
-                        !filters.status
-                            ? 'bg-white border-brand-navy/40 ring-2 ring-brand-navy/10 shadow-md'
-                            : 'bg-white border-slate-200/80 hover:border-slate-300 shadow-xs hover:shadow-md'
-                    }`}
-                >
-                    <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-semibold text-slate-500 group-hover:text-brand-navy transition-colors">
-                            Total Pengajuan
-                        </span>
-                        <span className="w-8 h-8 rounded-xl bg-brand-navy/5 text-brand-navy flex items-center justify-center shrink-0">
-                            <Wallet size={16} />
-                        </span>
-                    </div>
-                    <div className="mt-2">
-                        <p className="text-2xl font-bold text-slate-800 tabular-nums leading-tight">
-                            {statistik.total}
-                        </p>
-                        <p className="text-xs text-slate-400 mt-1 truncate">
-                            {statistik.aktif} aktif • {statistik.lunas} lunas
-                        </p>
-                    </div>
-                </button>
-
-                {/* 2. Antrean Approval (3 Jenjang Pipeline) */}
-                <button
-                    type="button"
-                    onClick={() => {
-                        if (['diajukan', 'approved_admin', 'approved_bendahara', 'approved_ketua'].includes(filters.status)) {
-                            terapkanFilter({ status: '' });
-                        } else if (statistik.diajukan > 0) {
-                            terapkanFilter({ status: 'diajukan' });
-                        } else if (statistik.approved_admin > 0) {
-                            terapkanFilter({ status: 'approved_admin' });
-                        } else if (statistik.approved_bendahara > 0) {
-                            terapkanFilter({ status: 'approved_bendahara' });
-                        } else {
-                            terapkanFilter({ status: 'diajukan' });
-                        }
-                    }}
-                    className={`text-left rounded-2xl p-4 border transition-all duration-200 cursor-pointer group flex flex-col justify-between ${
-                        ['diajukan', 'approved_admin', 'approved_bendahara', 'approved_ketua'].includes(filters.status)
-                            ? 'bg-amber-50/40 border-amber-400 ring-2 ring-amber-400/20 shadow-md'
-                            : 'bg-white border-slate-200/80 hover:border-slate-300 shadow-xs hover:shadow-md'
-                    }`}
-                >
-                    <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-semibold text-slate-500 group-hover:text-amber-800 transition-colors">
-                            Antrean Approval
-                        </span>
-                        <span className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
-                            <Clock size={16} />
-                        </span>
-                    </div>
-                    <div className="mt-2">
-                        <div className="flex items-baseline gap-2">
-                            <p className="text-2xl font-bold text-slate-800 tabular-nums leading-tight">
-                                {totalMenunggu}
-                            </p>
-                            {totalMenunggu > 0 && (
-                                <span className="text-[11px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-full">
+            {/* Ringkasan Eksekutif Ringkas */}
+            <UnifiedLedgerStrip
+                columns={4}
+                items={[
+                    {
+                        key: 'aktif',
+                        variant: 'anchor',
+                        label: 'Pinjaman Aktif',
+                        icon: HandCoins,
+                        value: formatRupiah(statistik.total_nominal_aktif),
+                        active: filters.status === 'aktif',
+                        onClick: () => terapkanFilter({ status: filters.status === 'aktif' ? '' : 'aktif' }),
+                        badge:
+                            filters.status === 'aktif' ? (
+                                <span className="px-1.5 py-0.5 rounded bg-emerald-400/20 text-emerald-200 border border-emerald-300/35 text-[10px] font-semibold">
+                                    Aktif ✓
+                                </span>
+                            ) : null,
+                        meta: `${statistik.aktif} akad aktif berjalan`,
+                    },
+                    {
+                        key: 'total',
+                        label: 'Total Pengajuan',
+                        icon: Wallet,
+                        tone: 'navy',
+                        value: statistik.total,
+                        privacy: false,
+                        active: !filters.status,
+                        onClick: () => terapkanFilter({ status: '' }),
+                        meta: `${statistik.aktif} aktif • ${statistik.lunas} lunas`,
+                    },
+                    {
+                        key: 'antrean',
+                        label: 'Antrean Approval',
+                        icon: Clock,
+                        tone: 'amber',
+                        value: totalMenunggu,
+                        privacy: false,
+                        active: ['diajukan', 'approved_admin', 'approved_bendahara', 'approved_ketua'].includes(
+                            filters.status
+                        ),
+                        badge:
+                            totalMenunggu > 0 ? (
+                                <span className="px-1.5 py-0.5 rounded-full bg-amber-50 border border-amber-200/80 text-[10px] font-bold text-amber-700">
                                     Proses
                                 </span>
-                            )}
-                        </div>
-                        {/* 3 Pipeline Badges */}
-                        <div className="flex items-center gap-1 mt-1.5 flex-wrap">
-                            <span className="text-[10px] sm:text-[11px] font-semibold text-amber-800 bg-amber-100/80 px-1.5 py-0.5 rounded" title="Menunggu Verifikasi Sekretaris">
-                                Sekretaris {statistik.diajukan}
-                            </span>
-                            <span className="text-[10px] sm:text-[11px] font-semibold text-blue-800 bg-blue-100/80 px-1.5 py-0.5 rounded" title="Menunggu Tinjauan Bendahara">
-                                Bendahara {statistik.approved_admin}
-                            </span>
-                            <span className="text-[10px] sm:text-[11px] font-semibold text-indigo-800 bg-indigo-100/80 px-1.5 py-0.5 rounded" title="Menunggu Persetujuan Ketua">
-                                Ketua {statistik.approved_bendahara}
-                            </span>
-                        </div>
-                    </div>
-                </button>
-
-                {/* 3. Pinjaman Aktif */}
-                <button
-                    type="button"
-                    onClick={() => terapkanFilter({ status: filters.status === 'aktif' ? '' : 'aktif' })}
-                    className={`text-left rounded-2xl p-4 border transition-all duration-200 cursor-pointer group flex flex-col justify-between ${
-                        filters.status === 'aktif'
-                            ? 'bg-emerald-50/40 border-brand-green ring-2 ring-brand-green/20 shadow-md'
-                            : 'bg-white border-slate-200/80 hover:border-slate-300 shadow-xs hover:shadow-md'
-                    }`}
-                >
-                    <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-semibold text-slate-500 group-hover:text-brand-green-dark transition-colors">
-                            Pinjaman Aktif
-                        </span>
-                        <span className="w-8 h-8 rounded-xl bg-brand-green-light text-brand-green-dark flex items-center justify-center shrink-0">
-                            <HandCoins size={16} />
-                        </span>
-                    </div>
-                    <div className="mt-2">
-                        <p className="text-2xl font-bold text-slate-800 tabular-nums leading-tight">
-                            {statistik.aktif}
-                        </p>
-                        <p className="text-xs text-brand-green-dark font-medium mt-1 truncate privacy-blur">
-                            {formatRupiah(statistik.total_nominal_aktif)}
-                        </p>
-                    </div>
-                </button>
-
-                {/* 4. Pinjaman Lunas & Selesai */}
-                <button
-                    type="button"
-                    onClick={() => terapkanFilter({ status: filters.status === 'lunas' ? '' : 'lunas' })}
-                    className={`text-left rounded-2xl p-4 border transition-all duration-200 cursor-pointer group flex flex-col justify-between ${
-                        filters.status === 'lunas'
-                            ? 'bg-gradient-to-br from-sky-50 to-teal-50/60 border-sky-400 ring-2 ring-sky-400/20 shadow-md'
-                            : 'bg-white border-slate-200/80 hover:border-slate-300 shadow-xs hover:shadow-md'
-                    }`}
-                >
-                    <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-semibold text-slate-500 group-hover:text-brand-navy transition-colors">
-                            Pinjaman Lunas
-                        </span>
-                        <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-brand-navy/10 to-sky-100 text-brand-navy flex items-center justify-center shrink-0">
-                            <CheckCircle2 size={16} />
-                        </span>
-                    </div>
-                    <div className="mt-2">
-                        <p className="text-2xl font-bold text-slate-800 tabular-nums leading-tight">
-                            {statistik.lunas}
-                        </p>
-                        <p className="text-xs text-slate-400 mt-1 truncate">
-                            {statistik.ditolak} pengajuan ditolak
-                        </p>
-                    </div>
-                </button>
-            </div>
+                            ) : null,
+                        onClick: () => {
+                            if (
+                                ['diajukan', 'approved_admin', 'approved_bendahara', 'approved_ketua'].includes(
+                                    filters.status
+                                )
+                            ) {
+                                terapkanFilter({ status: '' });
+                            } else if ((statistik.diajukan ?? 0) > 0) {
+                                terapkanFilter({ status: 'diajukan' });
+                            } else if ((statistik.approved_admin ?? 0) > 0) {
+                                terapkanFilter({ status: 'approved_admin' });
+                            } else if ((statistik.approved_bendahara ?? 0) > 0) {
+                                terapkanFilter({ status: 'approved_bendahara' });
+                            } else if ((statistik.approved_ketua ?? 0) > 0) {
+                                terapkanFilter({ status: 'approved_ketua' });
+                            } else {
+                                terapkanFilter({ status: 'diajukan' });
+                            }
+                        },
+                        pills: [
+                            ...((statistik.diajukan ?? 0) > 0
+                                ? [{ label: `Sekr ${statistik.diajukan}`, tone: 'amber' }]
+                                : []),
+                            ...((statistik.approved_admin ?? 0) > 0
+                                ? [{ label: `Bend ${statistik.approved_admin}`, tone: 'sky' }]
+                                : []),
+                            ...((statistik.approved_bendahara ?? 0) > 0
+                                ? [{ label: `Ketua ${statistik.approved_bendahara}`, tone: 'navy' }]
+                                : []),
+                            ...((statistik.approved_ketua ?? 0) > 0
+                                ? [{ label: `Cair ${statistik.approved_ketua}`, tone: 'green' }]
+                                : []),
+                        ],
+                        meta: totalMenunggu === 0 ? 'Semua antrean tuntas' : undefined,
+                    },
+                    {
+                        key: 'lunas',
+                        label: 'Pinjaman Lunas',
+                        icon: CheckCircle2,
+                        tone: 'green',
+                        value: statistik.lunas,
+                        privacy: false,
+                        active: filters.status === 'lunas',
+                        onClick: () => terapkanFilter({ status: filters.status === 'lunas' ? '' : 'lunas' }),
+                        meta:
+                            (statistik.ditolak ?? 0) > 0
+                                ? `${statistik.ditolak} pengajuan ditolak`
+                                : 'Pelunasan selesai',
+                    },
+                ]}
+            />
 
             <Card padding="sm" className="shadow-md border-slate-200/70 mb-4 overflow-hidden">
                 <div className="pb-3 border-b border-slate-100">
@@ -265,7 +222,7 @@ export default function Index({ pinjaman, filters, statistik, cabangAktif, dafta
                                 onChange={(e) => setCari(e.target.value)}
                                 placeholder="Cari nama atau no. karyawan..."
                                 aria-label="Cari pinjaman"
-                                className="pl-10 pr-8 text-sm rounded-full border-slate-200 bg-slate-50/80 hover:bg-white focus:bg-white shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition-all"
+                                className="pl-10 pr-8 text-sm rounded-full border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition-all"
                             />
                             {cari && (
                                 <button
@@ -284,7 +241,7 @@ export default function Index({ pinjaman, filters, statistik, cabangAktif, dafta
                                 value={cabangAktif ?? ''}
                                 onChange={(e) => terapkanFilter({ cabang: e.target.value })}
                                 aria-label="Filter cabang"
-                                className="flex-1 min-w-0 md:flex-none md:w-40 text-sm rounded-full border-slate-200 bg-slate-50/60"
+                                className="flex-1 min-w-0 md:flex-none md:w-40 text-sm rounded-full border-slate-200 bg-white"
                             >
                                 <option value="">Semua Cabang</option>
                                 {daftarCabangAman.map((c) => (
@@ -296,7 +253,7 @@ export default function Index({ pinjaman, filters, statistik, cabangAktif, dafta
                                 value={filters.status ?? ''}
                                 onChange={(e) => terapkanFilter({ status: e.target.value })}
                                 aria-label="Filter status"
-                                className="flex-1 min-w-0 md:flex-none md:w-64 text-sm rounded-full border-slate-200 bg-slate-50/60"
+                                className="flex-1 min-w-0 md:flex-none md:w-64 text-sm rounded-full border-slate-200 bg-white"
                             >
                                 {statusOptions.map((s) => (
                                     <option key={s.value} value={s.value}>{s.label}</option>

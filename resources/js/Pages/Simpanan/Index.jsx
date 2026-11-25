@@ -8,11 +8,13 @@ import Card from '@/Components/ui/Card';
 import FotoAnggota from '@/Components/ui/FotoAnggota';
 import Drawer from '@/Components/ui/Drawer';
 import { DrawerHero, DrawerSection } from '@/Components/ui/DrawerSection';
+import PrivacyWrapper from '@/Components/ui/PrivacyWrapper';
 import StatusBadge from '@/Components/ui/StatusBadge';
+import { UnifiedLedgerStrip } from '@/Components/ui/SummaryLayout';
 import PageHeader from '@/Components/ui/PageHeader';
 import TextField from '@/Components/ui/TextField';
 import Select from '@/Components/ui/Select';
-import { formatRupiah } from '@/Utils/formatCurrency';
+import { formatRupiah, formatRupiahSingkat } from '@/Utils/formatCurrency';
 import Pagination from '@/Components/ui/Pagination';
 
 const jenisLabel = { pokok: 'Pokok', wajib: 'Wajib', dana_sosial: 'Dana Sosial' };
@@ -88,114 +90,60 @@ export default function Index({
 
             <PageHeader title="Simpanan Anggota" subtitle="Rekap pokok + wajib seluruh anggota" />
 
-            {/* KPI Stat Grid Terpadu — Menghilangkan Duplikasi Banner */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-                {/* 1. Total Simpanan Aktif */}
-                <button
-                    type="button"
-                    onClick={() => terapkan({ status: filters.status === 'aktif' ? '' : 'aktif' })}
-                    className={`text-left rounded-2xl p-4 border transition-all duration-200 cursor-pointer group flex flex-col justify-between ${
-                        filters.status === 'aktif'
-                            ? 'bg-blue-50/40 border-brand-navy/40 ring-2 ring-brand-navy/10 shadow-md'
-                            : 'bg-white border-slate-200/80 hover:border-slate-300 shadow-xs hover:shadow-md'
-                    }`}
-                >
-                    <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-semibold text-slate-500 group-hover:text-brand-navy transition-colors">
-                            {cabangAktif ? `Simpanan (${cabangAktif})` : 'Total Simpanan Aktif'}
-                        </span>
-                        <span className="w-8 h-8 rounded-xl bg-brand-navy/5 text-brand-navy flex items-center justify-center shrink-0">
-                            <PiggyBank size={16} />
-                        </span>
-                    </div>
-                    <div className="mt-2">
-                        <p className="text-xl sm:text-2xl font-bold text-slate-800 tabular-nums leading-tight privacy-blur">
-                            {formatRupiah(totalSimpananTampil)}
-                        </p>
-                        <p className="text-xs text-slate-400 mt-1 truncate">
-                            {cabangAktif ? `Outstanding cabang ${cabangAktif}` : 'Outstanding anggota aktif'}
-                        </p>
-                    </div>
-                </button>
-
-                {/* 2. Komposisi Simpanan (Pokok & Wajib) */}
-                <div className="rounded-2xl p-4 border bg-white border-slate-200/80 shadow-xs flex flex-col justify-between">
-                    <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-semibold text-slate-500">
-                            Komposisi Simpanan
-                        </span>
-                        <span className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
-                            <Wallet size={16} />
-                        </span>
-                    </div>
-                    <div className="mt-2">
-                        <p className="text-xl sm:text-2xl font-bold text-slate-800 tabular-nums leading-tight privacy-blur">
-                            {formatRupiah(totalPokok + totalWajib)}
-                        </p>
-                        <div className="flex items-center gap-1.5 mt-1.5 flex-wrap text-[11px]">
-                            <span className="font-semibold text-brand-navy bg-brand-navy/5 px-1.5 py-0.5 rounded privacy-blur" title="Simpanan Pokok">
-                                Pokok {formatRupiah(totalPokok)}
-                            </span>
-                            <span className="font-semibold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded privacy-blur" title="Simpanan Wajib">
-                                Wajib {formatRupiah(totalWajib)}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* 3. Dana Sosial Terkumpul */}
-                <div className="rounded-2xl p-4 border bg-white border-slate-200/80 shadow-xs flex flex-col justify-between">
-                    <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-semibold text-slate-500">
-                            Dana Sosial
-                        </span>
-                        <span className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
-                            <HeartHandshake size={16} />
-                        </span>
-                    </div>
-                    <div className="mt-2">
-                        <p className="text-xl sm:text-2xl font-bold text-slate-800 tabular-nums leading-tight privacy-blur">
-                            {formatRupiah(totalDanaSosialTerkumpul)}
-                        </p>
-                        <p className="text-xs text-slate-400 mt-1 truncate">
-                            Iuran sosial kumulatif
-                        </p>
-                    </div>
-                </div>
-
-                {/* 4. Partisipasi Anggota */}
-                <button
-                    type="button"
-                    onClick={() => terapkan({ status: filters.status === 'resign' ? '' : 'resign' })}
-                    className={`text-left rounded-2xl p-4 border transition-all duration-200 cursor-pointer group flex flex-col justify-between ${
-                        filters.status === 'resign'
-                            ? 'bg-amber-50/40 border-amber-400 ring-2 ring-amber-400/20 shadow-md'
-                            : 'bg-white border-slate-200/80 hover:border-slate-300 shadow-xs hover:shadow-md'
-                    }`}
-                >
-                    <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-semibold text-slate-500 group-hover:text-amber-800 transition-colors">
-                            Partisipasi Anggota
-                        </span>
-                        <span className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
-                            <Users size={16} />
-                        </span>
-                    </div>
-                    <div className="mt-2">
-                        <p className="text-xl sm:text-2xl font-bold text-slate-800 tabular-nums leading-tight">
-                            {statistikAnggota.total}
-                        </p>
-                        <div className="flex items-center gap-1.5 mt-1.5 flex-wrap text-[11px]">
-                            <span className="font-semibold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded">
-                                {statistikAnggota.aktif} aktif
-                            </span>
-                            <span className="font-semibold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">
-                                {statistikAnggota.resign} resign
-                            </span>
-                        </div>
-                    </div>
-                </button>
-            </div>
+            {/* Ringkasan Eksekutif Ringkas */}
+            <UnifiedLedgerStrip
+                columns={4}
+                items={[
+                    {
+                        key: 'aktif',
+                        variant: 'anchor',
+                        label: cabangAktif ? `Simpanan (${cabangAktif})` : 'Simpanan Aktif',
+                        icon: PiggyBank,
+                        value: formatRupiah(totalSimpananTampil),
+                        active: filters.status === 'aktif',
+                        onClick: () => terapkan({ status: filters.status === 'aktif' ? '' : 'aktif' }),
+                        badge:
+                            filters.status === 'aktif' ? (
+                                <span className="px-1.5 py-0.5 rounded bg-emerald-400/20 text-emerald-200 border border-emerald-300/35 text-[10px] font-semibold">
+                                    Aktif ✓
+                                </span>
+                            ) : null,
+                        meta: (
+                            <>
+                                Pokok <PrivacyWrapper>{formatRupiahSingkat(totalPokok)}</PrivacyWrapper> • Wajib{' '}
+                                <PrivacyWrapper>{formatRupiahSingkat(totalWajib)}</PrivacyWrapper>
+                            </>
+                        ),
+                    },
+                    {
+                        key: 'gross',
+                        label: 'Akumulasi Gross',
+                        icon: Wallet,
+                        tone: 'sky',
+                        value: formatRupiah(totalPokok + totalWajib),
+                        meta: 'Pokok & wajib tercatat',
+                    },
+                    {
+                        key: 'dansos',
+                        label: 'Dana Sosial',
+                        icon: HeartHandshake,
+                        tone: 'green',
+                        value: formatRupiah(totalDanaSosialTerkumpul),
+                        meta: 'Iuran sosial kumulatif',
+                    },
+                    {
+                        key: 'anggota',
+                        label: 'Partisipasi Anggota',
+                        icon: Users,
+                        tone: 'amber',
+                        value: statistikAnggota.total,
+                        privacy: false,
+                        active: filters.status === 'resign',
+                        onClick: () => terapkan({ status: filters.status === 'resign' ? '' : 'resign' }),
+                        meta: `${statistikAnggota.aktif} aktif${statistikAnggota.resign > 0 ? ` • ${statistikAnggota.resign} resign` : ''}`,
+                    },
+                ]}
+            />
 
             <Card padding="sm" className="shadow-md border-slate-200/70 mb-4 overflow-hidden">
                 <div className="pb-3 mb-1 border-b border-slate-100">
@@ -209,7 +157,7 @@ export default function Index({
                                 onChange={(e) => setCari(e.target.value)}
                                 placeholder="Cari nama atau no. karyawan..."
                                 aria-label="Cari anggota"
-                                className="pl-10 pr-8 text-sm rounded-full border-slate-200 bg-slate-50/80 hover:bg-white focus:bg-white shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition-all"
+                                className="pl-10 pr-8 text-sm rounded-full border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition-all"
                             />
                             {cari && (
                                 <button
@@ -228,7 +176,7 @@ export default function Index({
                                 value={cabangAktif ?? ''}
                                 onChange={(e) => terapkan({ cabang: e.target.value })}
                                 aria-label="Filter cabang"
-                                className="flex-1 min-w-0 md:flex-none md:w-40 text-sm rounded-full border-slate-200 bg-slate-50/60"
+                                className="flex-1 min-w-0 md:flex-none md:w-40 text-sm rounded-full border-slate-200 bg-white"
                             >
                                 <option value="">Semua Cabang</option>
                                 {daftarCabangAman.map((c) => (
@@ -240,7 +188,7 @@ export default function Index({
                                 value={filters.status ?? ''}
                                 onChange={(e) => terapkan({ status: e.target.value })}
                                 aria-label="Filter status anggota"
-                                className="flex-1 min-w-0 md:flex-none md:w-40 text-sm rounded-full border-slate-200 bg-slate-50/60"
+                                className="flex-1 min-w-0 md:flex-none md:w-40 text-sm rounded-full border-slate-200 bg-white"
                             >
                                 <option value="">Semua Status</option>
                                 <option value="aktif">Anggota Aktif</option>

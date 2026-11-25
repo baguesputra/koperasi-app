@@ -11,7 +11,9 @@ import Drawer from '@/Components/ui/Drawer';
 import { DrawerBody } from '@/Components/ui/DrawerSection';
 import FotoAnggota from '@/Components/ui/FotoAnggota';
 import PageHeader from '@/Components/ui/PageHeader';
+import PrivacyWrapper from '@/Components/ui/PrivacyWrapper';
 import StatusBadge from '@/Components/ui/StatusBadge';
+import { UnifiedLedgerStrip } from '@/Components/ui/SummaryLayout';
 import TextField from '@/Components/ui/TextField';
 import { formatRupiah } from '@/Utils/formatCurrency';
 
@@ -402,74 +404,62 @@ export default function Index({
 
             {/* Kartu Posisi Kas & Beban Antrean (khusus role keuangan) */}
             {kasRingkas && (
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-                    <div className="rounded-2xl p-4 border bg-white border-slate-200/80 shadow-xs flex flex-col justify-between">
-                        <div className="flex items-center justify-between gap-2">
-                            <span className="text-xs font-semibold text-slate-500">Saldo Bank Koperasi</span>
-                            <span className="w-8 h-8 rounded-xl bg-brand-navy/5 text-brand-navy flex items-center justify-center shrink-0">
-                                <Landmark size={16} />
-                            </span>
-                        </div>
-                        <div className="mt-2.5">
-                            <p className="text-xl sm:text-2xl font-bold text-slate-800 tabular-nums privacy-blur">
-                                {formatRupiah(kasRingkas.saldo_bank)}
-                            </p>
-                            <p className="text-xs text-slate-400 mt-1">Rekening operasional utama</p>
-                        </div>
-                    </div>
-
-                    <div className="rounded-2xl p-4 border bg-white border-slate-200/80 shadow-xs flex flex-col justify-between">
-                        <div className="flex items-center justify-between gap-2">
-                            <span className="text-xs font-semibold text-slate-500">Saldo Kas Kecil</span>
-                            <span className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
-                                <Wallet size={16} />
-                            </span>
-                        </div>
-                        <div className="mt-2.5">
-                            <p className="text-xl sm:text-2xl font-bold text-slate-800 tabular-nums privacy-blur">
-                                {formatRupiah(kasRingkas.saldo_kas_kecil)}
-                            </p>
-                            <p className="text-xs text-slate-400 mt-1">Kas tunai di kantor</p>
-                        </div>
-                    </div>
-
-                    <div className="rounded-2xl p-4 border bg-white border-slate-200/80 shadow-xs flex flex-col justify-between">
-                        <div className="flex items-center justify-between gap-2">
-                            <span className="text-xs font-semibold text-slate-500">Beban Antrean Pinjaman</span>
-                            <span className="w-8 h-8 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center shrink-0">
-                                <HandCoins size={16} />
-                            </span>
-                        </div>
-                        <div className="mt-2.5">
-                            <p className="text-xl sm:text-2xl font-bold text-slate-800 tabular-nums privacy-blur">
-                                {formatRupiah(kasRingkas.total_antrean_pinjaman)}
-                            </p>
-                            <p className="text-xs text-slate-400 mt-1">
-                                {(kasRingkas.jumlah_antrean_pinjaman ?? 0) > 0
-                                    ? `${kasRingkas.jumlah_antrean_pinjaman} pengajuan berjalan • ${kasRingkas.persen_terpakai ?? 0}% saldo bank`
-                                    : 'Belum ada antrean pinjaman'}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="rounded-2xl p-4 border bg-white border-slate-200/80 shadow-xs flex flex-col justify-between">
-                        <div className="flex items-center justify-between gap-1.5 flex-wrap">
-                            <span className="text-xs font-semibold text-slate-500">Proyeksi Sisa Bank</span>
-                            {likuiditasInfo && (
-                                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[11px] font-semibold shrink-0 ${likuiditasInfo.cls}`}>
-                                    <ShieldCheck size={12} />
+                <UnifiedLedgerStrip
+                    columns={3}
+                    items={[
+                        {
+                            key: 'bank',
+                            variant: 'anchor',
+                            label: 'Saldo Bank Koperasi',
+                            icon: Landmark,
+                            value: formatRupiah(kasRingkas.saldo_bank),
+                            meta: (
+                                <>
+                                    Kas Kecil: <PrivacyWrapper>{formatRupiah(kasRingkas.saldo_kas_kecil)}</PrivacyWrapper>
+                                </>
+                            ),
+                        },
+                        {
+                            key: 'antrean',
+                            label: 'Beban Antrean',
+                            icon: HandCoins,
+                            tone: 'sky',
+                            value: formatRupiah(kasRingkas.total_antrean_pinjaman),
+                            progress:
+                                (kasRingkas.jumlah_antrean_pinjaman ?? 0) > 0
+                                    ? {
+                                          value: kasRingkas.persen_terpakai ?? 0,
+                                          tone:
+                                              (kasRingkas.persen_terpakai ?? 0) > 80
+                                                  ? 'danger'
+                                                  : (kasRingkas.persen_terpakai ?? 0) > 50
+                                                    ? 'warning'
+                                                    : 'success',
+                                      }
+                                    : undefined,
+                            meta:
+                                (kasRingkas.jumlah_antrean_pinjaman ?? 0) > 0
+                                    ? `${kasRingkas.jumlah_antrean_pinjaman} pengajuan • ${kasRingkas.persen_terpakai ?? 0}% saldo bank`
+                                    : 'Belum ada antrean pinjaman',
+                        },
+                        {
+                            key: 'proyeksi',
+                            label: 'Proyeksi Sisa Bank',
+                            icon: ShieldCheck,
+                            tone: kasRingkas.sisa_proyeksi < 0 ? 'rose' : 'green',
+                            value: formatRupiah(kasRingkas.sisa_proyeksi),
+                            valueTone: kasRingkas.sisa_proyeksi < 0 ? 'text-rose-600' : 'text-emerald-700',
+                            badge: likuiditasInfo ? (
+                                <span
+                                    className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-semibold shrink-0 ${likuiditasInfo.cls}`}
+                                >
                                     {likuiditasInfo.label}
                                 </span>
-                            )}
-                        </div>
-                        <div className="mt-2.5">
-                            <p className={`text-xl sm:text-2xl font-bold tabular-nums privacy-blur ${kasRingkas.sisa_proyeksi < 0 ? 'text-rose-600' : 'text-brand-green-dark'}`}>
-                                {formatRupiah(kasRingkas.sisa_proyeksi)}
-                            </p>
-                            <p className="text-xs text-slate-400 mt-1">Estimasi saldo bank pasca pencairan</p>
-                        </div>
-                    </div>
-                </div>
+                            ) : null,
+                            meta: 'Estimasi saldo pasca pencairan',
+                        },
+                    ]}
+                />
             )}
 
             {/* Unified Inbox Card */}

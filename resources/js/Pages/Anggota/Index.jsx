@@ -7,7 +7,7 @@ import Button from '@/Components/ui/Button';
 import ButtonLink from '@/Components/ui/ButtonLink';
 import Card from '@/Components/ui/Card';
 import FotoAnggota from '@/Components/ui/FotoAnggota';
-import StatWidget from '@/Components/ui/StatWidget';
+import { UnifiedLedgerStrip } from '@/Components/ui/SummaryLayout';
 import StatusBadge from '@/Components/ui/StatusBadge';
 import PageHeader from '@/Components/ui/PageHeader';
 import TextField from '@/Components/ui/TextField';
@@ -134,12 +134,55 @@ export default function Index({ anggota, statistik, filters, daftarCabang = [] }
                 )}
             </PageHeader>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-                <StatWidget compact label="Total" value={statistik.total} icon={Users} tone="navy" />
-                <StatWidget compact label="Aktif" value={statistik.aktif} icon={UserCheck} tone="green" />
-                <StatWidget compact label="Nonaktif" value={statistik.nonaktif} icon={UserX} tone="amber" />
-                <StatWidget compact label="Resign" value={statistik.resign} icon={UserMinus} tone="rose" />
-            </div>
+            <UnifiedLedgerStrip
+                columns={4}
+                items={[
+                    {
+                        key: 'semua',
+                        variant: 'anchor',
+                        label: 'Total Anggota',
+                        value: statistik.total,
+                        privacy: false,
+                        icon: Users,
+                        active: !filters.status,
+                        meta: `${statistik.total > 0 ? Math.round((statistik.aktif / statistik.total) * 100) : 0}% aktif terdaftar`,
+                        onClick: () => terapkanFilter({ status: '' }),
+                    },
+                    {
+                        key: 'aktif',
+                        label: 'Aktif',
+                        value: statistik.aktif,
+                        privacy: false,
+                        icon: UserCheck,
+                        tone: 'green',
+                        active: filters.status === 'aktif',
+                        meta: `${statistik.total > 0 ? Math.round((statistik.aktif / statistik.total) * 100) : 0}% anggota`,
+                        onClick: () => terapkanFilter({ status: filters.status === 'aktif' ? '' : 'aktif' }),
+                    },
+                    {
+                        key: 'nonaktif',
+                        label: 'Nonaktif',
+                        value: statistik.nonaktif,
+                        privacy: false,
+                        icon: UserX,
+                        tone: 'amber',
+                        active: filters.status === 'nonaktif',
+                        meta: `${statistik.total > 0 ? Math.round((statistik.nonaktif / statistik.total) * 100) : 0}% anggota`,
+                        onClick: () => terapkanFilter({ status: filters.status === 'nonaktif' ? '' : 'nonaktif' }),
+                    },
+                    {
+                        key: 'resign',
+                        label: 'Resign',
+                        value: statistik.resign,
+                        privacy: false,
+                        icon: UserMinus,
+                        tone: 'rose',
+                        active: filters.status === 'resign',
+                        meta: `${statistik.total > 0 ? Math.round((statistik.resign / statistik.total) * 100) : 0}% anggota`,
+                        onClick: () => terapkanFilter({ status: filters.status === 'resign' ? '' : 'resign' }),
+                    },
+                ]}
+            />
 
             <Card padding="sm" className="shadow-md border-slate-200/70 mb-4 overflow-hidden">
                 <div className="pb-3 mb-1 border-b border-slate-100">
@@ -153,7 +196,7 @@ export default function Index({ anggota, statistik, filters, daftarCabang = [] }
                                 onChange={(e) => setCari(e.target.value)}
                                 placeholder="Cari nama atau no. karyawan..."
                                 aria-label="Cari anggota"
-                                className="pl-10 pr-8 text-sm rounded-full border-slate-200 bg-slate-50/80 hover:bg-white focus:bg-white shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition-all"
+                                className="pl-10 pr-8 text-sm rounded-full border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition-all"
                             />
                             {cari && (
                                 <button
@@ -172,7 +215,7 @@ export default function Index({ anggota, statistik, filters, daftarCabang = [] }
                                 value={filters.cabang ?? ''}
                                 onChange={(e) => terapkanFilter({ cabang: e.target.value })}
                                 aria-label="Filter cabang"
-                                className="flex-1 min-w-0 md:flex-none md:w-40 text-sm rounded-full border-slate-200 bg-slate-50/60"
+                                className="flex-1 min-w-0 md:flex-none md:w-40 text-sm rounded-full border-slate-200 bg-white"
                             >
                                 <option value="">Semua Cabang</option>
                                 {daftarCabangAman.map((c) => (
@@ -184,7 +227,7 @@ export default function Index({ anggota, statistik, filters, daftarCabang = [] }
                                 value={filters.status ?? ''}
                                 onChange={(e) => terapkanFilter({ status: e.target.value })}
                                 aria-label="Filter status"
-                                className="flex-1 min-w-0 md:flex-none md:w-36 text-sm rounded-full border-slate-200 bg-slate-50/60"
+                                className="flex-1 min-w-0 md:flex-none md:w-36 text-sm rounded-full border-slate-200 bg-white"
                             >
                                 <option value="">Semua Status</option>
                                 <option value="aktif">Aktif</option>
