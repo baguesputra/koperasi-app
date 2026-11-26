@@ -49,15 +49,15 @@ export default function SidebarLayout({ children }) {
     const closeMobileSidebar = () => setMobileSidebarOpen(false);
 
     return (
-        <div className="flex min-h-screen bg-slate-50">
+        <div className="flex min-h-screen app-canvas">
             {/* Desktop Sidebar */}
-<div
-                 onMouseEnter={sidebarMasuk}
-                 onMouseLeave={sidebarKeluar}
-                 className={`hidden lg:block sticky top-0 h-screen shrink-0 p-3 transition-[width] duration-300 ${
-                      collapsed ? 'w-[88px]' : 'w-[264px]'
-                  } ${elevating ? 'z-50' : ''}`}
-             >
+            <div
+                onMouseEnter={sidebarMasuk}
+                onMouseLeave={sidebarKeluar}
+                className={`hidden lg:block sticky top-0 h-screen shrink-0 p-3 transition-[width] duration-300 ${
+                    collapsed ? 'w-[88px]' : 'w-[264px]'
+                } ${elevating ? 'z-50' : ''}`}
+            >
                 <Sidebar collapsed={collapsed} expanding={expanding} onToggle={toggleSidebar} />
             </div>
 

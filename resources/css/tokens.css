@@ -64,6 +64,7 @@
 
   /* Ground: clean alabaster canvas with whisper-soft ambient light. */
   --color-ground: oklch(98.0% 0.004 240);
+  --color-app-ground: #ffffff;
   --color-glow-a: oklch(86.0% 0.105 165);
   --color-glow-b: oklch(78.0% 0.075 215);
   --glow-a-alpha: 100%;

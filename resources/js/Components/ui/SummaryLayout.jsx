@@ -39,7 +39,7 @@ export function UnifiedLedgerStrip({ items = [], columns = 4, className = '' }) 
 
     return (
         <div
-            className={`rounded-2xl border border-slate-200/85 bg-white shadow-xs overflow-hidden mb-3.5 ${className}`}
+            className={`rounded-2xl border border-slate-200/90 bg-white shadow-[0_1px_2px_rgba(15,30,54,0.04)] overflow-hidden mb-3.5 ${className}`}
         >
             <div className={`grid ${gridColsCls}`}>
                 {items.map((item) => {

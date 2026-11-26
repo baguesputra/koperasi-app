@@ -252,7 +252,7 @@ export default function Sidebar({ collapsed = false, expanding = false, mobile =
                 <div
                     key={item.label + keySuffix}
                     title={tertutup ? item.label : 'Segera'}
-                    className={`flex items-center ${tertutup ? 'gap-0 justify-center' : 'gap-3'} px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-300 cursor-not-allowed`}
+                    className={`flex items-center ${tertutup ? 'gap-0 justify-center' : 'gap-3'} px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400/70 cursor-not-allowed`}
                 >
                     <Icon size={18} strokeWidth={2} />
                     <span className={`flex-1 truncate transition-all duration-300 whitespace-nowrap overflow-hidden ${tertutup ? 'opacity-0 max-w-0' : 'opacity-100 max-w-[170px]'}`}>
@@ -272,12 +272,12 @@ export default function Sidebar({ collapsed = false, expanding = false, mobile =
                 title={tertutup ? (badge > 0 ? `${item.label} (${badge} menunggu)` : item.label) : undefined}
                 className={`group flex items-center ${tertutup ? 'gap-0 justify-center' : 'gap-3'} px-2.5 py-1.5 rounded-xl text-sm font-semibold transition-all duration-150 ${fokusRing} ${
                     isActive
-                        ? 'bg-gradient-to-r from-brand-navy via-brand-navy to-brand-navy-light text-white shadow-md shadow-brand-navy/20 ring-1 ring-white/10'
-                        : 'text-slate-600 hover:bg-gradient-to-r hover:from-brand-green-light/70 hover:to-transparent hover:text-brand-navy'
+                        ? 'bg-gradient-to-r from-[#0F1E36] via-[#0F1E36] to-[#1A2E4D] text-white shadow-md shadow-brand-navy/20 ring-1 ring-white/10'
+                        : 'text-slate-600 hover:bg-slate-100/75 hover:text-[#0F1E36]'
                 }`}
             >
                 <span className="relative shrink-0">
-                    <Icon size={18} strokeWidth={2} className={isActive ? 'text-brand-green' : 'text-slate-400 group-hover:text-brand-green transition-colors'} />
+                    <Icon size={18} strokeWidth={2} className={isActive ? 'text-emerald-400' : 'text-slate-400 group-hover:text-brand-green transition-colors'} />
                     {badge > 0 && tertutup && (
                         <CountDot active={isActive} className="absolute -top-0.5 -right-0.5" />
                     )}
@@ -293,19 +293,19 @@ export default function Sidebar({ collapsed = false, expanding = false, mobile =
     }
 
     const asideClass = mobile
-        ? 'w-full h-full bg-white flex flex-col overflow-hidden'
-        : `${tertutup ? 'w-16' : 'w-60'} h-full bg-white border border-slate-200/80 rounded-2xl flex flex-col transition-all duration-300 overflow-hidden ${expanding ? 'relative z-50 shadow-2xl' : 'shadow-[0_10px_28px_-6px_rgba(15,30,54,0.10),0_2px_8px_-2px_rgba(15,30,54,0.05)]'}`;
+        ? 'w-full h-full bg-white text-slate-800 flex flex-col overflow-hidden'
+        : `${tertutup ? 'w-16' : 'w-60'} h-full bg-white text-slate-800 border border-slate-200/95 ring-1 ring-slate-900/[0.03] rounded-2xl flex flex-col transition-all duration-300 overflow-hidden ${expanding ? 'relative z-50 shadow-[0_12px_28px_-4px_rgba(15,30,54,0.14),0_28px_56px_-14px_rgba(15,30,54,0.20)]' : 'shadow-[0_4px_12px_-2px_rgba(15,30,54,0.08),0_16px_36px_-10px_rgba(15,30,54,0.14)]'}`;
 
     return (
         <aside className={asideClass}>
-            <div className={`h-[50px] flex items-center shrink-0 border-b border-slate-100/80 ${tertutup ? 'justify-center px-2' : 'justify-between px-3.5'}`}>
+            <div className={`h-[50px] flex items-center shrink-0 border-b border-slate-100 ${tertutup ? 'justify-center px-2' : 'justify-between px-3.5'}`}>
                 {tertutup ? (
                     <button
                         type="button"
                         onClick={togglePrivacy}
                         title={isPrivacyActive ? 'Mode Privasi: Aktif (Klik untuk nonaktifkan • Ctrl+Shift+P)' : 'Mode Privasi: Nonaktif (Klik untuk aktifkan • Ctrl+Shift+P)'}
                         aria-label="Mode Privasi"
-                        className="relative p-1.5 rounded-xl hover:bg-brand-green-light/50 transition-colors inline-flex items-center justify-center"
+                        className="relative p-1.5 rounded-xl hover:bg-slate-100/80 transition-colors inline-flex items-center justify-center"
                     >
                         <img src="/images/logo-ui.webp" alt="Koperasi App" width="28" height="28" className="w-7 h-7 shrink-0" />
                         <span
@@ -318,7 +318,7 @@ export default function Sidebar({ collapsed = false, expanding = false, mobile =
                     <>
                         <div className="flex items-center gap-2.5 min-w-0">
                             <img src="/images/logo-ui.webp" alt="Koperasi App" width="28" height="28" className="w-7 h-7 shrink-0" />
-                            <span className="text-sm font-bold text-slate-800 truncate max-w-[135px]">
+                            <span className="text-sm font-bold text-[#0F1E36] truncate max-w-[135px]">
                                 Koperasi App
                             </span>
                         </div>
@@ -328,13 +328,13 @@ export default function Sidebar({ collapsed = false, expanding = false, mobile =
                             title={isPrivacyActive ? 'Mode Privasi: Aktif (Klik untuk nonaktifkan • Ctrl+Shift+P)' : 'Mode Privasi: Nonaktif (Klik untuk aktifkan • Ctrl+Shift+P)'}
                             aria-label="Toggle Mode Privasi"
                             aria-pressed={isPrivacyActive}
-                            className={`relative inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-brand-navy hover:bg-brand-green-light/60 active:scale-95 transition-all duration-150 shrink-0 ${fokusRing}`}
+                            className={`relative inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-500 hover:text-brand-navy hover:bg-slate-100/80 active:scale-95 transition-all duration-150 shrink-0 ${fokusRing}`}
                         >
                             <PrivacyIcon
                                 key={isPrivacyActive ? 'active' : 'inactive'}
                                 active={isPrivacyActive}
                                 size={18}
-                                className={isPrivacyActive ? 'animate-privacy-on' : 'opacity-65 hover:opacity-100'}
+                                className={isPrivacyActive ? 'animate-privacy-on' : 'opacity-70 hover:opacity-100'}
                             />
                         </button>
                     </>
@@ -371,8 +371,8 @@ export default function Sidebar({ collapsed = false, expanding = false, mobile =
                                         aria-controls={groupPanelId}
                                         className={`w-full flex items-center justify-between gap-2 px-2 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-colors ${fokusRing} ${
                                             group.hasActive && isGroupCollapsed
-                                                ? 'text-brand-navy bg-brand-green-light/45'
-                                                : 'text-slate-500 hover:text-brand-navy hover:bg-slate-50'
+                                                ? 'text-[#0F1E36] bg-emerald-50/70'
+                                                : 'text-slate-500 hover:text-[#0F1E36] hover:bg-slate-100/70'
                                         }`}
                                     >
                                         <span className="flex items-center gap-1.5 min-w-0">
@@ -433,19 +433,19 @@ export default function Sidebar({ collapsed = false, expanding = false, mobile =
             ) : (
                 <div
                     key="kaki-buka"
-                    className="border-t border-slate-100 bg-[#F8FAFC] px-3 py-2 shrink-0 flex items-center gap-1 animate-sidebar-fade"
+                    className="border-t border-slate-100 bg-white px-3 py-2 shrink-0 flex items-center gap-1 animate-sidebar-fade"
                 >
                     <Link
                         href={route('profile.edit')}
                         onClick={mobile ? onNavigate : undefined}
                         title="Profil Saya"
-                        className={`flex items-center gap-2 min-w-0 flex-1 rounded-xl p-1 -m-0.5 hover:bg-white/90 hover:shadow-xs transition-all ${fokusRing}`}
+                        className={`flex items-center gap-2 min-w-0 flex-1 rounded-xl p-1 -m-0.5 hover:bg-slate-100/80 transition-all ${fokusRing}`}
                     >
                         <span className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-green to-brand-green-dark text-white ring-2 ring-brand-green-light flex items-center justify-center text-xs font-bold shrink-0">
                             {initial}
                         </span>
                         <span className="min-w-0 leading-tight">
-                            <span className="block text-sm font-semibold text-slate-800 truncate">{auth.user?.name}</span>
+                            <span className="block text-sm font-semibold text-[#0F1E36] truncate">{auth.user?.name}</span>
                             <span className="block text-xs text-slate-500 capitalize truncate">
                                 {auth.user?.label_jabatan_pengawas
                                     ? auth.user.label_jabatan_pengawas
@@ -462,7 +462,7 @@ export default function Sidebar({ collapsed = false, expanding = false, mobile =
                             href={route('pengaturan.index')}
                             onClick={mobile ? onNavigate : undefined}
                             title="Pengaturan"
-                            className={`p-1.5 rounded-lg text-slate-400 hover:text-brand-navy hover:bg-brand-green-light/60 transition-all shrink-0 ${fokusRing}`}
+                            className={`p-1.5 rounded-lg text-slate-400 hover:text-[#0F1E36] hover:bg-slate-100/80 transition-all shrink-0 ${fokusRing}`}
                         >
                             <Settings size={17} />
                         </Link>
@@ -472,7 +472,7 @@ export default function Sidebar({ collapsed = false, expanding = false, mobile =
                         <button
                             type="submit"
                             title="Keluar"
-                            className={`p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors ${fokusRing}`}
+                            className={`p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors ${fokusRing}`}
                         >
                             <LogOut size={17} />
                         </button>
@@ -488,7 +488,7 @@ export default function Sidebar({ collapsed = false, expanding = false, mobile =
                             type="button"
                             onClick={onToggle}
                             title={expanding ? 'Semuhkan sidebar (konten ikut menyesuaikan)' : 'Ciutkan sidebar'}
-                            className="text-slate-400 hover:text-brand-navy transition-colors shrink-0 p-1"
+                            className="text-slate-400 hover:text-[#0F1E36] hover:bg-slate-100/80 rounded-md transition-colors shrink-0 p-1"
                         >
                             <ChevronLeft size={17} />
                         </button>
@@ -498,7 +498,7 @@ export default function Sidebar({ collapsed = false, expanding = false, mobile =
                         type="button"
                         onClick={onToggle}
                         title="Buka sidebar"
-                        className="mx-auto mb-2 flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-brand-navy hover:bg-brand-green-light/60 transition-all shrink-0"
+                        className="mx-auto mb-2 flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-[#0F1E36] hover:bg-slate-100/80 transition-all shrink-0"
                     >
                         <ChevronRight size={17} />
                     </button>

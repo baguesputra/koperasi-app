@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="bg-slate-50">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="bg-white">
     <head>
         <meta charset="utf-8">
         <script>document.documentElement.classList.add('js');</script>
@@ -20,7 +20,7 @@
         </noscript>
 
         <!-- PWA Fullscreen & Mobile App -->
-        <meta name="theme-color" content="#f8fafc">
+        <meta name="theme-color" content="#ffffff">
         <meta name="mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -32,7 +32,7 @@
 
         <style>
             html, body, #app {
-                background-color: #f8fafc;
+                background-color: #ffffff;
                 color-scheme: light;
                 min-height: 100vh;
             }
@@ -48,7 +48,7 @@
         @vite(['resources/css/app.css', 'resources/js/app.jsx', "resources/js/Pages/{$page['component']}.jsx"])
         @inertiaHead
     </head>
-    <body class="font-sans antialiased bg-slate-50 text-slate-800">
+    <body class="font-sans antialiased bg-white text-slate-800">
         @inertia
     </body>
 </html>
