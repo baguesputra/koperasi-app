@@ -118,7 +118,7 @@ export default function Index({ kelompok = {} }) {
 
             <PageHeader title="Laporan" subtitle={subjudul} />
 
-            <Card padding="none" className="overflow-hidden shadow-sm border-slate-200/80">
+            <Card padding="none" className="overflow-hidden">
                 {/* Toolbar: Filter Chip Kategori + Search */}
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 px-4 py-3 bg-white border-b border-slate-200/70">
                     <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Filter kategori laporan">

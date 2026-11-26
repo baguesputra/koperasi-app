@@ -105,7 +105,7 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
             </PageHeader>
 
             {/* Filter periode */}
-            <Card padding="sm" className="shadow-md border-slate-200/70 mb-4">
+            <Card padding="sm" className="mb-4">
                 <div className={`flex flex-wrap items-end gap-x-3 gap-y-1 transition-opacity ${memuat ? 'opacity-50 pointer-events-none' : ''}`}>
                     {tipeFilter === 'bulan' && (
                         <FormField label="Bulan">
@@ -259,7 +259,7 @@ export default function Show({ laporan, filter, opsi, periodeLabel, hasil }) {
                     memuat={memuat}
                 />
             ) : (
-                <Card padding="none" className="shadow-md border-slate-200/70 overflow-hidden">
+                <Card padding="none" className="overflow-hidden">
                     <div className="px-4 py-3 border-b border-slate-100 flex flex-wrap items-baseline justify-between gap-2">
                         <h2 className="text-sm font-bold text-slate-800 tabular-nums">{hasil.rows.length} baris data</h2>
                         <p className="text-xs text-slate-500">Periode: <span className="font-bold text-slate-700">{periodeLabel}</span></p>

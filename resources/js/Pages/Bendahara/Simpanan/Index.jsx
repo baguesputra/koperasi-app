@@ -336,7 +336,7 @@ export default function Index({
                 })}
             </div>
 
-            <Card padding="sm" className="shadow-md border-slate-200/70 mb-4">
+            <Card padding="sm" className="mb-4">
                 <div className="pb-3 mb-1 border-b border-slate-100">
                     {/* Segmented Status Switcher */}
                     <div className="inline-flex flex-wrap items-center p-1 rounded-xl bg-slate-100/80 border border-slate-200/80 mb-3 gap-0.5">

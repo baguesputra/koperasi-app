@@ -55,7 +55,7 @@ body {
 }
 
 :root {
-    --table-head-bg: #f8fafc;
+    --table-head-bg: #ffffff;
     --table-row-hover: #f2fbf5;
 }
 
@@ -72,12 +72,40 @@ body {
 }
 
 .table-sticky-first tr[data-row-tone="section"] td:first-child {
-    background-color: #f1f5f9;
+    background-color: #ffffff;
 }
 
 .table-sticky-first tr[data-row-tone="subtotal"] td:first-child,
 .table-sticky-first tfoot td:first-child {
-    background-color: #f7f9fc;
+    background-color: #ffffff;
+}
+
+/* Pure White Editorial Table System (Konsep C) */
+.app-canvas table thead tr {
+    background-color: #ffffff;
+}
+
+.app-canvas table thead tr:not(:last-child) {
+    border-bottom: 1px solid rgba(203, 213, 225, 0.75);
+}
+
+.app-canvas table thead tr:last-child {
+    border-bottom: 1.5px solid rgba(15, 30, 54, 0.24);
+}
+
+.app-canvas table thead th {
+    background-color: #ffffff;
+    color: rgba(15, 30, 54, 0.78);
+    font-weight: 700;
+    letter-spacing: 0.055em;
+}
+
+.app-canvas table tbody > tr {
+    border-color: rgba(203, 213, 225, 0.62);
+}
+
+.app-canvas table tbody > tr:not([data-row-tone="section"]):not([data-row-tone="subtotal"]):hover {
+    background-color: var(--table-row-hover, #f2fbf5);
 }
 
 .table-sticky-first thead th {

@@ -621,7 +621,7 @@ export default function Index({
             />
 
             {/* Filter Card: Ultra-Minimalist Single-Bar Layout */}
-            <Card padding="sm" className="shadow-xs border-slate-200/80 mb-4">
+            <Card padding="sm" className="mb-4">
                 <div className="flex items-center justify-between gap-2.5 flex-wrap">
                     <div className="flex items-center gap-2 flex-wrap flex-1 min-w-[280px]">
                         {/* 1. Periode Capsule with Popover */}
@@ -985,7 +985,7 @@ export default function Index({
             </Card>
 
             {/* Tabel Buku Kas (Jurnal Kas Style) */}
-            <Card padding="sm" className="shadow-xs border-slate-200/80 mb-4 overflow-hidden">
+            <Card padding="sm" className="mb-4 overflow-hidden">
                 {daftarRiwayat.length === 0 ? (
                     <div className="text-center py-12 px-4">
                         <BookOpenText size={32} aria-hidden="true" className="mx-auto text-slate-300 mb-3" />

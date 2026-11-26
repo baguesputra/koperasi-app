@@ -34,12 +34,12 @@ function shouldMaskValue(value, privacy) {
 export function UnifiedLedgerStrip({ items = [], columns = 4, className = '' }) {
     const gridColsCls =
         columns === 3
-            ? 'grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-100'
-            : 'grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 sm:divide-x divide-slate-100';
+            ? 'grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-200/75'
+            : 'grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 sm:divide-x divide-slate-200/75';
 
     return (
         <div
-            className={`rounded-2xl border border-slate-200/90 bg-white shadow-[0_1px_2px_rgba(15,30,54,0.04)] overflow-hidden mb-3.5 ${className}`}
+            className={`rounded-2xl border border-slate-200/95 ring-1 ring-slate-900/[0.04] bg-white shadow-[0_1px_3px_rgba(15,30,54,0.07),0_10px_26px_-10px_rgba(15,30,54,0.12)] overflow-hidden mb-3.5 ${className}`}
         >
             <div className={`grid ${gridColsCls}`}>
                 {items.map((item) => {

@@ -184,7 +184,7 @@ export default function Index({ anggota, statistik, filters, daftarCabang = [] }
                 ]}
             />
 
-            <Card padding="sm" className="shadow-md border-slate-200/70 mb-4 overflow-hidden">
+            <Card padding="sm" className="mb-4 overflow-hidden">
                 <div className="pb-3 mb-1 border-b border-slate-100">
                     <div className="flex flex-col md:flex-row md:items-center gap-2">
                         <div className="flex-1 relative group">

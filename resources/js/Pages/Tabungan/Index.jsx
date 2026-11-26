@@ -171,7 +171,7 @@ export default function Index({
             />
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-                <div className="rounded-2xl p-4 border bg-white border-slate-200/80 shadow-xs flex flex-col justify-between">
+                <div className="rounded-2xl p-4 border bg-white border-slate-200/95 ring-1 ring-slate-900/[0.04] shadow-[0_1px_3px_rgba(15,30,54,0.07),0_10px_26px_-10px_rgba(15,30,54,0.12)] flex flex-col justify-between">
                     <div className="flex items-center justify-between gap-2">
                         <span className="text-xs font-semibold text-slate-500">Total Saldo Tabungan</span>
                         <span className="w-8 h-8 rounded-xl bg-brand-navy/5 text-brand-navy flex items-center justify-center shrink-0">
@@ -179,14 +179,14 @@ export default function Index({
                         </span>
                     </div>
                     <div className="mt-2">
-                        <p className="text-xl sm:text-2xl font-bold text-slate-800 tabular-nums privacy-blur">
+                        <p className="text-xl sm:text-2xl font-bold text-[#0F1E36] tabular-nums privacy-blur">
                             {formatRupiah(statistik.total_saldo_aktif)}
                         </p>
                         <p className="text-xs text-slate-400 mt-1">Rekening aktif</p>
                     </div>
                 </div>
 
-                <div className="rounded-2xl p-4 border bg-white border-slate-200/80 shadow-xs flex flex-col justify-between">
+                <div className="rounded-2xl p-4 border bg-white border-slate-200/95 ring-1 ring-slate-900/[0.04] shadow-[0_1px_3px_rgba(15,30,54,0.07),0_10px_26px_-10px_rgba(15,30,54,0.12)] flex flex-col justify-between">
                     <div className="flex items-center justify-between gap-2">
                         <span className="text-xs font-semibold text-slate-500">Rekening Aktif</span>
                         <span className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
@@ -194,7 +194,7 @@ export default function Index({
                         </span>
                     </div>
                     <div className="mt-2">
-                        <p className="text-xl sm:text-2xl font-bold text-slate-800 tabular-nums">
+                        <p className="text-xl sm:text-2xl font-bold text-[#0F1E36] tabular-nums">
                             {statistik.jumlah_aktif}
                         </p>
                         <p className="text-xs text-slate-400 mt-1">
@@ -203,7 +203,7 @@ export default function Index({
                     </div>
                 </div>
 
-                <div className="rounded-2xl p-4 border bg-white border-slate-200/80 shadow-xs flex flex-col justify-between">
+                <div className="rounded-2xl p-4 border bg-white border-slate-200/95 ring-1 ring-slate-900/[0.04] shadow-[0_1px_3px_rgba(15,30,54,0.07),0_10px_26px_-10px_rgba(15,30,54,0.12)] flex flex-col justify-between">
                     <div className="flex items-center justify-between gap-2">
                         <span className="text-xs font-semibold text-slate-500">Bunga Terbukukan</span>
                         <span className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
@@ -211,14 +211,14 @@ export default function Index({
                         </span>
                     </div>
                     <div className="mt-2">
-                        <p className="text-xl sm:text-2xl font-bold text-slate-800 tabular-nums privacy-blur">
+                        <p className="text-xl sm:text-2xl font-bold text-[#0F1E36] tabular-nums privacy-blur">
                             {formatRupiah(statistik.total_bunga_tahun_ini)}
                         </p>
                         <p className="text-xs text-slate-400 mt-1">Akumulasi tahun berjalan</p>
                     </div>
                 </div>
 
-                <div className="rounded-2xl p-4 border bg-white border-slate-200/80 shadow-xs flex flex-col justify-between">
+                <div className="rounded-2xl p-4 border bg-white border-slate-200/95 ring-1 ring-slate-900/[0.04] shadow-[0_1px_3px_rgba(15,30,54,0.07),0_10px_26px_-10px_rgba(15,30,54,0.12)] flex flex-col justify-between">
                     <div className="flex items-center justify-between gap-2">
                         <span className="text-xs font-semibold text-slate-500">Suku Bunga Aktif</span>
                         <span className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
@@ -226,7 +226,7 @@ export default function Index({
                         </span>
                     </div>
                     <div className="mt-2">
-                        <p className="text-xl sm:text-2xl font-bold text-slate-800 tabular-nums">
+                        <p className="text-xl sm:text-2xl font-bold text-[#0F1E36] tabular-nums">
                             {statistik.suku_bunga_aktif}% / thn
                         </p>
                         <p className="text-xs text-slate-400 mt-1">Saldo harian, kredit bulanan</p>

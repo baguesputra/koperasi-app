@@ -153,7 +153,7 @@ export default function DashboardTrenChart({ grafikTren = [], stats = {}, bisaAk
     const mask = (text) => (isPrivacyActive ? '••••••••' : text);
 
     return (
-        <div className="lg:col-span-2 rounded-2xl bg-white border border-slate-200/85 shadow-[0_1px_3px_rgba(15,23,42,0.04),0_6px_18px_-6px_rgba(15,23,42,0.06)] p-5 sm:p-6 flex flex-col justify-between">
+        <div className="lg:col-span-2 rounded-2xl bg-white border border-slate-200/95 ring-1 ring-slate-900/[0.04] shadow-[0_1px_3px_rgba(15,30,54,0.07),0_10px_26px_-10px_rgba(15,30,54,0.12)] p-5 sm:p-6 flex flex-col justify-between">
             <div>
                 <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
                     <div>

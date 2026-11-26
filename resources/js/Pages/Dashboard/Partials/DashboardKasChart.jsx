@@ -164,7 +164,7 @@ export default function DashboardKasChart({ grafikKas = [], bisaAkses, isPrivacy
     const mask = (text) => (isPrivacyActive ? '••••••••' : text);
 
     return (
-        <div className="rounded-2xl bg-white border border-slate-200/85 shadow-[0_1px_3px_rgba(15,23,42,0.04),0_6px_18px_-6px_rgba(15,23,42,0.06)] p-5 sm:p-6">
+        <div className="rounded-2xl bg-white border border-slate-200/95 ring-1 ring-slate-900/[0.04] shadow-[0_1px_3px_rgba(15,30,54,0.07),0_10px_26px_-10px_rgba(15,30,54,0.12)] p-5 sm:p-6">
             <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
                 <div>
                     <h2 className="text-base font-bold text-slate-800 tracking-tight">Arus Kas Operasional Koperasi</h2>

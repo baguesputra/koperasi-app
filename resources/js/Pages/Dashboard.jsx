@@ -19,7 +19,7 @@ const focusRing =
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy/25';
 
 const panelSurface =
-    'rounded-2xl bg-white border border-slate-200/85 shadow-[0_1px_3px_rgba(15,23,42,0.04),0_6px_18px_-6px_rgba(15,23,42,0.06)]';
+    'rounded-2xl bg-white border border-slate-200/95 ring-1 ring-slate-900/[0.04] shadow-[0_1px_3px_rgba(15,30,54,0.07),0_10px_26px_-10px_rgba(15,30,54,0.12)]';
 
 function ChartSkeleton({ className = '' }) {
     return (
@@ -393,7 +393,7 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                         </div>
                     ) : (
                         <div className={`${panelSurface} overflow-hidden`}>
-                            <div className="px-4 sm:px-5 py-3 bg-white border-b border-slate-100 flex items-center justify-between gap-3 flex-wrap">
+                            <div className="px-4 sm:px-5 py-3 bg-white border-b border-slate-200/75 flex items-center justify-between gap-3 flex-wrap">
                                 <div className="flex items-center gap-2.5 min-w-0">
                                     <h2 className="text-xs sm:text-[13px] font-bold text-[#0F1E36] tracking-tight">
                                         Perlu Ditindaklanjuti
@@ -420,7 +420,7 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
                                 )}
                             </div>
 
-                            <div className={`grid ${gridKolomAksi} bg-slate-100 gap-px`}>
+                            <div className={`grid ${gridKolomAksi} bg-slate-200/75 gap-px`}>
                                 {grupAksi.map((grup) => (
                                     <div key={grup.label} className="bg-white p-4 flex flex-col justify-start">
                                         <div className="flex items-center justify-between gap-2 mb-2.5">

@@ -71,9 +71,9 @@ export default function NeracaSkontro({ skontro, periodeLabel, catatan, memuat =
     const selisih = skontro.selisih ?? 0;
 
     return (
-        <Card padding="none" className="shadow-md border-slate-200/80 overflow-hidden bg-white">
+        <Card padding="none" className="overflow-hidden bg-white">
             {/* Ringkasan & Status Keseimbangan */}
-            <div className={`border-b border-slate-100 px-5 py-4 grid grid-cols-1 sm:grid-cols-3 gap-y-3 sm:divide-x sm:divide-slate-100 transition-opacity ${memuat ? 'opacity-50' : ''}`}>
+            <div className={`border-b border-slate-200/75 px-5 py-4 grid grid-cols-1 sm:grid-cols-3 gap-y-3 sm:divide-x sm:divide-slate-200/70 transition-opacity ${memuat ? 'opacity-50' : ''}`}>
                 <div className="sm:pr-4 min-w-0">
                     <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400">Total Aktiva</p>
                     <p className="text-lg sm:text-xl font-bold text-[#0F1E36] tabular-nums mt-0.5 truncate privacy-blur">

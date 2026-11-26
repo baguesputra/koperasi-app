@@ -543,7 +543,7 @@ export default function Index({
 
                 {/* Baris Toolbar 2: Dynamic Filter Chips (hanya muncul bila ada >= 2 kategori aktif / multi-jenjang) */}
                 {tampilkanStripFilter && (
-                    <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2 bg-[#F8FAFC] border-b border-slate-200/70">
+                    <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2 bg-white border-b border-slate-200/70">
                         <div className="flex flex-wrap items-center gap-1.5">
                             <button
                                 type="button"
