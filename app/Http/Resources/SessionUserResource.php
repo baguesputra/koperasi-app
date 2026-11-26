@@ -30,6 +30,8 @@ class SessionUserResource extends JsonResource
             'roles' => $this->getRoleNames()->values()->all(),
             'permissions' => $this->getAllPermissions()->pluck('name')->values()->all(),
             'is_anggota' => $this->hasRole('anggota'),
+            'jabatan_pengawas' => $this->levelPengawas(),
+            'label_jabatan_pengawas' => $this->labelJabatanPengawas(),
         ];
     }
 }

@@ -63,6 +63,10 @@ class SimpananController extends Controller
             $cabang !== '' ? $cabang : null
         );
 
+        $belumEnamBulan = $this->konfirmasi->anggotaBaruBelumGenapEnamBulan(
+            $cabang !== '' ? $cabang : null
+        );
+
         $daftarCabang = Cache::remember(
             'daftar_cabang',
             600,
@@ -80,6 +84,7 @@ class SimpananController extends Controller
             'total_terlambat' => (float) $terlambatRows->sum('nominal'),
             'sudah_dikonfirmasi' => $sudahDikonfirmasi,
             'total_sudah_dikonfirmasi' => (float) $sudahDikonfirmasi->sum('nominal_total'),
+            'belum_enam_bulan' => $belumEnamBulan->values(),
         ]);
     }
 

@@ -14,10 +14,13 @@ use App\Models\PengajuanAktivasi;
 use App\Models\PengajuanLimit;
 use App\Models\PengajuanPercepatan;
 use App\Models\Pinjaman;
+use App\Models\RekeningTabungan;
+use App\Models\SettingBungaTabungan;
 use App\Models\SettingSimpanan;
 use App\Models\Simpanan;
 use App\Models\TabelTenor;
 use App\Services\Keuangan\JurnalKasService;
+use App\Services\Persetujuan\PersetujuanHubService;
 use App\Services\Pinjaman\EligibilitasPinjamanService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -56,7 +59,8 @@ class DashboardController extends Controller
             ->selectRaw('
                 SUM(CASE WHEN jenis IN ("pokok","wajib") THEN jumlah ELSE 0 END) as total,
                 SUM(CASE WHEN jenis = "pokok" THEN jumlah ELSE 0 END) as pokok,
-                SUM(CASE WHEN jenis = "wajib" THEN jumlah ELSE 0 END) as wajib
+                SUM(CASE WHEN jenis = "wajib" THEN jumlah ELSE 0 END) as wajib,
+                SUM(CASE WHEN jenis = "dana_sosial" THEN jumlah ELSE 0 END) as dana_sosial
             ')
             ->first();
 
@@ -150,12 +154,24 @@ class DashboardController extends Controller
             ->values()
             ->map(fn ($item) => collect($item)->except('tanggal')->all());
 
+        $rekeningTabunganAktif = $anggota->rekeningTabungan()->where('status', 'aktif')->latest('id')->first();
+        $rekeningTabunganDiajukan = $anggota->rekeningTabungan()->whereIn('status', RekeningTabungan::STATUS_MENUNGGU)->latest('id')->first();
+        $rekeningTabunganTerakhir = $rekeningTabunganAktif
+            ?? $rekeningTabunganDiajukan
+            ?? $anggota->rekeningTabungan()->latest('id')->first();
+
+        $aktivasiTerakhir = PengajuanAktivasi::where('anggota_id', $anggota->id)
+            ->whereIn('status', ['diajukan', 'ditolak'])
+            ->latest('id')
+            ->first();
+
         return response()->json([
             'anggota' => $this->anggotaPenuh($anggota, $resignMenunggu),
             'ringkasan' => [
                 'total_simpanan' => (float) ($simpananAgg->total ?? 0),
                 'simpanan_pokok' => (float) ($simpananAgg->pokok ?? 0),
                 'simpanan_wajib' => (float) ($simpananAgg->wajib ?? 0),
+                'simpanan_dana_sosial' => (float) ($simpananAgg->dana_sosial ?? 0),
                 'limit_maksimal' => (float) $limitMaksimal,
                 'limit_tersedia' => (float) $cek['limit_tersedia'],
                 'boleh' => (bool) $cek['boleh'],
@@ -169,6 +185,20 @@ class DashboardController extends Controller
                 'state_limit_label' => $cekLimit['state_label'],
                 'plafon_kebijakan' => (float) $cekLimit['plafon_koperasi'],
             ],
+            'tabungan_ringkas' => $rekeningTabunganTerakhir ? [
+                'id' => $rekeningTabunganTerakhir->id,
+                'no_rekening' => $rekeningTabunganTerakhir->no_rekening,
+                'status' => $rekeningTabunganTerakhir->status,
+                'saldo' => (float) $rekeningTabunganTerakhir->saldo,
+                'suku_bunga_saat_buka' => (float) $rekeningTabunganTerakhir->suku_bunga_saat_buka,
+            ] : null,
+            'suku_bunga_tabungan_aktif' => SettingBungaTabungan::persentaseAktif(),
+            'aktivasi_berjalan' => $aktivasiTerakhir ? [
+                'id' => $aktivasiTerakhir->id,
+                'status' => $aktivasiTerakhir->status,
+                'tanggal_pengajuan' => $aktivasiTerakhir->tanggal_pengajuan?->format('Y-m-d'),
+                'catatan_ketua' => $aktivasiTerakhir->catatan_ketua,
+            ] : null,
             'pinjaman_aktif' => PinjamanRingkasResource::collection($pinjamanAktif)->resolve(),
             'pengajuan_berjalan' => $pengajuanBerjalan ? (new PinjamanResource($pengajuanBerjalan))->resolve() : null,
             'pengajuan_limit_berjalan' => $pengajuanLimitBerjalan ? $this->pengajuanLimit($pengajuanLimitBerjalan) : null,
@@ -203,18 +233,21 @@ class DashboardController extends Controller
     public function ringkasan(Request $request): JsonResponse
     {
         $user = $request->user();
-        $izinPengurus = [
-            'pinjaman.tinjau-admin', 'pinjaman.tinjau-bendahara', 'pinjaman.approve-ketua',
-            'pinjaman.lihat', 'limit.tinjau-bendahara', 'limit.approve-ketua',
-            'aktivasi.approve-ketua', 'angsuran.konfirmasi', 'simpanan.konfirmasi',
+        $izinPengurus = array_values(array_unique([
+            ...PersetujuanHubService::ALL_PERMISSIONS,
+            'pinjaman.lihat', 'angsuran.konfirmasi', 'simpanan.konfirmasi',
             'simpanan.lihat', 'kas.lihat', 'anggota.lihat', 'laporan.lihat',
-        ];
+            'tabungan.lihat', 'tabungan.kelola', 'tabungan.tinjau-admin', 'tabungan.tinjau-bendahara', 'tabungan.approve-ketua',
+            'pinjaman.cairkan', 'penghapusan-pinjaman.lihat', 'penghapusan-pinjaman.ajukan',
+        ]));
 
         if (! $user->hasAnyPermission($izinPengurus)) {
             abort(response()->json([
                 'message' => 'Anda tidak memiliki akses ke ringkasan pengurus.',
             ], 403));
         }
+
+        $notifHub = app(PersetujuanHubService::class)->ringkasanNotifikasi($user, $user->getAllPermissions()->pluck('name'));
 
         $pinjamanAntre = Pinjaman::whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara'])
             ->selectRaw('status, COUNT(*) as jumlah, SUM(cair_oleh_bendahara) as cair')
@@ -266,6 +299,7 @@ class DashboardController extends Controller
                     'saldo_kas_kecil' => $saldoKasKecil,
                     'kas_operasional' => $kasOperasional,
                     'saldo_dana_sosial' => app(JurnalKasService::class)->saldoDanaSosial($row),
+                    'tabungan_aktif_total' => (float) RekeningTabungan::where('status', 'aktif')->sum('saldo'),
                     'total_keseluruhan' => $kasOperasional + $simpananOutstanding,
                     'pinjaman_outstanding' => (float) Pinjaman::where('status', 'aktif')->sum('nominal'),
                     'simpanan_outstanding' => $simpananOutstanding,
@@ -430,6 +464,13 @@ class DashboardController extends Controller
                 'aktivasi_anggota' => (int) $aktivasiAntre,
                 'angsuran_belum_bayar' => (int) $angsuranBelumBayar,
                 'simpanan_belum_konfirmasi' => (int) $simpananBelumKonfirmasi,
+                'pencairan_resign' => (int) ($notifHub['menunggu_pencairan_resign'] ?? 0),
+                'tabungan_buka_admin' => (int) ($notifHub['menunggu_tabungan_admin'] ?? 0),
+                'tabungan_buka_bendahara' => (int) ($notifHub['menunggu_tabungan'] ?? 0),
+                'tabungan_buka_ketua' => (int) ($notifHub['menunggu_tabungan_ketua'] ?? 0),
+                'tabungan_transaksi' => (int) ($notifHub['menunggu_tabungan_bendahara'] ?? 0) + (int) ($notifHub['menunggu_pencairan_tabungan'] ?? 0),
+                'penghapusan_pinjaman' => (int) ($notifHub['menunggu_penghapusan_pinjaman'] ?? 0),
+                'total_persetujuan' => (int) ($notifHub['total_persetujuan'] ?? 0),
             ],
             'kas' => $kas,
             'grafik_tren' => $grafikTren,

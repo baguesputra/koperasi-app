@@ -66,6 +66,7 @@ class KasController extends Controller
         return response()->json([
             'saldo_bank' => (float) $kas->saldo_bank,
             'saldo_kas_kecil' => (float) $kas->saldo_kas_kecil,
+            'saldo_dana_sosial' => $this->jurnalKas->saldoDanaSosial($kas),
             'bulan' => $bulan,
             'ringkasan' => ['total_masuk' => (float) $agregat->total_masuk, 'total_keluar' => (float) $agregat->total_keluar],
             'data' => $page->getCollection()->map(fn (JurnalKas $j) => [

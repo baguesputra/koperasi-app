@@ -81,7 +81,7 @@ class LaporanController extends Controller
             'cabang' => ['nullable', 'string', 'max:100'],
             'kantong' => ['nullable', 'string', 'max:50'],
             'status_anggota' => ['nullable', 'in:aktif,resign'],
-            'status_pinjaman' => ['nullable', 'in:diajukan,approved_admin,approved_bendahara,aktif,lunas,ditolak'],
+            'status_pinjaman' => ['nullable', 'in:diajukan,approved_admin,approved_bendahara,approved_ketua,aktif,lunas,ditolak,dihapusbukukan'],
             'semua_periode' => ['nullable', 'boolean'],
         ]);
 
@@ -123,7 +123,7 @@ class LaporanController extends Controller
             'cabang' => ['nullable', 'string', 'max:100'],
             'kantong' => ['nullable', 'string', 'max:50'],
             'status_anggota' => ['nullable', 'in:aktif,resign'],
-            'status_pinjaman' => ['nullable', 'in:diajukan,approved_admin,approved_bendahara,aktif,lunas,ditolak'],
+            'status_pinjaman' => ['nullable', 'in:diajukan,approved_admin,approved_bendahara,approved_ketua,aktif,lunas,ditolak,dihapusbukukan'],
             'semua_periode' => ['nullable', 'boolean'],
         ]);
 
