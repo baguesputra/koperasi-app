@@ -65,6 +65,7 @@ class LaporanRegistry
         'aktif' => 'Aktif',
         'lunas' => 'Lunas',
         'ditolak' => 'Ditolak',
+        'dibatalkan' => 'Dibatalkan',
         'dihapusbukukan' => 'Dihapusbukukan',
     ];
 

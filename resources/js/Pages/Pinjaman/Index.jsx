@@ -32,6 +32,7 @@ function buildStatusOptions(statistik = {}) {
         { value: 'menunggak', label: `Menunggak (${statistik.menunggak ?? 0})` },
         { value: 'lunas', label: 'Lunas' },
         { value: 'ditolak', label: 'Ditolak' },
+        { value: 'dibatalkan', label: 'Dibatalkan' },
         { value: 'dihapusbukukan', label: 'Dihapusbukukan' },
     ];
 }

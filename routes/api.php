@@ -62,6 +62,8 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
             Route::post('/pinjaman/cek-nominal', [PinjamanController::class, 'cekNominal'])->name('api.pinjaman.cek-nominal');
             Route::post('/pinjaman/simulasi', [PinjamanController::class, 'simulasi'])->name('api.pinjaman.simulasi');
             Route::post('/pinjaman', [PinjamanController::class, 'store'])->name('api.pinjaman.store');
+            Route::put('/pinjaman/{pinjaman}', [PinjamanController::class, 'update'])->name('api.pinjaman.update');
+            Route::post('/pinjaman/{pinjaman}/batal', [PinjamanController::class, 'batal'])->name('api.pinjaman.batal');
             Route::post('/rekening', [RekeningController::class, 'store'])->name('api.rekening.store');
             Route::put('/rekening/{id}/default', [RekeningController::class, 'setDefault'])->name('api.rekening.default');
             Route::delete('/rekening/{id}', [RekeningController::class, 'destroy'])->name('api.rekening.destroy');

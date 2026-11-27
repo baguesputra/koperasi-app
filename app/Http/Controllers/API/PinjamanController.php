@@ -63,9 +63,22 @@ class PinjamanController extends Controller
      */
     public function cekNominal(Request $request): JsonResponse
     {
-        $request->validate(['nominal' => ['required', 'numeric', 'min:1']]);
+        $request->validate([
+            'nominal' => ['required', 'numeric', 'min:1'],
+            'pinjaman_id' => ['nullable', 'integer'],
+        ]);
 
         $anggota = $this->anggotaOrFail($request);
+        $sedangDiedit = null;
+
+        if ($request->filled('pinjaman_id')) {
+            $sedangDiedit = Pinjaman::where('anggota_id', $anggota->id)->find((int) $request->pinjaman_id);
+            if (! $sedangDiedit || ! $sedangDiedit->bisaDieditOlehPemohon()) {
+                $pesan = 'Pengajuan ini sudah tidak dapat diubah lagi.';
+
+                return response()->json(['message' => $pesan, 'valid' => false, 'pesan' => $pesan], 422);
+            }
+        }
 
         if ($this->hasLimitApplicationInProgress($anggota->id)) {
             $pesan = 'Pengajuan kenaikan limit sedang diproses.';
@@ -73,13 +86,13 @@ class PinjamanController extends Controller
             return response()->json(['message' => $pesan, 'valid' => false, 'pesan' => $pesan], 422);
         }
 
-        if ($this->hasLoanApplicationInProgress($anggota->id)) {
+        if (! $sedangDiedit && $this->hasLoanApplicationInProgress($anggota->id)) {
             $pesan = 'Pengajuan pinjaman sedang diproses.';
 
             return response()->json(['message' => $pesan, 'valid' => false, 'pesan' => $pesan], 422);
         }
 
-        $cek = $this->eligibilitas->cek($anggota);
+        $cek = $this->eligibilitas->cek($anggota, sedangDiedit: $sedangDiedit);
         if (! $cek['boleh']) {
             return response()->json([
                 'message' => $cek['alasan'],
@@ -258,12 +271,184 @@ class PinjamanController extends Controller
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
-        $pinjaman->loadMissing(['anggota', 'pengaju', 'dicairkanOleh:id,name']);
+        $pinjaman->loadMissing(['anggota', 'pengaju', 'dicairkanOleh:id,name', 'dibatalkanOleh:id,name']);
 
         return response()->json([
             'message' => 'Pengajuan pinjaman berhasil dikirim.',
             'data' => (new PinjamanResource($pinjaman))->resolve(),
         ], 201);
+    }
+
+    /**
+     * Edit pengajuan pinjaman milik sendiri sebelum disetujui final Ketua.
+     */
+    public function update(Request $request, Pinjaman $pinjaman): JsonResponse
+    {
+        $request->validate([
+            'nominal' => ['required', 'numeric', 'min:1'],
+            'tenor_bulan' => ['required', 'integer', 'min:1'],
+            'keperluan' => ['required', 'string', 'min:5', 'max:500'],
+            'rekening_mode' => ['required', 'in:tersimpan,baru'],
+            'rekening_id' => ['required_if:rekening_mode,tersimpan', 'nullable', 'integer'],
+            'nama_bank' => ['required_if:rekening_mode,baru', 'nullable', 'string', 'max:100'],
+            'no_rekening' => ['required_if:rekening_mode,baru', 'nullable', 'string', 'max:50'],
+            'atas_nama' => ['required_if:rekening_mode,baru', 'nullable', 'string', 'max:100'],
+            'persetujuan' => ['required', 'accepted'],
+            'pin' => ['nullable', 'string', 'size:6', 'regex:/^[0-9]{6}$/'],
+            'biometric_verified' => ['nullable', 'boolean'],
+        ], [
+            'persetujuan.required' => 'Anda harus menyetujui seluruh syarat & ketentuan pinjaman terlebih dahulu.',
+            'persetujuan.accepted' => 'Anda harus menyetujui seluruh syarat & ketentuan pinjaman terlebih dahulu.',
+            'pin.size' => 'PIN keamanan harus 6 digit angka.',
+            'pin.regex' => 'PIN keamanan hanya boleh berisi angka.',
+        ]);
+
+        $user = $request->user();
+        $anggota = $this->anggotaOrFail($request);
+
+        if ((int) $pinjaman->anggota_id !== (int) $anggota->id) {
+            return response()->json(['message' => 'Anda tidak berhak mengubah pengajuan ini.'], 403);
+        }
+
+        if ($request->filled('pin')) {
+            $pinCheck = app(PinSecurityService::class)->verify($user, (string) $request->pin, $request);
+            if (! $pinCheck['valid']) {
+                return response()->json([
+                    'status' => $pinCheck['locked_out'] ? 'locked_out' : 'failed',
+                    'message' => $pinCheck['message'],
+                    'remaining' => $pinCheck['remaining'],
+                    'errors' => ['pin' => [$pinCheck['message']]],
+                ], $pinCheck['locked_out'] ? 423 : 422);
+            }
+        } elseif ($user->hasPin() && ! $request->boolean('biometric_verified')) {
+            return response()->json([
+                'message' => 'PIN keamanan wajib dimasukkan untuk mengonfirmasi perubahan pengajuan.',
+                'errors' => ['pin' => ['PIN keamanan wajib dimasukkan.']],
+            ], 422);
+        }
+
+        if (! $pinjaman->bisaDieditOlehPemohon()) {
+            return response()->json([
+                'message' => 'Pengajuan ini sudah disetujui Ketua atau selesai sehingga tidak dapat diedit.',
+            ], 422);
+        }
+
+        if ($this->hasLimitApplicationInProgress($anggota->id)) {
+            return response()->json(['message' => 'Pengajuan kenaikan limit sedang diproses.'], 422);
+        }
+
+        $cekEligibilitas = $this->eligibilitas->cek($anggota, sedangDiedit: $pinjaman);
+        if (! $cekEligibilitas['boleh']) {
+            return response()->json(['message' => $cekEligibilitas['alasan']], 422);
+        }
+
+        $nominal = (float) $request->nominal;
+        if ($nominal > (float) $cekEligibilitas['limit_tersedia']) {
+            return response()->json([
+                'message' => 'Nominal pinjaman melebihi limit tersedia Anda: Rp '.number_format((float) $cekEligibilitas['limit_tersedia'], 0, ',', '.'),
+            ], 422);
+        }
+
+        if ($nominal > $this->eligibilitas->plafonTertinggiKoperasi()) {
+            return response()->json(['message' => 'Nominal pinjaman melebihi batas kebijakan koperasi.'], 422);
+        }
+
+        $tenorMaksimal = $this->eligibilitas->tenorMaksimal($nominal);
+        if (! $tenorMaksimal || (int) $request->tenor_bulan > $tenorMaksimal) {
+            return response()->json([
+                'message' => $tenorMaksimal ? "Tenor maksimal untuk nominal ini adalah {$tenorMaksimal} bulan." : 'Nominal pinjaman tidak sesuai dengan ketentuan yang berlaku.',
+            ], 422);
+        }
+
+        if ($request->rekening_mode === 'tersimpan' && ! $anggota->rekening()->find($request->rekening_id)) {
+            return response()->json([
+                'message' => 'Rekening tujuan wajib dipilih.',
+                'errors' => ['rekening_id' => ['Pilih rekening tujuan.']],
+            ], 422);
+        }
+
+        try {
+            $pinjaman = $this->pengajuan->ubah(
+                $pinjaman,
+                $user,
+                $nominal,
+                (int) $request->tenor_bulan,
+                $request->keperluan,
+                [
+                    'mode' => $request->rekening_mode,
+                    'rekening_id' => $request->rekening_id,
+                    'nama_bank' => $request->nama_bank,
+                    'no_rekening' => $request->no_rekening,
+                    'atas_nama' => $request->atas_nama,
+                ],
+                [
+                    'persetujuan' => true,
+                    'ip' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                ]
+            );
+        } catch (RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        $pinjaman->loadMissing(['anggota', 'pengaju', 'dicairkanOleh:id,name', 'dibatalkanOleh:id,name']);
+
+        return response()->json([
+            'message' => 'Perubahan pengajuan pinjaman berhasil disimpan.',
+            'data' => (new PinjamanResource($pinjaman))->resolve(),
+        ]);
+    }
+
+    /**
+     * Batalkan pengajuan pinjaman milik sendiri sebelum disetujui final Ketua.
+     */
+    public function batal(Request $request, Pinjaman $pinjaman): JsonResponse
+    {
+        $request->validate([
+            'alasan' => ['nullable', 'string', 'max:500'],
+            'pin' => ['nullable', 'string', 'size:6', 'regex:/^[0-9]{6}$/'],
+            'biometric_verified' => ['nullable', 'boolean'],
+        ], [
+            'pin.size' => 'PIN keamanan harus 6 digit angka.',
+            'pin.regex' => 'PIN keamanan hanya boleh berisi angka.',
+        ]);
+
+        $user = $request->user();
+        $anggota = $this->anggotaOrFail($request);
+
+        if ((int) $pinjaman->anggota_id !== (int) $anggota->id) {
+            return response()->json(['message' => 'Anda tidak berhak membatalkan pengajuan ini.'], 403);
+        }
+
+        if ($request->filled('pin')) {
+            $pinCheck = app(PinSecurityService::class)->verify($user, (string) $request->pin, $request);
+            if (! $pinCheck['valid']) {
+                return response()->json([
+                    'status' => $pinCheck['locked_out'] ? 'locked_out' : 'failed',
+                    'message' => $pinCheck['message'],
+                    'remaining' => $pinCheck['remaining'],
+                    'errors' => ['pin' => [$pinCheck['message']]],
+                ], $pinCheck['locked_out'] ? 423 : 422);
+            }
+        } elseif ($user->hasPin() && ! $request->boolean('biometric_verified')) {
+            return response()->json([
+                'message' => 'PIN keamanan wajib dimasukkan untuk membatalkan pengajuan.',
+                'errors' => ['pin' => ['PIN keamanan wajib dimasukkan.']],
+            ], 422);
+        }
+
+        try {
+            $pinjaman = $this->pengajuan->batalkanOlehPemohon($pinjaman, $user, $request->input('alasan'));
+        } catch (RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        $pinjaman->loadMissing(['anggota', 'pengaju', 'dicairkanOleh:id,name', 'dibatalkanOleh:id,name']);
+
+        return response()->json([
+            'message' => 'Pengajuan pinjaman berhasil dibatalkan.',
+            'data' => (new PinjamanResource($pinjaman))->resolve(),
+        ]);
     }
 
     private function hasLimitApplicationInProgress(int $anggotaId): bool

@@ -291,6 +291,7 @@ class PinjamanController extends Controller
                 'diajukan' => $this->rejectAdmin($request, $pinjaman),
                 'approved_admin' => $this->rejectBendahara($request, $pinjaman),
                 'approved_bendahara' => $this->tolakKetua($request, $pinjaman),
+                'approved_ketua' => $this->batalkanPencairan($request, $pinjaman),
                 default => throw new RuntimeException('Status pengajuan sudah berubah. Muat ulang antrean.'),
             };
         } catch (RuntimeException $e) {
@@ -345,6 +346,17 @@ class PinjamanController extends Controller
         $this->persetujuan->rejectKetua($pinjaman, $request->catatan);
 
         return 'Pengajuan ditolak oleh Ketua.';
+    }
+
+    private function batalkanPencairan(Request $request, Pinjaman $pinjaman): string
+    {
+        if (! $request->user()->can('pinjaman.cairkan')) {
+            throw new RuntimeException('Anda tidak memiliki akses untuk membatalkan pencairan.');
+        }
+
+        $this->persetujuan->batalkanPencairanBendahara($pinjaman, $request->catatan, $request->user()->id);
+
+        return 'Pencairan pinjaman berhasil dibatalkan sebelum transfer.';
     }
 
     private function tolakBilaSelfApproval(Request $request, Pinjaman $pinjaman): void

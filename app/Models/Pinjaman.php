@@ -15,6 +15,13 @@ class Pinjaman extends Model
 {
     use HasFactory;
 
+    /** Status sebelum keputusan Ketua: masih boleh diedit/dibatalkan mandiri oleh pemohon. */
+    public const STATUS_PRA_KETUA = [
+        'diajukan',
+        'approved_admin',
+        'approved_bendahara',
+    ];
+
     protected $table = 'pinjaman';
 
     protected $fillable = [
@@ -41,9 +48,14 @@ class Pinjaman extends Model
         'cair_oleh_bendahara',
         'sudah_pakai_privilege_reloan',
         'tanggal_pengajuan',
+        'diedit_pada',
+        'jumlah_edit',
         'tanggal_pencairan',
         'disetujui_pada',
         'disetujui_ketua_pada',
+        'dibatalkan_pada',
+        'dibatalkan_oleh',
+        'alasan_batal',
         'dicairkan_oleh',
         'versi_syarat',
         'ip_address_setuju',
@@ -65,9 +77,12 @@ class Pinjaman extends Model
         'cair_oleh_bendahara' => 'boolean',
         'sudah_pakai_privilege_reloan' => 'boolean',
         'tanggal_pengajuan' => 'date',
+        'diedit_pada' => 'datetime',
+        'jumlah_edit' => 'integer',
         'tanggal_pencairan' => 'date',
         'disetujui_pada' => 'datetime',
         'disetujui_ketua_pada' => 'datetime',
+        'dibatalkan_pada' => 'datetime',
         'sudah_pakai_percepatan' => 'boolean',
         'verification_revoked_at' => 'datetime',
     ];
@@ -90,6 +105,21 @@ class Pinjaman extends Model
     public function dicairkanOleh(): BelongsTo
     {
         return $this->belongsTo(User::class, 'dicairkan_oleh');
+    }
+
+    public function dibatalkanOleh(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'dibatalkan_oleh');
+    }
+
+    public function bisaDieditOlehPemohon(): bool
+    {
+        return in_array($this->status, self::STATUS_PRA_KETUA, true);
+    }
+
+    public function bisaDibatalkanOlehPemohon(): bool
+    {
+        return in_array($this->status, self::STATUS_PRA_KETUA, true);
     }
 
     public function angsuran(): HasMany
@@ -261,6 +291,7 @@ class Pinjaman extends Model
     public function getVerificationTimeline(): array
     {
         $ditolak = $this->status === 'ditolak';
+        $dibatalkan = $this->status === 'dibatalkan';
         // Catatan 'Diajukan mandiri oleh ...' adalah penanda awal, bukan keputusan.
         $adaKeputusanAdmin = ! empty($this->catatan_admin)
             && $this->catatan_admin !== 'Diajukan mandiri oleh Sekretaris';
@@ -270,9 +301,14 @@ class Pinjaman extends Model
         $ditolakBendahara = $ditolak && $adaKeputusanBendahara && empty($this->catatan_ketua);
         $ditolakKetua = $ditolak && ! empty($this->catatan_ketua);
         $adminDone = in_array($this->status, ['approved_admin', 'approved_bendahara', 'approved_ketua', 'aktif', 'lunas', 'dihapusbukukan'], true)
-            || $ditolakBendahara || $ditolakKetua;
-        $bendaharaDone = in_array($this->status, ['approved_bendahara', 'approved_ketua', 'aktif', 'lunas', 'dihapusbukukan'], true) || $ditolakKetua;
-        $ketuaDone = in_array($this->status, ['approved_ketua', 'aktif', 'lunas', 'dihapusbukukan'], true);
+            || $ditolakBendahara
+            || $ditolakKetua
+            || ($dibatalkan && ($adaKeputusanAdmin || $this->catatan_admin === 'Diajukan mandiri oleh Sekretaris'));
+        $bendaharaDone = in_array($this->status, ['approved_bendahara', 'approved_ketua', 'aktif', 'lunas', 'dihapusbukukan'], true)
+            || $ditolakKetua
+            || ($dibatalkan && ($adaKeputusanBendahara || $this->nominal_disetujui_bendahara !== null));
+        $ketuaDone = in_array($this->status, ['approved_ketua', 'aktif', 'lunas', 'dihapusbukukan'], true)
+            || ($dibatalkan && $this->disetujui_ketua_pada !== null);
         $cairDone = in_array($this->status, ['aktif', 'lunas', 'dihapusbukukan'], true);
 
         $adminData = $this->parseApprovalNote($this->catatan_admin);
@@ -281,11 +317,14 @@ class Pinjaman extends Model
         if ($cairDone && ! $this->relationLoaded('dicairkanOleh')) {
             $this->loadMissing('dicairkanOleh');
         }
+        if ($dibatalkan && ! $this->relationLoaded('dibatalkanOleh')) {
+            $this->loadMissing('dibatalkanOleh');
+        }
         if (! $this->relationLoaded('pengaju')) {
             $this->loadMissing('pengaju');
         }
 
-        return [
+        $timeline = [
             [
                 'label' => 'Pengajuan Anggota',
                 'date' => $this->tanggal_pengajuan?->translatedFormat('d F Y') ?? '-',
@@ -297,31 +336,45 @@ class Pinjaman extends Model
                 'label' => 'Verifikasi Sekretaris',
                 'date' => $adminData['date'] ?? '-',
                 'user' => $adminData['user'] ?? 'Belum tercatat',
-                'status' => $ditolakAdmin ? 'rejected' : ($adminDone ? 'done' : 'current'),
+                'status' => $ditolakAdmin ? 'rejected' : ($adminDone ? 'done' : ($dibatalkan ? 'pending' : 'current')),
                 'icon' => 'shield-check',
             ],
             [
                 'label' => 'Verifikasi Bendahara',
                 'date' => $bendaharaData['date'] ?? '-',
                 'user' => $bendaharaData['user'] ?? 'Belum tercatat',
-                'status' => $ditolakBendahara ? 'rejected' : ($bendaharaDone ? 'done' : ($adminDone ? 'current' : 'pending')),
+                'status' => $ditolakBendahara ? 'rejected' : ($bendaharaDone ? 'done' : ($adminDone && ! $dibatalkan && ! $ditolak ? 'current' : 'pending')),
                 'icon' => 'shield-check',
             ],
             [
                 'label' => 'Persetujuan Ketua',
                 'date' => $ketuaData['date'] ?? ($this->disetujui_ketua_pada?->translatedFormat('d F Y, H:i') ?? $this->disetujui_pada?->translatedFormat('d F Y, H:i') ?? '-'),
                 'user' => $ketuaData['user'] ?? ($ketuaDone ? 'Ketua Koperasi' : 'Belum tercatat'),
-                'status' => $ditolakKetua ? 'rejected' : ($ketuaDone ? 'done' : ($bendaharaDone ? 'current' : 'pending')),
+                'status' => $ditolakKetua ? 'rejected' : ($ketuaDone ? 'done' : ($bendaharaDone && ! $dibatalkan && ! $ditolak ? 'current' : 'pending')),
                 'icon' => 'user-check',
             ],
             [
                 'label' => 'Pencairan & Transfer Bendahara',
                 'date' => $cairDone ? ($this->tanggal_pencairan?->translatedFormat('d F Y') ?? '-') : '-',
                 'user' => $cairDone ? ($this->dicairkanOleh?->name ?? 'Bendahara') : 'Menunggu pencairan akhir bulan',
-                'status' => $ditolak ? 'pending' : ($cairDone ? 'done' : ($this->status === 'approved_ketua' ? 'current' : 'pending')),
+                'status' => ($ditolak || $dibatalkan) ? 'pending' : ($cairDone ? 'done' : ($this->status === 'approved_ketua' ? 'current' : 'pending')),
                 'icon' => 'banknote',
             ],
         ];
+
+        if ($dibatalkan) {
+            $pemilikUserId = $this->pengaju_user_id ?? $this->anggota?->user_id;
+            $batalOlehPengurus = $this->dibatalkan_oleh && $pemilikUserId && (int) $this->dibatalkan_oleh !== (int) $pemilikUserId;
+            $timeline[] = [
+                'label' => $batalOlehPengurus ? 'Pencairan Dibatalkan Bendahara' : 'Dibatalkan oleh Pemohon',
+                'date' => $this->dibatalkan_pada?->translatedFormat('d F Y, H:i') ?? '-',
+                'user' => $this->dibatalkanOleh?->name ?? ($this->pengaju?->name ?? 'Pemohon'),
+                'status' => 'rejected',
+                'icon' => 'x-circle',
+            ];
+        }
+
+        return $timeline;
     }
 
     private function parseApprovalNote(?string $note): array

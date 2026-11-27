@@ -173,7 +173,7 @@ class EligibilitasPinjamanService
      *   - Sisa <= 1, salah satu flag reloan sudah dipakai -> tolak (harus lunas dulu)
      *   - Sisa <= 1, semua flag reloan belum dipakai -> boleh (limit dikurangi rumus berjalan)
      */
-    public function cek(Anggota $anggota, ?array $preloadedAgg = null, bool $pakaiPreloadedAgg = false): array
+    public function cek(Anggota $anggota, ?array $preloadedAgg = null, bool $pakaiPreloadedAgg = false, ?Pinjaman $sedangDiedit = null): array
     {
         // Anggota nonaktif / resign / menunggu tidak boleh mengajukan pinjaman.
         if ($anggota->status !== 'aktif') {
@@ -259,6 +259,23 @@ class EligibilitasPinjamanService
             'sudah_pakai_privilege_reloan',
             true
         );
+
+        // Saat pemohon mengedit pengajuan reloan miliknya sendiri yang belum cair,
+        // flag privilege di pinjaman aktif memang dinyalakan oleh pengajuan yang sedang diedit ini.
+        if ($privilegeSudahDipakai && $sedangDiedit !== null && $agg['pinjaman_aktif_list']->count() === 1) {
+            $aktifPertama = $agg['pinjaman_aktif_list']->first();
+            $adaPinjamanPascaAktifLain = $aktifPertama
+                ? Pinjaman::where('anggota_id', $anggota->id)
+                    ->where('id', '!=', $sedangDiedit->id)
+                    ->where('id', '>', $aktifPertama->id)
+                    ->whereIn('status', ['aktif', 'lunas'])
+                    ->exists()
+                : true;
+
+            if ($aktifPertama && $sedangDiedit->id > $aktifPertama->id && ! $adaPinjamanPascaAktifLain) {
+                $privilegeSudahDipakai = false;
+            }
+        }
 
         if ($privilegeSudahDipakai) {
             return [

@@ -2,7 +2,7 @@ import AppLayout from '@/Layouts/AppLayout';
 import { Head, useForm } from '@inertiajs/react';
 import {
     Banknote, CalendarDays, Check, CheckCircle2, ChevronRight, Copy,
-    ExternalLink, FileText, Landmark, MessageSquareText, Upload, User,
+    ExternalLink, FileText, Landmark, MessageSquareText, Upload, User, XCircle,
 } from 'lucide-react';
 import { useId, useMemo, useState } from 'react';
 import Button from '@/Components/ui/Button';
@@ -44,6 +44,7 @@ export default function Index({ menungguPencairan = [], riwayatPencairan = [], r
     const [pinjamanDipilih, setPinjamanDipilih] = useState(null);
     const [riwayatDipilih, setRiwayatDipilih] = useState(null);
     const [salinBerhasil, setSalinBerhasil] = useState(false);
+    const [showBatalPencairan, setShowBatalPencairan] = useState(false);
     const formId = useId();
     const hariIni = new Date().toISOString().slice(0, 10);
 
@@ -67,11 +68,13 @@ export default function Index({ menungguPencairan = [], riwayatPencairan = [], r
         });
         cairForm.clearErrors();
         setSalinBerhasil(false);
+        setShowBatalPencairan(false);
         setPinjamanDipilih(p);
     }
 
     function tutupDrawerPencairan() {
         setPinjamanDipilih(null);
+        setShowBatalPencairan(false);
         cairForm.reset();
         cairForm.clearErrors();
     }
@@ -86,9 +89,12 @@ export default function Index({ menungguPencairan = [], riwayatPencairan = [], r
     function submitCair(e) {
         e.preventDefault();
         if (!pinjamanDipilih) return;
-        cairForm.post(route('bendahara.pencairan-pinjaman.cair', pinjamanDipilih.id), {
+        const url = showBatalPencairan
+            ? route('bendahara.pencairan-pinjaman.batal', pinjamanDipilih.id)
+            : route('bendahara.pencairan-pinjaman.cair', pinjamanDipilih.id);
+        cairForm.post(url, {
             ...withIdempotencyKey({
-                forceFormData: true,
+                forceFormData: !showBatalPencairan,
                 preserveScroll: true,
                 onSuccess: tutupDrawerPencairan,
             }),
@@ -280,7 +286,11 @@ export default function Index({ menungguPencairan = [], riwayatPencairan = [], r
                                 </div>
                             </DrawerHero>
 
-                            <DrawerSection title="Upload Bukti & Tanggal Transfer" icon={Banknote} tone="emerald">
+                            <DrawerSection
+                                title={showBatalPencairan ? 'Batalkan Pencairan Pinjaman' : 'Upload Bukti & Tanggal Transfer'}
+                                icon={showBatalPencairan ? XCircle : Banknote}
+                                tone={showBatalPencairan ? 'rose' : 'emerald'}
+                            >
                                 <form id={formId} onSubmit={submitCair} className="space-y-3.5">
                                     {cairForm.errors.keputusan && (
                                         <div className="rounded-xl bg-rose-50 border border-rose-200 px-3.5 py-2.5 text-sm font-medium text-rose-700">
@@ -288,48 +298,68 @@ export default function Index({ menungguPencairan = [], riwayatPencairan = [], r
                                         </div>
                                     )}
 
-                                    <FormField
-                                        label="Bukti Transfer (JPG, PNG, WEBP, atau PDF, maks 5 MB)"
-                                        error={cairForm.errors.bukti_pencairan}
-                                        hint={cairForm.data.bukti_pencairan ? `File siap diunggah: ${cairForm.data.bukti_pencairan.name}` : 'Wajib unggah bukti transfer sebelum konfirmasi pencairan.'}
-                                        required
-                                    >
-                                        <div className="flex items-center gap-2 rounded-xl border border-dashed border-emerald-300/90 bg-emerald-50/35 px-3 py-2.5 focus-within:border-brand-green focus-within:ring-[3px] focus-within:ring-brand-green/15 transition-all">
-                                            <Upload size={16} className="text-brand-green-dark shrink-0" />
-                                            <input
+                                    {showBatalPencairan ? (
+                                        <FormField
+                                            label="Alasan Pembatalan Pencairan (Wajib, min. 5 karakter)"
+                                            error={cairForm.errors.catatan}
+                                            required
+                                        >
+                                            <TextField
                                                 data-autofocus
-                                                type="file"
-                                                accept=".jpg,.jpeg,.png,.webp,.pdf"
-                                                onChange={(e) => cairForm.setData('bukti_pencairan', e.target.files?.[0] ?? null)}
-                                                className="block w-full text-xs text-slate-600 focus:outline-none file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-brand-navy text-slate-700 file:text-white hover:file:opacity-90 cursor-pointer"
+                                                as="textarea"
+                                                rows={3}
+                                                value={cairForm.data.catatan}
+                                                onChange={(e) => cairForm.setData('catatan', e.target.value)}
+                                                placeholder="Contoh: Anggota membatalkan pinjaman sebelum dana ditransfer."
                                                 required
                                             />
-                                        </div>
-                                    </FormField>
+                                        </FormField>
+                                    ) : (
+                                        <>
+                                            <FormField
+                                                label="Bukti Transfer (JPG, PNG, WEBP, atau PDF, maks 5 MB)"
+                                                error={cairForm.errors.bukti_pencairan}
+                                                hint={cairForm.data.bukti_pencairan ? `File siap diunggah: ${cairForm.data.bukti_pencairan.name}` : 'Wajib unggah bukti transfer sebelum konfirmasi pencairan.'}
+                                                required
+                                            >
+                                                <div className="flex items-center gap-2 rounded-xl border border-dashed border-emerald-300/90 bg-emerald-50/35 px-3 py-2.5 focus-within:border-brand-green focus-within:ring-[3px] focus-within:ring-brand-green/15 transition-all">
+                                                    <Upload size={16} className="text-brand-green-dark shrink-0" />
+                                                    <input
+                                                        data-autofocus
+                                                        type="file"
+                                                        accept=".jpg,.jpeg,.png,.webp,.pdf"
+                                                        onChange={(e) => cairForm.setData('bukti_pencairan', e.target.files?.[0] ?? null)}
+                                                        className="block w-full text-xs text-slate-600 focus:outline-none file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-brand-navy text-slate-700 file:text-white hover:file:opacity-90 cursor-pointer"
+                                                        required
+                                                    />
+                                                </div>
+                                            </FormField>
 
-                                    <FormField label="Tanggal Transfer / Pencairan" error={cairForm.errors.tanggal_pencairan} required>
-                                        <TextField
-                                            type="date"
-                                            max={hariIni}
-                                            value={cairForm.data.tanggal_pencairan}
-                                            onChange={(e) => cairForm.setData('tanggal_pencairan', e.target.value)}
-                                            required
-                                        />
-                                        <p className="text-xs text-slate-500 mt-1.5 inline-flex items-center gap-1.5">
-                                            <CalendarDays size={13} className="text-brand-green-dark shrink-0" />
-                                            Cicilan ke-1 jatuh tempo akhir bulan berikutnya: <strong className="text-slate-700">{jatuhTempoPertamaLabel}</strong>
-                                        </p>
-                                    </FormField>
+                                            <FormField label="Tanggal Transfer / Pencairan" error={cairForm.errors.tanggal_pencairan} required>
+                                                <TextField
+                                                    type="date"
+                                                    max={hariIni}
+                                                    value={cairForm.data.tanggal_pencairan}
+                                                    onChange={(e) => cairForm.setData('tanggal_pencairan', e.target.value)}
+                                                    required
+                                                />
+                                                <p className="text-xs text-slate-500 mt-1.5 inline-flex items-center gap-1.5">
+                                                    <CalendarDays size={13} className="text-brand-green-dark shrink-0" />
+                                                    Cicilan ke-1 jatuh tempo akhir bulan berikutnya: <strong className="text-slate-700">{jatuhTempoPertamaLabel}</strong>
+                                                </p>
+                                            </FormField>
 
-                                    <FormField label="Catatan Pencairan (Opsional)" error={cairForm.errors.catatan}>
-                                        <TextField
-                                            as="textarea"
-                                            rows={2}
-                                            value={cairForm.data.catatan}
-                                            onChange={(e) => cairForm.setData('catatan', e.target.value)}
-                                            placeholder="Contoh: Transfer via Bank Mandiri akhir bulan November."
-                                        />
-                                    </FormField>
+                                            <FormField label="Catatan Pencairan (Opsional)" error={cairForm.errors.catatan}>
+                                                <TextField
+                                                    as="textarea"
+                                                    rows={2}
+                                                    value={cairForm.data.catatan}
+                                                    onChange={(e) => cairForm.setData('catatan', e.target.value)}
+                                                    placeholder="Contoh: Transfer via Bank Mandiri akhir bulan November."
+                                                />
+                                            </FormField>
+                                        </>
+                                    )}
                                 </form>
                             </DrawerSection>
 
@@ -352,20 +382,39 @@ export default function Index({ menungguPencairan = [], riwayatPencairan = [], r
                         </DrawerBody>
 
                         <DrawerFooter>
-                            <DrawerFooterActions cols={2} stackOnMobile>
-                                <Button type="button" variant="neutral" size="drawer" onClick={tutupDrawerPencairan} disabled={cairForm.processing}>
-                                    Batal
-                                </Button>
-                                <Button
-                                    type="submit"
-                                    form={formId}
-                                    size="drawer"
-                                    disabled={cairForm.processing || !cairForm.data.bukti_pencairan}
-                                >
-                                    <CheckCircle2 size={16} />
-                                    {cairForm.processing ? 'Memproses...' : 'Konfirmasi Cair & Kirim WA'}
-                                </Button>
-                            </DrawerFooterActions>
+                            {showBatalPencairan ? (
+                                <DrawerFooterActions cols={2} stackOnMobile>
+                                    <Button type="button" variant="neutral" size="drawer" onClick={() => setShowBatalPencairan(false)} disabled={cairForm.processing}>
+                                        Kembali
+                                    </Button>
+                                    <Button
+                                        type="submit"
+                                        form={formId}
+                                        variant="danger"
+                                        size="drawer"
+                                        disabled={cairForm.processing || cairForm.data.catatan.trim().length < 5}
+                                    >
+                                        <XCircle size={16} />
+                                        {cairForm.processing ? 'Membatalkan...' : 'Konfirmasi Batalkan Pencairan'}
+                                    </Button>
+                                </DrawerFooterActions>
+                            ) : (
+                                <DrawerFooterActions cols={2} stackOnMobile>
+                                    <Button type="button" variant="dangerSoft" size="drawer" onClick={() => setShowBatalPencairan(true)} disabled={cairForm.processing}>
+                                        <XCircle size={16} />
+                                        Batalkan Pencairan
+                                    </Button>
+                                    <Button
+                                        type="submit"
+                                        form={formId}
+                                        size="drawer"
+                                        disabled={cairForm.processing || !cairForm.data.bukti_pencairan}
+                                    >
+                                        <CheckCircle2 size={16} />
+                                        {cairForm.processing ? 'Memproses...' : 'Konfirmasi Cair & Kirim WA'}
+                                    </Button>
+                                </DrawerFooterActions>
+                            )}
                         </DrawerFooter>
                     </>
                 )}

@@ -1,5 +1,5 @@
 import AnggotaLayout from '@/Layouts/AnggotaLayout';
-import { Head, Link, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState, useMemo, useEffect } from 'react';
 import { driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
@@ -10,6 +10,7 @@ import {
     ArrowDownCircle,
     Clock,
     Landmark,
+    Pencil,
     XCircle,
     Info,
     CalendarDays,
@@ -27,6 +28,7 @@ import {
 import { formatRupiah } from '@/Utils/formatCurrency';
 import Nominal, { usePrivasiNominal } from '@/Components/ui/Nominal';
 import PwaInstallPrompt from '@/Components/ui/PwaInstallPrompt';
+import { withIdempotencyKey } from '@/Utils/idempotency';
 
 const statusPengajuanLabel = {
     diajukan: {
@@ -276,6 +278,52 @@ export default function Dashboard({
         0
     );
 
+    const { auth, flash } = usePage().props;
+    const userHasPin = Boolean(auth?.user?.has_pin);
+    const [statusDitutup, setStatusDitutup] = useState(false);
+    const [modalBatalOpen, setModalBatalOpen] = useState(false);
+    const [alasanBatal, setAlasanBatal] = useState('');
+    const [pinBatal, setPinBatal] = useState('');
+    const [errorBatal, setErrorBatal] = useState('');
+    const [loadingBatal, setLoadingBatal] = useState(false);
+
+    function bukaModalBatal() {
+        setAlasanBatal('');
+        setPinBatal('');
+        setErrorBatal('');
+        setModalBatalOpen(true);
+    }
+
+    function submitBatalPengajuan(e) {
+        e.preventDefault();
+        if (!pengajuanBerjalan || loadingBatal) return;
+        if (userHasPin && pinBatal.length !== 6) {
+            setErrorBatal('Masukkan 6 digit PIN keamanan untuk membatalkan pengajuan.');
+            return;
+        }
+        setLoadingBatal(true);
+        setErrorBatal('');
+        router.post(
+            route('portal.pinjaman.batal', pengajuanBerjalan.id),
+            {
+                alasan: alasanBatal,
+                pin: pinBatal,
+            },
+            withIdempotencyKey({
+                preserveScroll: true,
+                onSuccess: () => {
+                    setModalBatalOpen(false);
+                },
+                onError: (errors) => {
+                    setErrorBatal(errors.pin ?? errors.batal ?? Object.values(errors)[0] ?? 'Gagal membatalkan pengajuan.');
+                },
+                onFinish: () => {
+                    setLoadingBatal(false);
+                },
+            }),
+        );
+    }
+
     const cicilanPerBulan =
         aggregateTotalSisaAngsuran > 0
             ? Math.round(aggregateSisaTotalBayar / aggregateTotalSisaAngsuran)
@@ -351,7 +399,6 @@ export default function Dashboard({
         ? 'Ubah tenor hanya tersedia saat Anda memiliki pinjaman aktif.'
         : 'Hak perubahan tenor untuk pinjaman ini sudah digunakan.';
 
-    const { auth, flash } = usePage().props;
     const anggotaAktif = (auth?.user?.anggota_status ?? 'aktif') === 'aktif';
     const initial = anggota?.nama?.charAt(0)?.toUpperCase() ?? '?';
 
@@ -555,6 +602,26 @@ export default function Dashboard({
 
             <div className="pd">
                 <PwaInstallPrompt />
+
+                {flash?.status && !statusDitutup && (
+                    <div
+                        role="status"
+                        className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50/90 px-4 py-3 flex items-center justify-between gap-3 text-sm font-semibold text-emerald-900"
+                    >
+                        <div className="flex items-center gap-2 min-w-0">
+                            <CheckCircle2 size={17} className="text-brand-green-dark shrink-0" aria-hidden="true" />
+                            <span>{flash.status}</span>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setStatusDitutup(true)}
+                            className="p-1 rounded-lg text-emerald-700 hover:bg-emerald-100 shrink-0"
+                            aria-label="Tutup pemberitahuan"
+                        >
+                            <X size={15} />
+                        </button>
+                    </div>
+                )}
 
                 {/* =================================================
                     GREETING
@@ -1272,6 +1339,37 @@ export default function Dashboard({
                                         </div>
                                     </div>
                                 )}
+
+                                {(pengajuanBerjalan.bisa_diedit || pengajuanBerjalan.bisa_dibatalkan) && (
+                                    <div className="mt-4 pt-3.5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                                        <p className="text-xs text-slate-500 leading-relaxed">
+                                            {pengajuanBerjalan.akan_reset_saat_edit
+                                                ? 'Perubahan nominal/tenor akan mengulang verifikasi dari tahap awal.'
+                                                : 'Masih dapat diubah atau dibatalkan sebelum diputus Ketua.'}
+                                        </p>
+                                        <div className="flex flex-wrap items-center gap-2 shrink-0">
+                                            {pengajuanBerjalan.bisa_diedit && (
+                                                <Link
+                                                    href={route('portal.pinjaman.edit', pengajuanBerjalan.id)}
+                                                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-300 bg-white text-xs font-semibold text-brand-navy hover:bg-slate-50 transition-colors"
+                                                >
+                                                    <Pencil size={13} aria-hidden="true" />
+                                                    Ubah Pengajuan
+                                                </Link>
+                                            )}
+                                            {pengajuanBerjalan.bisa_dibatalkan && (
+                                                <button
+                                                    type="button"
+                                                    onClick={bukaModalBatal}
+                                                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl border border-rose-200 bg-rose-50/70 text-xs font-semibold text-rose-700 hover:bg-rose-100 transition-colors cursor-pointer"
+                                                >
+                                                    <XCircle size={13} aria-hidden="true" />
+                                                    Batalkan
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                             </section>
                         );
                     })()}
@@ -1657,6 +1755,111 @@ export default function Dashboard({
                     </div>
                 </div>
             </div>
+
+            {modalBatalOpen && pengajuanBerjalan && (
+                <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center sm:p-4">
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="batal-pinjaman-title"
+                        className="w-full max-w-md bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl border border-slate-200 overflow-hidden"
+                    >
+                        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
+                            <div>
+                                <h3 id="batal-pinjaman-title" className="text-base font-bold text-slate-900">
+                                    Batalkan Pengajuan Pinjaman
+                                </h3>
+                                <p className="text-xs text-slate-500 mt-0.5">
+                                    Pengajuan #{pengajuanBerjalan.id} ({formatRupiah(pengajuanBerjalan.nominal)})
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setModalBatalOpen(false)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                                aria-label="Tutup"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={submitBatalPengajuan} className="p-5 space-y-4">
+                            {errorBatal && (
+                                <div className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs font-semibold text-rose-700">
+                                    {errorBatal}
+                                </div>
+                            )}
+
+                            <div>
+                                <p className="text-xs font-semibold text-slate-700 mb-2">Alasan Pembatalan (Opsional)</p>
+                                <div className="flex flex-wrap gap-1.5 mb-2.5">
+                                    {['Salah nominal / tenor', 'Ingin ubah rekening tujuan', 'Tidak jadi meminjam'].map((preset) => (
+                                        <button
+                                            key={preset}
+                                            type="button"
+                                            onClick={() => setAlasanBatal(preset)}
+                                            className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors cursor-pointer ${
+                                                alasanBatal === preset
+                                                    ? 'bg-brand-navy text-white border-brand-navy'
+                                                    : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                                            }`}
+                                        >
+                                            {preset}
+                                        </button>
+                                    ))}
+                                </div>
+                                <textarea
+                                    rows={2}
+                                    value={alasanBatal}
+                                    onChange={(e) => setAlasanBatal(e.target.value)}
+                                    placeholder="Tuliskan alasan pembatalan..."
+                                    className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:border-brand-navy focus:ring-2 focus:ring-brand-navy/15 outline-none"
+                                />
+                            </div>
+
+                            {userHasPin && (
+                                <div>
+                                    <label htmlFor="pin-batal-input" className="block text-xs font-semibold text-slate-700 mb-1.5">
+                                        PIN Keamanan (6 Digit) <span className="text-rose-500">*</span>
+                                    </label>
+                                    <input
+                                        id="pin-batal-input"
+                                        type="password"
+                                        inputMode="numeric"
+                                        maxLength={6}
+                                        value={pinBatal}
+                                        onChange={(e) => {
+                                            setPinBatal(e.target.value.replace(/\D/g, '').slice(0, 6));
+                                            setErrorBatal('');
+                                        }}
+                                        placeholder="••••••"
+                                        autoFocus
+                                        className="w-full h-11 text-center text-lg font-mono tracking-[0.5em] rounded-xl border border-slate-300 focus:border-brand-navy focus:ring-2 focus:ring-brand-navy/20"
+                                    />
+                                </div>
+                            )}
+
+                            <div className="grid grid-cols-2 gap-2.5 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setModalBatalOpen(false)}
+                                    disabled={loadingBatal}
+                                    className="min-h-[42px] rounded-xl border border-slate-300 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                                >
+                                    Tutup
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={loadingBatal || (userHasPin && pinBatal.length !== 6)}
+                                    className="min-h-[42px] rounded-xl bg-rose-600 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-50"
+                                >
+                                    {loadingBatal ? 'Membatalkan...' : 'Ya, Batalkan'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </AnggotaLayout>
     );
 }

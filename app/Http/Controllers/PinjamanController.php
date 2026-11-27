@@ -132,6 +132,7 @@ class PinjamanController extends Controller
                 SUM(CASE WHEN status = 'aktif' THEN 1 ELSE 0 END) as aktif,
                 SUM(CASE WHEN status = 'lunas' THEN 1 ELSE 0 END) as lunas,
                 SUM(CASE WHEN status = 'ditolak' THEN 1 ELSE 0 END) as ditolak,
+                SUM(CASE WHEN status = 'dibatalkan' THEN 1 ELSE 0 END) as dibatalkan,
                 SUM(CASE WHEN status = 'dihapusbukukan' THEN 1 ELSE 0 END) as dihapusbukukan,
                 COALESCE(SUM(CASE WHEN status = 'aktif' THEN nominal ELSE 0 END), 0) as total_nominal_aktif,
                 COALESCE(SUM(CASE WHEN status IN ('diajukan', 'approved_admin', 'approved_bendahara', 'approved_ketua') THEN nominal ELSE 0 END), 0) as total_nominal_antrean
@@ -169,6 +170,7 @@ class PinjamanController extends Controller
                 'menunggak' => (int) $menunggakCount,
                 'lunas' => (int) $statistik->lunas,
                 'ditolak' => (int) $statistik->ditolak,
+                'dibatalkan' => (int) $statistik->dibatalkan,
                 'dihapusbukukan' => (int) $statistik->dihapusbukukan,
                 'total_nominal_aktif' => (float) $statistik->total_nominal_aktif,
                 'total_nominal_antrean' => (float) $statistik->total_nominal_antrean,
@@ -217,6 +219,7 @@ class PinjamanController extends Controller
             'anggota',
             'pengaju:id,name,no_karyawan',
             'dicairkanOleh:id,name,no_karyawan',
+            'dibatalkanOleh:id,name,no_karyawan',
             'angsuran' => fn ($q) => $q->orderBy('cicilan_ke')->with('confirmedBy:id,name'),
             'pengajuanPercepatan' => fn ($q) => $q->latest('id')->with([
                 'angsuranBaru' => fn ($ab) => $ab->orderBy('cicilan_ke')->with('confirmedBy:id,name'),
@@ -390,11 +393,20 @@ class PinjamanController extends Controller
             'mandiri_sekretaris' => $p->catatan_admin === 'Diajukan mandiri oleh Sekretaris',
             'sudah_pakai_privilege_reloan' => (bool) $p->sudah_pakai_privilege_reloan,
             'tanggal_pengajuan' => $p->tanggal_pengajuan->format('d M Y'),
+            'diedit_pada' => $p->diedit_pada?->format('d M Y, H:i'),
+            'jumlah_edit' => (int) $p->jumlah_edit,
             'tanggal_cair' => $p->tanggal_pencairan?->format('d M Y'),
             'tanggal_lunas_terakhir' => $tanggalLunasAktual,
             'disetujui_ketua_pada' => ($p->disetujui_ketua_pada ?? $p->disetujui_pada)?->format('d M Y, H:i'),
             'pengaju_nama' => $p->pengaju?->name ?? $p->anggota->nama,
             'dicairkan_oleh_nama' => $p->dicairkanOleh?->name,
+            'info_pembatalan' => $p->status === 'dibatalkan' ? [
+                'tanggal' => ($p->dibatalkan_pada ?? $p->updated_at)?->format('d M Y, H:i'),
+                'oleh_nama' => $p->dibatalkanOleh?->name ?? ($p->pengaju?->name ?? $p->anggota->nama),
+                'oleh_pengurus' => $p->dibatalkan_oleh !== null
+                    && (int) $p->dibatalkan_oleh !== (int) ($p->pengaju_user_id ?? $p->anggota?->user_id),
+                'alasan' => $p->alasan_batal ?: 'Dibatalkan sebelum pencairan.',
+            ] : null,
             'rekening' => [
                 'bank' => $p->snapshot_bank,
                 'no_rekening' => $p->snapshot_no_rekening,

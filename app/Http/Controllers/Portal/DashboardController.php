@@ -12,6 +12,7 @@ use App\Models\SettingBungaTabungan;
 use App\Models\SettingSimpanan;
 use App\Models\TabelTenor;
 use App\Services\Pinjaman\EligibilitasPinjamanService;
+use App\Services\Pinjaman\PengajuanPinjamanService;
 use App\Services\Tabungan\PerhitunganBungaTabunganService;
 use Carbon\Carbon;
 use Inertia\Inertia;
@@ -297,12 +298,19 @@ class DashboardController extends Controller
                 'nominal_disetujui' => $pengajuanBerjalan->nominal_disetujui !== null ? (float) $pengajuanBerjalan->nominal_disetujui : null,
                 'tenor_bulan' => (int) $pengajuanBerjalan->tenor_bulan,
                 'tenor_disetujui' => $pengajuanBerjalan->tenor_disetujui !== null ? (int) $pengajuanBerjalan->tenor_disetujui : null,
+                'keperluan' => $pengajuanBerjalan->keperluan,
                 'snapshot_bank' => $pengajuanBerjalan->snapshot_bank,
                 'snapshot_no_rekening' => $pengajuanBerjalan->snapshot_no_rekening,
                 'snapshot_atas_nama' => $pengajuanBerjalan->snapshot_atas_nama,
                 'tanggal_pengajuan' => $pengajuanBerjalan->tanggal_pengajuan?->format('d M Y'),
                 'disetujui_ketua_pada' => $pengajuanBerjalan->disetujui_ketua_pada?->format('d M Y'),
+                'diedit_pada' => $pengajuanBerjalan->diedit_pada?->format('d M Y, H:i'),
+                'jumlah_edit' => (int) $pengajuanBerjalan->jumlah_edit,
                 'status' => $pengajuanBerjalan->status,
+                'bisa_diedit' => $pengajuanBerjalan->bisaDieditOlehPemohon(),
+                'bisa_dibatalkan' => $pengajuanBerjalan->bisaDibatalkanOlehPemohon(),
+                'akan_reset_saat_edit' => $pengajuanBerjalan->bisaDieditOlehPemohon()
+                    && $pengajuanBerjalan->status !== app(PengajuanPinjamanService::class)->statusAwalPengajuanMandiri(auth()->user())[0],
             ] : null,
             'pengajuanLimitBerjalan' => $pengajuanLimitBerjalan ? [
                 'limit_diminta' => (float) $pengajuanLimitBerjalan->limit_diminta,

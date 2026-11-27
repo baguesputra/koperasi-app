@@ -66,6 +66,12 @@ class PinjamanResource extends JsonResource
             'tanggal_pencairan' => $this->tanggal_pencairan?->format('Y-m-d'),
             'disetujui_pada' => $this->disetujui_pada?->format('Y-m-d'),
             'disetujui_ketua_pada' => $this->disetujui_ketua_pada?->format('Y-m-d'),
+            'diedit_pada' => $this->diedit_pada?->toIso8601String(),
+            'jumlah_edit' => (int) ($this->jumlah_edit ?? 0),
+            'dibatalkan_pada' => $this->dibatalkan_pada?->toIso8601String(),
+            'alasan_batal' => $this->alasan_batal,
+            'bisa_diedit' => $this->bisaDieditOlehPemohon(),
+            'bisa_dibatalkan' => $this->bisaDibatalkanOlehPemohon(),
             'bukti_pencairan_url' => $this->bukti_pencairan_path ? route('pinjaman.bukti-pencairan', $this->id) : null,
             'catatan_admin' => $this->catatan_admin,
             'catatan_bendahara' => $this->catatan_bendahara,
@@ -147,19 +153,27 @@ class PinjamanResource extends JsonResource
     private function tahapan(): array
     {
         $ditolak = $this->status === 'ditolak';
+        $dibatalkan = $this->status === 'dibatalkan';
         // Catatan 'Diajukan mandiri oleh Bendahara' adalah penanda awal, bukan keputusan.
+        $adaKeputusanAdmin = ! empty($this->catatan_admin)
+            && $this->catatan_admin !== 'Diajukan mandiri oleh Sekretaris';
         $adaKeputusanBendahara = ! empty($this->catatan_bendahara)
             && $this->catatan_bendahara !== 'Diajukan mandiri oleh Bendahara';
-        $ditolakAdmin = $ditolak && ! empty($this->catatan_admin) && ! $adaKeputusanBendahara && empty($this->catatan_ketua);
+        $ditolakAdmin = $ditolak && $adaKeputusanAdmin && ! $adaKeputusanBendahara && empty($this->catatan_ketua);
         $ditolakBendahara = $ditolak && $adaKeputusanBendahara && empty($this->catatan_ketua);
         $ditolakKetua = $ditolak && ! empty($this->catatan_ketua);
         $adminDone = in_array($this->status, ['approved_admin', 'approved_bendahara', 'approved_ketua', 'aktif', 'lunas', 'dihapusbukukan'], true)
-            || $ditolakBendahara || $ditolakKetua;
-        $bendaharaDone = in_array($this->status, ['approved_bendahara', 'approved_ketua', 'aktif', 'lunas', 'dihapusbukukan'], true) || $ditolakKetua;
-        $ketuaDone = in_array($this->status, ['approved_ketua', 'aktif', 'lunas', 'dihapusbukukan'], true);
+            || $ditolakBendahara
+            || $ditolakKetua
+            || ($dibatalkan && ($adaKeputusanAdmin || $this->catatan_admin === 'Diajukan mandiri oleh Sekretaris'));
+        $bendaharaDone = in_array($this->status, ['approved_bendahara', 'approved_ketua', 'aktif', 'lunas', 'dihapusbukukan'], true)
+            || $ditolakKetua
+            || ($dibatalkan && ($adaKeputusanBendahara || $this->nominal_disetujui_bendahara !== null));
+        $ketuaDone = in_array($this->status, ['approved_ketua', 'aktif', 'lunas', 'dihapusbukukan'], true)
+            || ($dibatalkan && $this->disetujui_ketua_pada !== null);
         $cairDone = in_array($this->status, ['aktif', 'lunas', 'dihapusbukukan'], true);
 
-        return [
+        $tahapan = [
             [
                 'label' => 'Pengajuan diterima',
                 'status' => 'done',
@@ -169,28 +183,28 @@ class PinjamanResource extends JsonResource
             ],
             [
                 'label' => 'Verifikasi Sekretaris',
-                'status' => $ditolakAdmin ? 'rejected' : ($adminDone ? 'done' : 'current'),
+                'status' => $ditolakAdmin ? 'rejected' : ($adminDone ? 'done' : ($dibatalkan ? 'pending' : 'current')),
                 'tanggal' => null,
                 'oleh' => $this->catatan_admin ? 'Sekretaris Koperasi' : null,
                 'catatan' => $this->catatan_admin,
             ],
             [
                 'label' => 'Verifikasi Bendahara',
-                'status' => $ditolakBendahara ? 'rejected' : ($bendaharaDone ? 'done' : ($adminDone ? 'current' : 'pending')),
+                'status' => $ditolakBendahara ? 'rejected' : ($bendaharaDone ? 'done' : ($adminDone && ! $dibatalkan && ! $ditolak ? 'current' : 'pending')),
                 'tanggal' => null,
                 'oleh' => $adaKeputusanBendahara ? 'Bendahara' : null,
                 'catatan' => $adaKeputusanBendahara ? $this->catatan_bendahara : null,
             ],
             [
                 'label' => $this->cair_oleh_bendahara ? 'Persetujuan Pengajuan Mandiri' : 'Persetujuan Ketua',
-                'status' => $ditolakKetua ? 'rejected' : ($ketuaDone ? 'done' : ($bendaharaDone ? 'current' : 'pending')),
+                'status' => $ditolakKetua ? 'rejected' : ($ketuaDone ? 'done' : ($bendaharaDone && ! $dibatalkan && ! $ditolak ? 'current' : 'pending')),
                 'tanggal' => ($this->disetujui_ketua_pada ?? $this->disetujui_pada)?->format('Y-m-d'),
                 'oleh' => $ketuaDone ? ($this->cair_oleh_bendahara ? 'Bendahara' : 'Ketua Koperasi') : null,
                 'catatan' => $this->catatan_ketua,
             ],
             [
                 'label' => 'Pencairan Bendahara',
-                'status' => $ditolak ? 'pending' : ($cairDone ? 'done' : ($this->status === 'approved_ketua' ? 'current' : 'pending')),
+                'status' => ($ditolak || $dibatalkan) ? 'pending' : ($cairDone ? 'done' : ($this->status === 'approved_ketua' ? 'current' : 'pending')),
                 'tanggal' => $this->tanggal_pencairan?->format('Y-m-d'),
                 'oleh' => $cairDone
                     ? ($this->relationLoaded('dicairkanOleh') ? ($this->dicairkanOleh?->name ?? 'Bendahara') : 'Bendahara')
@@ -198,5 +212,19 @@ class PinjamanResource extends JsonResource
                 'catatan' => $this->catatan_pencairan,
             ],
         ];
+
+        if ($dibatalkan) {
+            $pemilikUserId = $this->pengaju_user_id ?? $this->anggota?->user_id;
+            $batalOlehPengurus = $this->dibatalkan_oleh && $pemilikUserId && (int) $this->dibatalkan_oleh !== (int) $pemilikUserId;
+            $tahapan[] = [
+                'label' => $batalOlehPengurus ? 'Pencairan Dibatalkan Bendahara' : 'Dibatalkan oleh Pemohon',
+                'status' => 'rejected',
+                'tanggal' => $this->dibatalkan_pada?->format('Y-m-d'),
+                'oleh' => $this->relationLoaded('dibatalkanOleh') ? $this->dibatalkanOleh?->name : null,
+                'catatan' => $this->alasan_batal,
+            ];
+        }
+
+        return $tahapan;
     }
 }

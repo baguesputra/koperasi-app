@@ -45,6 +45,9 @@ class RiwayatController extends Controller
                     'tanggal_pengajuan' => $p->tanggal_pengajuan->format('d M Y'),
                     'tanggal_pencairan' => $p->tanggal_pencairan?->format('d M Y'),
                     'disetujui_ketua_pada' => $p->disetujui_ketua_pada?->format('d M Y'),
+                    'dibatalkan_pada' => $p->dibatalkan_pada?->format('d M Y, H:i'),
+                    'alasan_batal' => $p->alasan_batal,
+                    'jumlah_edit' => (int) $p->jumlah_edit,
                     'bukti_pencairan_url' => $p->bukti_pencairan_path ? route('pinjaman.bukti-pencairan', $p->id) : null,
                     'keperluan' => $p->keperluan,
                     'rekening' => [

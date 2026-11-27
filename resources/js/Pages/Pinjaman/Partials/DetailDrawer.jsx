@@ -344,6 +344,7 @@ export default function DetailDrawer({
 
     const isPraCair = STATUS_ANTREAN.includes(pinjaman.status);
     const isDitolak = pinjaman.status === 'ditolak';
+    const isDibatalkan = pinjaman.status === 'dibatalkan';
     const isBerjalan = pinjaman.status === 'aktif';
     const isLunas = pinjaman.status === 'lunas';
     const isHapusBuku = pinjaman.status === 'dihapusbukukan';
@@ -361,7 +362,7 @@ export default function DetailDrawer({
     const percepatan = pinjaman.percepatan_menunggu ?? pinjaman.percepatan_aktif;
 
     const angsuranBulananTampil = jadwalAktif[0]?.total_bayar ?? pinjaman.estimasi_cicilan_pertama ?? null;
-    const adaTabJadwal = !isDitolak && ((isPraCair && (pinjaman.simulasi_angsuran?.length ?? 0) > 0) || !isPraCair);
+    const adaTabJadwal = !isDitolak && !isDibatalkan && ((isPraCair && (pinjaman.simulasi_angsuran?.length ?? 0) > 0) || !isPraCair);
 
     function handleSalinRekening() {
         const norek = pinjaman.rekening?.no_rekening;
@@ -471,7 +472,7 @@ export default function DetailDrawer({
                     <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-300/90">
                         {isPraCair
                             ? 'Nominal Pengajuan'
-                            : isDitolak
+                            : (isDitolak || isDibatalkan)
                                 ? 'Nominal yang Diajukan'
                                 : 'Nominal Pinjaman Disetujui'}
                     </p>
@@ -569,6 +570,32 @@ export default function DetailDrawer({
                             </div>
                             <blockquote className="mt-4 rounded-xl bg-rose-50/60 border border-rose-200/80 px-4 py-3 text-sm text-rose-950 leading-relaxed">
                                 &ldquo;{pinjaman.info_penolakan?.alasan || 'Tidak ada catatan alasan penolakan.'}&rdquo;
+                            </blockquote>
+                        </PanelPutih>
+                    )}
+
+                    {/* A2. Status Dibatalkan */}
+                    {isDibatalkan && (
+                        <PanelPutih accentClass="border-l-slate-400" className="p-5 sm:p-6">
+                            <div className="flex flex-wrap items-start justify-between gap-2">
+                                <div>
+                                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                                        Pengajuan Dibatalkan
+                                    </span>
+                                    <h3 className="text-base font-bold text-slate-900 mt-1">
+                                        {pinjaman.info_pembatalan?.oleh_pengurus
+                                            ? `Dibatalkan oleh Bendahara (${pinjaman.info_pembatalan?.oleh_nama ?? '-'})`
+                                            : `Dibatalkan oleh Pemohon (${pinjaman.info_pembatalan?.oleh_nama ?? pinjaman.nama})`}
+                                    </h3>
+                                </div>
+                                {pinjaman.info_pembatalan?.tanggal && (
+                                    <span className="text-xs text-slate-500 tabular-nums">
+                                        {pinjaman.info_pembatalan.tanggal}
+                                    </span>
+                                )}
+                            </div>
+                            <blockquote className="mt-4 rounded-xl bg-slate-50 border border-slate-200/80 px-4 py-3 text-sm text-slate-700 leading-relaxed">
+                                &ldquo;{pinjaman.info_pembatalan?.alasan || 'Dibatalkan sebelum pencairan.'}&rdquo;
                             </blockquote>
                         </PanelPutih>
                     )}
@@ -912,6 +939,11 @@ export default function DetailDrawer({
                             <BarisInformasi label="Diajukan Oleh">
                                 <span>{pinjaman.pengaju_nama || pinjaman.nama}</span>
                                 <span className="text-xs text-slate-500 ml-2">({pinjaman.tanggal_pengajuan})</span>
+                                {pinjaman.jumlah_edit > 0 && (
+                                    <p className="text-xs text-slate-500 mt-1">
+                                        Direvisi pemohon {pinjaman.jumlah_edit}x{pinjaman.diedit_pada ? ` • Terakhir ${pinjaman.diedit_pada}` : ''}
+                                    </p>
+                                )}
                             </BarisInformasi>
 
                             {pinjaman.tanggal_cair && (

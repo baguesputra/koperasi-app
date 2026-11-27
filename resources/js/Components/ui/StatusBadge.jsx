@@ -6,6 +6,7 @@ const statusConfig = {
     aktif: { label: 'Aktif', color: 'bg-gradient-to-r from-sky-50 to-blue-50 text-blue-700 border-blue-200/80', icon: Clock },
     pending: { label: 'Menunggu', color: 'bg-gradient-to-r from-amber-50 to-orange-50/70 text-amber-700 border-amber-200/80', icon: AlertCircle },
     ditolak: { label: 'Ditolak', color: 'bg-gradient-to-r from-red-50 to-rose-50 text-red-700 border-red-200/80', icon: XCircle },
+    dibatalkan: { label: 'Dibatalkan', color: 'bg-slate-100 text-slate-600 border-slate-200/90', icon: XCircle },
     belum_bayar: { label: 'Belum Bayar', color: 'bg-slate-50 text-slate-600 border-slate-200/90', icon: Clock },
     diajukan: { label: 'Diajukan', color: 'bg-gradient-to-r from-amber-50 to-orange-50/70 text-amber-700 border-amber-200/80', icon: Clock },
     approved_admin: { label: 'Diteruskan Sekretaris', color: 'bg-gradient-to-r from-sky-50 to-cyan-50 text-sky-700 border-sky-200/80', icon: Clock },

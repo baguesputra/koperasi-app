@@ -13,29 +13,61 @@ import { useFeatureTour } from '@/Utils/featureTour';
 const focusRing =
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2';
 
-export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal, limitTersedia, sisaAngsuranAktif, cicilanPokokAktif, rekeningTersimpan, poinSyarat = [], versiSyarat = '' }) {
-    const [nominal, setNominal] = useState('');
-    const [nominalValid, setNominalValid] = useState(false);
-    const [tenorMaksimal, setTenorMaksimal] = useState(null);
-    const [tenorDipilih, setTenorDipilih] = useState(null);
-    const [jadwal, setJadwal] = useState([]);
-    const [totalDibayar, setTotalDibayar] = useState(0);
+export default function Create({
+    bisaAjukan,
+    alasanTidakBisa,
+    limitMaksimal,
+    limitTersedia,
+    sisaAngsuranAktif,
+    cicilanPokokAktif,
+    rekeningTersimpan = [],
+    poinSyarat = [],
+    versiSyarat = '',
+    modeEdit = false,
+    pinjamanEdit = null,
+    jadwalAwal = [],
+    tenorMaksimalAwal = null,
+    totalDibayarAwal = 0,
+}) {
+    const rekeningCocok = modeEdit && pinjamanEdit
+        ? rekeningTersimpan.find(
+            (r) => r.no_rekening === pinjamanEdit.snapshot_no_rekening && r.nama_bank === pinjamanEdit.snapshot_bank,
+        ) ?? rekeningTersimpan.find((r) => r.no_rekening === pinjamanEdit.snapshot_no_rekening)
+        : null;
+
+    const [nominal, setNominal] = useState(() => (modeEdit && pinjamanEdit ? String(pinjamanEdit.nominal) : ''));
+    const [nominalValid, setNominalValid] = useState(() => Boolean(modeEdit && pinjamanEdit && tenorMaksimalAwal));
+    const [tenorMaksimal, setTenorMaksimal] = useState(() => (modeEdit ? tenorMaksimalAwal : null));
+    const [tenorDipilih, setTenorDipilih] = useState(() => (modeEdit && pinjamanEdit ? pinjamanEdit.tenor_bulan : null));
+    const [jadwal, setJadwal] = useState(() => (modeEdit ? jadwalAwal : []));
+    const [totalDibayar, setTotalDibayar] = useState(() => (modeEdit ? totalDibayarAwal : 0));
     const [error, setError] = useState('');
     const [loadingNominal, setLoadingNominal] = useState(false);
     const [loadingSubmit, setLoadingSubmit] = useState(false);
 
-    const [keperluan, setKeperluan] = useState('');
-    const [rekeningMode, setRekeningMode] = useState(rekeningTersimpan.length > 0 ? 'tersimpan' : 'baru');
-    const [rekeningId, setRekeningId] = useState(rekeningTersimpan.find((r) => r.is_default)?.id ?? rekeningTersimpan[0]?.id ?? null);
-    const [namaBank, setNamaBank] = useState('');
-    const [noRekening, setNoRekening] = useState('');
-    const [atasNama, setAtasNama] = useState('');
+    const [keperluan, setKeperluan] = useState(() => (modeEdit && pinjamanEdit ? (pinjamanEdit.keperluan ?? '') : ''));
+    const [rekeningMode, setRekeningMode] = useState(() => {
+        if (modeEdit && pinjamanEdit) {
+            return rekeningCocok ? 'tersimpan' : 'baru';
+        }
+        return rekeningTersimpan.length > 0 ? 'tersimpan' : 'baru';
+    });
+    const [rekeningId, setRekeningId] = useState(() => {
+        if (modeEdit && rekeningCocok) {
+            return rekeningCocok.id;
+        }
+        return rekeningTersimpan.find((r) => r.is_default)?.id ?? rekeningTersimpan[0]?.id ?? null;
+    });
+    const [namaBank, setNamaBank] = useState(() => (modeEdit && pinjamanEdit && !rekeningCocok ? (pinjamanEdit.snapshot_bank ?? '') : ''));
+    const [noRekening, setNoRekening] = useState(() => (modeEdit && pinjamanEdit && !rekeningCocok ? (pinjamanEdit.snapshot_no_rekening ?? '') : ''));
+    const [atasNama, setAtasNama] = useState(() => (modeEdit && pinjamanEdit && !rekeningCocok ? (pinjamanEdit.snapshot_atas_nama ?? '') : ''));
 
     const [showModalPersetujuan, setShowModalPersetujuan] = useState(false);
     const [setujuSyarat, setSetujuSyarat] = useState(false);
     const [pinTransaksi, setPinTransaksi] = useState('');
     const [pinError, setPinError] = useState('');
 
+    const didMountRef = useRef(false);
     const tenorRef = useRef(null);
     const ringkasanRef = useRef(null);
     const { auth } = usePage().props;
@@ -70,21 +102,44 @@ export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal, lim
     }
 
     useEffect(() => {
+        if (modeEdit && !didMountRef.current) {
+            didMountRef.current = true;
+            return undefined;
+        }
+
         if (!nominal || Number(nominal) <= 0) {
             setNominalValid(false);
             setTenorMaksimal(null);
             setTenorDipilih(null);
-            return;
+            setJadwal([]);
+            return undefined;
         }
 
         setError('');
         const timeout = setTimeout(async () => {
             setLoadingNominal(true);
             try {
-                const res = await window.axios.post(route('portal.pinjaman.cek-nominal'), { nominal });
-                setTenorMaksimal(res.data.tenor_maksimal);
+                const res = await window.axios.post(route('portal.pinjaman.cek-nominal'), {
+                    nominal,
+                    ...(modeEdit && pinjamanEdit ? { pinjaman_id: pinjamanEdit.id } : {}),
+                });
+                const maksTenorBaru = res.data.tenor_maksimal;
+                setTenorMaksimal(maksTenorBaru);
                 setNominalValid(true);
-                setTimeout(() => tenorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+
+                if (tenorDipilih && tenorDipilih <= maksTenorBaru) {
+                    const simRes = await window.axios.post(route('portal.pinjaman.simulasi'), {
+                        nominal,
+                        tenor_bulan: tenorDipilih,
+                    });
+                    setJadwal(simRes.data.jadwal);
+                    setTotalDibayar(simRes.data.total_dibayar);
+                } else {
+                    setTenorDipilih(null);
+                    setJadwal([]);
+                    setTotalDibayar(0);
+                    setTimeout(() => tenorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+                }
             } catch (e) {
                 setNominalValid(false);
                 setTenorMaksimal(null);
@@ -129,56 +184,84 @@ export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal, lim
         setLoadingSubmit(true);
         setPinError('');
 
-        router.post(
-            route('portal.pinjaman.store'),
-            {
-                nominal,
-                tenor_bulan: tenorDipilih,
-                keperluan,
-                rekening_mode: rekeningMode,
-                rekening_id: rekeningId,
-                nama_bank: namaBank,
-                no_rekening: noRekening,
-                atas_nama: atasNama,
-                persetujuan: true,
-                pin: pinTransaksi,
+        const targetUrl = modeEdit && pinjamanEdit
+            ? route('portal.pinjaman.update', pinjamanEdit.id)
+            : route('portal.pinjaman.store');
+        const payload = {
+            nominal,
+            tenor_bulan: tenorDipilih,
+            keperluan,
+            rekening_mode: rekeningMode,
+            rekening_id: rekeningId,
+            nama_bank: namaBank,
+            no_rekening: noRekening,
+            atas_nama: atasNama,
+            persetujuan: true,
+            pin: pinTransaksi,
+        };
+        const options = withIdempotencyKey({
+            onError: (errors) => {
+                if (errors.pin) {
+                    setPinError(errors.pin);
+                    setPinTransaksi('');
+                } else {
+                    setError(Object.values(errors)[0] ?? 'Terjadi kesalahan, coba lagi.');
+                    setShowModalPersetujuan(false);
+                    setSetujuSyarat(false);
+                }
+                setLoadingSubmit(false);
             },
-            withIdempotencyKey({
-                onError: (errors) => {
-                    if (errors.pin) {
-                        setPinError(errors.pin);
-                        setPinTransaksi('');
-                    } else {
-                        setError(Object.values(errors)[0] ?? 'Terjadi kesalahan, coba lagi.');
-                        setShowModalPersetujuan(false);
-                        setSetujuSyarat(false);
-                    }
-                    setLoadingSubmit(false);
-                },
-                onFinish: () => {
-                    setLoadingSubmit(false);
-                },
-            })
-        );
+            onFinish: () => {
+                setLoadingSubmit(false);
+            },
+        });
+
+        if (modeEdit && pinjamanEdit) {
+            router.put(targetUrl, payload, options);
+        } else {
+            router.post(targetUrl, payload, options);
+        }
     }
 
     const opsiTenor = tenorMaksimal ? Array.from({ length: tenorMaksimal }, (_, i) => i + 1) : [];
 
     return (
-        <AnggotaLayout mobileTitle="Ajukan Pinjaman" backHref={route('portal.dashboard')}>
-            <Head title="Ajukan Pinjaman" />
+        <AnggotaLayout mobileTitle={modeEdit ? 'Ubah Pengajuan' : 'Ajukan Pinjaman'} backHref={route('portal.dashboard')}>
+            <Head title={modeEdit ? 'Ubah Pengajuan Pinjaman' : 'Ajukan Pinjaman'} />
 
             <Link href={route('portal.dashboard')} className="hidden sm:inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-brand-navy mb-5">
                 <ArrowLeft size={16} />
                 Batal, kembali ke Beranda
             </Link>
-            <button
-                type="button"
-                onClick={startFeatureTour}
-                className={`mb-5 ml-4 text-sm font-semibold text-brand-green-dark hover:text-brand-green ${focusRing}`}
-            >
-                Ulangi Tour
-            </button>
+            {!modeEdit && (
+                <button
+                    type="button"
+                    onClick={startFeatureTour}
+                    className={`mb-5 ml-4 text-sm font-semibold text-brand-green-dark hover:text-brand-green ${focusRing}`}
+                >
+                    Ulangi Tour
+                </button>
+            )}
+
+            {modeEdit && pinjamanEdit && (
+                <div className={`mb-5 rounded-2xl border p-4 sm:p-5 flex items-start gap-3 ${
+                    pinjamanEdit.akan_reset_verifikasi
+                        ? 'bg-amber-50 border-amber-200'
+                        : 'bg-sky-50/70 border-sky-200'
+                }`}>
+                    <AlertCircle className={`shrink-0 mt-0.5 ${pinjamanEdit.akan_reset_verifikasi ? 'text-amber-600' : 'text-sky-600'}`} size={20} />
+                    <div>
+                        <p className={`text-sm font-bold ${pinjamanEdit.akan_reset_verifikasi ? 'text-amber-900' : 'text-slate-900'}`}>
+                            Mengubah Pengajuan Pinjaman #{pinjamanEdit.id}
+                        </p>
+                        <p className={`text-xs sm:text-sm mt-1 leading-relaxed ${pinjamanEdit.akan_reset_verifikasi ? 'text-amber-800' : 'text-slate-600'}`}>
+                            {pinjamanEdit.akan_reset_verifikasi
+                                ? 'Pengajuan Anda sudah melewati pemeriksaan awal. Menyimpan perubahan akan mereset status verifikasi kembali ke tahap awal agar nominal/tenor baru ditinjau ulang secara lengkap.'
+                                : 'Perbarui nominal, tenor, keperluan, atau rekening tujuan pencairan sebelum diverifikasi pengurus.'}
+                        </p>
+                    </div>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-5">
@@ -277,6 +360,7 @@ export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal, lim
                                 setAtasNama={setAtasNama}
                                 onSubmit={submitPengajuan}
                                 loading={loadingSubmit}
+                                labelSubmit={modeEdit ? 'Simpan Perubahan Pengajuan' : 'Ajukan Sekarang'}
                             />
                         </div>
                     )}
@@ -467,7 +551,11 @@ export default function Create({ bisaAjukan, alasanTidakBisa, limitMaksimal, lim
                                         disabled={!setujuSyarat || pinTransaksi.length !== 6 || loadingSubmit}
                                         className={`sm:flex-[2] min-h-[48px] text-base font-bold rounded-xl bg-brand-green text-white hover:bg-brand-green-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${focusRing}`}
                                     >
-                                        {loadingSubmit ? 'Mengirim...' : 'Otorisasi & Kirim Pengajuan'}
+                                        {loadingSubmit
+                                            ? 'Menyimpan...'
+                                            : modeEdit
+                                                ? 'Otorisasi & Simpan Perubahan'
+                                                : 'Otorisasi & Kirim Pengajuan'}
                                     </button>
                                 </div>
                             </div>
@@ -485,7 +573,7 @@ function StepRingkasan({
     rekeningTersimpan, rekeningMode, setRekeningMode,
     rekeningId, setRekeningId,
     namaBank, setNamaBank, noRekening, setNoRekening, atasNama, setAtasNama,
-    onSubmit, loading,
+    onSubmit, loading, labelSubmit = 'Ajukan Sekarang',
 }) {
     const bisaSubmit = keperluan.trim().length >= 5 &&
         (rekeningMode === 'tersimpan' ? rekeningId : (namaBank && noRekening && atasNama));
@@ -613,7 +701,7 @@ function StepRingkasan({
                     disabled={loading || !bisaSubmit}
                     className="w-full min-h-[52px] text-base font-bold rounded-2xl bg-brand-green text-white hover:bg-brand-green-dark active:scale-[0.99] transition-all disabled:opacity-50"
                 >
-                    {loading ? 'Mengirim...' : 'Ajukan Sekarang'}
+                    {loading ? 'Mengirim...' : labelSubmit}
                 </button>
             </div>
         </div>

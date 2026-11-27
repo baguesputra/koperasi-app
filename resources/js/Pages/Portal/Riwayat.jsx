@@ -15,6 +15,7 @@ const statusLabel = {
     aktif: 'Aktif',
     lunas: 'Lunas',
     ditolak: 'Ditolak',
+    dibatalkan: 'Dibatalkan',
     dihapusbukukan: 'Dihapusbukukan',
 };
 
@@ -22,6 +23,7 @@ const statusStyle = {
     aktif: 'bg-blue-50 text-blue-700',
     lunas: 'bg-brand-green-light text-brand-green-dark',
     ditolak: 'bg-red-50 text-red-600',
+    dibatalkan: 'bg-slate-100 text-slate-600',
     diajukan: 'bg-amber-50 text-amber-700',
     approved_admin: 'bg-sky-50 text-sky-700',
     approved_bendahara: 'bg-amber-50 text-amber-700',
@@ -33,6 +35,7 @@ const statusIcon = {
     aktif: Clock,
     lunas: CheckCircle2,
     ditolak: XCircle,
+    dibatalkan: XCircle,
     diajukan: Clock,
     approved_admin: Clock,
     approved_bendahara: Clock,
@@ -277,10 +280,19 @@ function RiwayatPinjaman({ pinjaman, nominalTampil }) {
                                     </div>
                                 )}
 
-                                {p.status === 'ditolak' && (p.catatan_bendahara || p.catatan_ketua) && (
+                                {p.status === 'ditolak' && (p.catatan_bendahara || p.catatan_ketua || p.catatan_admin) && (
                                     <div className="p-4 bg-red-50 border-b border-slate-100">
                                         <p className="text-sm font-semibold text-red-700 mb-0.5">Alasan Penolakan</p>
-                                        <p className="text-sm text-red-600">{p.catatan_ketua || p.catatan_bendahara}</p>
+                                        <p className="text-sm text-red-600">{p.catatan_ketua || p.catatan_bendahara || p.catatan_admin}</p>
+                                    </div>
+                                )}
+
+                                {p.status === 'dibatalkan' && (
+                                    <div className="p-4 bg-slate-50 border-b border-slate-100">
+                                        <p className="text-sm font-semibold text-slate-700 mb-0.5">
+                                            Pengajuan Dibatalkan {p.dibatalkan_pada ? `(${p.dibatalkan_pada})` : ''}
+                                        </p>
+                                        <p className="text-sm text-slate-600">{p.alasan_batal || 'Dibatalkan sebelum pencairan.'}</p>
                                     </div>
                                 )}
 

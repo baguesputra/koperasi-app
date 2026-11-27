@@ -102,9 +102,12 @@ Route::middleware(['auth', 'permission:portal.akses'])->prefix('portal')->name('
     Route::middleware('anggota.aktif')->group(function () {
         // ------------ Pinjaman -----------------
         Route::get('/pinjaman/ajukan', [PortalPinjamanController::class, 'create'])->name('pinjaman.create');
+        Route::get('/pinjaman/{pinjaman}/edit', [PortalPinjamanController::class, 'edit'])->name('pinjaman.edit');
         Route::post('/pinjaman/cek-nominal', [PortalPinjamanController::class, 'cekNominal'])->name('pinjaman.cek-nominal');
         Route::post('/pinjaman/simulasi', [PortalPinjamanController::class, 'simulasi'])->name('pinjaman.simulasi');
         Route::post('/pinjaman', [PortalPinjamanController::class, 'store'])->name('pinjaman.store')->middleware('idempotent');
+        Route::put('/pinjaman/{pinjaman}', [PortalPinjamanController::class, 'update'])->name('pinjaman.update')->middleware('idempotent');
+        Route::post('/pinjaman/{pinjaman}/batal', [PortalPinjamanController::class, 'batal'])->name('pinjaman.batal')->middleware('idempotent');
 
         // ------------ Profile ----------------
         Route::get('/profil', [ProfilController::class, 'index'])->name('profil');
@@ -374,6 +377,7 @@ Route::middleware('auth')->prefix('bendahara')->name('bendahara.')->group(functi
     Route::middleware('permission:pinjaman.cairkan')->group(function () {
         Route::get('/pencairan-pinjaman', [PencairanPinjamanController::class, 'index'])->name('pencairan-pinjaman.index');
         Route::post('/pencairan-pinjaman/{pinjaman}/cair', [PencairanPinjamanController::class, 'cair'])->name('pencairan-pinjaman.cair')->middleware('idempotent');
+        Route::post('/pencairan-pinjaman/{pinjaman}/batal', [PencairanPinjamanController::class, 'batal'])->name('pencairan-pinjaman.batal')->middleware('idempotent');
         Route::post('/pencairan-resign/{anggota}/cair', [PencairanResignController::class, 'cair'])->name('pencairan-resign.cair')->middleware('idempotent');
     });
 

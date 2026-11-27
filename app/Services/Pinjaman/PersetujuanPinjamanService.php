@@ -81,44 +81,58 @@ class PersetujuanPinjamanService
     public function approveAdmin(Pinjaman $pinjaman, string $catatan): void
     {
         $this->tolakBilaSelfApproval($pinjaman);
-        if ($pinjaman->status !== 'diajukan') {
-            throw new RuntimeException('Hanya pinjaman berstatus Diajukan yang dapat diteruskan Sekretaris.');
-        }
 
-        $mandiriBendahara = $pinjaman->catatan_bendahara === 'Diajukan mandiri oleh Bendahara';
+        DB::transaction(function () use ($pinjaman, $catatan) {
+            $locked = Pinjaman::with('anggota')->lockForUpdate()->findOrFail($pinjaman->id);
+            if ($locked->status !== 'diajukan') {
+                throw new RuntimeException('Hanya pinjaman berstatus Diajukan yang dapat diteruskan Sekretaris.');
+            }
 
-        $pinjaman->update([
-            'status' => $mandiriBendahara ? 'approved_bendahara' : 'approved_admin',
-            'catatan_admin' => $catatan,
-        ]);
+            $mandiriBendahara = $locked->catatan_bendahara === 'Diajukan mandiri oleh Bendahara';
 
-        AuditLog::catat(
-            aksi: 'pinjaman_teruskan_admin',
-            keterangan: "Pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) diteruskan oleh Sekretaris. Diminta: ".WaPesan::rupiah($pinjaman->nominal_diminta ?? $pinjaman->nominal)
-                .($mandiriBendahara ? ' (pengajuan mandiri Bendahara: tahap Bendahara dilewati agar tak self-approve).' : ''),
-            dataLama: ['status' => 'diajukan'],
-            dataBaru: ['status' => $mandiriBendahara ? 'approved_bendahara' : 'approved_admin', 'catatan_admin' => $catatan]
-        );
+            $locked->update([
+                'status' => $mandiriBendahara ? 'approved_bendahara' : 'approved_admin',
+                'catatan_admin' => $catatan,
+            ]);
+
+            AuditLog::catat(
+                aksi: 'pinjaman_teruskan_admin',
+                keterangan: "Pinjaman #{$locked->id} ({$locked->anggota->nama}) diteruskan oleh Sekretaris. Diminta: ".WaPesan::rupiah($locked->nominal_diminta ?? $locked->nominal)
+                    .($mandiriBendahara ? ' (pengajuan mandiri Bendahara: tahap Bendahara dilewati agar tak self-approve).' : ''),
+                dataLama: ['status' => 'diajukan'],
+                dataBaru: ['status' => $mandiriBendahara ? 'approved_bendahara' : 'approved_admin', 'catatan_admin' => $catatan]
+            );
+        });
+
+        $pinjaman->refresh();
     }
 
     public function rejectAdmin(Pinjaman $pinjaman, string $catatan): void
     {
         $this->tolakBilaSelfApproval($pinjaman);
-        if ($pinjaman->status !== 'diajukan') {
-            throw new RuntimeException('Hanya pinjaman berstatus Diajukan yang dapat ditolak Sekretaris.');
-        }
 
-        $pinjaman->update([
-            'status' => 'ditolak',
-            'catatan_admin' => $catatan,
-        ]);
+        DB::transaction(function () use ($pinjaman, $catatan) {
+            $locked = Pinjaman::with('anggota')->lockForUpdate()->findOrFail($pinjaman->id);
+            if ($locked->status !== 'diajukan') {
+                throw new RuntimeException('Hanya pinjaman berstatus Diajukan yang dapat ditolak Sekretaris.');
+            }
 
-        AuditLog::catat(
-            aksi: 'pinjaman_tolak_admin',
-            keterangan: "Pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) ditolak oleh Sekretaris. Nominal: ".WaPesan::rupiah($pinjaman->nominal_diminta ?? $pinjaman->nominal),
-            dataLama: ['status' => 'diajukan'],
-            dataBaru: ['status' => 'ditolak', 'catatan_admin' => $catatan]
-        );
+            $locked->update([
+                'status' => 'ditolak',
+                'catatan_admin' => $catatan,
+            ]);
+
+            app(PengajuanPinjamanService::class)->pulihkanPrivilegeReloanBilaPerlu($locked->anggota, $locked->id);
+
+            AuditLog::catat(
+                aksi: 'pinjaman_tolak_admin',
+                keterangan: "Pinjaman #{$locked->id} ({$locked->anggota->nama}) ditolak oleh Sekretaris. Nominal: ".WaPesan::rupiah($locked->nominal_diminta ?? $locked->nominal),
+                dataLama: ['status' => 'diajukan'],
+                dataBaru: ['status' => 'ditolak', 'catatan_admin' => $catatan]
+            );
+        });
+
+        $pinjaman->refresh();
 
         WaService::keAnggota(
             $pinjaman->anggota,
@@ -130,68 +144,84 @@ class PersetujuanPinjamanService
     public function approveBendahara(Pinjaman $pinjaman, string $catatan, ?float $nominal = null, ?int $tenorBulan = null): void
     {
         $this->tolakBilaSelfApproval($pinjaman);
-        if ($pinjaman->status !== 'approved_admin') {
-            throw new RuntimeException('Hanya pinjaman berstatus Diteruskan Sekretaris yang dapat disetujui Bendahara.');
-        }
 
-        $nominalFinal = $nominal ?? (float) $pinjaman->nominal;
-        $this->validasiNominal($pinjaman, $nominalFinal);
-        $tenorFinal = $this->resolveTenor($pinjaman, $nominalFinal, $tenorBulan);
-        $kasSaldo = $this->jurnalKas->saldoOperasional();
-        $mandiriKetua = (bool) $pinjaman->cair_oleh_bendahara;
+        $mandiriKetua = DB::transaction(function () use ($pinjaman, $catatan, $nominal, $tenorBulan) {
+            $locked = Pinjaman::with('anggota')->lockForUpdate()->findOrFail($pinjaman->id);
+            if ($locked->status !== 'approved_admin') {
+                throw new RuntimeException('Hanya pinjaman berstatus Diteruskan Sekretaris yang dapat ditolak atau disetujui Bendahara.');
+            }
 
-        $payload = [
-            'status' => $mandiriKetua ? 'approved_ketua' : 'approved_bendahara',
-            'nominal_disetujui_bendahara' => $nominalFinal,
-            'tenor_disetujui_bendahara' => $tenorFinal,
-            'kas_saldo_bendahara' => $kasSaldo,
-            'catatan_bendahara' => $catatan,
-        ];
+            $nominalFinal = $nominal ?? (float) $locked->nominal;
+            $this->validasiNominal($locked, $nominalFinal);
+            $tenorFinal = $this->resolveTenor($locked, $nominalFinal, $tenorBulan);
+            $kasSaldo = $this->jurnalKas->saldoOperasional();
+            $mandiriKetua = (bool) $locked->cair_oleh_bendahara;
 
-        if ($mandiriKetua) {
-            $payload = array_merge($payload, [
-                'nominal' => $nominalFinal,
-                'tenor_bulan' => $tenorFinal,
-                'nominal_disetujui' => $nominalFinal,
-                'tenor_disetujui' => $tenorFinal,
-                'disetujui_ketua_pada' => now(),
-            ]);
-        }
+            $payload = [
+                'status' => $mandiriKetua ? 'approved_ketua' : 'approved_bendahara',
+                'nominal_disetujui_bendahara' => $nominalFinal,
+                'tenor_disetujui_bendahara' => $tenorFinal,
+                'kas_saldo_bendahara' => $kasSaldo,
+                'catatan_bendahara' => $catatan,
+            ];
 
-        $pinjaman->update($payload);
+            if ($mandiriKetua) {
+                $payload = array_merge($payload, [
+                    'nominal' => $nominalFinal,
+                    'tenor_bulan' => $tenorFinal,
+                    'nominal_disetujui' => $nominalFinal,
+                    'tenor_disetujui' => $tenorFinal,
+                    'disetujui_ketua_pada' => now(),
+                ]);
+            }
 
-        AuditLog::catat(
-            aksi: 'pinjaman_setujui_bendahara',
-            keterangan: "Pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) disetujui oleh Bendahara. Diminta: ".WaPesan::rupiah($pinjaman->nominal_diminta ?? $pinjaman->nominal).', usulan: '.WaPesan::rupiah($nominalFinal)." ({$tenorFinal} bln). Kas operasional saat itu: ".WaPesan::rupiah($kasSaldo).', proyeksi sisa: '.WaPesan::rupiah($kasSaldo - $nominalFinal)
-                .($mandiriKetua ? ' (pengajuan mandiri Ketua: diteruskan ke daftar Pencairan Bendahara).' : ''),
-            dataLama: ['status' => 'approved_admin'],
-            dataBaru: array_merge(['status' => $payload['status'], 'nominal_disetujui_bendahara' => $nominalFinal, 'tenor_disetujui_bendahara' => $tenorFinal, 'kas_saldo_bendahara' => $kasSaldo, 'catatan_bendahara' => $catatan])
-        );
+            $locked->update($payload);
+
+            AuditLog::catat(
+                aksi: 'pinjaman_setujui_bendahara',
+                keterangan: "Pinjaman #{$locked->id} ({$locked->anggota->nama}) disetujui oleh Bendahara. Diminta: ".WaPesan::rupiah($locked->nominal_diminta ?? $locked->nominal).', usulan: '.WaPesan::rupiah($nominalFinal)." ({$tenorFinal} bln). Kas operasional saat itu: ".WaPesan::rupiah($kasSaldo).', proyeksi sisa: '.WaPesan::rupiah($kasSaldo - $nominalFinal)
+                    .($mandiriKetua ? ' (pengajuan mandiri Ketua: diteruskan ke daftar Pencairan Bendahara).' : ''),
+                dataLama: ['status' => 'approved_admin'],
+                dataBaru: array_merge(['status' => $payload['status'], 'nominal_disetujui_bendahara' => $nominalFinal, 'tenor_disetujui_bendahara' => $tenorFinal, 'kas_saldo_bendahara' => $kasSaldo, 'catatan_bendahara' => $catatan])
+            );
+
+            return $mandiriKetua;
+        });
 
         if ($mandiriKetua) {
             $this->kirimWaPersetujuanAkhirBulan($pinjaman->refresh());
+        } else {
+            $pinjaman->refresh();
         }
     }
 
     public function rejectBendahara(Pinjaman $pinjaman, string $catatan): void
     {
         $this->tolakBilaSelfApproval($pinjaman);
-        if ($pinjaman->status !== 'approved_admin') {
-            throw new RuntimeException('Hanya pinjaman berstatus Diteruskan Sekretaris yang dapat ditolak Bendahara.');
-        }
 
-        $statusLama = $pinjaman->status;
-        $pinjaman->update([
-            'status' => 'ditolak',
-            'catatan_bendahara' => $catatan,
-        ]);
+        DB::transaction(function () use ($pinjaman, $catatan) {
+            $locked = Pinjaman::with('anggota')->lockForUpdate()->findOrFail($pinjaman->id);
+            if ($locked->status !== 'approved_admin') {
+                throw new RuntimeException('Hanya pinjaman berstatus Diteruskan Sekretaris yang dapat ditolak Bendahara.');
+            }
 
-        AuditLog::catat(
-            aksi: 'pinjaman_tolak_bendahara',
-            keterangan: "Pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) ditolak oleh Bendahara. Nominal: ".WaPesan::rupiah($pinjaman->nominal_diminta ?? $pinjaman->nominal),
-            dataLama: ['status' => $statusLama],
-            dataBaru: ['status' => 'ditolak', 'catatan_bendahara' => $catatan]
-        );
+            $statusLama = $locked->status;
+            $locked->update([
+                'status' => 'ditolak',
+                'catatan_bendahara' => $catatan,
+            ]);
+
+            app(PengajuanPinjamanService::class)->pulihkanPrivilegeReloanBilaPerlu($locked->anggota, $locked->id);
+
+            AuditLog::catat(
+                aksi: 'pinjaman_tolak_bendahara',
+                keterangan: "Pinjaman #{$locked->id} ({$locked->anggota->nama}) ditolak oleh Bendahara. Nominal: ".WaPesan::rupiah($locked->nominal_diminta ?? $locked->nominal),
+                dataLama: ['status' => $statusLama],
+                dataBaru: ['status' => 'ditolak', 'catatan_bendahara' => $catatan]
+            );
+        });
+
+        $pinjaman->refresh();
 
         WaService::keAnggota(
             $pinjaman->anggota,
@@ -203,51 +233,57 @@ class PersetujuanPinjamanService
     public function approveKetua(Pinjaman $pinjaman, string $catatan, ?float $nominal = null, ?int $tenorBulan = null): void
     {
         $this->tolakBilaSelfApproval($pinjaman);
-        if ($pinjaman->status !== 'approved_bendahara' || $pinjaman->cair_oleh_bendahara) {
-            throw new RuntimeException('Hanya pinjaman berstatus Disetujui Bendahara yang dapat disetujui Ketua.');
-        }
 
-        $nominalFinal = $nominal ?? (float) ($pinjaman->nominal_disetujui_bendahara ?? $pinjaman->nominal);
-        $this->validasiNominal($pinjaman, $nominalFinal);
-        $tenorFinal = $this->resolveTenor(
-            $pinjaman,
-            $nominalFinal,
-            $tenorBulan,
-            $pinjaman->tenor_disetujui_bendahara ?? $pinjaman->tenor_bulan
-        );
+        DB::transaction(function () use ($pinjaman, $catatan, $nominal, $tenorBulan) {
+            $locked = Pinjaman::with('anggota')->lockForUpdate()->findOrFail($pinjaman->id);
+            if ($locked->status !== 'approved_bendahara' || $locked->cair_oleh_bendahara) {
+                throw new RuntimeException('Hanya pinjaman berstatus Disetujui Bendahara yang dapat disetujui Ketua.');
+            }
 
-        $kasSebelum = $this->jurnalKas->saldoOperasional();
+            $nominalFinal = $nominal ?? (float) ($locked->nominal_disetujui_bendahara ?? $locked->nominal);
+            $this->validasiNominal($locked, $nominalFinal);
+            $tenorFinal = $this->resolveTenor(
+                $locked,
+                $nominalFinal,
+                $tenorBulan,
+                $locked->tenor_disetujui_bendahara ?? $locked->tenor_bulan
+            );
 
-        $pinjaman->update([
-            'status' => 'approved_ketua',
-            'nominal' => $nominalFinal,
-            'tenor_bulan' => $tenorFinal,
-            'nominal_disetujui' => $nominalFinal,
-            'tenor_disetujui' => $tenorFinal,
-            'kas_saldo_ketua' => $kasSebelum,
-            'catatan_ketua' => $catatan,
-            'disetujui_ketua_pada' => now(),
-        ]);
+            $kasSebelum = $this->jurnalKas->saldoOperasional();
 
-        $pinjaman->refresh();
-
-        $trail = 'Diminta: '.WaPesan::rupiah($pinjaman->nominal_diminta ?? $nominalFinal)
-            .($pinjaman->nominal_disetujui_bendahara ? ', Bendahara: '.WaPesan::rupiah($pinjaman->nominal_disetujui_bendahara) : '')
-            .', Disetujui Ketua: '.WaPesan::rupiah($nominalFinal);
-
-        AuditLog::catat(
-            aksi: 'pinjaman_setujui_ketua',
-            keterangan: "Pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) disetujui Ketua (menunggu pencairan Bendahara di akhir bulan). {$trail}.",
-            dataLama: ['status' => 'approved_bendahara'],
-            dataBaru: [
+            $locked->update([
                 'status' => 'approved_ketua',
                 'nominal' => $nominalFinal,
                 'tenor_bulan' => $tenorFinal,
+                'nominal_disetujui' => $nominalFinal,
+                'tenor_disetujui' => $tenorFinal,
                 'kas_saldo_ketua' => $kasSebelum,
                 'catatan_ketua' => $catatan,
-                'disetujui_ketua_pada' => $pinjaman->disetujui_ketua_pada?->toDateTimeString(),
-            ]
-        );
+                'disetujui_ketua_pada' => now(),
+            ]);
+
+            $locked->refresh();
+
+            $trail = 'Diminta: '.WaPesan::rupiah($locked->nominal_diminta ?? $nominalFinal)
+                .($locked->nominal_disetujui_bendahara ? ', Bendahara: '.WaPesan::rupiah($locked->nominal_disetujui_bendahara) : '')
+                .', Disetujui Ketua: '.WaPesan::rupiah($nominalFinal);
+
+            AuditLog::catat(
+                aksi: 'pinjaman_setujui_ketua',
+                keterangan: "Pinjaman #{$locked->id} ({$locked->anggota->nama}) disetujui Ketua (menunggu pencairan Bendahara di akhir bulan). {$trail}.",
+                dataLama: ['status' => 'approved_bendahara'],
+                dataBaru: [
+                    'status' => 'approved_ketua',
+                    'nominal' => $nominalFinal,
+                    'tenor_bulan' => $tenorFinal,
+                    'kas_saldo_ketua' => $kasSebelum,
+                    'catatan_ketua' => $catatan,
+                    'disetujui_ketua_pada' => $locked->disetujui_ketua_pada?->toDateTimeString(),
+                ]
+            );
+        });
+
+        $pinjaman->refresh();
 
         $this->kirimWaPersetujuanAkhirBulan($pinjaman);
     }
@@ -467,27 +503,103 @@ class PersetujuanPinjamanService
     public function rejectKetua(Pinjaman $pinjaman, string $catatan): void
     {
         $this->tolakBilaSelfApproval($pinjaman);
-        if ($pinjaman->status !== 'approved_bendahara') {
-            throw new RuntimeException('Hanya pinjaman berstatus Disetujui Bendahara yang dapat ditolak Ketua.');
-        }
 
-        $statusLama = $pinjaman->status;
-        $pinjaman->update([
-            'status' => 'ditolak',
-            'catatan_ketua' => $catatan,
-        ]);
+        DB::transaction(function () use ($pinjaman, $catatan) {
+            $locked = Pinjaman::with('anggota')->lockForUpdate()->findOrFail($pinjaman->id);
+            if ($locked->status !== 'approved_bendahara') {
+                throw new RuntimeException('Hanya pinjaman berstatus Disetujui Bendahara yang dapat ditolak Ketua.');
+            }
 
-        AuditLog::catat(
-            aksi: 'pinjaman_tolak_ketua',
-            keterangan: "Pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) ditolak oleh Ketua. Nominal: ".WaPesan::rupiah($pinjaman->nominal_diminta ?? $pinjaman->nominal),
-            dataLama: ['status' => $statusLama],
-            dataBaru: ['status' => 'ditolak', 'catatan_ketua' => $catatan]
-        );
+            $statusLama = $locked->status;
+            $locked->update([
+                'status' => 'ditolak',
+                'catatan_ketua' => $catatan,
+            ]);
+
+            app(PengajuanPinjamanService::class)->pulihkanPrivilegeReloanBilaPerlu($locked->anggota, $locked->id);
+
+            AuditLog::catat(
+                aksi: 'pinjaman_tolak_ketua',
+                keterangan: "Pinjaman #{$locked->id} ({$locked->anggota->nama}) ditolak oleh Ketua. Nominal: ".WaPesan::rupiah($locked->nominal_diminta ?? $locked->nominal),
+                dataLama: ['status' => $statusLama],
+                dataBaru: ['status' => 'ditolak', 'catatan_ketua' => $catatan]
+            );
+        });
+
+        $pinjaman->refresh();
 
         WaService::keAnggota(
             $pinjaman->anggota,
             'pinjaman_ditolak',
             $this->pesanDitolak('Ketua', $pinjaman, $catatan)
+        );
+    }
+
+    /**
+     * Batalkan pencairan pinjaman oleh Bendahara pada tahap approved_ketua (sebelum uang ditransfer).
+     */
+    public function batalkanPencairanBendahara(Pinjaman $pinjaman, string $alasan, ?int $aktorId = null): void
+    {
+        $pinjaman->loadMissing('anggota');
+        $aktorId ??= auth()->id();
+        $milikSendiri = $aktorId !== null && (
+            ((int) ($pinjaman->pengaju_user_id ?? 0) === $aktorId)
+            || ((int) ($pinjaman->anggota?->user_id ?? 0) === $aktorId)
+        );
+
+        if ($milikSendiri) {
+            if ($pinjaman->status !== 'approved_ketua' || $pinjaman->cair_oleh_bendahara || $pinjaman->disetujui_ketua_pada === null) {
+                $this->tolakBilaSelfApproval($pinjaman, $aktorId);
+            }
+        } else {
+            $this->tolakBilaSelfApproval($pinjaman, $aktorId);
+        }
+
+        $alasanBersih = trim($alasan);
+
+        DB::transaction(function () use ($pinjaman, $alasanBersih, $aktorId) {
+            $locked = Pinjaman::with('anggota')->lockForUpdate()->findOrFail($pinjaman->id);
+            if ($locked->status !== 'approved_ketua') {
+                throw new RuntimeException('Hanya pinjaman berstatus Disetujui Ketua (belum dicairkan) yang pencairannya dapat dibatalkan.');
+            }
+
+            $locked->update([
+                'status' => 'dibatalkan',
+                'dibatalkan_pada' => now(),
+                'dibatalkan_oleh' => $aktorId,
+                'alasan_batal' => $alasanBersih,
+                'catatan_pencairan' => 'Pencairan dibatalkan: '.$alasanBersih,
+            ]);
+
+            app(PengajuanPinjamanService::class)->pulihkanPrivilegeReloanBilaPerlu($locked->anggota, $locked->id);
+
+            AuditLog::catat(
+                aksi: 'pinjaman_pencairan_dibatalkan',
+                keterangan: "Pencairan pinjaman #{$locked->id} ({$locked->anggota->nama}) dibatalkan Bendahara sebelum transfer. Nominal: ".WaPesan::rupiah((float) ($locked->nominal_disetujui ?? $locked->nominal)).". Alasan: {$alasanBersih}",
+                dataLama: ['status' => 'approved_ketua'],
+                dataBaru: [
+                    'status' => 'dibatalkan',
+                    'dibatalkan_oleh' => $aktorId,
+                    'alasan_batal' => $alasanBersih,
+                ],
+                userId: $aktorId,
+            );
+        });
+
+        $pinjaman->refresh();
+
+        $isi = "Dengan hormat,\n\nPencairan pengajuan pinjaman Anda dengan rincian berikut:\n\n"
+            ."- Nomor Referensi: #{$pinjaman->id}\n"
+            .'- Nominal disetujui: '.WaPesan::rupiah((float) ($pinjaman->nominal_disetujui ?? $pinjaman->nominal))."\n"
+            ."- Tenor: {$pinjaman->tenor_bulan} bulan\n\n"
+            ."telah *DIBATALKAN* oleh Bendahara Koperasi sebelum dana ditransfer.\n"
+            ."Alasan: {$alasanBersih}\n\n"
+            .'Apabila terdapat pertanyaan atau Anda ingin mengajukan ulang, silakan hubungi Bendahara atau ajukan kembali melalui Portal Anggota.';
+
+        WaService::keAnggota(
+            $pinjaman->anggota,
+            'pinjaman_dibatalkan',
+            WaPesan::susun($pinjaman->anggota->nama, $pinjaman->anggota->no_karyawan, $isi)
         );
     }
 

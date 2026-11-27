@@ -105,4 +105,30 @@ class PencairanPinjamanController extends Controller
             "Pinjaman #{$pinjaman->id} berhasil dicairkan, saldo kas diperbarui, dan notifikasi WA + bukti transfer telah dikirim."
         );
     }
+
+    public function batal(Request $request, Pinjaman $pinjaman): RedirectResponse
+    {
+        $data = $request->validate([
+            'catatan' => ['required', 'string', 'min:5', 'max:500'],
+        ], [
+            'catatan.required' => 'Alasan pembatalan pencairan wajib diisi.',
+            'catatan.min' => 'Alasan pembatalan pencairan minimal 5 karakter.',
+        ]);
+
+        try {
+            $this->persetujuan->batalkanPencairanBendahara(
+                pinjaman: $pinjaman,
+                alasan: (string) $data['catatan'],
+                aktorId: $request->user()->id,
+            );
+        } catch (RuntimeException $e) {
+            return back()->withErrors(['keputusan' => $e->getMessage()]);
+        }
+
+        return $this->redirectSetelahAksi(
+            $request,
+            'bendahara.pencairan-pinjaman.index',
+            "Pencairan pinjaman #{$pinjaman->id} berhasil dibatalkan sebelum transfer."
+        );
+    }
 }

@@ -39,8 +39,10 @@ export default function PencairanDrawers({ item, kasRingkas, onClose }) {
 
     const [salinBerhasil, setSalinBerhasil] = useState(false);
     const [showTolakTabungan, setShowTolakTabungan] = useState(false);
+    const [showBatalPinjaman, setShowBatalPinjaman] = useState(false);
     const formId = useId();
     const tabunganCatatanRef = useRef(null);
+    const pinjamanBatalRef = useRef(null);
     const hariIni = new Date().toISOString().slice(0, 10);
 
     const pinjamanForm = useForm({
@@ -71,6 +73,14 @@ export default function PencairanDrawers({ item, kasRingkas, onClose }) {
         return () => window.cancelAnimationFrame(id);
     }, [showTolakTabungan]);
 
+    useEffect(() => {
+        if (!showBatalPinjaman) return undefined;
+        const id = window.requestAnimationFrame(() => {
+            pinjamanBatalRef.current?.focus({ preventScroll: false });
+        });
+        return () => window.cancelAnimationFrame(id);
+    }, [showBatalPinjaman]);
+
     const jatuhTempoPertamaLabel = useMemo(
         () => hitungJatuhTempoPertama(pinjamanForm.data.tanggal_pencairan),
         [pinjamanForm.data.tanggal_pencairan]
@@ -85,9 +95,12 @@ export default function PencairanDrawers({ item, kasRingkas, onClose }) {
 
     function submitPinjaman(e) {
         e.preventDefault();
-        pinjamanForm.post(route('bendahara.pencairan-pinjaman.cair', data.id), {
+        const url = showBatalPinjaman
+            ? route('bendahara.pencairan-pinjaman.batal', data.id)
+            : route('bendahara.pencairan-pinjaman.cair', data.id);
+        pinjamanForm.post(url, {
             ...withIdempotencyKey({
-                forceFormData: true,
+                forceFormData: !showBatalPinjaman,
                 preserveScroll: true,
                 onSuccess: onClose,
             }),
@@ -428,7 +441,11 @@ export default function PencairanDrawers({ item, kasRingkas, onClose }) {
                         </div>
                     </DrawerHero>
 
-                    <DrawerSection title="Upload Bukti & Tanggal Transfer" icon={Banknote} tone="emerald">
+                    <DrawerSection
+                        title={showBatalPinjaman ? 'Batalkan Pencairan Pinjaman' : 'Upload Bukti & Tanggal Transfer'}
+                        icon={showBatalPinjaman ? XCircle : Banknote}
+                        tone={showBatalPinjaman ? 'rose' : 'emerald'}
+                    >
                         <form id={formId} onSubmit={submitPinjaman} className="space-y-3.5">
                             {pinjamanForm.errors.keputusan && (
                                 <div className="rounded-xl bg-rose-50 border border-rose-200 px-3.5 py-2.5 text-sm font-medium text-rose-700">
@@ -436,48 +453,69 @@ export default function PencairanDrawers({ item, kasRingkas, onClose }) {
                                 </div>
                             )}
 
-                            <FormField
-                                label="Bukti Transfer (JPG, PNG, WEBP, atau PDF, maks 5 MB)"
-                                error={pinjamanForm.errors.bukti_pencairan}
-                                hint={pinjamanForm.data.bukti_pencairan ? `File siap diunggah: ${pinjamanForm.data.bukti_pencairan.name}` : 'Wajib unggah bukti transfer sebelum konfirmasi pencairan.'}
-                                required
-                            >
-                                <div className="flex items-center gap-2 rounded-xl border border-dashed border-emerald-300/90 bg-emerald-50/35 px-3 py-2.5 focus-within:border-brand-green focus-within:ring-[3px] focus-within:ring-brand-green/15 transition-all">
-                                    <Upload size={16} className="text-brand-green-dark shrink-0" />
-                                    <input
+                            {showBatalPinjaman ? (
+                                <FormField
+                                    label="Alasan Pembatalan Pencairan (Wajib, min. 5 karakter)"
+                                    error={pinjamanForm.errors.catatan}
+                                    required
+                                >
+                                    <TextField
+                                        ref={pinjamanBatalRef}
                                         data-autofocus
-                                        type="file"
-                                        accept=".jpg,.jpeg,.png,.webp,.pdf"
-                                        onChange={(e) => pinjamanForm.setData('bukti_pencairan', e.target.files?.[0] ?? null)}
-                                        className="block w-full text-xs text-slate-600 focus:outline-none file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-brand-navy file:text-white hover:file:opacity-90 cursor-pointer"
+                                        as="textarea"
+                                        rows={3}
+                                        value={pinjamanForm.data.catatan}
+                                        onChange={(e) => pinjamanForm.setData('catatan', e.target.value)}
+                                        placeholder="Contoh: Anggota membatalkan pinjaman sebelum dana ditransfer."
                                         required
                                     />
-                                </div>
-                            </FormField>
+                                </FormField>
+                            ) : (
+                                <>
+                                    <FormField
+                                        label="Bukti Transfer (JPG, PNG, WEBP, atau PDF, maks 5 MB)"
+                                        error={pinjamanForm.errors.bukti_pencairan}
+                                        hint={pinjamanForm.data.bukti_pencairan ? `File siap diunggah: ${pinjamanForm.data.bukti_pencairan.name}` : 'Wajib unggah bukti transfer sebelum konfirmasi pencairan.'}
+                                        required
+                                    >
+                                        <div className="flex items-center gap-2 rounded-xl border border-dashed border-emerald-300/90 bg-emerald-50/35 px-3 py-2.5 focus-within:border-brand-green focus-within:ring-[3px] focus-within:ring-brand-green/15 transition-all">
+                                            <Upload size={16} className="text-brand-green-dark shrink-0" />
+                                            <input
+                                                data-autofocus
+                                                type="file"
+                                                accept=".jpg,.jpeg,.png,.webp,.pdf"
+                                                onChange={(e) => pinjamanForm.setData('bukti_pencairan', e.target.files?.[0] ?? null)}
+                                                className="block w-full text-xs text-slate-600 focus:outline-none file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-brand-navy file:text-white hover:file:opacity-90 cursor-pointer"
+                                                required
+                                            />
+                                        </div>
+                                    </FormField>
 
-                            <FormField label="Tanggal Transfer / Pencairan" error={pinjamanForm.errors.tanggal_pencairan} required>
-                                <TextField
-                                    type="date"
-                                    max={hariIni}
-                                    value={pinjamanForm.data.tanggal_pencairan}
-                                    onChange={(e) => pinjamanForm.setData('tanggal_pencairan', e.target.value)}
-                                    required
-                                />
-                                <p className="text-xs text-slate-500 mt-1.5 inline-flex items-center gap-1.5">
-                                    <CalendarDays size={13} className="text-brand-green-dark shrink-0" />
-                                    Cicilan ke-1 jatuh tempo akhir bulan berikutnya: <strong className="text-slate-700">{jatuhTempoPertamaLabel}</strong>
-                                </p>
-                            </FormField>
+                                    <FormField label="Tanggal Transfer / Pencairan" error={pinjamanForm.errors.tanggal_pencairan} required>
+                                        <TextField
+                                            type="date"
+                                            max={hariIni}
+                                            value={pinjamanForm.data.tanggal_pencairan}
+                                            onChange={(e) => pinjamanForm.setData('tanggal_pencairan', e.target.value)}
+                                            required
+                                        />
+                                        <p className="text-xs text-slate-500 mt-1.5 inline-flex items-center gap-1.5">
+                                            <CalendarDays size={13} className="text-brand-green-dark shrink-0" />
+                                            Cicilan ke-1 jatuh tempo akhir bulan berikutnya: <strong className="text-slate-700">{jatuhTempoPertamaLabel}</strong>
+                                        </p>
+                                    </FormField>
 
-                            <FormField label="Catatan Pencairan (Opsional)" error={pinjamanForm.errors.catatan}>
-                                <TextField
-                                    as="textarea"
-                                    rows={2}
-                                    value={pinjamanForm.data.catatan}
-                                    onChange={(e) => pinjamanForm.setData('catatan', e.target.value)}
-                                    placeholder="Contoh: Transfer via Bank Mandiri akhir bulan November."
-                                />
-                            </FormField>
+                                    <FormField label="Catatan Pencairan (Opsional)" error={pinjamanForm.errors.catatan}>
+                                        <TextField
+                                            as="textarea"
+                                            rows={2}
+                                            value={pinjamanForm.data.catatan}
+                                            onChange={(e) => pinjamanForm.setData('catatan', e.target.value)}
+                                            placeholder="Contoh: Transfer via Bank Mandiri akhir bulan November."
+                                        />
+                                    </FormField>
+                                </>
+                            )}
                         </form>
                     </DrawerSection>
 
@@ -500,20 +538,51 @@ export default function PencairanDrawers({ item, kasRingkas, onClose }) {
                 </DrawerBody>
 
                 <DrawerFooter>
-                    <DrawerFooterActions cols={2} stackOnMobile>
-                        <Button type="button" variant="neutral" size="drawer" onClick={onClose} disabled={pinjamanForm.processing}>
-                            Batal
-                        </Button>
-                        <Button
-                            type="submit"
-                            form={formId}
-                            size="drawer"
-                            disabled={pinjamanForm.processing || !pinjamanForm.data.bukti_pencairan}
-                        >
-                            <CheckCircle2 size={16} />
-                            {pinjamanForm.processing ? 'Memproses...' : 'Konfirmasi Cair & Kirim WA'}
-                        </Button>
-                    </DrawerFooterActions>
+                    {showBatalPinjaman ? (
+                        <DrawerFooterActions cols={2} stackOnMobile>
+                            <Button
+                                type="button"
+                                variant="neutral"
+                                size="drawer"
+                                onClick={() => setShowBatalPinjaman(false)}
+                                disabled={pinjamanForm.processing}
+                            >
+                                Kembali
+                            </Button>
+                            <Button
+                                type="submit"
+                                form={formId}
+                                variant="danger"
+                                size="drawer"
+                                disabled={pinjamanForm.processing || pinjamanForm.data.catatan.trim().length < 5}
+                            >
+                                <XCircle size={16} />
+                                {pinjamanForm.processing ? 'Membatalkan...' : 'Konfirmasi Batalkan Pencairan'}
+                            </Button>
+                        </DrawerFooterActions>
+                    ) : (
+                        <DrawerFooterActions cols={2} stackOnMobile>
+                            <Button
+                                type="button"
+                                variant="dangerSoft"
+                                size="drawer"
+                                onClick={() => setShowBatalPinjaman(true)}
+                                disabled={pinjamanForm.processing}
+                            >
+                                <XCircle size={16} />
+                                Batalkan Pencairan
+                            </Button>
+                            <Button
+                                type="submit"
+                                form={formId}
+                                size="drawer"
+                                disabled={pinjamanForm.processing || !pinjamanForm.data.bukti_pencairan}
+                            >
+                                <CheckCircle2 size={16} />
+                                {pinjamanForm.processing ? 'Memproses...' : 'Konfirmasi Cair & Kirim WA'}
+                            </Button>
+                        </DrawerFooterActions>
+                    )}
                 </DrawerFooter>
             </>
         );
