@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Laporan\LaporanRegistry;
 use App\Models\Anggota;
 use App\Models\Angsuran;
+use App\Models\AuditLog;
 use App\Models\JurnalKas;
 use App\Models\KasKoperasi;
 use App\Models\PengajuanPenghapusanPinjaman;
@@ -50,12 +51,13 @@ class PenghapusanPinjamanTest extends TestCase
         return $user;
     }
 
-    private function buatPinjamanMenunggak(): array
+    private function buatPinjamanMenunggak(string $suffix = '1'): array
     {
+        $kode = str_pad($suffix, 3, '0', STR_PAD_LEFT);
         $userAnggota = User::create([
-            'no_karyawan' => 'TOP-900001',
-            'name' => 'Anggota Menghilang',
-            'email' => 'hilang@koperasi.test',
+            'no_karyawan' => "TOP-900{$kode}",
+            'name' => "Anggota Menghilang {$suffix}",
+            'email' => "hilang{$suffix}@koperasi.test",
             'password' => bcrypt('password'),
             'status' => 'aktif',
         ]);
@@ -63,9 +65,9 @@ class PenghapusanPinjamanTest extends TestCase
 
         $anggota = Anggota::create([
             'user_id' => $userAnggota->id,
-            'no_anggota' => 'ANG-HLG-001',
-            'no_karyawan' => 'TOP-900001',
-            'nama' => 'Anggota Menghilang',
+            'no_anggota' => "ANG-HLG-{$kode}",
+            'no_karyawan' => "TOP-900{$kode}",
+            'nama' => "Anggota Menghilang {$suffix}",
             'cabang' => 'Banjarmasin',
             'unit_bisnis' => 'Operasional',
             'jabatan' => 'Staff',
@@ -95,7 +97,7 @@ class PenghapusanPinjamanTest extends TestCase
         $pinjaman = Pinjaman::create([
             'anggota_id' => $anggota->id,
             'pengaju_user_id' => $userAnggota->id,
-            'nomor_dokumen' => '001/KOP-PJM/VIII/2026',
+            'nomor_dokumen' => "{$kode}/KOP-PJM/VIII/2026",
             'nominal' => 1_200_000,
             'tenor_bulan' => 3,
             'persentase_bunga' => 1.0,
@@ -158,9 +160,56 @@ class PenghapusanPinjamanTest extends TestCase
         $this->assertTrue($was3->hasRole('pengawas'));
     }
 
-    public function test_alur_lengkap_penghapusan_pinjaman_berjenjang_sekretaris_hingga_pengawas_3_2_1_dan_neraca_seimbang(): void
+    public function test_hanya_ketua_dan_super_admin_yang_bisa_mengajukan_penghapusan_pinjaman(): void
     {
-        [$anggota, $pinjaman] = $this->buatPinjamanMenunggak();
+        [, $pinjaman1] = $this->buatPinjamanMenunggak('1');
+        [, $pinjaman2] = $this->buatPinjamanMenunggak('2');
+
+        foreach (['ADM-000001', 'BEN-000001', 'WAS-000003'] as $peranLain) {
+            $this->loginSebagai($peranLain);
+            $this->post(route('pengurus.penghapusan-pinjaman.store'), [
+                'pinjaman_id' => $pinjaman1->id,
+                'alasan' => 'Peran selain Ketua dan Super Admin tidak boleh mengajukan.',
+            ])->assertForbidden();
+        }
+
+        // Ketua Koperasi berhasil mengajukan -> langsung masuk antrean Pengawas 3
+        $this->loginSebagai('KET-000001');
+        $this->post(route('pengurus.penghapusan-pinjaman.store'), [
+            'pinjaman_id' => $pinjaman1->id,
+            'alasan' => 'Diajukan oleh Ketua Koperasi untuk verifikasi pengawas.',
+        ])->assertRedirect(route('pengurus.penghapusan-pinjaman.index'));
+
+        $pengajuan1 = PengajuanPenghapusanPinjaman::where('pinjaman_id', $pinjaman1->id)->sole();
+        $this->assertSame('diajukan', $pengajuan1->status);
+
+        // Bendahara & Ketua tidak memiliki antrean approval penghapusan
+        foreach (['BEN-000001', 'KET-000001'] as $pengurus) {
+            $this->loginSebagai($pengurus);
+            $this->get(route('pengurus.penghapusan-pinjaman.index'))
+                ->assertInertia(fn (AssertableInertia $page) => $page
+                    ->where('notifications.menunggu_penghapusan_pinjaman', 0));
+        }
+
+        // Pengawas 3 melihat tepat 1 antrean menunggu
+        $this->loginSebagai('WAS-000003');
+        $this->get(route('pengurus.penghapusan-pinjaman.index'))
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('notifications.menunggu_penghapusan_pinjaman', 1));
+
+        // Super Admin juga dapat mengajukan
+        $this->loginSebagai('SPADM-000001');
+        $this->post(route('pengurus.penghapusan-pinjaman.store'), [
+            'pinjaman_id' => $pinjaman2->id,
+            'alasan' => 'Diajukan oleh Super Admin untuk persetujuan pengawas.',
+        ])->assertRedirect(route('pengurus.penghapusan-pinjaman.index'));
+
+        $this->assertSame('diajukan', PengajuanPenghapusanPinjaman::where('pinjaman_id', $pinjaman2->id)->sole()->status);
+    }
+
+    public function test_alur_lengkap_penghapusan_pinjaman_ketua_hingga_pengawas_3_2_1_dan_neraca_seimbang(): void
+    {
+        [$anggota, $pinjaman] = $this->buatPinjamanMenunggak('3');
 
         // Setup jurnal kas agar Neraca bisa diuji keseimbangannya
         $bendahara = User::where('no_karyawan', 'BEN-000001')->firstOrFail();
@@ -182,8 +231,6 @@ class PenghapusanPinjamanTest extends TestCase
             'koperasi.laba_ditahan_historis' => 2_488_000,
         ]);
 
-        // Sebelum penghapusan: Aktiva = Bank 5.000.000 + Piutang 800.000 = 5.800.000
-        // Pasiva = Simpanan Pokok 100.000 + Wajib 200.000 + SHU 12.000 + Modal 5.488.000 = 5.800.000
         $neracaAwal = LaporanRegistry::ambil('neraca')['data'](request()->merge(['tanggal' => $hariIni]));
         $nilaiAwal = fn (string $pos) => collect($neracaAwal['rows'])->firstWhere(fn ($r) => $r[0] === $pos)[1];
         $this->assertEquals(800_000, $nilaiAwal('Piutang'));
@@ -191,8 +238,8 @@ class PenghapusanPinjamanTest extends TestCase
 
         $saldoBankAwal = (float) KasKoperasi::first()->saldo_bank;
 
-        // 1. Sekretaris mengajukan penghapusan pinjaman
-        $this->loginSebagai('ADM-000001');
+        // 1. Ketua Koperasi mengajukan penghapusan pinjaman (langsung menunggu Pengawas 3)
+        $this->loginSebagai('KET-000001');
         $this->post(route('pengurus.penghapusan-pinjaman.store'), [
             'pinjaman_id' => $pinjaman->id,
             'alasan' => 'Anggota menghilang sejak 2 bulan lalu dan tidak dapat dihubungi.',
@@ -204,34 +251,16 @@ class PenghapusanPinjamanTest extends TestCase
         $this->assertEquals(12_000, (float) $pengajuan->sisa_bunga);
         $this->assertSame(2, $pengajuan->sisa_cicilan);
 
-        // 2. Bendahara memverifikasi (status -> approved_bendahara)
-        $this->loginSebagai('BEN-000001');
-        $this->get(route('pengurus.penghapusan-pinjaman.index'))
-            ->assertInertia(fn (AssertableInertia $page) => $page
-                ->where('notifications.menunggu_penghapusan_pinjaman', 1));
+        // Guard: Pengawas 1 & Pengawas 2 tidak boleh mendahului Pengawas 3
+        foreach (['WAS-000001', 'WAS-000002'] as $pengawasAtas) {
+            $this->loginSebagai($pengawasAtas);
+            $this->post(route('pengurus.penghapusan-pinjaman.approve', $pengajuan), [
+                'catatan' => 'Coba lompat jenjang',
+            ])->assertSessionHasErrors('catatan');
+            $this->assertSame('diajukan', $pengajuan->fresh()->status);
+        }
 
-        $this->post(route('pengurus.penghapusan-pinjaman.approve', $pengajuan), [
-            'catatan' => 'Sisa pokok Rp 800.000 sesuai buku pinjaman, diteruskan ke Ketua.',
-        ])->assertRedirect(route('pengurus.penghapusan-pinjaman.index'));
-
-        $this->assertSame('approved_bendahara', $pengajuan->fresh()->status);
-
-        // 3. Ketua Koperasi menyetujui (status -> approved_ketua, masuk ke Pengawas 3)
-        $this->loginSebagai('KET-000001');
-        $this->post(route('pengurus.penghapusan-pinjaman.approve', $pengajuan), [
-            'catatan' => 'Disetujui pengurus, mohon persetujuan berjenjang Badan Pengawas.',
-        ])->assertRedirect(route('pengurus.penghapusan-pinjaman.index'));
-
-        $this->assertSame('approved_ketua', $pengajuan->fresh()->status);
-
-        // Guard: Pengawas 1 atau Pengawas 2 tidak boleh mendahului Pengawas 3
-        $this->loginSebagai('WAS-000001');
-        $this->post(route('pengurus.penghapusan-pinjaman.approve', $pengajuan), [
-            'catatan' => 'Coba lompat jenjang',
-        ])->assertSessionHasErrors('catatan');
-        $this->assertSame('approved_ketua', $pengajuan->fresh()->status);
-
-        // 4. Pengawas 3 menyetujui (status -> approved_pengawas_3)
+        // 2. Pengawas 3 menyetujui (status -> approved_pengawas_3)
         $this->loginSebagai('WAS-000003');
         $this->get(route('pengurus.penghapusan-pinjaman.index'))
             ->assertInertia(fn (AssertableInertia $page) => $page
@@ -243,7 +272,7 @@ class PenghapusanPinjamanTest extends TestCase
 
         $this->assertSame('approved_pengawas_3', $pengajuan->fresh()->status);
 
-        // 5. Pengawas 2 menyetujui (status -> approved_pengawas_2)
+        // 3. Pengawas 2 menyetujui (status -> approved_pengawas_2)
         $this->loginSebagai('WAS-000002');
         $this->post(route('pengurus.penghapusan-pinjaman.approve', $pengajuan), [
             'catatan' => 'Telah diperiksa Pengawas 2, diteruskan ke Ketua Pengawas (Pengawas 1).',
@@ -251,7 +280,7 @@ class PenghapusanPinjamanTest extends TestCase
 
         $this->assertSame('approved_pengawas_2', $pengajuan->fresh()->status);
 
-        // 6. Pengawas 1 (Ketua Pengawas) menyetujui FINAL (status -> disetujui)
+        // 4. Pengawas 1 (Ketua Pengawas) menyetujui FINAL (status -> disetujui)
         $this->loginSebagai('WAS-000001');
         $this->post(route('pengurus.penghapusan-pinjaman.approve', $pengajuan), [
             'catatan' => 'Disetujui final Ketua Pengawas untuk dihapusbukukan.',
@@ -266,22 +295,23 @@ class PenghapusanPinjamanTest extends TestCase
         $this->assertStringContainsString('KOP-PHPS', $pengajuan->nomor_dokumen);
         $this->assertNotNull($pengajuan->disetujui_pada);
 
+        $auditFinal = AuditLog::where('aksi', 'penghapusan_pinjaman_disetujui_final')->latest('id')->firstOrFail();
+        $this->assertGreaterThan(255, mb_strlen($auditFinal->keterangan));
+
         // Pinjaman & sisa angsuran berubah menjadi dihapusbukukan
         $this->assertSame('dihapusbukukan', $pinjaman->status);
         $this->assertSame(0, Angsuran::where('pinjaman_id', $pinjaman->id)->where('status', 'belum_bayar')->count());
         $this->assertSame(2, Angsuran::where('pinjaman_id', $pinjaman->id)->where('status', 'dihapusbukukan')->count());
 
-        // Opsi 4A: Anggota & user jadi nonaktif, tetapi simpanan tetap utuh mengendap
+        // Anggota nonaktif, simpanan tetap utuh mengendap
         $this->assertSame('nonaktif', $anggota->status);
         $this->assertSame('nonaktif', $anggota->user->fresh()->status);
         $this->assertEquals(300_000, (float) $anggota->simpanan()->sum('jumlah'));
 
-        // Opsi A: Saldo bank tidak terpotong 2 kali
+        // Saldo bank tidak terpotong 2 kali
         $this->assertEquals($saldoBankAwal, (float) KasKoperasi::first()->saldo_bank);
 
-        // Verifikasi Laporan Neraca setelah penghapusan:
-        // Piutang turun dari 800.000 menjadi 0; SHU turun dari 12.000 menjadi -788.000;
-        // Simpanan Pokok (100.000) & Wajib (200.000) tetap utuh; Neraca 100% SEIMBANG!
+        // Laporan Neraca tetap seimbang dan Laba Rugi mencatat Beban Penghapusan Rp 800.000
         $neracaAkhir = LaporanRegistry::ambil('neraca')['data'](request()->merge(['tanggal' => $hariIni]));
         $nilaiAkhir = fn (string $pos) => collect($neracaAkhir['rows'])->firstWhere(fn ($r) => $r[0] === $pos)[1];
 
@@ -291,54 +321,218 @@ class PenghapusanPinjamanTest extends TestCase
         $this->assertEquals(-788_000, $nilaiAkhir('Selisih Hasil Usaha'));
         $this->assertSame('Rp 0 — Seimbang', collect($neracaAkhir['ringkasan'])->firstWhere(fn ($r) => str_contains($r[0], 'Selisih'))[1]);
 
-        // Verifikasi Laporan Laba Rugi memuat Beban Penghapusan Pinjaman Rp 800.000
         $labaRugi = LaporanRegistry::ambil('laba-rugi')['data'](request()->merge(['tahun' => now()->year]));
         $barisBebanHapus = collect($labaRugi['rows'])->firstWhere(fn ($r) => $r[0] === 'Beban Penghapusan Pinjaman');
         $this->assertNotNull($barisBebanHapus);
         $this->assertEquals(800_000, end($barisBebanHapus));
     }
 
-    public function test_pengajuan_oleh_bendahara_langsung_masuk_ke_ketua(): void
+    public function test_penolakan_terus_ditagih_oleh_pengawas_3_2_atau_1_menghentikan_pengajuan_dan_pinjaman_tetap_aktif(): void
     {
-        [, $pinjaman] = $this->buatPinjamanMenunggak();
-
-        $this->loginSebagai('BEN-000001');
+        // 1. Ditolak oleh Pengawas 3 dengan alasan 'Terus ditagih' -> langsung ditolak & angsuran bisa dikonfirmasi lagi
+        [$anggotaA, $pinjamanA] = $this->buatPinjamanMenunggak('4');
+        $this->loginSebagai('KET-000001');
         $this->post(route('pengurus.penghapusan-pinjaman.store'), [
-            'pinjaman_id' => $pinjaman->id,
-            'alasan' => 'Diajukan langsung oleh Bendahara karena menunggak.',
+            'pinjaman_id' => $pinjamanA->id,
+            'alasan' => 'Usulan hapus pinjaman menunggak.',
+        ]);
+        $pengA = PengajuanPenghapusanPinjaman::where('pinjaman_id', $pinjamanA->id)->sole();
+
+        $this->loginSebagai('WAS-000003');
+        $this->post(route('pengurus.penghapusan-pinjaman.reject', $pengA), [
+            'catatan' => 'Terus ditagih',
         ])->assertRedirect(route('pengurus.penghapusan-pinjaman.index'));
 
-        $pengajuan = PengajuanPenghapusanPinjaman::where('pinjaman_id', $pinjaman->id)->sole();
-        $this->assertSame('approved_bendahara', $pengajuan->status);
-        $this->assertNotNull($pengajuan->approved_bendahara_at);
+        $this->assertSame('ditolak', $pengA->fresh()->status);
+        $this->assertSame('pengawas_3', $pengA->fresh()->tahap_ditolak);
+        $this->assertSame('Terus ditagih', $pengA->fresh()->catatan_tolak);
+        $this->assertSame('aktif', $pinjamanA->fresh()->status);
+        $this->assertSame('aktif', $anggotaA->fresh()->status);
+
+        // Pengawas 2 tidak dapat memproses pengajuan yang sudah ditolak Pengawas 3
+        $this->loginSebagai('WAS-000002');
+        $this->post(route('pengurus.penghapusan-pinjaman.approve', $pengA), [
+            'catatan' => 'Coba lanjut',
+        ])->assertSessionHasErrors('catatan');
+
+        // Karena pengajuan ditolak, angsuran pinjaman kembali terbuka untuk dikonfirmasi Bendahara
+        $cicilan2 = $pinjamanA->angsuran()->where('cicilan_ke', 2)->firstOrFail();
+        $this->loginSebagai('BEN-000001');
+        $this->post(route('bendahara.angsuran.konfirmasi'), [
+            'angsuran_ids' => ['n-'.$cicilan2->id],
+        ])->assertRedirect();
+        $this->assertSame('lunas', $cicilan2->fresh()->status);
+
+        // 2. Disetujui Pengawas 3 lalu ditolak Pengawas 2 dengan alasan 'Terus ditagih' -> langsung ditolak
+        [, $pinjamanB] = $this->buatPinjamanMenunggak('5');
+        $this->loginSebagai('KET-000001');
+        $this->post(route('pengurus.penghapusan-pinjaman.store'), [
+            'pinjaman_id' => $pinjamanB->id,
+            'alasan' => 'Usulan hapus tahap P2.',
+        ]);
+        $pengB = PengajuanPenghapusanPinjaman::where('pinjaman_id', $pinjamanB->id)->sole();
+
+        $this->loginSebagai('WAS-000003');
+        $this->post(route('pengurus.penghapusan-pinjaman.approve', $pengB), ['catatan' => 'Lanjut ke P2']);
+
+        $this->loginSebagai('WAS-000002');
+        $this->post(route('pengurus.penghapusan-pinjaman.reject', $pengB), [
+            'catatan' => 'Terus ditagih',
+        ])->assertRedirect(route('pengurus.penghapusan-pinjaman.index'));
+
+        $this->assertSame('ditolak', $pengB->fresh()->status);
+        $this->assertSame('pengawas_2', $pengB->fresh()->tahap_ditolak);
+        $this->assertSame('Terus ditagih', $pengB->fresh()->catatan_tolak);
+        $this->assertSame('aktif', $pinjamanB->fresh()->status);
+
+        // 3. Disetujui Pengawas 3 & Pengawas 2 lalu ditolak Pengawas 1 dengan alasan 'Terus ditagih' -> langsung ditolak
+        [$anggotaC, $pinjamanC] = $this->buatPinjamanMenunggak('6');
+        $this->loginSebagai('KET-000001');
+        $this->post(route('pengurus.penghapusan-pinjaman.store'), [
+            'pinjaman_id' => $pinjamanC->id,
+            'alasan' => 'Usulan hapus tahap P1.',
+        ]);
+        $pengC = PengajuanPenghapusanPinjaman::where('pinjaman_id', $pinjamanC->id)->sole();
+
+        $this->loginSebagai('WAS-000003');
+        $this->post(route('pengurus.penghapusan-pinjaman.approve', $pengC), ['catatan' => 'Lanjut ke P2']);
+        $this->loginSebagai('WAS-000002');
+        $this->post(route('pengurus.penghapusan-pinjaman.approve', $pengC), ['catatan' => 'Lanjut ke P1']);
+
+        $this->loginSebagai('WAS-000001');
+        $this->post(route('pengurus.penghapusan-pinjaman.reject', $pengC), [
+            'catatan' => 'Terus ditagih',
+        ])->assertRedirect(route('pengurus.penghapusan-pinjaman.index'));
+
+        $this->assertSame('ditolak', $pengC->fresh()->status);
+        $this->assertSame('pengawas_1', $pengC->fresh()->tahap_ditolak);
+        $this->assertSame('Terus ditagih', $pengC->fresh()->catatan_tolak);
+        $this->assertSame('aktif', $pinjamanC->fresh()->status);
+        $this->assertSame('aktif', $anggotaC->fresh()->status);
     }
 
-    public function test_penolakan_di_tengah_jenjang_menghentikan_proses_dan_pinjaman_tetap_aktif(): void
+    public function test_data_pinjaman_menunggak_filter_dan_penghapusan_pinjaman_milik_pengawas_tanpa_self_approve(): void
     {
-        [, $pinjaman] = $this->buatPinjamanMenunggak();
+        [, $pinjamanReguler] = $this->buatPinjamanMenunggak('7');
 
-        $this->loginSebagai('BEN-000001');
-        $this->post(route('pengurus.penghapusan-pinjaman.store'), [
-            'pinjaman_id' => $pinjaman->id,
-            'alasan' => 'Anggota menunggak lama.',
+        // Sekretaris bisa melihat filter ?status=menunggak namun tidak bisa mengajukan
+        $this->loginSebagai('ADM-000001');
+        $this->get(route('pinjaman.index', ['status' => 'menunggak']))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Pinjaman/Index')
+                ->where('statistik.menunggak', 1)
+                ->where('pinjaman.data.0.id', $pinjamanReguler->id)
+                ->where('pinjaman.data.0.bisa_ajukan_penghapusan', false)
+            );
+
+        // Ketua Koperasi & Super Admin memiliki hak ajukan penghapusan di Data Pinjaman
+        foreach (['KET-000001', 'SPADM-000001'] as $pengaju) {
+            $this->loginSebagai($pengaju);
+            $this->get(route('pinjaman.index', ['status' => 'menunggak']))
+                ->assertOk()
+                ->assertInertia(fn (AssertableInertia $page) => $page
+                    ->component('Pinjaman/Index')
+                    ->where('pinjaman.data.0.bisa_ajukan_penghapusan', true)
+                );
+        }
+
+        // Pinjaman menunggak milik Pengawas 3 (WAS-000003): tahap Pengawas 3 dilewati otomatis -> langsung ke Pengawas 2
+        $was3 = User::where('no_karyawan', 'WAS-000003')->firstOrFail();
+        $anggotaWas3 = Anggota::create([
+            'user_id' => $was3->id,
+            'no_anggota' => 'ANG-WAS3-001',
+            'no_karyawan' => 'WAS-000003',
+            'nama' => 'Pengawas 3 Macet',
+            'cabang' => 'Banjarmasin',
+            'unit_bisnis' => 'Pengawas',
+            'jabatan' => 'staff',
+            'tanggal_mulai_kerja' => now()->subYears(4),
+            'tanggal_jadi_anggota' => now()->subYears(3),
+            'status' => 'aktif',
+        ]);
+        $pinjamanWas3 = Pinjaman::create([
+            'anggota_id' => $anggotaWas3->id,
+            'pengaju_user_id' => $was3->id,
+            'nomor_dokumen' => '098/KOP-PJM/VIII/2026',
+            'nominal' => 500_000,
+            'tenor_bulan' => 2,
+            'persentase_bunga' => 1.0,
+            'status' => 'aktif',
+            'tanggal_pengajuan' => now()->subMonths(3),
+            'tanggal_pencairan' => now()->subMonths(3),
+        ]);
+        $pinjamanWas3->angsuran()->create([
+            'cicilan_ke' => 1,
+            'nominal_pokok' => 500_000,
+            'nominal_bunga' => 5_000,
+            'total_bayar' => 505_000,
+            'status' => 'belum_bayar',
+            'tanggal_jatuh_tempo' => now()->subMonth(),
         ]);
 
-        $pengajuan = PengajuanPenghapusanPinjaman::where('pinjaman_id', $pinjaman->id)->sole();
-
-        // Ketua setuju -> lanjut ke Pengawas 3
         $this->loginSebagai('KET-000001');
-        $this->post(route('pengurus.penghapusan-pinjaman.approve', $pengajuan), [
-            'catatan' => 'Setuju diteruskan ke pengawas.',
-        ]);
-
-        // Pengawas 3 menolak
-        $this->loginSebagai('WAS-000003');
-        $this->post(route('pengurus.penghapusan-pinjaman.reject', $pengajuan), [
-            'catatan' => 'Masih bisa ditagih lewat keluarga, tunda penghapusan.',
+        $this->post(route('pengurus.penghapusan-pinjaman.store'), [
+            'pinjaman_id' => $pinjamanWas3->id,
+            'alasan' => 'Pinjaman Pengawas 3 menunggak melewati jatuh tempo.',
         ])->assertRedirect(route('pengurus.penghapusan-pinjaman.index'));
 
-        $this->assertSame('ditolak', $pengajuan->fresh()->status);
-        $this->assertSame('pengawas_3', $pengajuan->fresh()->tahap_ditolak);
-        $this->assertSame('aktif', $pinjaman->fresh()->status);
+        $pengWas3 = PengajuanPenghapusanPinjaman::where('pinjaman_id', $pinjamanWas3->id)->sole();
+        $this->assertSame('approved_pengawas_3', $pengWas3->status);
+
+        // Pinjaman menunggak milik Pengawas 1 (WAS-000001): tahap Pengawas 1 dilewati dan final pada Pengawas 2
+        $was1 = User::where('no_karyawan', 'WAS-000001')->firstOrFail();
+        $anggotaWas1 = Anggota::create([
+            'user_id' => $was1->id,
+            'no_anggota' => 'ANG-WAS1-001',
+            'no_karyawan' => 'WAS-000001',
+            'nama' => 'Pengawas 1 Macet',
+            'cabang' => 'Banjarmasin',
+            'unit_bisnis' => 'Pengawas',
+            'jabatan' => 'hod',
+            'tanggal_mulai_kerja' => now()->subYears(5),
+            'tanggal_jadi_anggota' => now()->subYears(4),
+            'status' => 'aktif',
+        ]);
+        $pinjamanWas1 = Pinjaman::create([
+            'anggota_id' => $anggotaWas1->id,
+            'pengaju_user_id' => $was1->id,
+            'nomor_dokumen' => '099/KOP-PJM/VIII/2026',
+            'nominal' => 600_000,
+            'tenor_bulan' => 2,
+            'persentase_bunga' => 1.0,
+            'status' => 'aktif',
+            'tanggal_pengajuan' => now()->subMonths(3),
+            'tanggal_pencairan' => now()->subMonths(3),
+        ]);
+        $pinjamanWas1->angsuran()->create([
+            'cicilan_ke' => 1,
+            'nominal_pokok' => 600_000,
+            'nominal_bunga' => 6_000,
+            'total_bayar' => 606_000,
+            'status' => 'belum_bayar',
+            'tanggal_jatuh_tempo' => now()->subMonth(),
+        ]);
+
+        $this->loginSebagai('KET-000001');
+        $this->post(route('pengurus.penghapusan-pinjaman.store'), [
+            'pinjaman_id' => $pinjamanWas1->id,
+            'alasan' => 'Pinjaman Pengawas 1 menunggak melewati jatuh tempo.',
+        ])->assertRedirect(route('pengurus.penghapusan-pinjaman.index'));
+
+        $pengWas1 = PengajuanPenghapusanPinjaman::where('pinjaman_id', $pinjamanWas1->id)->sole();
+        $this->assertSame('diajukan', $pengWas1->status);
+
+        $this->loginSebagai('WAS-000003');
+        $this->post(route('pengurus.penghapusan-pinjaman.approve', $pengWas1), ['catatan' => 'Pengawas 3 setuju.']);
+
+        // Pengawas 2 langsung memfinalisasi tanpa meminta approval Pengawas 1 (pemilik pinjaman)
+        $this->loginSebagai('WAS-000002');
+        $this->post(route('pengurus.penghapusan-pinjaman.approve', $pengWas1), ['catatan' => 'Pengawas 2 setuju & final.'])
+            ->assertRedirect(route('pengurus.penghapusan-pinjaman.index'));
+
+        $this->assertSame('disetujui', $pengWas1->fresh()->status);
+        $this->assertSame('dihapusbukukan', $pinjamanWas1->fresh()->status);
+        $this->assertNull($pengWas1->fresh()->approved_pengawas_1_by);
     }
 }

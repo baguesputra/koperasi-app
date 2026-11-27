@@ -77,6 +77,8 @@ class AuditLog extends Model
         }
 
         $userIdFinal = $userId ?? Auth::id();
+        $aksi = mb_substr($aksi, 0, 255);
+        $keterangan = mb_substr($keterangan, 0, 65000);
 
         try {
             return self::create([
