@@ -7,7 +7,7 @@ import {
     LayoutDashboard, Users, PiggyBank, HeartHandshake,
     BookOpenText, HandCoins, ClipboardCheck,
     CalendarCheck, Wallet, Percent, FileBarChart,
-    ChevronLeft, ChevronRight, ChevronDown, Settings, LogOut,
+    ChevronLeft, ChevronRight, ChevronDown, Settings, LogOut, UserCheck,
 } from 'lucide-react';
 
 const STORAGE_KEY = 'sidebar-groups-state-v2';
@@ -149,6 +149,7 @@ export default function Sidebar({ collapsed = false, expanding = false, mobile =
     const [groupPrefs, setGroupPrefs] = useState(bacaPreferensiGrup);
     const tertutup = collapsed && !expanding;
     const userPermissions = auth.user?.permissions ?? [];
+    const bisaPortalAnggota = auth.user?.anggota_status === 'aktif' && userPermissions.includes('portal.akses');
     const bisaPengaturan = userPermissions.some((p) => PENGATURAN_PERMISSIONS.includes(p));
     const initial = auth.user?.name?.charAt(0)?.toUpperCase() ?? '?';
     const csrfToken = typeof document !== 'undefined'
@@ -172,7 +173,12 @@ export default function Sidebar({ collapsed = false, expanding = false, mobile =
         return itemOrPermission.permission === null || userPermissions.includes(itemOrPermission.permission);
     }
 
-    const visiblePinnedItems = pinnedItems.filter((item) => bisaAkses(item));
+    const visiblePinnedItems = [
+        ...pinnedItems.filter((item) => bisaAkses(item)),
+        ...(bisaPortalAnggota
+            ? [{ label: 'Portal Anggota', routeName: 'portal.dashboard', icon: UserCheck, activeRoutes: ['portal.*'] }]
+            : []),
+    ];
 
     const visibleGroups = menuGroups
         .map((group) => {

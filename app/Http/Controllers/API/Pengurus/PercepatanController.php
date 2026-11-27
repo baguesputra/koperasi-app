@@ -95,9 +95,16 @@ class PercepatanController extends Controller
             throw new RuntimeException('Anda tidak memiliki akses ke tahap verifikasi Bendahara.');
         }
 
-        $this->service->approveBendahara($pengajuan, $request->catatan);
+        $this->service->approveBendahara(
+            $pengajuan,
+            $request->catatan,
+            (int) $request->user()->id,
+            $request->input('bulan_berlaku')
+        );
 
-        return 'Pengajuan percepatan disetujui. Menunggu keputusan Ketua.';
+        return $pengajuan->fresh()->status === 'aktif'
+            ? 'Pengajuan percepatan disetujui dan jadwal baru telah diterapkan.'
+            : 'Pengajuan percepatan disetujui. Menunggu keputusan Ketua.';
     }
 
     private function approveKetua(Request $request, PengajuanPercepatan $pengajuan): string

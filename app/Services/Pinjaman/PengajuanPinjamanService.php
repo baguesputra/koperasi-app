@@ -77,14 +77,14 @@ class PengajuanPinjamanService
         }
 
         // Tentukan status awal berdasar peran pengaju (pengajuan mandiri pengurus).
-        [$statusAwal, $cairOlehBendahara, $catatanBendahara] = $this->statusAwalPengajuanMandiri($pengaju);
+        [$statusAwal, $cairOlehBendahara, $catatanBendahara, $catatanAdmin] = $this->statusAwalPengajuanMandiri($pengaju);
 
         // Tandai privilege reloan dipakai setiap ada angsuran berjalan (1x per siklus).
         // Flag ini dipakai aturan eligibilitas saat kuncian terbuka (sisa <= 1).
         // Jika sudah ada pinjaman aktif lain, update flag-nya juga.
         $pakaiPrivilegeReloan = $cekEligibilitas['sisa_angsuran'] > 0;
 
-        $pinjaman = DB::transaction(function () use ($pengaju, $anggota, $nominal, $tenorBulan, $keperluan, $rekening, $statusAwal, $cairOlehBendahara, $catatanBendahara, $pakaiPrivilegeReloan, $audit) {
+        $pinjaman = DB::transaction(function () use ($pengaju, $anggota, $nominal, $tenorBulan, $keperluan, $rekening, $statusAwal, $cairOlehBendahara, $catatanBendahara, $catatanAdmin, $pakaiPrivilegeReloan, $audit) {
             if ($pakaiPrivilegeReloan) {
                 Pinjaman::where('anggota_id', $anggota->id)
                     ->where('status', 'aktif')
@@ -107,6 +107,7 @@ class PengajuanPinjamanService
                 'persentase_bunga' => $this->bunga->persentaseBungaBerlaku(),
                 'status' => $statusAwal,
                 'cair_oleh_bendahara' => $cairOlehBendahara,
+                'catatan_admin' => $catatanAdmin,
                 'catatan_bendahara' => $catatanBendahara,
                 'sudah_pakai_privilege_reloan' => false,
                 'tanggal_pengajuan' => now(),
@@ -171,23 +172,28 @@ class PengajuanPinjamanService
 
     /**
      * Status awal saat pengurus mengajukan pinjaman untuk dirinya sendiri.
-     * Semua pengajuan lewat Admin dulu (approved_admin), termasuk mandiri:
-     * - Bendahara: tahap Bendahara dilewati otomatis saat Admin meneruskan
-     *   (agar tak self-approve), tinggal menunggu approval Ketua.
+     * - Sekretaris: langsung approved_admin agar tidak memverifikasi dirinya sendiri,
+     *   diteruskan ke Bendahara -> Ketua -> Pencairan Bendahara.
+     * - Bendahara: lewat Sekretaris dulu lalu tahap Bendahara dilewati otomatis
+     *   saat Sekretaris meneruskan (agar tak self-approve), tinggal menunggu Ketua.
      * - Ketua: perlu pemeriksaan & pencairan Bendahara (bukan self-approve).
-     * - Lainnya (anggota): alur normal admin → bendahara → ketua.
+     * - Lainnya (anggota / pengawas): alur normal admin → bendahara → ketua.
      */
     private function statusAwalPengajuanMandiri(User $pengaju): array
     {
+        if ($pengaju->hasRole('sekretaris') && ! $pengaju->hasAnyRole(['bendahara', 'ketua_koperasi'])) {
+            return ['approved_admin', false, null, 'Diajukan mandiri oleh Sekretaris'];
+        }
+
         if ($pengaju->hasRole('bendahara')) {
-            return ['diajukan', false, 'Diajukan mandiri oleh Bendahara'];
+            return ['diajukan', false, 'Diajukan mandiri oleh Bendahara', null];
         }
 
         if ($pengaju->hasRole('ketua_koperasi')) {
-            return ['diajukan', true, null];
+            return ['diajukan', true, null, null];
         }
 
-        return ['diajukan', false, null];
+        return ['diajukan', false, null, null];
     }
 
     /**

@@ -14,8 +14,18 @@ class PercepatanPinjamanService
 {
     public function __construct(private EligibilitasPinjamanService $eligibilitas) {}
 
+    private function tolakBilaSelfApproval(PengajuanPercepatan $pengajuan, ?int $aktorId = null): void
+    {
+        $aktorId ??= auth()->id();
+        $pengajuan->loadMissing('pinjaman.anggota');
+        if ($aktorId !== null && $pengajuan->pinjaman?->anggota?->user_id !== null && (int) $pengajuan->pinjaman->anggota->user_id === (int) $aktorId) {
+            throw new RuntimeException('Anda tidak dapat memproses pengajuan perubahan tenor milik sendiri.');
+        }
+    }
+
     public function ajukan(Pinjaman $pinjaman, string $tipe, ?int $tenorBaru, string $keterangan): PengajuanPercepatan
     {
+        $pinjaman->loadMissing('anggota.user');
         $adaPinjamanBerjalan = $pinjaman->anggota->pinjaman()
             ->whereIn('status', ['diajukan', 'approved_admin', 'approved_bendahara'])
             ->exists();
@@ -45,19 +55,25 @@ class PercepatanPinjamanService
             }
         }
 
+        $mandiriBendahara = $pinjaman->anggota?->user?->hasRole('bendahara')
+            && ! $pinjaman->anggota->user->hasRole('ketua_koperasi');
+        $statusAwal = $mandiriBendahara ? 'approved_bendahara' : 'diajukan';
+
         $pengajuan = PengajuanPercepatan::create([
             'pinjaman_id' => $pinjaman->id,
             'tipe' => $tipe,
             'tenor_lama' => $pinjaman->tenor_bulan,
             'tenor_baru' => in_array($tipe, ['percepat', 'perpanjang']) ? $tenorBaru : null,
             'keterangan' => $keterangan,
-            'status' => 'diajukan',
+            'status' => $statusAwal,
+            'catatan_bendahara' => $mandiriBendahara ? 'Diajukan mandiri oleh Bendahara' : null,
             'tanggal_pengajuan' => now(),
         ]);
 
         AuditLog::catat(
             aksi: 'percepatan_diajukan',
-            keterangan: 'Pengajuan perubahan tenor '.self::labelTipe($tipe)." untuk pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) diajukan. Nominal pinjaman: ".WaPesan::rupiah($pinjaman->nominal),
+            keterangan: 'Pengajuan perubahan tenor '.self::labelTipe($tipe)." untuk pinjaman #{$pinjaman->id} ({$pinjaman->anggota->nama}) diajukan. Nominal pinjaman: ".WaPesan::rupiah($pinjaman->nominal)
+                .($mandiriBendahara ? ' (pengajuan mandiri Bendahara: langsung ke Ketua).' : ''),
             dataLama: null,
             dataBaru: [
                 'pengajuan_id' => $pengajuan->id,
@@ -66,7 +82,7 @@ class PercepatanPinjamanService
                 'tenor_lama' => $pinjaman->tenor_bulan,
                 'tenor_baru' => $tenorBaru,
                 'keterangan' => $keterangan,
-                'status' => 'diajukan',
+                'status' => $statusAwal,
             ]
         );
 
@@ -148,8 +164,29 @@ class PercepatanPinjamanService
         return ['sisa_pokok' => $sisaPokok, 'jadwal' => $jadwal];
     }
 
-    public function approveBendahara(PengajuanPercepatan $p, string $catatan): void
+    public function approveBendahara(PengajuanPercepatan $p, string $catatan, ?int $aktorId = null, ?string $bulanBerlaku = null): void
     {
+        $this->tolakBilaSelfApproval($p, $aktorId);
+
+        if ($p->status !== 'diajukan') {
+            throw new RuntimeException('Hanya pengajuan berstatus Diajukan yang dapat diverifikasi Bendahara.');
+        }
+
+        $p->loadMissing('pinjaman.anggota.user');
+        $mandiriKetua = $p->pinjaman?->anggota?->user?->hasRole('ketua_koperasi') ?? false;
+
+        if ($mandiriKetua) {
+            $bulanFinal = $bulanBerlaku ?? ($p->tipe === 'lunas_total' ? 'bulan_ini' : 'bulan_depan');
+            $this->terapkanJadwalFinal(
+                $p,
+                'Disetujui tanpa self-approval Ketua (diverifikasi Bendahara)',
+                $bulanFinal,
+                $catatan
+            );
+
+            return;
+        }
+
         $statusLama = $p->status;
         $p->update(['status' => 'approved_bendahara', 'catatan_bendahara' => $catatan]);
 
@@ -161,8 +198,14 @@ class PercepatanPinjamanService
         );
     }
 
-    public function rejectBendahara(PengajuanPercepatan $p, string $catatan): void
+    public function rejectBendahara(PengajuanPercepatan $p, string $catatan, ?int $aktorId = null): void
     {
+        $this->tolakBilaSelfApproval($p, $aktorId);
+
+        if ($p->status !== 'diajukan') {
+            throw new RuntimeException('Hanya pengajuan berstatus Diajukan yang dapat ditolak Bendahara.');
+        }
+
         $statusLama = $p->status;
         $p->update(['status' => 'ditolak', 'catatan_bendahara' => $catatan]);
 
@@ -180,8 +223,14 @@ class PercepatanPinjamanService
         );
     }
 
-    public function rejectKetua(PengajuanPercepatan $p, string $catatan): void
+    public function rejectKetua(PengajuanPercepatan $p, string $catatan, ?int $aktorId = null): void
     {
+        $this->tolakBilaSelfApproval($p, $aktorId);
+
+        if ($p->status !== 'approved_bendahara') {
+            throw new RuntimeException('Hanya pengajuan berstatus Disetujui Bendahara yang dapat ditolak Ketua.');
+        }
+
         $statusLama = $p->status;
         $p->update(['status' => 'ditolak', 'catatan_ketua' => $catatan]);
 
@@ -199,10 +248,25 @@ class PercepatanPinjamanService
         );
     }
 
-    public function approveKetua(PengajuanPercepatan $pengajuan, string $catatan, string $bulanBerlaku): void
+    public function approveKetua(PengajuanPercepatan $pengajuan, string $catatan, string $bulanBerlaku, ?int $aktorId = null): void
     {
+        $this->tolakBilaSelfApproval($pengajuan, $aktorId);
+
+        if ($pengajuan->status !== 'approved_bendahara') {
+            throw new RuntimeException('Hanya pengajuan berstatus Disetujui Bendahara yang dapat disetujui Ketua.');
+        }
+
+        $this->terapkanJadwalFinal($pengajuan, $catatan, $bulanBerlaku);
+    }
+
+    private function terapkanJadwalFinal(
+        PengajuanPercepatan $pengajuan,
+        string $catatanKetua,
+        string $bulanBerlaku,
+        ?string $catatanBendaharaOverride = null,
+    ): void {
         $statusLama = $pengajuan->status;
-        DB::transaction(function () use ($pengajuan, $catatan, $bulanBerlaku) {
+        DB::transaction(function () use ($pengajuan, $catatanKetua, $bulanBerlaku, $catatanBendaharaOverride) {
             $pinjaman = $pengajuan->pinjaman;
 
             $semuaBelumBayar = $pinjaman->angsuran()
@@ -232,12 +296,16 @@ class PercepatanPinjamanService
                 $angsuran->update(['status' => 'digantikan', 'pengajuan_percepatan_id' => $pengajuan->id]);
             }
 
-            $pengajuan->update([
+            $payload = [
                 'status' => 'aktif',
-                'catatan_ketua' => $catatan,
+                'catatan_ketua' => $catatanKetua,
                 'bulan_berlaku' => $bulanBerlaku,
                 'sisa_pokok_saat_approval' => $sisaPokok,
-            ]);
+            ];
+            if ($catatanBendaharaOverride !== null) {
+                $payload['catatan_bendahara'] = $catatanBendaharaOverride;
+            }
+            $pengajuan->update($payload);
 
             $tanggalMulai = $bulanBerlaku === 'bulan_ini' ? now() : now()->addMonthNoOverflow();
             $persentase = (float) $pinjaman->persentase_bunga / 100;
@@ -285,11 +353,11 @@ class PercepatanPinjamanService
 
         AuditLog::catat(
             aksi: 'percepatan_setujui_ketua',
-            keterangan: "Pengajuan percepatan #{$pengajuan->id} (pinjaman #{$pengajuan->pinjaman->id}) disetujui oleh Ketua. Jenis: ".self::labelTipe($pengajuan->tipe).", berlaku: {$bulanBerlaku}",
+            keterangan: "Pengajuan percepatan #{$pengajuan->id} (pinjaman #{$pengajuan->pinjaman->id}) disetujui. Jenis: ".self::labelTipe($pengajuan->tipe).", berlaku: {$bulanBerlaku}",
             dataLama: ['status' => $statusLama],
             dataBaru: [
                 'status' => 'aktif',
-                'catatan_ketua' => $catatan,
+                'catatan_ketua' => $catatanKetua,
                 'bulan_berlaku' => $bulanBerlaku,
                 'sisa_pokok_saat_approval' => $pengajuan->fresh()->sisa_pokok_saat_approval,
                 'nominal_final' => $pengajuan->fresh()->nominal_final,
@@ -298,8 +366,8 @@ class PercepatanPinjamanService
 
         $labelBulan = $bulanBerlaku === 'bulan_ini' ? 'bulan ini ('.now()->translatedFormat('F Y').')' : 'bulan depan ('.now()->addMonthNoOverflow()->translatedFormat('F Y').')';
         $isi = 'Selamat! Pengajuan '.self::labelTipe($pengajuan->tipe)." Anda untuk pinjaman #{$pengajuan->pinjaman->id} ("
-            .WaPesan::rupiah($pengajuan->pinjaman->nominal).") telah *DISETUJUI* oleh Ketua dan berlaku mulai {$labelBulan}."
-            .($catatan ? "\n\nCatatan: {$catatan}" : '')
+            .WaPesan::rupiah($pengajuan->pinjaman->nominal).") telah *DISETUJUI* dan berlaku mulai {$labelBulan}."
+            .($catatanKetua ? "\n\nCatatan: {$catatanKetua}" : '')
             ."\n\nJadwal angsuran terbaru dapat dilihat pada sistem koperasi. Terima kasih.";
 
         WaService::keAnggota(

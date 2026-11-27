@@ -154,6 +154,25 @@ class TabunganController extends Controller
     {
         $request->validate(['catatan' => ['nullable', 'string', 'max:255']]);
 
+        if ($pengajuan->jenis === 'setor') {
+            $pengajuan->loadMissing('anggota.user');
+            if (! $pengajuan->anggota?->user?->hasRole('bendahara')) {
+                return back()->withErrors(['aksi' => 'Setoran anggota umum diverifikasi melalui Bendahara.']);
+            }
+
+            try {
+                $trx = $this->transaksiService->setujuiSetor(
+                    pengajuan: $pengajuan,
+                    catatan: $request->input('catatan'),
+                    aktorId: $request->user()->id,
+                );
+            } catch (RuntimeException $e) {
+                return back()->withErrors(['aksi' => $e->getMessage()]);
+            }
+
+            return back()->with('status', "Setoran tabungan Bendahara berhasil diverifikasi ({$trx->no_bukti}).");
+        }
+
         try {
             $this->transaksiService->approveKetuaTarik(
                 pengajuan: $pengajuan,
@@ -171,17 +190,24 @@ class TabunganController extends Controller
     {
         $request->validate(['catatan' => ['required', 'string', 'min:3', 'max:255']]);
 
+        if ($pengajuan->jenis === 'setor') {
+            $pengajuan->loadMissing('anggota.user');
+            if (! $pengajuan->anggota?->user?->hasRole('bendahara')) {
+                return back()->withErrors(['catatan' => 'Setoran anggota umum ditolak melalui Bendahara.']);
+            }
+        }
+
         try {
             $this->transaksiService->tolakPengajuan(
                 pengajuan: $pengajuan,
                 catatan: (string) $request->input('catatan'),
                 aktorId: $request->user()->id,
-                tahap: 'ketua',
+                tahap: $pengajuan->jenis === 'setor' ? null : 'ketua',
             );
         } catch (RuntimeException $e) {
             return back()->withErrors(['catatan' => $e->getMessage()]);
         }
 
-        return back()->with('status', 'Pengajuan penarikan tabungan telah ditolak Ketua Koperasi.');
+        return back()->with('status', 'Pengajuan transaksi tabungan telah ditolak Ketua Koperasi.');
     }
 }

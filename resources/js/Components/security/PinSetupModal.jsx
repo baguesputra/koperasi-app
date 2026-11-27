@@ -45,9 +45,13 @@ export default function PinSetupModal() {
                     sessionStorage.setItem('screen_locked', '0');
                 }
 
+                const tujuanRoute = user?.roles?.includes('anggota') && user?.anggota_status
+                    ? 'portal.dashboard'
+                    : 'dashboard';
+
                 // Tampilkan konfirmasi sukses sejenak agar user mendapat kepastian, lalu alihkan bersih ke dashboard
                 setTimeout(() => {
-                    window.location.href = route('portal.dashboard', undefined, false);
+                    window.location.href = route(tujuanRoute, undefined, false);
                 }, 800);
             }
         } catch (err) {

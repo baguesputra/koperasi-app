@@ -8,6 +8,7 @@ use App\Models\PengajuanPercepatan;
 use App\Services\Pinjaman\PercepatanPinjamanService;
 use Inertia\Inertia;
 use Inertia\Response;
+use RuntimeException;
 
 class PercepatanController extends Controller
 {
@@ -53,14 +54,31 @@ class PercepatanController extends Controller
 
     public function approve(KeputusanPinjamanRequest $request, PengajuanPercepatan $percepatan)
     {
-        $this->service->approveBendahara($percepatan, $request->catatan);
+        try {
+            $this->service->approveBendahara(
+                $percepatan,
+                $request->catatan,
+                auth()->id(),
+                $request->input('bulan_berlaku')
+            );
+        } catch (RuntimeException $e) {
+            return back()->withErrors(['keputusan' => $e->getMessage()]);
+        }
 
-        return $this->redirectSetelahAksi($request, 'bendahara.percepatan.index', 'Pengajuan disetujui, diteruskan ke Ketua.');
+        $pesan = $percepatan->fresh()->status === 'aktif'
+            ? 'Pengajuan perubahan tenor mandiri Ketua disetujui dan jadwal baru langsung diterapkan.'
+            : 'Pengajuan disetujui, diteruskan ke Ketua.';
+
+        return $this->redirectSetelahAksi($request, 'bendahara.percepatan.index', $pesan);
     }
 
     public function reject(KeputusanPinjamanRequest $request, PengajuanPercepatan $percepatan)
     {
-        $this->service->rejectBendahara($percepatan, $request->catatan);
+        try {
+            $this->service->rejectBendahara($percepatan, $request->catatan, auth()->id());
+        } catch (RuntimeException $e) {
+            return back()->withErrors(['keputusan' => $e->getMessage()]);
+        }
 
         return $this->redirectSetelahAksi($request, 'bendahara.percepatan.index', 'Pengajuan ditolak.');
     }

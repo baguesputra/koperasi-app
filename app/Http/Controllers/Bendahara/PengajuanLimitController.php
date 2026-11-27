@@ -50,22 +50,31 @@ class PengajuanLimitController extends Controller
     public function approve(KeputusanLimitRequest $request, PengajuanLimit $pengajuanLimit)
     {
         try {
-            $this->service->approveBendahara($pengajuanLimit, (float) $request->limit_disetujui, $request->catatan);
+            $this->service->approveBendahara(
+                $pengajuanLimit,
+                (float) $request->limit_disetujui,
+                $request->catatan,
+                auth()->id()
+            );
         } catch (RuntimeException $e) {
             return back()->withErrors(['keputusan' => $e->getMessage()]);
         }
 
+        $pesan = $pengajuanLimit->fresh()->status === 'disetujui'
+            ? 'Pengajuan limit mandiri Ketua disetujui dan langsung berlaku.'
+            : 'Pengajuan limit disetujui dan diteruskan ke Ketua.';
+
         return $this->redirectSetelahAksi(
             $request,
             'bendahara.pengajuan-limit.index',
-            'Pengajuan limit disetujui dan diteruskan ke Ketua.'
+            $pesan
         );
     }
 
     public function reject(KeputusanLimitRequest $request, PengajuanLimit $pengajuanLimit)
     {
         try {
-            $this->service->rejectBendahara($pengajuanLimit, $request->catatan);
+            $this->service->rejectBendahara($pengajuanLimit, $request->catatan, auth()->id());
         } catch (RuntimeException $e) {
             return back()->withErrors(['keputusan' => $e->getMessage()]);
         }

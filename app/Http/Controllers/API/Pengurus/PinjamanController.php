@@ -180,7 +180,13 @@ class PinjamanController extends Controller
             'bukti_pencairan' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
         ]);
 
-        $this->tolakBilaSelfApproval($request, $pinjaman);
+        $bolehCairMandiriBendahara = $pinjaman->status === 'approved_ketua'
+            && ! $pinjaman->cair_oleh_bendahara
+            && $pinjaman->disetujui_ketua_pada !== null;
+
+        if (! $bolehCairMandiriBendahara) {
+            $this->tolakBilaSelfApproval($request, $pinjaman);
+        }
 
         $nominal = $request->nominal !== null ? (float) $request->nominal : null;
         $tenor = $request->tenor_bulan !== null ? (int) $request->tenor_bulan : null;
@@ -272,7 +278,13 @@ class PinjamanController extends Controller
             'catatan' => ['required', 'string', 'min:5', 'max:500'],
         ]);
 
-        $this->tolakBilaSelfApproval($request, $pinjaman);
+        $bolehCairMandiriBendahara = $pinjaman->status === 'approved_ketua'
+            && ! $pinjaman->cair_oleh_bendahara
+            && $pinjaman->disetujui_ketua_pada !== null;
+
+        if (! $bolehCairMandiriBendahara) {
+            $this->tolakBilaSelfApproval($request, $pinjaman);
+        }
 
         try {
             $pesan = match ($pinjaman->status) {

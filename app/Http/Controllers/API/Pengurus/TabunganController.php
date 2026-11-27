@@ -125,7 +125,13 @@ class TabunganController extends Controller
         $catatan = $request->input('catatan');
 
         if ($pengajuan->jenis === 'setor') {
-            if (! $user->can('tabungan.kelola') && ! $user->can('tabungan.tinjau-bendahara')) {
+            $pengajuan->loadMissing('anggota.user');
+            $milikBendahara = $pengajuan->anggota?->user?->hasRole('bendahara') ?? false;
+            $izinSetor = $user->can('tabungan.kelola')
+                || $user->can('tabungan.tinjau-bendahara')
+                || ($milikBendahara && $user->can('tabungan.approve-ketua'));
+
+            if (! $izinSetor) {
                 abort(response()->json(['message' => 'Anda tidak memiliki akses verifikasi setoran tabungan.'], 403));
             }
 
@@ -238,7 +244,13 @@ class TabunganController extends Controller
         $user = $request->user();
 
         if ($pengajuan->jenis === 'setor') {
-            if (! $user->can('tabungan.kelola') && ! $user->can('tabungan.tinjau-bendahara')) {
+            $pengajuan->loadMissing('anggota.user');
+            $milikBendahara = $pengajuan->anggota?->user?->hasRole('bendahara') ?? false;
+            $izinTolakSetor = $user->can('tabungan.kelola')
+                || $user->can('tabungan.tinjau-bendahara')
+                || ($milikBendahara && $user->can('tabungan.approve-ketua'));
+
+            if (! $izinTolakSetor) {
                 abort(response()->json(['message' => 'Anda tidak memiliki akses menolak setoran tabungan.'], 403));
             }
             $tahap = null;

@@ -1,5 +1,5 @@
 import AppLayout from '@/Layouts/AppLayout';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import {
     User, Building2, CalendarDays, Phone, MapPin,
     ArrowUpRight, PiggyBank, HandCoins,
@@ -38,10 +38,12 @@ function ItemInfo({ ikon: Icon, label, value }) {
 }
 
 export default function Edit({ pengguna, ringkasan }) {
+    const { auth } = usePage().props;
     const inisial = pengguna?.name?.charAt(0)?.toUpperCase() ?? '?';
     const a = pengguna?.anggota;
     const roles = pengguna?.roles ?? [];
     const isPengurus = roles.some((r) => ['super_admin', 'sekretaris', 'admin', 'bendahara', 'ketua_koperasi', 'pengawas'].includes(r));
+    const canBukaPortal = isPengurus && Boolean(a) && (auth?.user?.permissions ?? []).includes('portal.akses');
 
     return (
         <AppLayout>
@@ -91,7 +93,7 @@ export default function Edit({ pengguna, ringkasan }) {
                         </div>
                     </div>
 
-                    {isPengurus && (
+                    {canBukaPortal && (
                         <Link
                             href={route('portal.dashboard')}
                             className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-brand-navy bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors shrink-0"

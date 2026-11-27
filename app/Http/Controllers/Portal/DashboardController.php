@@ -28,6 +28,8 @@ class DashboardController extends Controller
     {
         $anggota = auth()->user()->anggota;
 
+        abort_if(! $anggota, 403, 'Akun Anda belum terdaftar sebagai anggota koperasi.');
+
         $simpananAgg = $anggota->simpanan()
             ->selectRaw('
                 SUM(CASE WHEN jenis IN ("pokok","wajib") THEN jumlah ELSE 0 END) as total,

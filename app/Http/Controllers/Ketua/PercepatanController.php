@@ -8,6 +8,7 @@ use App\Services\Pinjaman\PercepatanPinjamanService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use RuntimeException;
 
 class PercepatanController extends Controller
 {
@@ -58,7 +59,11 @@ class PercepatanController extends Controller
             'bulan_berlaku' => ['required', 'in:bulan_ini,bulan_depan'],
         ]);
 
-        $this->service->approveKetua($percepatan, $request->catatan, $request->bulan_berlaku);
+        try {
+            $this->service->approveKetua($percepatan, $request->catatan, $request->bulan_berlaku, auth()->id());
+        } catch (RuntimeException $e) {
+            return back()->withErrors(['keputusan' => $e->getMessage()]);
+        }
 
         return $this->redirectSetelahAksi($request, 'ketua.percepatan.index', 'Pengajuan disetujui dan diterapkan.');
     }
@@ -67,7 +72,11 @@ class PercepatanController extends Controller
     {
         $request->validate(['catatan' => ['required', 'string', 'min:5', 'max:500']]);
 
-        $this->service->rejectKetua($percepatan, $request->catatan);
+        try {
+            $this->service->rejectKetua($percepatan, $request->catatan, auth()->id());
+        } catch (RuntimeException $e) {
+            return back()->withErrors(['keputusan' => $e->getMessage()]);
+        }
 
         return $this->redirectSetelahAksi($request, 'ketua.percepatan.index', 'Pengajuan ditolak.');
     }

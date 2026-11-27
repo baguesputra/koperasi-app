@@ -21,12 +21,24 @@ class AnggotaSeeder extends Seeder
     }
 
     /**
-     * Buat record anggota untuk pengurus (Bendahara & Ketua) supaya mereka
-     * bisa mengajukan pinjaman mandiri lewat portal yang sama dengan anggota.
+     * Buat record anggota untuk pengurus & badan pengawas supaya mereka
+     * bisa mengakses Portal Anggota dan mengajukan pinjaman mandiri.
      */
     private function seedPengurus(): void
     {
         $data = [
+            [
+                'no_karyawan_user' => 'ADM-000001',
+                'no_anggota' => 'ANG-2020-0002',
+                'nama' => 'Sekretaris Koperasi',
+                'cabang' => 'Banjarmasin',
+                'unit_bisnis' => 'Operasional',
+                'department' => 'Sekretariat',
+                'divisi' => 'Administrasi',
+                'jabatan' => 'staff',
+                'tanggal_mulai_kerja' => now()->subYears(6),
+                'tanggal_jadi_anggota' => now()->subYears(5), // >= 5 tahun
+            ],
             [
                 'no_karyawan_user' => 'BEN-000001',
                 'no_anggota' => 'ANG-2020-0001',
@@ -50,6 +62,42 @@ class AnggotaSeeder extends Seeder
                 'jabatan' => 'hod',
                 'tanggal_mulai_kerja' => now()->subYears(10),
                 'tanggal_jadi_anggota' => now()->subYears(9), // >= 5 tahun
+            ],
+            [
+                'no_karyawan_user' => 'WAS-000001',
+                'no_anggota' => 'ANG-2020-0011',
+                'nama' => 'Pengawas 1 Koperasi',
+                'cabang' => 'Banjarmasin',
+                'unit_bisnis' => 'Pengawas',
+                'department' => 'Audit & Pengawasan',
+                'divisi' => 'Pengawas',
+                'jabatan' => 'hod',
+                'tanggal_mulai_kerja' => now()->subYears(8),
+                'tanggal_jadi_anggota' => now()->subYears(6), // >= 5 tahun
+            ],
+            [
+                'no_karyawan_user' => 'WAS-000002',
+                'no_anggota' => 'ANG-2020-0012',
+                'nama' => 'Pengawas 2 Koperasi',
+                'cabang' => 'Banjarmasin',
+                'unit_bisnis' => 'Pengawas',
+                'department' => 'Audit & Pengawasan',
+                'divisi' => 'Pengawas',
+                'jabatan' => 'staff',
+                'tanggal_mulai_kerja' => now()->subYears(6),
+                'tanggal_jadi_anggota' => now()->subYears(4), // >= 1 tahun
+            ],
+            [
+                'no_karyawan_user' => 'WAS-000003',
+                'no_anggota' => 'ANG-2020-0013',
+                'nama' => 'Pengawas 3 Koperasi',
+                'cabang' => 'Banjarmasin',
+                'unit_bisnis' => 'Pengawas',
+                'department' => 'Audit & Pengawasan',
+                'divisi' => 'Pengawas',
+                'jabatan' => 'staff',
+                'tanggal_mulai_kerja' => now()->subYears(5),
+                'tanggal_jadi_anggota' => now()->subYears(3), // >= 1 tahun
             ],
         ];
 

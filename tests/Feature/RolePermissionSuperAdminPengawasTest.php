@@ -130,10 +130,40 @@ class RolePermissionSuperAdminPengawasTest extends TestCase
         $this->get(route('laporan.pdf', 'arus-kas'))->assertOk();
         $this->get(route('pengurus.penghapusan-pinjaman.index'))->assertOk();
 
-        // Portal anggota boleh diakses jika Pengawas memiliki profil anggota aktif (jika belum ada, minimal route terotentikasi tidak ditolak oleh permission)
+        // Portal anggota boleh diakses jika Pengawas memiliki profil anggota aktif;
+        // jika belum memiliki profil anggota, diarahkan aman ke dashboard tanpa error 500.
         if ($pengawas->anggota) {
             $this->get(route('portal.dashboard'))->assertOk();
+
+            $pinjamanSendiri = Pinjaman::create([
+                'anggota_id' => $pengawas->anggota->id,
+                'pengaju_user_id' => $pengawas->id,
+                'nominal' => 500_000,
+                'tenor_bulan' => 2,
+                'persentase_bunga' => 1.0,
+                'keperluan' => 'Tes cetak bukti milik sendiri',
+                'snapshot_bank' => 'BCA',
+                'snapshot_no_rekening' => '123456',
+                'snapshot_atas_nama' => $pengawas->name,
+                'status' => 'aktif',
+                'tanggal_pengajuan' => now(),
+                'tanggal_pencairan' => now(),
+            ]);
+
+            // Pengawas BOLEH cetak bukti pinjamannya sendiri, namun DILARANG cetak bukti anggota lain
+            $this->get(route('pinjaman.cetak-bukti', $pinjamanSendiri->id))->assertOk();
+        } else {
+            $this->get(route('portal.dashboard'))->assertRedirect(route('dashboard'));
+            $this->postJson(route('portal.pinjaman.simulasi'), ['nominal' => 1_000_000, 'tenor_bulan' => 3])->assertForbidden();
         }
+
+        // Pengawas non-anggota (tanpa relasi anggota) tetap diarahkan aman ke dashboard tanpa error 500
+        $pengawasNonAnggota = User::factory()->create(['no_karyawan' => 'WAS-NON-001']);
+        $pengawasNonAnggota->assignRole('pengawas');
+        $this->actingAs($pengawasNonAnggota);
+        $this->get(route('portal.dashboard'))->assertRedirect(route('dashboard'));
+        $this->postJson(route('portal.pinjaman.simulasi'), ['nominal' => 1_000_000, 'tenor_bulan' => 3])->assertForbidden();
+        $this->actingAs($pengawas);
 
         $shu = ShuPeriode::create([
             'tahun_buku' => 2026,

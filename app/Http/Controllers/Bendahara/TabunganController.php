@@ -183,7 +183,7 @@ class TabunganController extends Controller
         $request->validate(['catatan' => ['nullable', 'string', 'max:255']]);
 
         try {
-            $this->rekeningService->approveBendaharaBuka(
+            $hasil = $this->rekeningService->approveBendaharaBuka(
                 rekening: $rekening,
                 catatan: $request->input('catatan'),
                 aktorId: $request->user()->id,
@@ -192,7 +192,12 @@ class TabunganController extends Controller
             return back()->withErrors(['aksi' => $e->getMessage()]);
         }
 
-        return back()->with('status', 'Tinjauan Bendahara selesai. Pengajuan pembukaan rekening diteruskan ke Ketua Koperasi.');
+        return back()->with(
+            'status',
+            $hasil->status === 'aktif'
+                ? "Rekening tabungan {$hasil->no_rekening} disetujui Bendahara dan langsung aktif."
+                : 'Tinjauan Bendahara selesai. Pengajuan pembukaan rekening diteruskan ke Ketua Koperasi.'
+        );
     }
 
     public function tolakBuka(Request $request, RekeningTabungan $rekening): RedirectResponse
@@ -234,7 +239,7 @@ class TabunganController extends Controller
         $request->validate(['catatan' => ['nullable', 'string', 'max:255']]);
 
         try {
-            $this->transaksiService->approveBendaharaTarik(
+            $hasil = $this->transaksiService->approveBendaharaTarik(
                 pengajuan: $pengajuan,
                 catatan: $request->input('catatan'),
                 aktorId: $request->user()->id,
@@ -243,7 +248,12 @@ class TabunganController extends Controller
             return back()->withErrors(['aksi' => $e->getMessage()]);
         }
 
-        return back()->with('status', 'Tinjauan Bendahara selesai. Pengajuan penarikan diteruskan ke Ketua Koperasi.');
+        return back()->with(
+            'status',
+            $hasil->status === 'approved_ketua'
+                ? 'Tinjauan Bendahara selesai. Penarikan mandiri Ketua siap dicairkan pada tab Pencairan.'
+                : 'Tinjauan Bendahara selesai. Pengajuan penarikan diteruskan ke Ketua Koperasi.'
+        );
     }
 
     public function cairPengajuan(Request $request, PengajuanTransaksiTabungan $pengajuan): RedirectResponse

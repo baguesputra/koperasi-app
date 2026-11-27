@@ -13,8 +13,18 @@ class PengajuanLimitService
 {
     public function __construct(private EligibilitasPinjamanService $eligibilitas) {}
 
+    private function tolakBilaSelfApproval(PengajuanLimit $pengajuan, ?int $aktorId = null): void
+    {
+        $aktorId ??= auth()->id();
+        $pengajuan->loadMissing('anggota');
+        if ($aktorId !== null && $pengajuan->anggota?->user_id !== null && (int) $pengajuan->anggota->user_id === (int) $aktorId) {
+            throw new RuntimeException('Anda tidak dapat memproses pengajuan limit milik sendiri.');
+        }
+    }
+
     public function ajukan(Anggota $anggota, float $limitDiminta, string $keterangan): PengajuanLimit
     {
+        $anggota->loadMissing('user');
         $cek = $this->eligibilitas->cekEligibilitasTambahLimit($anggota);
         if (! $cek['boleh']) {
             throw new RuntimeException($cek['alasan']);
@@ -31,18 +41,24 @@ class PengajuanLimitService
             throw new RuntimeException('Nominal yang diajukan melebihi batas kebijakan koperasi.');
         }
 
+        $mandiriBendahara = $anggota->user?->hasRole('bendahara') && ! $anggota->user->hasRole('ketua_koperasi');
+        $statusAwal = $mandiriBendahara ? 'approved_bendahara' : 'diajukan';
+
         $pengajuan = PengajuanLimit::create([
             'anggota_id' => $anggota->id,
             'limit_saat_ini' => $limitSaatIni,
             'limit_diminta' => $limitDiminta,
+            'limit_disetujui_bendahara' => $mandiriBendahara ? $limitDiminta : null,
+            'catatan_bendahara' => $mandiriBendahara ? 'Diajukan mandiri oleh Bendahara' : null,
             'keterangan' => $keterangan,
-            'status' => 'diajukan',
+            'status' => $statusAwal,
             'tanggal_pengajuan' => now(),
         ]);
 
         AuditLog::catat(
             aksi: 'limit_diajukan',
-            keterangan: "Pengajuan kenaikan limit untuk {$anggota->nama} ({$anggota->no_karyawan}) diajukan. Limit saat ini: ".WaPesan::rupiah($limitSaatIni).', diminta: '.WaPesan::rupiah($limitDiminta),
+            keterangan: "Pengajuan kenaikan limit untuk {$anggota->nama} ({$anggota->no_karyawan}) diajukan. Limit saat ini: ".WaPesan::rupiah($limitSaatIni).', diminta: '.WaPesan::rupiah($limitDiminta)
+                .($mandiriBendahara ? ' (pengajuan mandiri Bendahara: langsung ke Ketua).' : ''),
             dataLama: null,
             dataBaru: [
                 'pengajuan_id' => $pengajuan->id,
@@ -50,7 +66,7 @@ class PengajuanLimitService
                 'limit_saat_ini' => $limitSaatIni,
                 'limit_diminta' => $limitDiminta,
                 'keterangan' => $keterangan,
-                'status' => 'diajukan',
+                'status' => $statusAwal,
             ]
         );
 
@@ -81,14 +97,50 @@ class PengajuanLimitService
         return $pengajuan;
     }
 
-    public function approveBendahara(PengajuanLimit $pengajuan, float $nominal, string $catatan): void
+    public function approveBendahara(PengajuanLimit $pengajuan, float $nominal, string $catatan, ?int $aktorId = null): void
     {
+        $this->tolakBilaSelfApproval($pengajuan, $aktorId);
+
         if ($pengajuan->status !== 'diajukan') {
             throw new RuntimeException('Hanya pengajuan berstatus Diajukan yang dapat diverifikasi Bendahara.');
         }
 
         if ($nominal <= (float) $pengajuan->limit_saat_ini) {
             throw new RuntimeException('Nominal total limit disetujui harus lebih besar dari limit saat ini (Rp '.number_format($pengajuan->limit_saat_ini, 0, ',', '.').').');
+        }
+
+        $pengajuan->loadMissing('anggota.user');
+        $mandiriKetua = $pengajuan->anggota?->user?->hasRole('ketua_koperasi') ?? false;
+
+        if ($mandiriKetua) {
+            $limitLama = $pengajuan->anggota->limit_custom;
+            $catatanKetua = 'Disetujui tanpa self-approval Ketua (diverifikasi Bendahara)';
+            $pengajuan->update([
+                'status' => 'disetujui',
+                'limit_disetujui_bendahara' => $nominal,
+                'limit_disetujui' => $nominal,
+                'catatan_bendahara' => $catatan,
+                'catatan_ketua' => $catatanKetua,
+            ]);
+
+            $pengajuan->anggota->update(['limit_custom' => $nominal]);
+
+            AuditLog::catat(
+                'setujui_pengajuan_limit',
+                "Limit khusus Ketua ({$pengajuan->anggota->nama}) disetujui langsung melalui verifikasi Bendahara menjadi Rp ".number_format($nominal, 0, ',', '.'),
+                ['limit_custom' => $limitLama, 'status' => 'diajukan'],
+                ['limit_custom' => $nominal, 'status' => 'disetujui', 'catatan_bendahara' => $catatan]
+            );
+
+            WaService::keAnggota(
+                $pengajuan->anggota,
+                'limit_disetujui',
+                WaPesan::susun($pengajuan->anggota->nama, $pengajuan->anggota->no_karyawan,
+                    'Selamat! Pengajuan kenaikan limit pinjaman Anda telah *DISETUJUI* sebesar '.WaPesan::rupiah($nominal).".\n\n"
+                    .'Anda kini dapat mengajukan pinjaman hingga batas limit yang berlaku. Terima kasih.')
+            );
+
+            return;
         }
 
         $pengajuan->update([
@@ -105,8 +157,10 @@ class PengajuanLimitService
         );
     }
 
-    public function rejectBendahara(PengajuanLimit $pengajuan, string $catatan): void
+    public function rejectBendahara(PengajuanLimit $pengajuan, string $catatan, ?int $aktorId = null): void
     {
+        $this->tolakBilaSelfApproval($pengajuan, $aktorId);
+
         if ($pengajuan->status !== 'diajukan') {
             throw new RuntimeException('Hanya pengajuan berstatus Diajukan yang dapat ditolak Bendahara.');
         }
@@ -129,8 +183,10 @@ class PengajuanLimitService
         );
     }
 
-    public function approveKetua(PengajuanLimit $pengajuan, float $nominal, string $catatan): void
+    public function approveKetua(PengajuanLimit $pengajuan, float $nominal, string $catatan, ?int $aktorId = null): void
     {
+        $this->tolakBilaSelfApproval($pengajuan, $aktorId);
+
         if ($pengajuan->status !== 'approved_bendahara') {
             throw new RuntimeException('Hanya pengajuan berstatus Disetujui Bendahara yang dapat disetujui Ketua.');
         }
@@ -168,8 +224,10 @@ class PengajuanLimitService
         );
     }
 
-    public function rejectKetua(PengajuanLimit $pengajuan, string $catatan): void
+    public function rejectKetua(PengajuanLimit $pengajuan, string $catatan, ?int $aktorId = null): void
     {
+        $this->tolakBilaSelfApproval($pengajuan, $aktorId);
+
         if ($pengajuan->status !== 'approved_bendahara') {
             throw new RuntimeException('Hanya pengajuan berstatus Disetujui Bendahara yang dapat ditolak Ketua.');
         }

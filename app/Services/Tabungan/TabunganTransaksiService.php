@@ -90,6 +90,9 @@ class TabunganTransaksiService
     {
         return DB::transaction(function () use ($pengajuan, $catatan, $aktorId) {
             $pengLocked = PengajuanTransaksiTabungan::lockForUpdate()->findOrFail($pengajuan->id);
+            $pengLocked->loadMissing('anggota');
+            $this->tolakBilaSelfApprovalPengajuan($pengLocked, $aktorId);
+
             if ($pengLocked->status !== 'menunggu' || $pengLocked->jenis !== 'setor') {
                 throw new RuntimeException('Pengajuan setoran ini sudah diproses atau tidak valid.');
             }
@@ -279,7 +282,7 @@ class TabunganTransaksiService
 
         return DB::transaction(function () use ($rekening, $nominal, $kanal, $rekeningAnggotaId, $tutupRekening, $catatan, $aktorId, $setting) {
             $rekLocked = RekeningTabungan::lockForUpdate()->findOrFail($rekening->id);
-            $rekLocked->loadMissing('anggota');
+            $rekLocked->loadMissing('anggota.user');
 
             if ($rekLocked->status !== 'aktif') {
                 throw new RuntimeException('Rekening tabungan tidak aktif.');
@@ -343,6 +346,9 @@ class TabunganTransaksiService
                 ];
             }
 
+            $mandiriSekretaris = $rekLocked->anggota?->user?->hasRole('sekretaris')
+                && ! $rekLocked->anggota->user->hasAnyRole(['bendahara', 'ketua_koperasi']);
+
             $pengajuan = PengajuanTransaksiTabungan::create([
                 'rekening_tabungan_id' => $rekLocked->id,
                 'anggota_id' => $rekLocked->anggota_id,
@@ -352,7 +358,9 @@ class TabunganTransaksiService
                 'tanggal_transaksi' => now()->toDateString(),
                 'rekening_tujuan_snapshot' => $rekeningSnapshot,
                 'catatan_anggota' => $catatan ? trim($catatan) : null,
-                'status' => 'menunggu',
+                'status' => $mandiriSekretaris ? 'approved_admin' : 'menunggu',
+                'disetujui_admin_pada' => $mandiriSekretaris ? now() : null,
+                'catatan_admin' => $mandiriSekretaris ? 'Diajukan mandiri oleh Sekretaris' : null,
             ]);
 
             AuditLog::catat(
@@ -379,7 +387,7 @@ class TabunganTransaksiService
     ): PengajuanTransaksiTabungan {
         return DB::transaction(function () use ($pengajuan, $catatan, $aktorId) {
             $pengLocked = PengajuanTransaksiTabungan::lockForUpdate()->findOrFail($pengajuan->id);
-            $pengLocked->loadMissing('anggota', 'rekening');
+            $pengLocked->loadMissing('anggota.user', 'rekening');
             $this->tolakBilaSelfApprovalPengajuan($pengLocked, $aktorId);
 
             if ($pengLocked->status !== 'menunggu' || ! in_array($pengLocked->jenis, PengajuanTransaksiTabungan::JENIS_PENARIKAN, true)) {
@@ -393,19 +401,27 @@ class TabunganTransaksiService
 
             $this->validasiSaldoPenarikan($pengLocked, $rekening);
 
+            $mandiriBendahara = $pengLocked->anggota?->user?->hasRole('bendahara')
+                && ! $pengLocked->anggota->user->hasRole('ketua_koperasi');
             $catatanBersih = $catatan ? trim($catatan) : null;
-            $pengLocked->update([
-                'status' => 'approved_admin',
+            $update = [
+                'status' => $mandiriBendahara ? 'approved_bendahara' : 'approved_admin',
                 'admin_oleh' => $aktorId,
                 'disetujui_admin_pada' => now(),
                 'catatan_admin' => $catatanBersih,
-            ]);
+            ];
+            if ($mandiriBendahara) {
+                $update['disetujui_bendahara_pada'] = now();
+                $update['catatan_bendahara'] = 'Diajukan mandiri oleh Bendahara';
+            }
+            $pengLocked->update($update);
 
             AuditLog::catat(
                 aksi: 'tabungan_tarik_disetujui_admin',
-                keterangan: "Verifikasi Sekretaris pengajuan {$pengLocked->jenis} tabungan {$pengLocked->anggota?->nama} ({$rekening->no_rekening}) diteruskan ke Bendahara.",
+                keterangan: "Verifikasi Sekretaris pengajuan {$pengLocked->jenis} tabungan {$pengLocked->anggota?->nama} ({$rekening->no_rekening}) diteruskan ke "
+                    .($mandiriBendahara ? 'Ketua Koperasi (tahap Bendahara dilewati agar tak self-approve).' : 'Bendahara.'),
                 dataLama: ['status' => 'menunggu'],
-                dataBaru: ['status' => 'approved_admin', 'pengajuan_id' => $pengLocked->id, 'catatan_admin' => $catatanBersih],
+                dataBaru: ['status' => $update['status'], 'pengajuan_id' => $pengLocked->id, 'catatan_admin' => $catatanBersih],
                 userId: $aktorId,
             );
 
@@ -420,7 +436,7 @@ class TabunganTransaksiService
     ): PengajuanTransaksiTabungan {
         return DB::transaction(function () use ($pengajuan, $catatan, $aktorId) {
             $pengLocked = PengajuanTransaksiTabungan::lockForUpdate()->findOrFail($pengajuan->id);
-            $pengLocked->loadMissing('anggota', 'rekening');
+            $pengLocked->loadMissing('anggota.user', 'rekening');
             $this->tolakBilaSelfApprovalPengajuan($pengLocked, $aktorId);
 
             if ($pengLocked->status !== 'approved_admin' || ! in_array($pengLocked->jenis, PengajuanTransaksiTabungan::JENIS_PENARIKAN, true)) {
@@ -434,19 +450,26 @@ class TabunganTransaksiService
 
             $this->validasiSaldoPenarikan($pengLocked, $rekening);
 
+            $mandiriKetua = $pengLocked->anggota?->user?->hasRole('ketua_koperasi') ?? false;
             $catatanBersih = $catatan ? trim($catatan) : null;
-            $pengLocked->update([
-                'status' => 'approved_bendahara',
+            $update = [
+                'status' => $mandiriKetua ? 'approved_ketua' : 'approved_bendahara',
                 'bendahara_oleh' => $aktorId,
                 'disetujui_bendahara_pada' => now(),
                 'catatan_bendahara' => $catatanBersih,
-            ]);
+            ];
+            if ($mandiriKetua) {
+                $update['disetujui_ketua_pada'] = now();
+                $update['catatan_ketua'] = 'Disetujui tanpa self-approval Ketua (diverifikasi Sekretaris & Bendahara)';
+            }
+            $pengLocked->update($update);
 
             AuditLog::catat(
                 aksi: 'tabungan_tarik_disetujui_bendahara',
-                keterangan: "Tinjauan Bendahara pengajuan {$pengLocked->jenis} tabungan {$pengLocked->anggota?->nama} ({$rekening->no_rekening}) diteruskan ke Ketua Koperasi.",
+                keterangan: "Tinjauan Bendahara pengajuan {$pengLocked->jenis} tabungan {$pengLocked->anggota?->nama} ({$rekening->no_rekening}) diteruskan ke "
+                    .($mandiriKetua ? 'daftar Pencairan Bendahara (tahap Ketua dilewati agar tak self-approve).' : 'Ketua Koperasi.'),
                 dataLama: ['status' => 'approved_admin'],
-                dataBaru: ['status' => 'approved_bendahara', 'pengajuan_id' => $pengLocked->id, 'catatan_bendahara' => $catatanBersih],
+                dataBaru: ['status' => $update['status'], 'pengajuan_id' => $pengLocked->id, 'catatan_bendahara' => $catatanBersih],
                 userId: $aktorId,
             );
 
@@ -517,7 +540,20 @@ class TabunganTransaksiService
         return DB::transaction(function () use ($pengajuan, $akunKas, $fileMeta, $catatan, $aktorId, $tglCair) {
             $pengLocked = PengajuanTransaksiTabungan::lockForUpdate()->findOrFail($pengajuan->id);
             $pengLocked->loadMissing('anggota');
-            $this->tolakBilaSelfApprovalPengajuan($pengLocked, $aktorId);
+            $milikSendiri = (int) ($pengLocked->anggota?->user_id ?? 0) === $aktorId;
+
+            if ($milikSendiri) {
+                if ($pengLocked->status !== 'approved_ketua'
+                    || $pengLocked->ketua_oleh === null
+                    || (int) $pengLocked->ketua_oleh === $aktorId) {
+                    $this->tolakBilaSelfApprovalPengajuan($pengLocked, $aktorId);
+                }
+                if ($fileMeta === null) {
+                    throw new RuntimeException('Pencairan penarikan tabungan milik Bendahara wajib melampirkan bukti transfer/pencairan.');
+                }
+            } else {
+                $this->tolakBilaSelfApprovalPengajuan($pengLocked, $aktorId);
+            }
 
             if ($pengLocked->status !== 'approved_ketua' || ! in_array($pengLocked->jenis, PengajuanTransaksiTabungan::JENIS_PENARIKAN, true)) {
                 throw new RuntimeException('Hanya pengajuan penarikan berstatus Disetujui Ketua yang dapat dicairkan.');

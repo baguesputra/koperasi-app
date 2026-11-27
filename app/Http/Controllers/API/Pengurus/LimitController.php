@@ -97,9 +97,11 @@ class LimitController extends Controller
             ? (float) $request->limit_disetujui
             : (float) $pengajuan->limit_diminta;
 
-        $this->service->approveBendahara($pengajuan, $nominal, $request->catatan);
+        $this->service->approveBendahara($pengajuan, $nominal, $request->catatan, (int) $request->user()->id);
 
-        return 'Pengajuan limit disetujui. Menunggu keputusan Ketua.';
+        return $pengajuan->fresh()->status === 'disetujui'
+            ? 'Pengajuan limit disetujui dan langsung berlaku.'
+            : 'Pengajuan limit disetujui. Menunggu keputusan Ketua.';
     }
 
     private function approveKetua(Request $request, PengajuanLimit $pengajuan): string

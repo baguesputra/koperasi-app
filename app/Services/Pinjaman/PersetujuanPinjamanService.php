@@ -23,9 +23,9 @@ class PersetujuanPinjamanService
      * Tolak pemrosesan pengajuan sendiri (defense-in-depth: mirror API tolakBilaSelfApproval).
      * Wajib dipanggil tiap aksi approve/reject/cair web sebelum cek status.
      */
-    public function tolakBilaSelfApproval(Pinjaman $pinjaman): void
+    public function tolakBilaSelfApproval(Pinjaman $pinjaman, ?int $aktorId = null): void
     {
-        $saya = auth()->id();
+        $saya = $aktorId ?? auth()->id();
         $pengaju = $pinjaman->pengaju_user_id;
         $pemilik = $pinjaman->anggota?->user_id;
 
@@ -259,7 +259,24 @@ class PersetujuanPinjamanService
         ?string $catatan,
         ?int $aktorId = null,
     ): void {
-        $this->tolakBilaSelfApproval($pinjaman);
+        $pinjaman->loadMissing('anggota');
+        $aktorId ??= auth()->id();
+        $milikSendiri = $aktorId !== null && (
+            ((int) ($pinjaman->pengaju_user_id ?? 0) === $aktorId)
+            || ((int) ($pinjaman->anggota?->user_id ?? 0) === $aktorId)
+        );
+
+        if ($milikSendiri) {
+            if ($pinjaman->status !== 'approved_ketua' || $pinjaman->cair_oleh_bendahara || $pinjaman->disetujui_ketua_pada === null) {
+                $this->tolakBilaSelfApproval($pinjaman, $aktorId);
+            }
+            if ($buktiTransfer === null) {
+                throw new RuntimeException('Pencairan pinjaman milik Bendahara wajib melampirkan bukti transfer bank.');
+            }
+        } else {
+            $this->tolakBilaSelfApproval($pinjaman, $aktorId);
+        }
+
         if ($pinjaman->status !== 'approved_ketua') {
             throw new RuntimeException('Hanya pinjaman berstatus Disetujui Ketua yang dapat dicairkan oleh Bendahara.');
         }
@@ -269,7 +286,6 @@ class PersetujuanPinjamanService
             throw new RuntimeException('Tanggal pencairan tidak boleh melebihi hari ini.');
         }
 
-        $aktorId ??= auth()->id();
         $buktiBytes = $buktiTransfer ? $buktiTransfer->get() : null;
         $fileMeta = $buktiTransfer ? $this->simpanBuktiPrivat($buktiTransfer, $tglCair) : null;
 

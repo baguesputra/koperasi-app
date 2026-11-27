@@ -31,7 +31,7 @@ class TabunganRekeningService
         }
 
         return DB::transaction(function () use ($anggota, $aktorId) {
-            $anggotaLocked = Anggota::lockForUpdate()->findOrFail($anggota->id);
+            $anggotaLocked = Anggota::with('user')->lockForUpdate()->findOrFail($anggota->id);
 
             $sudahAda = RekeningTabungan::where('anggota_id', $anggotaLocked->id)
                 ->whereIn('status', [...RekeningTabungan::STATUS_MENUNGGU, 'aktif'])
@@ -43,23 +43,29 @@ class TabunganRekeningService
 
             $tarifSaatIni = SettingBungaTabungan::persentaseAktif();
             $versiSyarat = (string) config('syarat_tabungan.versi', 'v1.0-2026-11-23');
+            $mandiriSekretaris = $anggotaLocked->user?->hasRole('sekretaris')
+                && ! $anggotaLocked->user->hasAnyRole(['bendahara', 'ketua_koperasi']);
 
             $rekening = RekeningTabungan::create([
                 'anggota_id' => $anggotaLocked->id,
-                'status' => 'diajukan',
+                'status' => $mandiriSekretaris ? 'approved_admin' : 'diajukan',
                 'saldo' => 0,
                 'suku_bunga_saat_buka' => $tarifSaatIni,
                 'versi_syarat' => $versiSyarat,
                 'setuju_syarat' => true,
                 'tanggal_pengajuan' => now()->toDateString(),
+                'disetujui_admin_pada' => $mandiriSekretaris ? now() : null,
+                'catatan_admin' => $mandiriSekretaris ? 'Diajukan mandiri oleh Sekretaris' : null,
             ]);
 
             AuditLog::catat(
                 aksi: 'tabungan_rekening_diajukan',
-                keterangan: "Pengajuan pembukaan rekening tabungan oleh {$anggotaLocked->nama} ({$anggotaLocked->no_karyawan}).",
+                keterangan: "Pengajuan pembukaan rekening tabungan oleh {$anggotaLocked->nama} ({$anggotaLocked->no_karyawan})."
+                    .($mandiriSekretaris ? ' (pengajuan mandiri Sekretaris: langsung ke Bendahara).' : ''),
                 dataBaru: [
                     'rekening_tabungan_id' => $rekening->id,
                     'anggota_id' => $anggotaLocked->id,
+                    'status' => $rekening->status,
                     'suku_bunga_saat_buka' => $tarifSaatIni,
                     'versi_syarat' => $versiSyarat,
                 ],
@@ -74,7 +80,7 @@ class TabunganRekeningService
     {
         return DB::transaction(function () use ($rekening, $catatan, $aktorId) {
             $rekLocked = RekeningTabungan::lockForUpdate()->findOrFail($rekening->id);
-            $rekLocked->loadMissing('anggota');
+            $rekLocked->loadMissing('anggota.user');
             $this->tolakBilaSelfApproval($rekLocked, $aktorId);
 
             if ($rekLocked->status !== 'diajukan') {
@@ -85,21 +91,31 @@ class TabunganRekeningService
                 throw new RuntimeException("Anggota {$rekLocked->anggota?->nama} tidak berstatus aktif.");
             }
 
+            $mandiriBendahara = $rekLocked->anggota?->user?->hasRole('bendahara')
+                && ! $rekLocked->anggota->user->hasRole('ketua_koperasi');
             $catatanBersih = $catatan ? trim($catatan) : null;
-            $rekLocked->update([
-                'status' => 'approved_admin',
+            $update = [
+                'status' => $mandiriBendahara ? 'approved_bendahara' : 'approved_admin',
                 'admin_oleh' => $aktorId,
                 'disetujui_admin_pada' => now(),
                 'catatan_admin' => $catatanBersih,
-            ]);
+            ];
+
+            if ($mandiriBendahara) {
+                $update['disetujui_bendahara_pada'] = now();
+                $update['catatan_bendahara'] = 'Diajukan mandiri oleh Bendahara';
+            }
+
+            $rekLocked->update($update);
 
             AuditLog::catat(
                 aksi: 'tabungan_rekening_disetujui_admin',
-                keterangan: "Verifikasi Sekretaris pembukaan rekening tabungan {$rekLocked->anggota?->nama} selesai, diteruskan ke Bendahara.",
+                keterangan: "Verifikasi Sekretaris pembukaan rekening tabungan {$rekLocked->anggota?->nama} selesai, diteruskan ke "
+                    .($mandiriBendahara ? 'Ketua Koperasi (tahap Bendahara dilewati agar tak self-approve).' : 'Bendahara.'),
                 dataLama: ['status' => 'diajukan'],
                 dataBaru: [
                     'rekening_tabungan_id' => $rekLocked->id,
-                    'status' => 'approved_admin',
+                    'status' => $update['status'],
                     'catatan_admin' => $catatanBersih,
                 ],
                 userId: $aktorId,
@@ -113,7 +129,7 @@ class TabunganRekeningService
     {
         return DB::transaction(function () use ($rekening, $catatan, $aktorId) {
             $rekLocked = RekeningTabungan::lockForUpdate()->findOrFail($rekening->id);
-            $rekLocked->loadMissing('anggota');
+            $rekLocked->loadMissing('anggota.user');
             $this->tolakBilaSelfApproval($rekLocked, $aktorId);
 
             if ($rekLocked->status !== 'approved_admin') {
@@ -125,6 +141,53 @@ class TabunganRekeningService
             }
 
             $catatanBersih = $catatan ? trim($catatan) : null;
+            $mandiriKetua = $rekLocked->anggota?->user?->hasRole('ketua_koperasi') ?? false;
+
+            if ($mandiriKetua) {
+                $anggota = Anggota::lockForUpdate()->findOrFail($rekLocked->anggota_id);
+                $sudahPunyaAktif = RekeningTabungan::where('anggota_id', $anggota->id)
+                    ->where('status', 'aktif')
+                    ->where('id', '!=', $rekLocked->id)
+                    ->exists();
+                if ($sudahPunyaAktif) {
+                    throw new RuntimeException("Anggota {$anggota->nama} sudah memiliki rekening tabungan aktif lain.");
+                }
+
+                $noRekening = $this->penomoran->rekeningTabunganBerikutnya(now());
+                $tarifBerlaku = SettingBungaTabungan::persentaseAktif();
+                $catatanKetuaAuto = 'Disetujui tanpa self-approval Ketua (diverifikasi Sekretaris & Bendahara)';
+
+                $rekLocked->update([
+                    'no_rekening' => $noRekening,
+                    'status' => 'aktif',
+                    'suku_bunga_saat_buka' => $tarifBerlaku,
+                    'tanggal_buka' => now()->toDateString(),
+                    'bendahara_oleh' => $aktorId,
+                    'disetujui_bendahara_pada' => now(),
+                    'catatan_bendahara' => $catatanBersih,
+                    'disetujui_ketua_pada' => now(),
+                    'catatan_ketua' => $catatanKetuaAuto,
+                    'diproses_oleh' => $aktorId,
+                    'catatan_pengurus' => $catatanBersih,
+                ]);
+
+                AuditLog::catat(
+                    aksi: 'tabungan_rekening_disetujui',
+                    keterangan: "Pembukaan rekening tabungan Ketua ({$anggota->nama}) disetujui langsung melalui verifikasi Bendahara dan diaktifkan ({$noRekening}).",
+                    dataLama: ['status' => 'approved_admin'],
+                    dataBaru: [
+                        'rekening_tabungan_id' => $rekLocked->id,
+                        'no_rekening' => $noRekening,
+                        'status' => 'aktif',
+                        'suku_bunga_saat_buka' => $tarifBerlaku,
+                        'catatan_bendahara' => $catatanBersih,
+                    ],
+                    userId: $aktorId,
+                );
+
+                return $rekLocked->refresh();
+            }
+
             $rekLocked->update([
                 'status' => 'approved_bendahara',
                 'bendahara_oleh' => $aktorId,
