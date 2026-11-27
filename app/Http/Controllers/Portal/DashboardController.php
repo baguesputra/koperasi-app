@@ -10,7 +10,6 @@ use App\Models\PengajuanTransaksiTabungan;
 use App\Models\RekeningTabungan;
 use App\Models\SettingBungaTabungan;
 use App\Models\SettingSimpanan;
-use App\Models\TabelTenor;
 use App\Services\Pinjaman\EligibilitasPinjamanService;
 use App\Services\Pinjaman\PengajuanPinjamanService;
 use App\Services\Tabungan\PerhitunganBungaTabunganService;
@@ -217,7 +216,6 @@ class DashboardController extends Controller
             ->map(fn ($item) => collect($item)->except('tanggal'));
 
         // Info dinamis untuk panel kanan
-        $tabelTenor = TabelTenor::orderBy('nominal_min')->get(['nominal_min', 'nominal_max', 'tenor_maksimal_bulan']);
         $settingSimpanan = SettingSimpanan::orderBy('id')->get(['jenis', 'label', 'nominal']);
 
         $pinjamanAktifList = $pinjamanAktifCollection->map(function ($p) {
@@ -336,7 +334,6 @@ class DashboardController extends Controller
             'riwayatGabungan' => $riwayatGabungan,
             'tabungan' => $tabunganRingkasan,
             'sukuBungaTabunganAktif' => $sukuBungaTabunganAktif,
-            'tabelTenor' => $tabelTenor,
             'settingSimpanan' => $settingSimpanan,
         ]);
     }

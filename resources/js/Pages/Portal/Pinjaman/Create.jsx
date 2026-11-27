@@ -1,12 +1,13 @@
 import AnggotaLayout from '@/Layouts/AnggotaLayout';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
-    ArrowLeft, AlertCircle, Check, ShieldCheck,
-    Phone, Clock, Wallet, X, FileText, Lock,
+    ArrowLeft, ArrowRight, AlertCircle, Check, ShieldCheck,
+    Phone, Clock, Wallet, X, FileText, Lock, Eye, EyeOff,
 } from 'lucide-react';
 import { formatRupiah } from '@/Utils/formatCurrency';
 import CurrencyField from '@/Components/ui/CurrencyField';
+import Nominal, { usePrivasiNominal } from '@/Components/ui/Nominal';
 import { withIdempotencyKey } from '@/Utils/idempotency';
 import { useFeatureTour } from '@/Utils/featureTour';
 
@@ -20,6 +21,8 @@ export default function Create({
     limitTersedia,
     sisaAngsuranAktif,
     cicilanPokokAktif,
+    bolehAjukanLimit = false,
+    tabelTenor = [],
     rekeningTersimpan = [],
     poinSyarat = [],
     versiSyarat = '',
@@ -29,6 +32,7 @@ export default function Create({
     tenorMaksimalAwal = null,
     totalDibayarAwal = 0,
 }) {
+    const [nominalTampil, alihNominal] = usePrivasiNominal();
     const rekeningCocok = modeEdit && pinjamanEdit
         ? rekeningTersimpan.find(
             (r) => r.no_rekening === pinjamanEdit.snapshot_no_rekening && r.nama_bank === pinjamanEdit.snapshot_bank,
@@ -72,7 +76,8 @@ export default function Create({
     const ringkasanRef = useRef(null);
     const { auth } = usePage().props;
     const startFeatureTour = useFeatureTour('pinjaman', auth?.user?.id, [
-        { element: '[data-tour="pinjaman-nominal"]', popover: { title: 'Nominal Pinjaman', description: 'Masukkan nominal pinjaman sesuai limit tersedia.' } },
+        { element: '[data-tour="pinjaman-saldo"]', popover: { title: 'Saldo & Plafon Pinjaman', description: 'Lihat saldo pinjaman yang siap diajukan beserta plafon maksimal keanggotaan Anda.' } },
+        { element: '[data-tour="pinjaman-nominal"]', popover: { title: 'Nominal Pinjaman', description: 'Masukkan nominal pinjaman sesuai saldo pinjaman tersedia.' } },
         { element: '[data-tour="pinjaman-tenor"]', waitForElement: 30000, popover: { title: 'Tenor Cicilan', description: 'Isi nominal, tunggu validasi, lalu pilih lama cicilan.' } },
         { element: '[data-tour="pinjaman-summary"]', waitForElement: 30000, popover: { title: 'Ringkasan Pengajuan', description: 'Isi keperluan dan rekening pencairan.' } },
         { element: '[data-tour="pinjaman-review"]', popover: { title: 'Tinjau Pengajuan', description: 'Klik tombol ini untuk membuka syarat. Tour tidak mengirim pengajuan.', onNextClick: (_, __, { driver }) => { document.querySelector('[data-tour="pinjaman-review"]')?.click(); window.setTimeout(() => driver.moveNext(), 0); } } },
@@ -225,6 +230,40 @@ export default function Create({
 
     const opsiTenor = tenorMaksimal ? Array.from({ length: tenorMaksimal }, (_, i) => i + 1) : [];
 
+    const tanggaTenor = useMemo(() => {
+        const rungs = [];
+        (tabelTenor || []).forEach((t) => {
+            const tenor = Number(t.tenor_maksimal_bulan);
+            const terakhir = rungs[rungs.length - 1];
+            if (terakhir && terakhir.tenor === tenor) {
+                terakhir.nominal_max = Number(t.nominal_max);
+            } else {
+                rungs.push({
+                    nominal_min: Number(t.nominal_min),
+                    nominal_max: Number(t.nominal_max),
+                    tenor,
+                });
+            }
+        });
+        return rungs;
+    }, [tabelTenor]);
+
+    const nominalAngka = Math.max(0, Number(nominal || 0));
+    const nominalValidUntukRail = nominalAngka > 0 && nominalAngka <= (limitTersedia || 0) ? nominalAngka : 0;
+
+    const pilihanNominalCepat = useMemo(() => {
+        const max = Math.floor(Number(limitTersedia || 0));
+        if (max <= 0) return [];
+        const kandidat = [
+            Math.floor((max * 0.25) / 50_000) * 50_000,
+            Math.floor((max * 0.5) / 50_000) * 50_000,
+            Math.floor((max * 0.75) / 50_000) * 50_000,
+            max,
+        ].filter((v) => v >= 100_000 || v === max);
+
+        return [...new Set(kandidat)].filter((v) => v > 0 && v <= max);
+    }, [limitTersedia]);
+
     return (
         <AnggotaLayout mobileTitle={modeEdit ? 'Ubah Pengajuan' : 'Ajukan Pinjaman'} backHref={route('portal.dashboard')}>
             <Head title={modeEdit ? 'Ubah Pengajuan Pinjaman' : 'Ajukan Pinjaman'} />
@@ -265,6 +304,80 @@ export default function Create({
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-5">
+                    {/* Kartu Saldo & Plafon Pinjaman (dipindahkan dari Dashboard) */}
+                    <section data-tour="pinjaman-saldo" className="pd-band">
+                        <div className="pd-band__header">
+                            <span className="pd-band__status-pill">
+                                <span className="pd-band__status-dot" aria-hidden="true" />
+                                {sisaAngsuranAktif > 0 ? 'RELOAN LEBIH AWAL' : 'SALDO PINJAMAN'}
+                            </span>
+
+                            <button
+                                type="button"
+                                onClick={alihNominal}
+                                aria-label={nominalTampil ? 'Sembunyikan saldo' : 'Tampilkan saldo'}
+                                title={nominalTampil ? 'Sembunyikan saldo' : 'Tampilkan saldo'}
+                                className="pd-band__toggle pd-focus"
+                            >
+                                {nominalTampil ? <EyeOff size={13} aria-hidden="true" /> : <Eye size={13} aria-hidden="true" />}
+                                <span className="pd-band__toggle-label">
+                                    {nominalTampil ? 'Sembunyikan' : 'Tampilkan'}
+                                </span>
+                            </button>
+                        </div>
+
+                        <div className="pd-band__figures">
+                            <div className="pd-band__figure">
+                                <p className="pd-band__label">Total Saldo Pinjaman</p>
+                                <p className="pd-band__value pd-band__value--accent">
+                                    <Nominal nilai={limitTersedia} tampil={nominalTampil} />
+                                </p>
+                                <p className="pd-band__note">
+                                    {nominalValidUntukRail > 0 ? (
+                                        <>
+                                            Sisa setelah pengajuan:{' '}
+                                            <Nominal
+                                                nilai={Math.max(0, (limitTersedia || 0) - nominalValidUntukRail)}
+                                                tampil={nominalTampil}
+                                            />
+                                        </>
+                                    ) : (
+                                        'Saldo siap diajukan saat ini'
+                                    )}
+                                </p>
+                            </div>
+
+                            <div className="pd-band__figure pd-band__figure--end">
+                                <p className="pd-band__label">Plafon Maksimal Anda</p>
+                                <p className="pd-band__value">
+                                    <Nominal nilai={limitMaksimal} tampil={nominalTampil} />
+                                </p>
+                                <p className="pd-band__note">
+                                    {sisaAngsuranAktif > 0 ? (
+                                        <>
+                                            Dikurangi {sisaAngsuranAktif}x pokok aktif (
+                                            <Nominal
+                                                nilai={sisaAngsuranAktif * cicilanPokokAktif}
+                                                tampil={nominalTampil}
+                                            />
+                                            )
+                                        </>
+                                    ) : !modeEdit && bolehAjukanLimit ? (
+                                        <Link
+                                            href={route('portal.pengajuan-limit.create')}
+                                            className="inline-flex items-center gap-1 text-emerald-300 hover:text-emerald-200 font-semibold transition-colors"
+                                        >
+                                            <span>Ajukan tambah limit</span>
+                                            <ArrowRight size={12} aria-hidden="true" />
+                                        </Link>
+                                    ) : (
+                                        'Sesuai masa keanggotaan & limit aktif'
+                                    )}
+                                </p>
+                            </div>
+                        </div>
+                    </section>
+
                     {error && (
                         <div className="flex items-start gap-2.5 bg-red-50 border border-red-100 rounded-xl p-4">
                             <AlertCircle className="text-red-500 shrink-0 mt-0.5" size={18} />
@@ -274,26 +387,11 @@ export default function Create({
 
                     <div className="bg-white rounded-2xl border border-slate-100 p-6">
                         <p className="text-base font-bold text-slate-800 mb-1">Berapa nominal yang ingin dipinjam?</p>
-                        {sisaAngsuranAktif > 0 ? (
-                            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4">
-                                <p className="text-xs font-semibold text-amber-800 mb-1">Pengajuan Lebih Awal (Reloan)</p>
-                                <p className="text-xs text-amber-700 leading-relaxed">
-                                    Pinjaman aktif Anda tersisa {sisaAngsuranAktif} cicilan (maksimal 1 untuk pengajuan lebih awal) × {formatRupiah(cicilanPokokAktif)} = {formatRupiah(sisaAngsuranAktif * cicilanPokokAktif)}.
-                                    Limit efektif dikurangi sisa cicilan pokok yang berjalan.
-                                </p>
-                                <div className="flex items-center justify-between mt-2 pt-2 border-t border-amber-200">
-                                    <span className="text-xs text-amber-700">Limit tersedia Anda:</span>
-                                    <span className="text-sm font-bold text-amber-900">{formatRupiah(limitTersedia)}</span>
-                                </div>
-                                <p className="text-xs text-amber-600 mt-1">
-                                    (Limit kategori: {formatRupiah(limitMaksimal)})
-                                </p>
-                            </div>
-                        ) : (
-                            <p className="text-sm text-slate-400 mb-4">
-                                Limit maksimal Anda: <span className="font-semibold text-slate-600">{formatRupiah(limitMaksimal)}</span>
-                            </p>
-                        )}
+                        <p className="text-sm text-slate-500 mb-4">
+                            {sisaAngsuranAktif > 0
+                                ? `Pengajuan lebih awal (Reloan): sisa ${sisaAngsuranAktif} cicilan pokok aktif sudah diperhitungkan pada saldo pinjaman tersedia.`
+                                : 'Masukkan nominal sesuai kebutuhan Anda hingga batas Total Saldo Pinjaman di atas.'}
+                        </p>
 
                         <CurrencyField
                             size="xl"
@@ -310,7 +408,30 @@ export default function Create({
                                 ) : null
                             }
                         />
-                        <p className="text-xs text-slate-400 mt-2">Maksimal: {formatRupiah(limitTersedia)}</p>
+
+                        {pilihanNominalCepat.length > 0 && (
+                            <div className="flex flex-wrap items-center gap-2 mt-3">
+                                <span className="text-xs font-medium text-slate-400 mr-0.5">Pilih cepat:</span>
+                                {pilihanNominalCepat.map((angka) => {
+                                    const isMax = angka === Math.floor(Number(limitTersedia || 0));
+                                    const active = Number(nominal) === angka;
+                                    return (
+                                        <button
+                                            key={angka}
+                                            type="button"
+                                            onClick={() => setNominal(String(angka))}
+                                            className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors cursor-pointer ${
+                                                active
+                                                    ? 'bg-brand-navy text-white border-brand-navy'
+                                                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-100'
+                                            }`}
+                                        >
+                                            {isMax ? `Maks (${formatRupiah(angka)})` : formatRupiah(angka)}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
 
                     {nominalValid && tenorMaksimal && (
@@ -367,6 +488,66 @@ export default function Create({
                 </div>
 
                 <div className="space-y-4">
+                    {tanggaTenor.length > 0 && (
+                        <section data-tour="plafon-rules" className="pd-card">
+                            <div className="pd-card__head">
+                                <div>
+                                    <h2>Ketentuan pinjaman</h2>
+                                    <p className="pd-card__note">
+                                        Batas nominal dan tenor maksimal
+                                    </p>
+                                </div>
+                            </div>
+
+                            <ol className="pd-ladder">
+                                {tanggaTenor.map((r, i) => {
+                                    const isCurrentLimit =
+                                        limitMaksimal > 0 &&
+                                        limitMaksimal >= r.nominal_min &&
+                                        limitMaksimal <= r.nominal_max;
+                                    const isInputInRung =
+                                        nominalValidUntukRail > 0 &&
+                                        nominalValidUntukRail >= r.nominal_min &&
+                                        nominalValidUntukRail <= r.nominal_max;
+
+                                    return (
+                                        <li
+                                            key={i}
+                                            className={`pd-rung ${
+                                                isInputInRung || isCurrentLimit ? 'pd-rung--active' : ''
+                                            }`.trim()}
+                                        >
+                                            <span className="pd-rung__nominal">
+                                                <span>
+                                                    {formatRupiah(r.nominal_min)}
+                                                    {r.nominal_max > r.nominal_min ? (
+                                                        <>
+                                                            {' '}
+                                                            &ndash; {formatRupiah(r.nominal_max)}
+                                                        </>
+                                                    ) : null}
+                                                </span>
+                                                {isInputInRung ? (
+                                                    <span className="pd-rung__badge">Pilihan Anda</span>
+                                                ) : isCurrentLimit ? (
+                                                    <span className="pd-rung__badge">Limit Anda</span>
+                                                ) : null}
+                                            </span>
+                                            <span className="pd-rung__tenor">
+                                                Maks. {r.tenor} bulan
+                                            </span>
+                                        </li>
+                                    );
+                                })}
+                            </ol>
+
+                            <p className="pd-card__foot">
+                                Pengajuan pinjaman diproses berjenjang: verifikasi Sekretaris, pemeriksaan
+                                Bendahara, dan persetujuan Ketua Koperasi.
+                            </p>
+                        </section>
+                    )}
+
                     <div className="bg-brand-navy rounded-2xl p-5 text-white">
                         <div className="flex items-center gap-2 mb-3">
                             <ShieldCheck size={20} className="text-brand-green" />

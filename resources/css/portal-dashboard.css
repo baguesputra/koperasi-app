@@ -523,6 +523,13 @@ html {
     color: #6ee7b7;
 }
 
+.pd-band__value--empty {
+    font-size: clamp(1.1rem, 1.75vw, 1.35rem);
+    font-weight: 600;
+    color: rgba(248, 250, 252, 0.92);
+    white-space: normal;
+}
+
 .pd-band__note {
     margin: 4px 0 0;
     color: rgba(226, 232, 240, 0.65);

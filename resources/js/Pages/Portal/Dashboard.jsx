@@ -255,7 +255,6 @@ export default function Dashboard({
     riwayatGabungan,
     tabungan = null,
     sukuBungaTabunganAktif = 2,
-    tabelTenor,
     settingSimpanan,
 }) {
     const aggregateTotalNominal = (pinjamanAktifList || []).reduce(
@@ -440,11 +439,6 @@ export default function Dashboard({
         }, 300);
     }
 
-    // Limit yang sudah terpakai = limit maksimal dikurangi sisa yang masih bisa diajukan.
-    const limitTerpakai = Math.max(0, (limitMaksimal || 0) - (limitTersedia || 0));
-    const persenLimit =
-        limitMaksimal > 0 ? Math.min(100, Math.round((limitTerpakai / limitMaksimal) * 100)) : 0;
-
     const adaStatus =
         Boolean(resignMenunggu) ||
         Boolean(pengajuanLimitBerjalan) ||
@@ -452,26 +446,6 @@ export default function Dashboard({
         (!bisaAjukan && !pengajuanBerjalan) ||
         (limitTersedia <= 0 && bisaAjukan && !pengajuanBerjalan) ||
         Boolean(pengajuanDitolak && !pengajuanBerjalan && !ditolakDismissed);
-
-    // Tenor ladder: adjacent nominal bands that share the same ceiling collapse
-    // into one rung, so the rule reads as five steps instead of ten identical rows.
-    const tanggaTenor = useMemo(() => {
-        const rungs = [];
-        (tabelTenor || []).forEach((t) => {
-            const tenor = Number(t.tenor_maksimal_bulan);
-            const terakhir = rungs[rungs.length - 1];
-            if (terakhir && terakhir.tenor === tenor) {
-                terakhir.nominal_max = Number(t.nominal_max);
-            } else {
-                rungs.push({
-                    nominal_min: Number(t.nominal_min),
-                    nominal_max: Number(t.nominal_max),
-                    tenor,
-                });
-            }
-        });
-        return rungs;
-    }, [tabelTenor]);
 
     useEffect(() => {
         const tourKey = `koperasi.dashboard-tour.dismissed.${auth?.user?.id ?? 'guest'}`;
@@ -481,13 +455,12 @@ export default function Dashboard({
             const steps = [
                 { element: '[data-tour="member-card"]', popover: { title: 'Kartu Anggota', description: 'Identitas, status keanggotaan, dan status aktif Anda tampil di sini.' } },
                 { element: '[data-tour="privacy-toggle"]', popover: { title: 'Sembunyikan Saldo', description: 'Tombol ini menyembunyikan atau menampilkan seluruh nominal keuangan di Dashboard.' } },
-                { element: '[data-tour="financial-summary"]', popover: { title: 'Ringkasan Keuangan', description: 'Pantau total simpanan dan limit pinjaman yang masih tersedia.' } },
+                { element: '[data-tour="financial-summary"]', popover: { title: 'Ringkasan Keuangan', description: 'Pantau total simpanan serta sisa angsuran dan pinjaman aktif Anda.' } },
                 { element: '[data-tour="quick-actions"]', popover: { title: 'Menu Utama', description: 'Ajukan pinjaman, tambah limit, ubah tenor, atau buka panduan lengkap.' } },
                 ...(pengajuanBerjalan ? [{ element: '[data-tour="application-tracker"]', popover: { title: 'Pelacakan Pengajuan', description: 'Pantau proses pemeriksaan Sekretaris, Bendahara, hingga persetujuan Ketua.' } }] : []),
                 { element: '[data-tour="loan-progress"]', popover: { title: 'Progres Pinjaman', description: 'Pantau jumlah angsuran terbayar, sisa angsuran, cicilan bulanan, dan persentase pelunasan.' } },
                 { element: '[data-tour="savings-card"]', popover: { title: 'Rincian Simpanan', description: 'Lihat total simpanan beserta rincian Simpanan Wajib dan Simpanan Pokok. Ketentuan tarif dapat dibuka di bagian ini.' } },
                 { element: '[data-tour="history-summary"]', popover: { title: 'Aktivitas & Riwayat', description: 'Lihat transaksi simpanan dan pembayaran terakhir.' } },
-                { element: '[data-tour="plafon-rules"]', popover: { title: 'Ketentuan Pinjaman', description: 'Lihat batas nominal pinjaman dan tenor maksimal. Limit mengikuti ketentuan koperasi serta diproses melalui verifikasi Sekretaris, Bendahara, lalu persetujuan Ketua.' } },
             ].filter((step) => document.querySelector(step.element));
 
             if (!steps.length) return;
@@ -540,13 +513,6 @@ export default function Dashboard({
             return '';
         }
     }, []);
-
-    const railFillTone =
-        persenLimit >= 95
-            ? 'pd-band__rail-fill--danger'
-            : persenLimit >= 75
-            ? 'pd-band__rail-fill--warn'
-            : '';
 
     return (
         <AnggotaLayout>
@@ -720,46 +686,53 @@ export default function Dashboard({
                             </div>
 
                             <div className="pd-band__figure pd-band__figure--end">
-                                <p className="pd-band__label">Total Saldo Pinjaman</p>
-                                <p className="pd-band__value pd-band__value--accent">
-                                    <Nominal nilai={limitTersedia} tampil={nominalTampil} />
+                                <p className="pd-band__label">
+                                    {pinjamanAktifCount > 1 ? `Pinjaman Aktif (${pinjamanAktifCount})` : 'Pinjaman Aktif'}
                                 </p>
-                                {pengajuanLimitBerjalan ? (
-                                    <p className="pd-band__note">
-                                        <CaptionLimitBerjalan
-                                            pengajuan={pengajuanLimitBerjalan}
-                                            tampil={nominalTampil}
-                                        />
-                                    </p>
+                                {pinjamanAktifCount > 0 ? (
+                                    <>
+                                        <p className="pd-band__value pd-band__value--accent">
+                                            {aggregateTotalSisaAngsuran} / {aggregateTotalAngsuran} Angsuran
+                                        </p>
+                                        <p className="pd-band__note">
+                                            Sisa <Nominal nilai={aggregateSisaTotalBayar} tampil={nominalTampil} /> &bull;{' '}
+                                            <Nominal nilai={cicilanPerBulan} tampil={nominalTampil} />/bln
+                                        </p>
+                                    </>
                                 ) : (
-                                    <p className="pd-band__note">Saldo siap digunakan</p>
+                                    <>
+                                        <p className="pd-band__value pd-band__value--empty">
+                                            Belum Ada Pinjaman
+                                        </p>
+                                        {pengajuanBerjalan ? (
+                                            <p className="pd-band__note">
+                                                <span className="pd-band__pending">
+                                                    <Clock size={12} aria-hidden="true" />
+                                                    <span>
+                                                        Pengajuan{' '}
+                                                        <Nominal
+                                                            nilai={pengajuanBerjalan.nominal_disetujui ?? pengajuanBerjalan.nominal}
+                                                            tampil={nominalTampil}
+                                                        />{' '}
+                                                        diproses
+                                                    </span>
+                                                </span>
+                                            </p>
+                                        ) : pengajuanLimitBerjalan ? (
+                                            <p className="pd-band__note">
+                                                <CaptionLimitBerjalan
+                                                    pengajuan={pengajuanLimitBerjalan}
+                                                    tampil={nominalTampil}
+                                                />
+                                            </p>
+                                        ) : (
+                                            <p className="pd-band__note">Tidak ada angsuran berjalan</p>
+                                        )}
+                                    </>
                                 )}
                             </div>
                         </div>
                     </div>
-
-                    {/* Bottom: Limit Usage Rail */}
-                    {limitMaksimal > 0 && (
-                        <div className="pd-band__rail">
-                            <div className="pd-band__rail-top">
-                                <span>
-                                    Terpakai <Nominal nilai={limitTerpakai} tampil={nominalTampil} /> dari{' '}
-                                    <Nominal nilai={limitMaksimal} tampil={nominalTampil} />
-                                </span>
-                                <span className="pd-band__rail-pct">{persenLimit}%</span>
-                            </div>
-                            <div
-                                className="pd-band__rail-bar"
-                                role="img"
-                                aria-label={`Limit terpakai ${persenLimit} persen`}
-                            >
-                                <div
-                                    className={`pd-band__rail-fill ${railFillTone}`.trim()}
-                                    style={{ width: `${persenLimit}%` }}
-                                />
-                            </div>
-                        </div>
-                    )}
                 </section>
 
                 {/* =================================================
@@ -773,7 +746,7 @@ export default function Dashboard({
                             </span>
                             <span className="pd-action__text">
                                 <span className="pd-action__label">Ajukan pinjaman</span>
-                                <span className="pd-action__state">Limit siap digunakan</span>
+                                <span className="pd-action__state">Cek saldo &amp; simulasi</span>
                             </span>
                             <span className="pd-action__flag">Tersedia</span>
                         </Link>
@@ -1509,9 +1482,7 @@ export default function Dashboard({
                                         <div>
                                             <p className="pd-calm__title">Belum ada pinjaman aktif</p>
                                             <p className="pd-calm__desc">
-                                                Limit{' '}
-                                                <Nominal nilai={limitMaksimal} tampil={nominalTampil} />{' '}
-                                                siap diajukan lewat menu di atas.
+                                                Anda tidak memiliki tagihan maupun angsuran pinjaman berjalan saat ini.
                                             </p>
                                         </div>
                                     </div>
@@ -1698,59 +1669,6 @@ export default function Dashboard({
                                     Ajukan pembukaan rekening tabungan sukarela di Portal Anggota untuk memperoleh bunga {sukuBungaTabunganAktif}% per tahun (dihitung harian, dikreditkan bulanan).
                                 </p>
                             )}
-                        </section>
-
-                        {/* ---------------- KETENTUAN PINJAMAN ---------------- */}
-                        <section data-tour="plafon-rules" className="pd-card">
-                            <div className="pd-card__head">
-                                <div>
-                                    <h2>Ketentuan pinjaman</h2>
-                                    <p className="pd-card__note">
-                                        Batas nominal dan tenor maksimal
-                                    </p>
-                                </div>
-                            </div>
-
-                            <ol className="pd-ladder">
-                                {tanggaTenor.map((r, i) => {
-                                    const isCurrentLimit =
-                                        limitMaksimal > 0 &&
-                                        limitMaksimal >= r.nominal_min &&
-                                        limitMaksimal <= r.nominal_max;
-
-                                    return (
-                                        <li
-                                            key={i}
-                                            className={`pd-rung ${
-                                                isCurrentLimit ? 'pd-rung--active' : ''
-                                            }`.trim()}
-                                        >
-                                            <span className="pd-rung__nominal">
-                                                <span>
-                                                    {formatRupiah(r.nominal_min)}
-                                                    {r.nominal_max > r.nominal_min ? (
-                                                        <>
-                                                            {' '}
-                                                            &ndash; {formatRupiah(r.nominal_max)}
-                                                        </>
-                                                    ) : null}
-                                                </span>
-                                                {isCurrentLimit && (
-                                                    <span className="pd-rung__badge">Limit Anda</span>
-                                                )}
-                                            </span>
-                                            <span className="pd-rung__tenor">
-                                                Maks. {r.tenor} bulan
-                                            </span>
-                                        </li>
-                                    );
-                                })}
-                            </ol>
-
-                            <p className="pd-card__foot">
-                                Pengajuan pinjaman diproses berjenjang: verifikasi Sekretaris, pemeriksaan
-                                Bendahara, dan persetujuan Ketua Koperasi.
-                            </p>
                         </section>
                     </div>
                 </div>

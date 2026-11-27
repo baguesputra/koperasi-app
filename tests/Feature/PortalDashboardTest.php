@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Anggota;
+use App\Models\Angsuran;
 use App\Models\Pinjaman;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -102,5 +103,69 @@ class PortalDashboardTest extends TestCase
         } finally {
             Carbon::setTestNow();
         }
+    }
+
+    public function test_dashboard_menampilkan_status_angsuran_aktif_dan_halaman_ajukan_memuat_saldo_serta_ketentuan_pinjaman(): void
+    {
+        $anggota = $this->buatAnggota('DSH-990004', [
+            'tanggal_jadi_anggota' => now()->subYears(2),
+        ]);
+
+        // 1. Belum ada pinjaman aktif -> Dashboard tidak menerima tabelTenor, Ajukan menerima saldo & ketentuan tenor
+        $this->actingAs($anggota->user);
+
+        $resKosong = $this->get(route('portal.dashboard'))->assertOk();
+        $propsKosong = $resKosong->viewData('page')['props'];
+        $this->assertArrayNotHasKey('tabelTenor', $propsKosong);
+        $this->assertSame(0, $propsKosong['pinjamanAktifCount']);
+
+        $resAjukan = $this->get(route('portal.pinjaman.create'))->assertOk();
+        $propsAjukan = $resAjukan->viewData('page')['props'];
+        $this->assertGreaterThan(0, $propsAjukan['limitTersedia']);
+        $this->assertGreaterThan(0, $propsAjukan['limitMaksimal']);
+        $this->assertNotEmpty($propsAjukan['tabelTenor']);
+        $this->assertArrayHasKey('bolehAjukanLimit', $propsAjukan);
+
+        // 2. Memiliki pinjaman aktif -> pinjamanAktifList menyertakan sisa_angsuran, total_angsuran, & sisa_total_bayar
+        $pinjaman = Pinjaman::create([
+            'anggota_id' => $anggota->id,
+            'pengaju_user_id' => $anggota->user_id,
+            'nominal' => 1_000_000,
+            'nominal_disetujui' => 1_000_000,
+            'tenor_bulan' => 2,
+            'tenor_disetujui' => 2,
+            'keperluan' => 'Modal kerja',
+            'persentase_bunga' => 1,
+            'status' => 'aktif',
+            'tanggal_pengajuan' => now()->subMonth(),
+            'tanggal_pencairan' => now()->subMonth(),
+        ]);
+
+        Angsuran::create([
+            'pinjaman_id' => $pinjaman->id,
+            'cicilan_ke' => 1,
+            'nominal_pokok' => 500_000,
+            'nominal_bunga' => 10_000,
+            'total_bayar' => 510_000,
+            'status' => 'lunas',
+            'tanggal_jatuh_tempo' => now()->subDays(2),
+            'tanggal_konfirmasi_bayar' => now()->subDays(2),
+        ]);
+        Angsuran::create([
+            'pinjaman_id' => $pinjaman->id,
+            'cicilan_ke' => 2,
+            'nominal_pokok' => 500_000,
+            'nominal_bunga' => 5_000,
+            'total_bayar' => 505_000,
+            'status' => 'belum_bayar',
+            'tanggal_jatuh_tempo' => now()->addMonth(),
+        ]);
+
+        $resAktif = $this->get(route('portal.dashboard'))->assertOk();
+        $propsAktif = $resAktif->viewData('page')['props'];
+        $this->assertSame(1, $propsAktif['pinjamanAktifCount']);
+        $this->assertSame(1, $propsAktif['pinjamanAktifList'][0]['sisa_angsuran']);
+        $this->assertSame(2, $propsAktif['pinjamanAktifList'][0]['total_angsuran']);
+        $this->assertEqualsWithDelta(505_000, $propsAktif['pinjamanAktifList'][0]['sisa_total_bayar'], 0.01);
     }
 }

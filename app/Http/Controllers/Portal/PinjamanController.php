@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Portal;
 use App\Http\Controllers\Controller;
 use App\Models\PengajuanLimit;
 use App\Models\Pinjaman;
+use App\Models\TabelTenor;
 use App\Services\Pinjaman\EligibilitasPinjamanService;
 use App\Services\Pinjaman\PengajuanPinjamanService;
 use App\Services\Security\PinSecurityService;
@@ -33,6 +34,8 @@ class PinjamanController extends Controller
         }
 
         $cek = $this->eligibilitas->cek($anggota);
+        $cekTambahLimit = $this->eligibilitas->cekEligibilitasTambahLimit($anggota);
+        $tabelTenor = TabelTenor::orderBy('nominal_min')->get(['nominal_min', 'nominal_max', 'tenor_maksimal_bulan']);
 
         return Inertia::render('Portal/Pinjaman/Create', [
             'bisaAjukan' => $cek['boleh'],
@@ -41,6 +44,8 @@ class PinjamanController extends Controller
             'limitTersedia' => (float) $cek['limit_tersedia'],
             'sisaAngsuranAktif' => (int) $cek['sisa_angsuran'],
             'cicilanPokokAktif' => (float) $cek['cicilan_pokok'],
+            'bolehAjukanLimit' => (bool) ($cekTambahLimit['boleh'] ?? false),
+            'tabelTenor' => $tabelTenor,
             'rekeningTersimpan' => $anggota->rekening()->orderByDesc('is_default')->get([
                 'id', 'nama_bank', 'no_rekening', 'atas_nama', 'is_default',
             ]),
@@ -77,6 +82,7 @@ class PinjamanController extends Controller
         $tenorMaksimalAwal = $this->eligibilitas->tenorMaksimal($nominalAwal);
         $jadwalAwal = $this->pengajuan->preview($nominalAwal, $tenorAwal);
         [$statusAwal] = $this->pengajuan->statusAwalPengajuanMandiri($user);
+        $tabelTenor = TabelTenor::orderBy('nominal_min')->get(['nominal_min', 'nominal_max', 'tenor_maksimal_bulan']);
 
         return Inertia::render('Portal/Pinjaman/Create', [
             'bisaAjukan' => $cek['boleh'],
@@ -85,6 +91,8 @@ class PinjamanController extends Controller
             'limitTersedia' => (float) $cek['limit_tersedia'],
             'sisaAngsuranAktif' => (int) $cek['sisa_angsuran'],
             'cicilanPokokAktif' => (float) $cek['cicilan_pokok'],
+            'bolehAjukanLimit' => false,
+            'tabelTenor' => $tabelTenor,
             'rekeningTersimpan' => $anggota->rekening()->orderByDesc('is_default')->get([
                 'id', 'nama_bank', 'no_rekening', 'atas_nama', 'is_default',
             ]),
