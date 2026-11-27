@@ -36,7 +36,13 @@ function buildStatusOptions(statistik = {}) {
     ];
 }
 
-function progresAngsuran(angsuran = []) {
+function progresAngsuran(p) {
+    if (typeof p.total_cicilan_aktif === 'number' && p.total_cicilan_aktif > 0) {
+        const total = p.total_cicilan_aktif;
+        const lunas = p.lunas_cicilan_aktif ?? 0;
+        return { lunas, total, persen: Math.round((lunas / total) * 100) };
+    }
+    const angsuran = p.angsuran ?? [];
     const total = angsuran.length;
     if (!total) return null;
     const lunas = angsuran.filter((a) => a.status === 'lunas').length;
@@ -367,7 +373,7 @@ export default function Index({
                                 </tr>
                             ) : (
                                 pinjaman.data.map((p) => {
-                                    const progres = progresAngsuran(p.angsuran);
+                                    const progres = progresAngsuran(p);
                                     return (
                                         <tr key={p.id} onClick={() => bukaDetail(p)} onKeyDown={(e) => { if (e.key === 'Enter') bukaDetail(p); }} tabIndex={0} title="Klik untuk rincian" className="group hover:bg-[#F2FBF5] transition-colors cursor-pointer focus-visible:outline-none focus-visible:bg-[#F2FBF5]">
                                             <td className="px-4 py-2.5">
@@ -375,7 +381,11 @@ export default function Index({
                                                     <FotoAnggota nama={p.nama} fotoUrl={p.foto_url} ukuran="sm" />
                                                     <div className="min-w-0">
                                                         <p className="text-sm font-semibold text-slate-800 truncate max-w-[160px] sm:max-w-[200px] group-hover:text-brand-navy transition-colors">{p.nama}</p>
-                                                        <p className="text-xs text-slate-400 truncate">{p.no_karyawan}{p.cabang ? ` • ${p.cabang}` : ''}</p>
+                                                        <p className="text-xs text-slate-400 truncate">
+                                                            {p.no_karyawan}
+                                                            {p.cabang ? ` • ${p.cabang}` : ''}
+                                                            {p.nomor_dokumen_resmi ? ` • ${p.nomor_dokumen_resmi}` : ''}
+                                                        </p>
                                                     </div>
                                                     <ChevronRight size={15} className="ml-1 shrink-0 text-slate-300 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all" aria-hidden="true" />
                                                 </div>
@@ -398,13 +408,25 @@ export default function Index({
                                                 )}
                                             </td>
                                             <td className="hidden lg:table-cell px-4 py-2.5 text-slate-600 whitespace-nowrap">{p.tenor_bulan} bln</td>
-                                            <td className="hidden lg:table-cell px-4 py-2.5 text-slate-600 whitespace-nowrap">{p.tanggal_pengajuan}</td>
+                                            <td className="hidden lg:table-cell px-4 py-2.5 text-slate-600 whitespace-nowrap">
+                                                <p>{p.tanggal_pengajuan}</p>
+                                                {p.status === 'dihapusbukukan' && p.penghapusan_disetujui?.disetujui_pada ? (
+                                                    <p className="text-[11px] text-rose-600 mt-0.5">Hapus: {p.penghapusan_disetujui.disetujui_pada}</p>
+                                                ) : p.tanggal_cair ? (
+                                                    <p className="text-[11px] text-slate-400 mt-0.5">Cair: {p.tanggal_cair}</p>
+                                                ) : null}
+                                            </td>
                                             <td className="px-4 py-2.5">
                                                 <div className="flex flex-wrap items-center gap-1.5">
                                                     <StatusBadge status={p.status} />
                                                     {p.status === 'aktif' && p.jumlah_terlambat > 0 && (
                                                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200/80">
                                                             Menunggak {p.jumlah_terlambat}x
+                                                        </span>
+                                                    )}
+                                                    {(p.percepatan_menunggu || p.percepatan_aktif) && (
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/80">
+                                                            {p.percepatan_menunggu ? 'Proses Ubah Tenor' : 'Ubah Tenor'}
                                                         </span>
                                                     )}
                                                     {p.penghapusan_aktif && (
@@ -439,10 +461,20 @@ export default function Index({
 
             <Pagination links={pinjaman.links} />
 
-            <Drawer show={drawerOpen} title={detailPinjaman ? `Pinjaman #${detailPinjaman.id} — ${detailPinjaman.nama}` : 'Rincian Pinjaman'} onClose={() => setDrawerOpen(false)} maxWidth="3xl">
+            <Drawer
+                show={drawerOpen}
+                layout="split"
+                title="Rincian Pinjaman"
+                description={detailPinjaman ? `Dokumen ${detailPinjaman.nomor_dokumen ?? `#${detailPinjaman.id}`} • Pengajuan ${detailPinjaman.tanggal_pengajuan}` : undefined}
+                badge={detailPinjaman ? <StatusBadge status={detailPinjaman.status} /> : null}
+                onClose={() => setDrawerOpen(false)}
+                maxWidth="3xl"
+            >
                 {detailPinjaman && (
                     <DetailDrawer
                         key={detailPinjaman.id}
+                        inDrawer
+                        onClose={() => setDrawerOpen(false)}
                         pinjaman={detailPinjaman}
                         angsuran={detailPinjaman.angsuran ?? []}
                         pelunasan_resign={detailPinjaman.pelunasan_resign ?? { total: 0, tanggal: null }}

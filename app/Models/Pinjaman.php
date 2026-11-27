@@ -261,10 +261,12 @@ class Pinjaman extends Model
     public function getVerificationTimeline(): array
     {
         $ditolak = $this->status === 'ditolak';
-        // Catatan 'Diajukan mandiri oleh Bendahara' adalah penanda awal, bukan keputusan.
+        // Catatan 'Diajukan mandiri oleh ...' adalah penanda awal, bukan keputusan.
+        $adaKeputusanAdmin = ! empty($this->catatan_admin)
+            && $this->catatan_admin !== 'Diajukan mandiri oleh Sekretaris';
         $adaKeputusanBendahara = ! empty($this->catatan_bendahara)
             && $this->catatan_bendahara !== 'Diajukan mandiri oleh Bendahara';
-        $ditolakAdmin = $ditolak && ! empty($this->catatan_admin) && ! $adaKeputusanBendahara && empty($this->catatan_ketua);
+        $ditolakAdmin = $ditolak && $adaKeputusanAdmin && ! $adaKeputusanBendahara && empty($this->catatan_ketua);
         $ditolakBendahara = $ditolak && $adaKeputusanBendahara && empty($this->catatan_ketua);
         $ditolakKetua = $ditolak && ! empty($this->catatan_ketua);
         $adminDone = in_array($this->status, ['approved_admin', 'approved_bendahara', 'approved_ketua', 'aktif', 'lunas', 'dihapusbukukan'], true)
@@ -276,7 +278,12 @@ class Pinjaman extends Model
         $adminData = $this->parseApprovalNote($this->catatan_admin);
         $bendaharaData = $this->parseApprovalNote($this->catatan_bendahara);
         $ketuaData = $this->parseApprovalNote($this->catatan_ketua);
-        $this->loadMissing('dicairkanOleh');
+        if ($cairDone && ! $this->relationLoaded('dicairkanOleh')) {
+            $this->loadMissing('dicairkanOleh');
+        }
+        if (! $this->relationLoaded('pengaju')) {
+            $this->loadMissing('pengaju');
+        }
 
         return [
             [

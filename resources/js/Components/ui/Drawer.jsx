@@ -29,6 +29,7 @@ export default function Drawer({
         xl: 'max-w-xl',
         '2xl': 'max-w-2xl',
         '3xl': 'max-w-3xl',
+        '4xl': 'max-w-4xl',
     }[maxWidth] ?? 'max-w-xl';
 
     const [isMobile, setIsMobile] = useState(false);
@@ -94,11 +95,11 @@ export default function Drawer({
                     >
                         <DialogPanel ref={panelRef} className={panelClass}>
                             <div className="shrink-0 bg-white border-b border-slate-200/80 relative">
-                                <div className="flex items-start justify-between gap-3 px-4 py-3 sm:px-5 sm:py-3.5">
+                                <div className="flex items-start justify-between gap-4 px-5 py-3.5 sm:px-6 sm:py-4">
                                     <div className="min-w-0 flex-1">
                                         <h2 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight truncate">{title}</h2>
                                         {description && (
-                                            <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{description}</p>
+                                            <p className="text-xs text-slate-500 mt-0.5 leading-relaxed truncate">{description}</p>
                                         )}
                                     </div>
                                     <div className="flex items-center gap-2 shrink-0">

@@ -20,6 +20,7 @@ export default function Show({ pinjaman, angsuran, pelunasan_resign, jurnal_pelu
                 angsuran={angsuran}
                 pelunasan_resign={pelunasan_resign}
                 jurnal_pelunasan={jurnal_pelunasan}
+                inDrawer={false}
             />
         </AppLayout>
     );

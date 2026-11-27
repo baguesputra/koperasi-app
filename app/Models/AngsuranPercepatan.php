@@ -29,4 +29,9 @@ class AngsuranPercepatan extends Model
     {
         return $this->belongsTo(PengajuanPercepatan::class, 'pengajuan_percepatan_id');
     }
+
+    public function confirmedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'confirmed_by');
+    }
 }
