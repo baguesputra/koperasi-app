@@ -31,6 +31,13 @@ class KonfirmasiSimpananService
 
     public function konfirmasiMassal(array $anggotaIds, string $bulanPeriode, int $inputByUserId): int
     {
+        $bulanSekarang = now()->format('Y-m');
+        if ($bulanPeriode > $bulanSekarang) {
+            throw new RuntimeException(
+                "Simpanan wajib periode mendatang ({$bulanPeriode}) belum dapat dikonfirmasi. Gunakan fitur Bayar di Muka khusus anggota baru < 6 bulan."
+            );
+        }
+
         $nominalWajib = SettingSimpanan::where('jenis', 'wajib')->value('nominal') ?? 0;
         $nominalDanaSosial = SettingSimpanan::where('jenis', 'dana_sosial')->value('nominal') ?? 0;
 
@@ -41,6 +48,16 @@ class KonfirmasiSimpananService
                 ->lockForUpdate()
                 ->get()
                 ->keyBy('id');
+
+            // Validasi tidak ada tunggakan simpanan wajib periode sebelumnya sebelum konfirmasi bulan ini
+            $tunggakan = $this->simpananWajibTerlambat($bulanPeriode)
+                ->first(fn (array $row) => in_array((int) $row['anggota_id'], array_map('intval', $anggotaIds), true));
+
+            if ($tunggakan !== null) {
+                throw new RuntimeException(
+                    "Simpanan wajib {$tunggakan['nama']} periode {$bulanPeriode} tidak dapat dikonfirmasi karena periode {$tunggakan['bulan_periode_label']} masih menunggak di tab Terlambat."
+                );
+            }
 
             $jumlahDiproses = 0;
             $totalWajib = 0.0;
@@ -168,6 +185,12 @@ class KonfirmasiSimpananService
             ->get()
             ->groupBy(fn ($s) => "{$s->anggota_id}|{$s->bulan_periode}");
 
+        $maxPeriodePerAnggota = Simpanan::whereIn('anggota_id', $perAnggota->pluck('*.anggota_id')->flatten()->unique()->filter())
+            ->where('jenis', 'wajib')
+            ->selectRaw('anggota_id, MAX(bulan_periode) as max_periode')
+            ->groupBy('anggota_id')
+            ->pluck('max_periode', 'anggota_id');
+
         $labelPeriodeCache = [];
         $hasil = collect();
         foreach ($perAnggota as $rows) {
@@ -184,6 +207,14 @@ class KonfirmasiSimpananService
             $nominalWajib = (float) $wajib->jumlah;
             $nominalSosial = (float) ($sosial?->jumlah ?? 0);
             $periode = (string) $wajib->bulan_periode;
+            $adaPeriodeLebihBaru = ($maxPeriodePerAnggota[$anggota->id] ?? '') > $periode;
+
+            $alasanTidakBisaBatal = null;
+            if ($anggota->status !== 'aktif') {
+                $alasanTidakBisaBatal = "Anggota ini berstatus {$anggota->status} sehingga konfirmasi simpanan tidak dapat dibatalkan.";
+            } elseif ($adaPeriodeLebihBaru) {
+                $alasanTidakBisaBatal = "Sudah ada konfirmasi simpanan wajib setelah periode {$periode}. Batalkan dari periode terbaru terlebih dahulu.";
+            }
 
             if (! isset($labelPeriodeCache[$periode])) {
                 $labelPeriodeCache[$periode] = preg_match('/^\d{4}-\d{2}$/', $periode)
@@ -207,7 +238,8 @@ class KonfirmasiSimpananService
                 'nominal_dana_sosial' => $nominalSosial,
                 'nominal_total' => $nominalWajib + $nominalSosial,
                 'tanggal_input' => $wajib->tanggal_input?->format('d M Y'),
-                'bisa_dibatalkan' => $anggota->status === 'aktif',
+                'bisa_dibatalkan' => $alasanTidakBisaBatal === null,
+                'alasan_tidak_bisa_batal' => $alasanTidakBisaBatal,
             ]);
         }
 
@@ -336,6 +368,15 @@ class KonfirmasiSimpananService
             return 0;
         }
 
+        $bulanSekarang = now()->format('Y-m');
+        foreach (array_keys($perPeriode) as $periode) {
+            if ($periode > $bulanSekarang) {
+                throw new RuntimeException(
+                    "Simpanan wajib periode mendatang ({$periode}) belum dapat dikonfirmasi."
+                );
+            }
+        }
+
         ksort($perPeriode);
 
         return DB::transaction(function () use ($perPeriode, $inputByUserId) {
@@ -358,6 +399,17 @@ class KonfirmasiSimpananService
             if ($anggota->status !== 'aktif') {
                 throw new RuntimeException(
                     "Anggota {$anggota->nama} berstatus '{$anggota->status}', konfirmasi simpanan tidak dapat dibatalkan."
+                );
+            }
+
+            $adaPeriodeLebihBaru = Simpanan::where('anggota_id', $anggotaId)
+                ->where('jenis', 'wajib')
+                ->where('bulan_periode', '>', $bulanPeriode)
+                ->exists();
+
+            if ($adaPeriodeLebihBaru) {
+                throw new RuntimeException(
+                    "Konfirmasi simpanan periode {$bulanPeriode} tidak dapat dibatalkan karena sudah ada konfirmasi simpanan wajib pada periode setelahnya. Batalkan dari periode terbaru terlebih dahulu."
                 );
             }
 

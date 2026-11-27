@@ -27,6 +27,7 @@ class SimpananController extends Controller
         $bulanIni = now()->format('Y-m');
         $isBulanBerjalan = $bulan === $bulanIni;
         $isBulanLalu = $bulan < $bulanIni;
+        $isBulanDepan = $bulan > $bulanIni;
 
         $cabangAktif = $request->string('cabang');
 
@@ -42,18 +43,39 @@ class SimpananController extends Controller
                 'nominal' => (float) $dipindahTampil->sum('nominal'),
             ];
         } else {
-            $semuaBelumSimpanan = $this->konfirmasi->anggotaBelumSimpananWajib($bulan)
-                ->map(fn ($a) => [
-                    'id' => $a->id,
-                    'nama' => $a->nama,
-                    'no_anggota' => $a->no_anggota,
-                    'no_karyawan' => $a->no_karyawan,
-                    'cabang' => $a->cabang,
-                    'foto_url' => $a->foto_url,
-                ]);
             $semuaTerlambat = $isBulanBerjalan
                 ? $this->konfirmasi->simpananWajibTerlambat($bulanIni)
-                : collect();
+                : $this->konfirmasi->simpananWajibTerlambat($bulan);
+
+            $tertuaTerlambat = [];
+            foreach ($semuaTerlambat as $row) {
+                $aid = (int) $row['anggota_id'];
+                if (! isset($tertuaTerlambat[$aid])) {
+                    $tertuaTerlambat[$aid] = $row['bulan_periode_label'];
+                }
+            }
+
+            $semuaBelumSimpanan = $this->konfirmasi->anggotaBelumSimpananWajib($bulan)
+                ->map(function ($a) use ($tertuaTerlambat, $isBulanDepan) {
+                    $periodeTertua = $tertuaTerlambat[$a->id] ?? null;
+                    $adaTunggakan = $periodeTertua !== null;
+
+                    return [
+                        'id' => $a->id,
+                        'nama' => $a->nama,
+                        'no_anggota' => $a->no_anggota,
+                        'no_karyawan' => $a->no_karyawan,
+                        'cabang' => $a->cabang,
+                        'foto_url' => $a->foto_url,
+                        'ada_tunggakan_terlambat' => $adaTunggakan,
+                        'periode_terlambat_tertua' => $periodeTertua,
+                        'bisa_dipilih' => ! $isBulanDepan && ! $adaTunggakan,
+                    ];
+                });
+
+            if (! $isBulanBerjalan) {
+                $semuaTerlambat = collect();
+            }
             $dipindahKeBulanIni = ['jumlah' => 0, 'nominal' => 0.0];
         }
 
@@ -96,6 +118,7 @@ class SimpananController extends Controller
         return Inertia::render('Bendahara/Simpanan/Index', [
             'bulan' => $bulan,
             'bulanIni' => $bulanIni,
+            'isBulanDepan' => $isBulanDepan,
             'tabAwal' => $tabAwal,
             'belumSimpanan' => $belumSimpanan,
             'terlambatSimpanan' => $terlambatSimpanan,
@@ -123,20 +146,24 @@ class SimpananController extends Controller
             'items.*.bulan_periode' => ['required', 'string', 'regex:/^\d{4}-\d{2}$/'],
         ]);
 
-        if ($request->filled('items')) {
-            $jumlah = $this->konfirmasi->konfirmasiMassalMultiPeriode(
-                $request->input('items', []),
+        try {
+            if ($request->filled('items')) {
+                $jumlah = $this->konfirmasi->konfirmasiMassalMultiPeriode(
+                    $request->input('items', []),
+                    auth()->id()
+                );
+
+                return back()->with('status', "Simpanan terlambat {$jumlah} tagihan berhasil dikonfirmasi.");
+            }
+
+            $jumlah = $this->konfirmasi->konfirmasiMassal(
+                $request->anggota_ids,
+                $request->bulan_periode,
                 auth()->id()
             );
-
-            return back()->with('status', "Simpanan terlambat {$jumlah} tagihan berhasil dikonfirmasi.");
+        } catch (RuntimeException $e) {
+            return back()->withErrors(['konfirmasi' => $e->getMessage()]);
         }
-
-        $jumlah = $this->konfirmasi->konfirmasiMassal(
-            $request->anggota_ids,
-            $request->bulan_periode,
-            auth()->id()
-        );
 
         return back()->with('status', "Simpanan wajib {$jumlah} anggota berhasil dikonfirmasi.");
     }

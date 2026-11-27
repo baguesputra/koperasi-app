@@ -6,6 +6,7 @@ use App\Laporan\LaporanRegistry;
 use App\Models\AuditLog;
 use App\Models\JurnalKas;
 use App\Models\KasKoperasi;
+use App\Models\PengajuanPenghapusanPinjaman;
 use App\Models\PengajuanPercepatan;
 use App\Models\Pinjaman;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -276,5 +277,82 @@ class AngsuranKonfirmasiTest extends TestCase
         $itemLunas = collect($propsSesudah['sudahDikonfirmasi'])->firstWhere('id', 'n-'.$angsuran1->id);
         $this->assertNotNull($itemLunas);
         $this->assertTrue($itemLunas['dari_bulan_lain']);
+    }
+
+    public function test_validasi_konfirmasi_urut_periode_mendatang_dan_kunci_percepatan_penghapusan(): void
+    {
+        $pinjaman = $this->buatPinjamanAktifDenganAngsuran();
+        $angsuran1 = $pinjaman->angsuran()->where('cicilan_ke', 1)->firstOrFail();
+        $angsuran2 = $pinjaman->angsuran()->where('cicilan_ke', 2)->firstOrFail();
+        $angsuran3 = $pinjaman->angsuran()->where('cicilan_ke', 3)->firstOrFail();
+
+        $this->masuk('BEN-000001');
+
+        // 1. Melompati cicilan ke-1/2 (konfirmasi cicilan ke-3 saja) harus ditolak
+        $this->post(route('bendahara.angsuran.konfirmasi'), [
+            'angsuran_ids' => ['n-'.$angsuran3->id],
+        ])->assertStatus(302)->assertSessionHasErrors('konfirmasi');
+        $this->assertSame('belum_bayar', $angsuran3->refresh()->status);
+
+        // Props index menandai angsuran3 tetap ada namun bisa_dipilih = false dengan info tunggakan ke-1
+        $props = $this->get(route('bendahara.angsuran.index'))->assertOk()->viewData('page')['props'];
+        $baris3 = collect($props['daftarAngsuran'])->firstWhere('id', 'n-'.$angsuran3->id);
+        $this->assertNotNull($baris3);
+        $this->assertFalse($baris3['bisa_dipilih']);
+        $this->assertSame(1, $baris3['tunggakan_sebelumnya']['cicilan_ke']);
+
+        // 2. Melompat sebagian (konfirmasi [1, 3] tanpa 2) tetap ditolak
+        $this->post(route('bendahara.angsuran.konfirmasi'), [
+            'angsuran_ids' => ['n-'.$angsuran1->id, 'n-'.$angsuran3->id],
+        ])->assertStatus(302)->assertSessionHasErrors('konfirmasi');
+        $this->assertSame('belum_bayar', $angsuran1->refresh()->status);
+
+        // 3. Batch berurutan [1, 2] lalu [3] valid
+        $this->post(route('bendahara.angsuran.konfirmasi'), [
+            'angsuran_ids' => ['n-'.$angsuran1->id, 'n-'.$angsuran2->id],
+        ])->assertStatus(302)->assertSessionHasNoErrors();
+        $this->assertSame('lunas', $angsuran1->refresh()->status);
+        $this->assertSame('lunas', $angsuran2->refresh()->status);
+
+        // 4. Pinjaman dengan pengajuan percepatan pending mengunci konfirmasi cicilan ke-3
+        $perc = PengajuanPercepatan::create([
+            'pinjaman_id' => $pinjaman->id,
+            'tipe' => 'percepat',
+            'tenor_lama' => 3,
+            'tenor_baru' => 2,
+            'keterangan' => 'Uji kunci',
+            'status' => 'diajukan',
+            'tanggal_pengajuan' => now(),
+        ]);
+        $this->post(route('bendahara.angsuran.konfirmasi'), [
+            'angsuran_ids' => ['n-'.$angsuran3->id],
+        ])->assertStatus(302)->assertSessionHasErrors('konfirmasi');
+        $perc->update(['status' => 'ditolak']);
+
+        // 5. Pinjaman dengan pengajuan penghapusan aktif mengunci konfirmasi cicilan ke-3
+        $hapus = PengajuanPenghapusanPinjaman::create([
+            'pinjaman_id' => $pinjaman->id,
+            'anggota_id' => $pinjaman->anggota_id,
+            'tanggal_pengajuan' => now()->toDateString(),
+            'alasan' => 'Macet uji',
+            'nominal_pinjaman' => 900_000,
+            'total_pokok_terbayar' => 600_000,
+            'total_bunga_terbayar' => 15_000,
+            'sisa_cicilan' => 1,
+            'sisa_pokok' => 300_000,
+            'sisa_bunga' => 3_000,
+            'sisa_total_tagihan' => 303_000,
+            'status' => 'diajukan',
+        ]);
+        $this->post(route('bendahara.angsuran.konfirmasi'), [
+            'angsuran_ids' => ['n-'.$angsuran3->id],
+        ])->assertStatus(302)->assertSessionHasErrors('konfirmasi');
+        $hapus->update(['status' => 'ditolak']);
+
+        // 6. Cicilan periode mendatang tidak boleh dikonfirmasi
+        $angsuran3->update(['tanggal_jatuh_tempo' => now()->addMonthNoOverflow()->endOfMonth()]);
+        $this->post(route('bendahara.angsuran.konfirmasi'), [
+            'angsuran_ids' => ['n-'.$angsuran3->id],
+        ])->assertStatus(302)->assertSessionHasErrors('konfirmasi');
     }
 }

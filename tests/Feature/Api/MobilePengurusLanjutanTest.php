@@ -7,6 +7,7 @@ use App\Models\Angsuran;
 use App\Models\Pinjaman;
 use App\Models\SettingSimpanan;
 use App\Models\User;
+use Carbon\CarbonInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
@@ -38,7 +39,7 @@ class MobilePengurusLanjutanTest extends TestCase
         return $user->createToken('uji')->plainTextToken;
     }
 
-    private function buatPinjamanAktif(Anggota $anggota, array $override = []): Pinjaman
+    private function buatPinjamanAktif(Anggota $anggota, array $override = [], ?CarbonInterface $mulaiJatuhTempo = null): Pinjaman
     {
         $pinjaman = Pinjaman::create(array_merge([
             'anggota_id' => $anggota->id,
@@ -52,7 +53,7 @@ class MobilePengurusLanjutanTest extends TestCase
             'tanggal_pencairan' => now()->subMonth()->format('Y-m-d'),
         ], $override));
 
-        $jatuhTempo = now()->subMonth();
+        $jatuhTempo = $mulaiJatuhTempo ? $mulaiJatuhTempo->copy() : now()->subMonth();
         foreach (range(1, 4) as $ke) {
             $pinjaman->angsuran()->create([
                 'cicilan_ke' => $ke,
@@ -95,7 +96,7 @@ class MobilePengurusLanjutanTest extends TestCase
     {
         Queue::fake();
         $anggota = $this->buatAnggota('TOP-981002');
-        $pinjaman = $this->buatPinjamanAktif($anggota);
+        $pinjaman = $this->buatPinjamanAktif($anggota, [], now()->subMonths(2));
         $token = $this->tokenIzin('BEN-981002', ['angsuran.konfirmasi']);
 
         $res = $this->headerToken($token)->getJson('/api/v1/pengurus/angsuran')->assertOk();
@@ -120,6 +121,11 @@ class MobilePengurusLanjutanTest extends TestCase
 
         $this->assertSame(3, Angsuran::where('pinjaman_id', $pinjaman->id)->where('status', 'lunas')->count());
 
+        // Cicilan ke-4 jatuh tempo bulan mendatang -> wajib ditolak 422.
+        $this->headerToken($token)->withHeader('Idempotency-Key', Str::uuid()->toString())
+            ->postJson('/api/v1/pengurus/angsuran/konfirmasi', ['angsuran_ids' => [$milikUji->last()['kunci']]])
+            ->assertStatus(422);
+
         $this->headerToken($token)->withHeader('Idempotency-Key', Str::uuid()->toString())
             ->postJson('/api/v1/pengurus/angsuran/konfirmasi', ['angsuran_ids' => []])
             ->assertUnprocessable();
@@ -133,6 +139,7 @@ class MobilePengurusLanjutanTest extends TestCase
     public function test_antrean_simpanan_dan_konfirmasi_massal(): void
     {
         Queue::fake();
+        config(['koperasi.simpanan_terlambat_mulai' => now()->format('Y-m')]);
         $anggota = $this->buatAnggota('TOP-981003');
         $token = $this->tokenIzin('BEN-981003', ['simpanan.konfirmasi']);
 

@@ -22,6 +22,8 @@ class SimpananKonfirmasiTest extends TestCase
     {
         parent::setUp();
         $this->seed();
+        // Default test non-terlambat dimulai bulan berjalan agar fixture uji lama independen dari tanggal kalender.
+        config(['koperasi.simpanan_terlambat_mulai' => now()->format('Y-m')]);
     }
 
     private function buatAnggota(string $no): Anggota
@@ -287,5 +289,63 @@ class SimpananKonfirmasiTest extends TestCase
             ->assertOk()
             ->viewData('page')['props'];
         $this->assertContains("{$a1->id}|{$bulanSatuLalu}", array_column($propsRollback['terlambatSimpanan'], 'id'));
+    }
+
+    public function test_validasi_tunggakan_urut_periode_mendatang_dan_rollback_berurutan(): void
+    {
+        $bulanIni = now()->format('Y-m');
+        $bulanSatuLalu = now()->startOfMonth()->subMonthsNoOverflow(1)->format('Y-m');
+        $bulanDuaLalu = now()->startOfMonth()->subMonthsNoOverflow(2)->format('Y-m');
+        $bulanDepan = now()->startOfMonth()->addMonthNoOverflow(1)->format('Y-m');
+
+        config(['koperasi.simpanan_terlambat_mulai' => $bulanDuaLalu]);
+
+        $a1 = $this->buatAnggota('TOP-910099');
+        $this->masuk('BEN-000001');
+
+        // 1. Konfirmasi bulan berjalan saat ada tunggakan di Tab Terlambat harus ditolak
+        $this->post(route('bendahara.simpanan.konfirmasi'), [
+            'anggota_ids' => [$a1->id],
+            'bulan_periode' => $bulanIni,
+        ])->assertStatus(302)->assertSessionHasErrors('konfirmasi');
+        $this->assertDatabaseMissing('simpanan', ['anggota_id' => $a1->id, 'jenis' => 'wajib', 'bulan_periode' => $bulanIni]);
+
+        // Props belumSimpanan tetap memuat a1 tetapi bisa_dipilih = false
+        $props = $this->get(route('bendahara.simpanan.index'))->assertOk()->viewData('page')['props'];
+        $barisA1 = collect($props['belumSimpanan'])->firstWhere('id', $a1->id);
+        $this->assertNotNull($barisA1);
+        $this->assertFalse($barisA1['bisa_dipilih']);
+        $this->assertTrue($barisA1['ada_tunggakan_terlambat']);
+
+        // 2. Melompati bulanDuaLalu (konfirmasi bulanSatuLalu saja) ditolak
+        $this->post(route('bendahara.simpanan.konfirmasi'), [
+            'items' => [['anggota_id' => $a1->id, 'bulan_periode' => $bulanSatuLalu]],
+        ])->assertStatus(302)->assertSessionHasErrors('konfirmasi');
+
+        // 3. Periode mendatang ditolak
+        $this->post(route('bendahara.simpanan.konfirmasi'), [
+            'anggota_ids' => [$a1->id],
+            'bulan_periode' => $bulanDepan,
+        ])->assertStatus(302)->assertSessionHasErrors('konfirmasi');
+
+        // 4. Konfirmasi berurutan [bulanDuaLalu, bulanSatuLalu] lalu bulanIni berhasil
+        $this->post(route('bendahara.simpanan.konfirmasi'), [
+            'items' => [
+                ['anggota_id' => $a1->id, 'bulan_periode' => $bulanDuaLalu],
+                ['anggota_id' => $a1->id, 'bulan_periode' => $bulanSatuLalu],
+            ],
+        ])->assertStatus(302)->assertSessionHasNoErrors();
+
+        $this->post(route('bendahara.simpanan.konfirmasi'), [
+            'anggota_ids' => [$a1->id],
+            'bulan_periode' => $bulanIni,
+        ])->assertStatus(302)->assertSessionHasNoErrors();
+
+        // 5. Rollback periode lebih lama ditolak selama periode lebih baru masih ada
+        $this->post(route('bendahara.simpanan.batalkan', $a1->id), [
+            'bulan_periode' => $bulanSatuLalu,
+            'alasan' => 'Coba batalkan bulan lama',
+        ])->assertSessionHasErrors('alasan');
+        $this->assertDatabaseHas('simpanan', ['anggota_id' => $a1->id, 'jenis' => 'wajib', 'bulan_periode' => $bulanSatuLalu]);
     }
 }

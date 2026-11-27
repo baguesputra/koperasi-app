@@ -7,6 +7,7 @@ use App\Models\Anggota;
 use App\Models\Angsuran;
 use App\Models\AngsuranPercepatan;
 use App\Models\PengajuanLimit;
+use App\Models\PengajuanPenghapusanPinjaman;
 use App\Models\PengajuanPercepatan;
 use App\Models\Pinjaman;
 use App\Services\Pinjaman\KonfirmasiAngsuranService;
@@ -202,7 +203,13 @@ class AngsuranController extends Controller
         }
 
         $sebelum = $this->totalTerkonfirmasi($items);
-        $jumlah = $this->konfirmasi->konfirmasiMassal($items, (int) $request->user()->id);
+
+        try {
+            $jumlah = $this->konfirmasi->konfirmasiMassal($items, (int) $request->user()->id);
+        } catch (RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
         $total = $this->totalTerkonfirmasi($items) - $sebelum;
 
         return response()->json([
@@ -308,19 +315,28 @@ class AngsuranController extends Controller
             ->groupBy('pinjaman_id')
             ->pluck('max_at', 'pinjaman_id');
 
+        $pinjamanPenghapusanAktif = $pinjamanIds->isEmpty() ? collect() : PengajuanPenghapusanPinjaman::whereIn('pinjaman_id', $pinjamanIds)
+            ->whereNotIn('status', ['ditolak', 'disetujui'])
+            ->pluck('pinjaman_id')
+            ->flip();
+
         $alasanBlokir = function ($angsuran, ?Pinjaman $pinjaman, ?Anggota $anggota, bool $isPercepatan) use (
             $maxCicilanNormal,
             $maxCicilanPercepatan,
             $pinjamanAdaPercepatanLunas,
             $maxPinjamanPerAnggota,
             $limitTerbaruPerAnggota,
-            $percepatanTerbaruPerPinjaman
+            $percepatanTerbaruPerPinjaman,
+            $pinjamanPenghapusanAktif
         ): ?string {
             if (! $pinjaman || ! $anggota) {
                 return 'Data pinjaman atau anggota tidak ditemukan.';
             }
             if ($anggota->status !== 'aktif') {
                 return "Anggota berstatus '{$anggota->status}', konfirmasi angsuran tidak dapat dibatalkan.";
+            }
+            if ($pinjamanPenghapusanAktif->has($pinjaman->id)) {
+                return 'Pinjaman sedang dalam proses pengajuan penghapusan.';
             }
             if ($isPercepatan) {
                 if ((int) ($maxCicilanPercepatan[$angsuran->pengajuan_percepatan_id] ?? 0) > (int) $angsuran->cicilan_ke) {

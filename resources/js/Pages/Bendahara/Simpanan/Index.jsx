@@ -1,5 +1,5 @@
 import AppLayout from '@/Layouts/AppLayout';
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useId, useMemo, useState } from 'react';
 import { HeartHandshake, Check, ChevronLeft, ChevronRight, Search, X, RefreshCw, MapPin, Calendar, RotateCcw, AlertCircle, Clock, AlarmClock } from 'lucide-react';
 import Card from '@/Components/ui/Card';
@@ -26,6 +26,7 @@ const fokusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible
 export default function Index({
     bulan,
     bulanIni: bulanIniServer,
+    isBulanDepan: isBulanDepanProp,
     tabAwal = 'belum',
     belumSimpanan = [],
     terlambatSimpanan = [],
@@ -40,6 +41,7 @@ export default function Index({
     nominalPerAnggota = 0,
     totalDanaSosialTerkumpul = 0,
 }) {
+    const { errors } = usePage().props;
     const daftarCabangAman = Array.isArray(daftarCabang) ? daftarCabang : Object.values(daftarCabang ?? {});
     const [terpilih, setTerpilih] = useState([]);
     const [processing, setProcessing] = useState(false);
@@ -86,6 +88,7 @@ export default function Index({
     const bulanIniDate = new Date();
     const kunciBulanIni = bulanIniServer || `${bulanIniDate.getFullYear()}-${String(bulanIniDate.getMonth() + 1).padStart(2, '0')}`;
     const isBulanLalu = bulan < kunciBulanIni;
+    const isBulanDepan = isBulanDepanProp ?? (bulan > kunciBulanIni);
 
     function gantiTab(tabBaru) {
         setTabStatus(tabBaru);
@@ -149,16 +152,42 @@ export default function Index({
         [dataBelumGenap, kataCari]
     );
 
-    const semuaTampilTerpilih = tampil.length > 0 && tampil.every((a) => terpilih.includes(a.id));
+    const tampilSelectable = useMemo(
+        () => tampil.filter((a) => a.bisa_dipilih !== false),
+        [tampil]
+    );
+    const semuaTampilTerpilih = tampilSelectable.length > 0 && tampilSelectable.every((a) => terpilih.includes(a.id));
 
-    function toggleSatu(id) {
+    function toggleSatu(id, bisaDipilih = true) {
+        if (!bisaDipilih || isBulanDepan) return;
         setTerpilih((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
     }
 
+    function toggleTerlambat(item) {
+        if (isBulanDepan) return;
+        const sudah = terpilih.includes(item.id);
+        setTerpilih((prev) => {
+            const milikAnggota = dataTerlambat.filter((r) => r.anggota_id === item.anggota_id);
+            if (sudah) {
+                const batalIds = new Set(
+                    milikAnggota
+                        .filter((r) => r.bulan_periode >= item.bulan_periode)
+                        .map((r) => r.id)
+                );
+                return prev.filter((x) => !batalIds.has(x));
+            }
+            const tambahIds = milikAnggota
+                .filter((r) => r.bulan_periode <= item.bulan_periode)
+                .map((r) => r.id);
+            return [...new Set([...prev, ...tambahIds])];
+        });
+    }
+
     function toggleSemua() {
+        if (isBulanDepan || tampilSelectable.length === 0) return;
         setTerpilih((prev) => semuaTampilTerpilih
-            ? prev.filter((id) => !tampil.some((a) => a.id === id))
-            : [...new Set([...prev, ...tampil.map((a) => a.id)])]);
+            ? prev.filter((id) => !tampilSelectable.some((a) => a.id === id))
+            : [...new Set([...prev, ...tampilSelectable.map((a) => a.id)])]);
     }
 
     function konfirmasi() {
@@ -488,7 +517,7 @@ export default function Index({
                             )}
                         </div>
                         <div className="flex items-center gap-2">
-                            {tabStatus === 'belum' && tampil.length > 0 && (
+                            {tabStatus === 'belum' && !isBulanDepan && tampilSelectable.length > 0 && (
                                 <button
                                     onClick={toggleSemua}
                                     className={`text-sm font-semibold text-brand-green hover:text-brand-green-dark ${fokusRing} rounded-md px-1 shrink-0`}
@@ -505,6 +534,13 @@ export default function Index({
                         </div>
                     </div>
                 </div>
+
+                {errors?.konfirmasi && (
+                    <div className="my-2 rounded-xl border border-rose-200 bg-rose-50/80 px-3.5 py-2.5 flex items-start gap-2 text-xs sm:text-sm text-rose-800" role="alert">
+                        <AlertCircle size={16} className="shrink-0 mt-0.5 text-rose-600" aria-hidden="true" />
+                        <span>{errors.konfirmasi}</span>
+                    </div>
+                )}
 
                 {(tabStatus === 'belum' || tabStatus === 'terlambat') && isBulanLalu ? (
                     <div className="text-center py-10 px-4">
@@ -568,39 +604,71 @@ export default function Index({
                             Tidak ada yang cocok dengan pencarian &ldquo;{cari}&rdquo;.
                         </p>
                     ) : (
-                        <ul className="divide-y divide-slate-50">
-                            {tampil.map((a) => {
-                                const dipilih = terpilih.includes(a.id);
-                                return (
-                                    <li key={a.id}>
-                                        <label
-                                            className={`flex items-center gap-3 px-2 py-3 rounded-xl cursor-pointer transition-all has-[:focus-visible]:bg-brand-green-light/40 ${
-                                                dipilih ? 'bg-brand-green-light/45 hover:bg-brand-green-light/65' : 'hover:bg-brand-green-light/30'
-                                            }`}
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                checked={dipilih}
-                                                onChange={() => toggleSatu(a.id)}
-                                                aria-label={`Pilih simpanan wajib ${a.nama}`}
-                                                className="w-5 h-5 rounded-lg border-slate-300 text-brand-green focus:ring-brand-green/30 shrink-0"
-                                            />
-                                            <span className="hidden sm:inline-flex shrink-0">
-                                                <FotoAnggota nama={a.nama} fotoUrl={a.foto_url} ukuran="sm" />
-                                            </span>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-semibold text-slate-800 truncate">{a.nama}</p>
-                                                <p className="text-xs text-slate-500 mt-0.5 truncate">{a.no_karyawan} • {a.cabang}</p>
-                                            </div>
-                                            <div className="text-right shrink-0 pl-2">
-                                                <p className="text-sm font-bold text-slate-800 whitespace-nowrap tabular-nums privacy-blur">{formatRupiah(nominalPerAnggota)}</p>
-                                                <p className="text-[11px] text-slate-500">wajib + dansos</p>
-                                            </div>
-                                        </label>
-                                    </li>
-                                );
-                            })}
-                        </ul>
+                        <>
+                            {isBulanDepan && (
+                                <div className="rounded-xl bg-slate-50 border border-slate-200/80 px-3 py-2 text-xs text-slate-600 mb-2 mt-1">
+                                    Pratinjau periode mendatang. Simpanan wajib hanya dapat dikonfirmasi pada bulan berjalan (atau gunakan Bayar di Muka untuk anggota &lt; 6 bulan).
+                                </div>
+                            )}
+                            <ul className="divide-y divide-slate-50">
+                                {tampil.map((a) => {
+                                    const terkunci = isBulanDepan || a.bisa_dipilih === false;
+                                    const dipilih = !terkunci && terpilih.includes(a.id);
+                                    return (
+                                        <li key={a.id}>
+                                            <label
+                                                className={`flex items-center gap-3 px-2 py-3 rounded-xl transition-all has-[:focus-visible]:bg-brand-green-light/40 ${
+                                                    terkunci
+                                                        ? 'opacity-70 bg-slate-50/40 cursor-not-allowed'
+                                                        : dipilih
+                                                            ? 'bg-brand-green-light/45 hover:bg-brand-green-light/65 cursor-pointer'
+                                                            : 'hover:bg-brand-green-light/30 cursor-pointer'
+                                                }`}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={dipilih}
+                                                    disabled={terkunci}
+                                                    onChange={() => toggleSatu(a.id, !terkunci)}
+                                                    aria-label={`Pilih simpanan wajib ${a.nama}`}
+                                                    className="w-5 h-5 rounded-lg border-slate-300 text-brand-green focus:ring-brand-green/30 disabled:opacity-45 disabled:cursor-not-allowed shrink-0"
+                                                />
+                                                <span className="hidden sm:inline-flex shrink-0">
+                                                    <FotoAnggota nama={a.nama} fotoUrl={a.foto_url} ukuran="sm" />
+                                                </span>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                                        <p className="text-sm font-semibold text-slate-800 truncate">{a.nama}</p>
+                                                        {isBulanDepan ? (
+                                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200/80">
+                                                                Periode Mendatang
+                                                            </span>
+                                                        ) : a.ada_tunggakan_terlambat ? (
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    e.stopPropagation();
+                                                                    bukaTerlambatBulanIni();
+                                                                }}
+                                                                className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200/80 hover:bg-rose-100 transition-colors"
+                                                            >
+                                                                Tunggakan {a.periode_terlambat_tertua} →
+                                                            </button>
+                                                        ) : null}
+                                                    </div>
+                                                    <p className="text-xs text-slate-500 mt-0.5 truncate">{a.no_karyawan} • {a.cabang}</p>
+                                                </div>
+                                                <div className="text-right shrink-0 pl-2">
+                                                    <p className="text-sm font-bold text-slate-800 whitespace-nowrap tabular-nums privacy-blur">{formatRupiah(nominalPerAnggota)}</p>
+                                                    <p className="text-[11px] text-slate-500">wajib + dansos</p>
+                                                </div>
+                                            </label>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        </>
                     )
                 ) : tabStatus === 'terlambat' ? (
                     dataTerlambat.length === 0 ? (
@@ -631,7 +699,7 @@ export default function Index({
                                                 <input
                                                     type="checkbox"
                                                     checked={dipilih}
-                                                    onChange={() => toggleSatu(a.id)}
+                                                    onChange={() => toggleTerlambat(a)}
                                                     aria-label={`Pilih simpanan terlambat ${a.nama} periode ${a.bulan_periode_label}`}
                                                     className="w-5 h-5 rounded-lg border-slate-300 text-brand-green focus:ring-brand-green/30 shrink-0"
                                                 />
@@ -843,7 +911,9 @@ export default function Index({
                             ) : (
                                 <DrawerSection title="Status Rollback" icon={AlertCircle} tone="amber">
                                     <p className="text-xs sm:text-sm text-amber-900">
-                                        Anggota ini berstatus <strong>{itemBatal.status_anggota}</strong> sehingga konfirmasi simpanan tidak dapat dibatalkan.
+                                        {itemBatal.alasan_tidak_bisa_batal
+                                            ? itemBatal.alasan_tidak_bisa_batal
+                                            : `Anggota ini berstatus ${itemBatal.status_anggota} sehingga konfirmasi simpanan tidak dapat dibatalkan.`}
                                     </p>
                                 </DrawerSection>
                             )}

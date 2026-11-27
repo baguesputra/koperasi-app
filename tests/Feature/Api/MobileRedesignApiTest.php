@@ -322,6 +322,7 @@ class MobileRedesignApiTest extends TestCase
         $this->assertSame('belum_bayar', $angsuran->fresh()->status);
 
         // 2. Konfirmasi & Batalkan Simpanan
+        config(['koperasi.simpanan_terlambat_mulai' => $bulan]);
         $this->headerToken($token)->withHeaders($this->key())
             ->postJson('/api/v1/pengurus/simpanan/konfirmasi', ['anggota_ids' => [$anggota->id], 'bulan_periode' => $bulan])
             ->assertOk();

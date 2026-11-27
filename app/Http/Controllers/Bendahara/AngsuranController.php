@@ -7,6 +7,7 @@ use App\Models\Anggota;
 use App\Models\Angsuran;
 use App\Models\AngsuranPercepatan;
 use App\Models\PengajuanLimit;
+use App\Models\PengajuanPenghapusanPinjaman;
 use App\Models\PengajuanPercepatan;
 use App\Models\Pinjaman;
 use App\Services\Pinjaman\KonfirmasiAngsuranService;
@@ -32,21 +33,35 @@ class AngsuranController extends Controller
         $akhirBulan = Carbon::createFromFormat('Y-m', $bulan)->endOfMonth()->endOfDay()->toDateTimeString();
 
         $bulanIni = now()->format('Y-m');
-        $awalBulanIni = now()->startOfMonth()->toDateString();
         $isBulanBerjalan = $bulan === $bulanIni;
         $isBulanLalu = $bulan < $bulanIni;
+        $isBulanDepan = $bulan > $bulanIni;
 
         $cabangAktif = $request->string('cabang');
 
-        // Prefetch 1x: pinjaman yang punya pengajuan percepatan berjalan (anti N+1 di map bawah)
+        // Prefetch 1x: pinjaman yang punya pengajuan percepatan atau penghapusan berjalan (anti N+1)
         $pinjamanBerpengajuan = PengajuanPercepatan::whereIn('status', ['diajukan', 'approved_bendahara'])
             ->pluck('pinjaman_id')
             ->flip();
 
+        $pinjamanPenghapusanAktif = PengajuanPenghapusanPinjaman::whereNotIn('status', ['ditolak', 'disetujui'])
+            ->pluck('pinjaman_id')
+            ->flip();
+
+        $unpaidEarliestByLoan = $this->petaCicilanTerawalBelumBayar();
+
         if ($isBulanLalu) {
             $semuaAngsuran = collect();
             $semuaTerlambat = collect();
-            $dipindahSemua = $this->ambilBelumBayar($awalBulan, $akhirBulan, false, $pinjamanBerpengajuan);
+            $dipindahSemua = $this->ambilBelumBayar(
+                $awalBulan,
+                $akhirBulan,
+                false,
+                $pinjamanBerpengajuan,
+                $pinjamanPenghapusanAktif,
+                $unpaidEarliestByLoan,
+                false
+            );
             $dipindahTampil = $cabangAktif->isNotEmpty()
                 ? $dipindahSemua->where('cabang', $cabangAktif)->values()
                 : $dipindahSemua;
@@ -55,9 +70,25 @@ class AngsuranController extends Controller
                 'nominal' => (float) $dipindahTampil->sum('total_bayar'),
             ];
         } else {
-            $semuaAngsuran = $this->ambilBelumBayar($awalBulan, $akhirBulan, false, $pinjamanBerpengajuan);
+            $semuaAngsuran = $this->ambilBelumBayar(
+                $awalBulan,
+                $akhirBulan,
+                false,
+                $pinjamanBerpengajuan,
+                $pinjamanPenghapusanAktif,
+                $unpaidEarliestByLoan,
+                $isBulanDepan
+            );
             $semuaTerlambat = $isBulanBerjalan
-                ? $this->ambilBelumBayar(null, $awalBulanIni, true, $pinjamanBerpengajuan)
+                ? $this->ambilBelumBayar(
+                    null,
+                    now()->startOfMonth()->toDateString(),
+                    true,
+                    $pinjamanBerpengajuan,
+                    $pinjamanPenghapusanAktif,
+                    $unpaidEarliestByLoan,
+                    false
+                )
                 : collect();
             $dipindahKeBulanIni = ['jumlah' => 0, 'nominal' => 0.0];
         }
@@ -88,7 +119,7 @@ class AngsuranController extends Controller
         $totalPendapatanBungaKeseluruhan = Angsuran::where('status', 'lunas')->sum('nominal_bunga')
             + AngsuranPercepatan::where('status', 'lunas')->sum('nominal_bunga');
 
-        $semuaSudah = $this->daftarSudahDikonfirmasi($awalBulan, $akhirBulan, $bulan);
+        $semuaSudah = $this->daftarSudahDikonfirmasi($awalBulan, $akhirBulan, $bulan, $pinjamanPenghapusanAktif);
         $sudahDikonfirmasi = $cabangAktif->isNotEmpty()
             ? $semuaSudah->where('cabang', $cabangAktif)->values()
             : $semuaSudah;
@@ -100,6 +131,7 @@ class AngsuranController extends Controller
         return Inertia::render('Bendahara/Angsuran/Index', [
             'bulan' => $bulan,
             'bulanIni' => $bulanIni,
+            'isBulanDepan' => $isBulanDepan,
             'tabAwal' => $tabAwal,
             'daftarAngsuran' => $daftarAngsuran,
             'daftarTerlambat' => $daftarTerlambat,
@@ -120,7 +152,11 @@ class AngsuranController extends Controller
     {
         $request->validate(['angsuran_ids' => ['required', 'array', 'min:1']]);
 
-        $jumlah = $this->konfirmasi->konfirmasiMassal($request->angsuran_ids, auth()->id());
+        try {
+            $jumlah = $this->konfirmasi->konfirmasiMassal($request->angsuran_ids, auth()->id());
+        } catch (RuntimeException $e) {
+            return back()->withErrors(['konfirmasi' => $e->getMessage()]);
+        }
 
         return back()->with('status', "{$jumlah} angsuran berhasil dikonfirmasi lunas.");
     }
@@ -144,8 +180,80 @@ class AngsuranController extends Controller
         return back()->with('status', 'Konfirmasi angsuran berhasil dibatalkan dengan jurnal pembalik (storno).');
     }
 
-    private function ambilBelumBayar(?string $dari, ?string $sampai, bool $lebihKecilDari, $pinjamanBerpengajuan)
+    /**
+     * Peta cicilan belum bayar paling awal per pinjaman aktif (lintas jadwal normal -> percepatan)
+     * agar UI dapat menandai baris yang terkunci dan memicu konfirmasi berurutan.
+     *
+     * @return array<int, array{key: string, is_percepatan: int, cicilan_ke: int, jatuh_tempo: string, order_by_key: array<string, int>}>
+     */
+    private function petaCicilanTerawalBelumBayar(): array
     {
+        $perPinjaman = [];
+
+        $normal = Angsuran::where('status', 'belum_bayar')
+            ->whereHas('pinjaman', fn ($q) => $q->where('status', 'aktif'))
+            ->get(['id', 'pinjaman_id', 'cicilan_ke', 'tanggal_jatuh_tempo']);
+
+        foreach ($normal as $a) {
+            $perPinjaman[$a->pinjaman_id][] = [
+                'key' => 'n-'.$a->id,
+                'is_percepatan' => 0,
+                'cicilan_ke' => (int) $a->cicilan_ke,
+                'sort_date' => $a->tanggal_jatuh_tempo?->format('Y-m-d') ?? '9999-12-31',
+                'jatuh_tempo' => $a->tanggal_jatuh_tempo?->translatedFormat('d M Y') ?? '-',
+            ];
+        }
+
+        $percepatan = AngsuranPercepatan::with('pengajuan:id,pinjaman_id')
+            ->where('status', 'belum_bayar')
+            ->whereHas('pengajuan', fn ($q) => $q->where('status', 'aktif')
+                ->whereHas('pinjaman', fn ($pq) => $pq->where('status', 'aktif')))
+            ->get(['id', 'pengajuan_percepatan_id', 'cicilan_ke', 'tanggal_jatuh_tempo']);
+
+        foreach ($percepatan as $a) {
+            $pid = $a->pengajuan?->pinjaman_id;
+            if (! $pid) {
+                continue;
+            }
+            $perPinjaman[$pid][] = [
+                'key' => 'p-'.$a->id,
+                'is_percepatan' => 1,
+                'cicilan_ke' => (int) $a->cicilan_ke,
+                'sort_date' => $a->tanggal_jatuh_tempo?->format('Y-m-d') ?? '9999-12-31',
+                'jatuh_tempo' => $a->tanggal_jatuh_tempo?->translatedFormat('d M Y') ?? '-',
+            ];
+        }
+
+        $hasil = [];
+        foreach ($perPinjaman as $pid => $items) {
+            usort($items, function (array $a, array $b) {
+                return [$a['is_percepatan'], $a['cicilan_ke'], $a['sort_date'], $a['key']]
+                    <=> [$b['is_percepatan'], $b['cicilan_ke'], $b['sort_date'], $b['key']];
+            });
+            $orderByKey = [];
+            foreach ($items as $idx => $slot) {
+                $orderByKey[$slot['key']] = $idx;
+            }
+            $hasil[$pid] = [
+                'key' => $items[0]['key'],
+                'cicilan_ke' => $items[0]['cicilan_ke'],
+                'jatuh_tempo' => $items[0]['jatuh_tempo'],
+                'order_by_key' => $orderByKey,
+            ];
+        }
+
+        return $hasil;
+    }
+
+    private function ambilBelumBayar(
+        ?string $dari,
+        ?string $sampai,
+        bool $lebihKecilDari,
+        $pinjamanBerpengajuan,
+        $pinjamanPenghapusanAktif,
+        array $unpaidEarliestByLoan,
+        bool $isBulanDepan,
+    ) {
         $awalBulanIni = now()->startOfMonth();
 
         $normalQuery = Angsuran::with('pinjaman.anggota')
@@ -154,7 +262,8 @@ class AngsuranController extends Controller
 
         $percepatanQuery = AngsuranPercepatan::with('pengajuan.pinjaman.anggota')
             ->where('status', 'belum_bayar')
-            ->whereHas('pengajuan.pinjaman', fn ($q) => $q->where('status', 'aktif'));
+            ->whereHas('pengajuan', fn ($q) => $q->where('status', 'aktif')
+                ->whereHas('pinjaman', fn ($pq) => $pq->where('status', 'aktif')));
 
         if ($lebihKecilDari) {
             $normalQuery->where('tanggal_jatuh_tempo', '<', $sampai);
@@ -164,53 +273,70 @@ class AngsuranController extends Controller
             $percepatanQuery->whereBetween('tanggal_jatuh_tempo', [$dari, $sampai]);
         }
 
-        $semuaNormal = $normalQuery->get()
-            ->map(function ($a) use ($pinjamanBerpengajuan, $awalBulanIni) {
-                $anggota = $a->pinjaman?->anggota;
-                $tgl = $a->tanggal_jatuh_tempo;
+        $bangunBaris = function ($a, bool $isPercepatan) use (
+            $pinjamanBerpengajuan,
+            $pinjamanPenghapusanAktif,
+            $unpaidEarliestByLoan,
+            $isBulanDepan,
+            $lebihKecilDari,
+            $awalBulanIni
+        ) {
+            $pinjaman = $isPercepatan ? $a->pengajuan?->pinjaman : $a->pinjaman;
+            $pinjamanId = (int) ($pinjaman?->id ?? 0);
+            $anggota = $pinjaman?->anggota;
+            $tgl = $a->tanggal_jatuh_tempo;
+            $kunci = ($isPercepatan ? 'p-' : 'n-').$a->id;
 
-                return [
-                    'id' => 'n-'.$a->id,
-                    'nama' => $anggota?->nama ?? '-',
-                    'no_anggota' => $anggota?->no_anggota ?? '-',
-                    'no_karyawan' => $anggota?->no_karyawan ?? '-',
-                    'cabang' => $anggota?->cabang,
-                    'foto_url' => $anggota?->foto_url,
-                    'cicilan_ke' => $a->cicilan_ke,
-                    'total_bayar' => (float) $a->total_bayar,
-                    'nominal_bunga' => (float) $a->nominal_bunga,
-                    'tanggal_jatuh_tempo' => $tgl?->format('d M Y') ?? '-',
-                    'tanggal_jatuh_tempo_iso' => $tgl?->format('Y-m-d') ?? '',
-                    'periode_asal' => $tgl?->format('Y-m') ?? '',
-                    'periode_asal_label' => $tgl?->translatedFormat('M Y') ?? '-',
-                    'terlambat' => $tgl ? ($tgl->lt($awalBulanIni) || $tgl->isPast()) : false,
-                    'ada_pengajuan_percepatan' => $pinjamanBerpengajuan->has($a->pinjaman_id),
+            $adaPercepatan = $pinjamanBerpengajuan->has($pinjamanId);
+            $adaPenghapusan = $pinjamanPenghapusanAktif->has($pinjamanId);
+            $earliest = $unpaidEarliestByLoan[$pinjamanId] ?? null;
+            $urutanTunggakan = $earliest['order_by_key'][$kunci] ?? 0;
+
+            $alasanTerkunci = null;
+            $tunggakanSebelumnya = null;
+
+            if ($isBulanDepan) {
+                $alasanTerkunci = 'Periode mendatang belum dapat dikonfirmasi.';
+            } elseif ($adaPenghapusan) {
+                $alasanTerkunci = 'Sedang dalam pengajuan penghapusan pinjaman.';
+            } elseif ($adaPercepatan) {
+                $alasanTerkunci = 'Menunggu persetujuan perubahan tenor/pelunasan.';
+            } elseif (! $lebihKecilDari && $earliest !== null && $earliest['key'] !== $kunci) {
+                $tunggakanSebelumnya = [
+                    'cicilan_ke' => $earliest['cicilan_ke'],
+                    'jatuh_tempo' => $earliest['jatuh_tempo'],
                 ];
-            });
+                $alasanTerkunci = "Selesaikan angsuran ke-{$earliest['cicilan_ke']} terlebih dahulu.";
+            }
 
-        $semuaPercepatan = $percepatanQuery->get()
-            ->map(function ($a) use ($awalBulanIni) {
-                $anggota = $a->pengajuan?->pinjaman?->anggota;
-                $tgl = $a->tanggal_jatuh_tempo;
+            return [
+                'id' => $kunci,
+                'pinjaman_id' => $pinjamanId,
+                'user_id_pemilik' => $anggota?->user_id,
+                'nama' => $anggota?->nama ?? '-',
+                'no_anggota' => $anggota?->no_anggota ?? '-',
+                'no_karyawan' => $anggota?->no_karyawan ?? '-',
+                'cabang' => $anggota?->cabang,
+                'foto_url' => $anggota?->foto_url,
+                'cicilan_ke' => $a->cicilan_ke,
+                'total_bayar' => (float) $a->total_bayar,
+                'nominal_bunga' => (float) $a->nominal_bunga,
+                'tanggal_jatuh_tempo' => $tgl?->format('d M Y') ?? '-',
+                'tanggal_jatuh_tempo_iso' => $tgl?->format('Y-m-d') ?? '',
+                'periode_asal' => $tgl?->format('Y-m') ?? '',
+                'periode_asal_label' => $tgl?->translatedFormat('M Y') ?? '-',
+                'terlambat' => $tgl ? ($tgl->lt($awalBulanIni) || $tgl->isPast()) : false,
+                'ada_pengajuan_percepatan' => $adaPercepatan,
+                'ada_pengajuan_penghapusan' => $adaPenghapusan,
+                'tunggakan_sebelumnya' => $tunggakanSebelumnya,
+                'urutan_tunggakan' => $urutanTunggakan,
+                'bisa_dipilih' => $alasanTerkunci === null,
+                'alasan_terkunci' => $alasanTerkunci,
+            ];
+        };
 
-                return [
-                    'id' => 'p-'.$a->id,
-                    'nama' => $anggota?->nama ?? '-',
-                    'no_anggota' => $anggota?->no_anggota ?? '-',
-                    'no_karyawan' => $anggota?->no_karyawan ?? '-',
-                    'cabang' => $anggota?->cabang,
-                    'foto_url' => $anggota?->foto_url,
-                    'cicilan_ke' => $a->cicilan_ke,
-                    'total_bayar' => (float) $a->total_bayar,
-                    'nominal_bunga' => (float) $a->nominal_bunga,
-                    'tanggal_jatuh_tempo' => $tgl?->format('d M Y') ?? '-',
-                    'tanggal_jatuh_tempo_iso' => $tgl?->format('Y-m-d') ?? '',
-                    'periode_asal' => $tgl?->format('Y-m') ?? '',
-                    'periode_asal_label' => $tgl?->translatedFormat('M Y') ?? '-',
-                    'terlambat' => $tgl ? ($tgl->lt($awalBulanIni) || $tgl->isPast()) : false,
-                    'ada_pengajuan_percepatan' => false,
-                ];
-            });
+        $semuaNormal = $normalQuery->get()->map(fn ($a) => $bangunBaris($a, false));
+        $semuaPercepatan = $percepatanQuery->get()->map(fn ($a) => $bangunBaris($a, true));
 
         return $semuaNormal->concat($semuaPercepatan)
             ->sortBy([
@@ -221,7 +347,7 @@ class AngsuranController extends Controller
             ->values();
     }
 
-    private function daftarSudahDikonfirmasi(string $awalBulan, string $akhirBulan, string $bulan)
+    private function daftarSudahDikonfirmasi(string $awalBulan, string $akhirBulan, string $bulan, $pinjamanPenghapusanAktif)
     {
         $lunasNormal = Angsuran::with('pinjaman.anggota')
             ->where('status', 'lunas')
@@ -298,13 +424,17 @@ class AngsuranController extends Controller
             $pinjamanAdaPercepatanLunas,
             $maxPinjamanPerAnggota,
             $limitTerbaruPerAnggota,
-            $percepatanTerbaruPerPinjaman
+            $percepatanTerbaruPerPinjaman,
+            $pinjamanPenghapusanAktif
         ): ?string {
             if (! $pinjaman || ! $anggota) {
                 return 'Data pinjaman atau anggota tidak ditemukan.';
             }
             if ($anggota->status !== 'aktif') {
                 return "Anggota berstatus '{$anggota->status}', konfirmasi angsuran tidak dapat dibatalkan.";
+            }
+            if ($pinjamanPenghapusanAktif->has($pinjaman->id)) {
+                return 'Pinjaman sedang dalam proses pengajuan penghapusan.';
             }
             if ($isPercepatan) {
                 if ((int) ($maxCicilanPercepatan[$angsuran->pengajuan_percepatan_id] ?? 0) > (int) $angsuran->cicilan_ke) {

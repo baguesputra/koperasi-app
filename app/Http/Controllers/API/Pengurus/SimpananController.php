@@ -112,25 +112,29 @@ class SimpananController extends Controller
 
         $nominal = $this->nominalPerAnggota();
 
-        if ($request->filled('items')) {
-            $jumlah = $this->konfirmasi->konfirmasiMassalMultiPeriode(
-                $request->input('items', []),
+        try {
+            if ($request->filled('items')) {
+                $jumlah = $this->konfirmasi->konfirmasiMassalMultiPeriode(
+                    $request->input('items', []),
+                    (int) $request->user()->id
+                );
+
+                return response()->json([
+                    'message' => "{$jumlah} tagihan dikonfirmasi.",
+                    'total' => $jumlah * $nominal,
+                ]);
+            }
+
+            $periode = (string) ($request->input('bulan_periode') ?: now()->format('Y-m'));
+
+            $jumlah = $this->konfirmasi->konfirmasiMassal(
+                $request->input('anggota_ids', []),
+                $periode,
                 (int) $request->user()->id
             );
-
-            return response()->json([
-                'message' => "{$jumlah} tagihan dikonfirmasi.",
-                'total' => $jumlah * $nominal,
-            ]);
+        } catch (RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
         }
-
-        $periode = (string) ($request->input('bulan_periode') ?: now()->format('Y-m'));
-
-        $jumlah = $this->konfirmasi->konfirmasiMassal(
-            $request->input('anggota_ids', []),
-            $periode,
-            (int) $request->user()->id
-        );
 
         return response()->json([
             'message' => "{$jumlah} anggota dikonfirmasi.",
