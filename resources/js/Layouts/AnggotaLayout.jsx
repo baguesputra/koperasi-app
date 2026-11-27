@@ -70,7 +70,7 @@ export default function AnggotaLayout({
     }
 
     return (
-        <div className="shell flex flex-col">
+        <div className="shell app-canvas flex flex-col">
             {/* One flush bar for the portal: identity left, the account right. */}
             {!hideNavbar && (
             <header
