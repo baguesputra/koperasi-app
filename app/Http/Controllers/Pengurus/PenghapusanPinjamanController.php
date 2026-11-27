@@ -63,6 +63,11 @@ class PenghapusanPinjamanController extends Controller
                         'status' => $p->anggota?->status ?? '-',
                     ],
                     'pengaju_nama' => $p->pengaju?->name ?? '-',
+                    'tahap_ditolak' => $p->tahap_ditolak,
+                    'tahap_ditolak_label' => $p->tahap_ditolak ? (PengajuanPenghapusanPinjaman::TAHAP_DITOLAK_LABEL[$p->tahap_ditolak] ?? $p->tahap_ditolak) : null,
+                    'catatan_tolak' => $p->catatan_tolak,
+                    'ditolak_pada' => $p->ditolak_pada?->format('d M Y, H:i'),
+                    'penolak_nama' => $p->penolak?->name,
                     'bisa_diproses' => $this->service->bisaDiprosesOleh($p, $user),
                     'timeline' => $p->getTimelineApproval(),
                 ];
@@ -70,13 +75,11 @@ class PenghapusanPinjamanController extends Controller
             ->values();
 
         $bisaAjukan = $user->can('penghapusan-pinjaman.ajukan');
-        $pinjamanMenunggak = $bisaAjukan ? $this->service->daftarPinjamanMenunggak() : collect();
+        $pinjamanMenunggak = $bisaAjukan ? $this->service->daftarPinjamanMenunggak($user) : collect();
 
         $menungguSaya = $daftar->where('bisa_diproses', true)->values();
         $sedangBerjalan = $daftar->whereIn('status', [
             'diajukan',
-            'approved_bendahara',
-            'approved_ketua',
             'approved_pengawas_3',
             'approved_pengawas_2',
         ])->values();
@@ -119,9 +122,9 @@ class PenghapusanPinjamanController extends Controller
             return back()->withErrors(['alasan' => $e->getMessage()]);
         }
 
-        $tahapBerikut = $pengajuan->status === 'approved_bendahara'
-            ? 'Ketua Koperasi'
-            : 'Bendahara';
+        $tahapBerikut = $pengajuan->status === 'approved_pengawas_3'
+            ? 'Pengawas 2'
+            : 'Pengawas 3';
 
         return $this->redirectSetelahAksi(
             $request,
@@ -170,7 +173,7 @@ class PenghapusanPinjamanController extends Controller
         return $this->redirectSetelahAksi(
             $request,
             'pengurus.penghapusan-pinjaman.index',
-            'Pengajuan penghapusan pinjaman telah ditolak.'
+            'Pengajuan penghapusan pinjaman telah ditolak. Pinjaman tetap aktif untuk terus ditagih.'
         );
     }
 

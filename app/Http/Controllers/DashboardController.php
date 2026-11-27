@@ -16,6 +16,7 @@ use App\Models\RekeningTabungan;
 use App\Models\Simpanan;
 use App\Models\TabunganTransaksi;
 use App\Services\Keuangan\JurnalKasService;
+use App\Services\Pinjaman\PenghapusanPinjamanService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -123,44 +124,11 @@ class DashboardController extends Controller
         $userAktif = auth()->user();
         $penghapusanStatusAktif = [
             'diajukan',
-            'approved_bendahara',
-            'approved_ketua',
             'approved_pengawas_3',
             'approved_pengawas_2',
         ];
-        $penghapusanRows = PengajuanPenghapusanPinjaman::whereIn('status', $penghapusanStatusAktif)
-            ->selectRaw('status, CASE WHEN pengaju_user_id = ? THEN 1 ELSE 0 END as oleh_saya, COUNT(*) as jumlah', [$userAktif->id])
-            ->groupBy('status', 'oleh_saya')
-            ->get();
-        $penghapusanBerjalan = (int) $penghapusanRows->sum('jumlah');
-
-        if ($userAktif->hasRole('super_admin')) {
-            $menungguPenghapusanSaya = $penghapusanBerjalan;
-        } else {
-            $statusPenghapusanSaya = [];
-            if ($userAktif->can('penghapusan-pinjaman.approve-bendahara')) {
-                $statusPenghapusanSaya[] = 'diajukan';
-            }
-            if ($userAktif->can('penghapusan-pinjaman.approve-ketua')) {
-                $statusPenghapusanSaya[] = 'approved_bendahara';
-            }
-            if ($userAktif->can('penghapusan-pinjaman.approve-pengawas')) {
-                $level = $userAktif->levelPengawas();
-                if ($level === 3) {
-                    $statusPenghapusanSaya[] = 'approved_ketua';
-                } elseif ($level === 2) {
-                    $statusPenghapusanSaya[] = 'approved_pengawas_3';
-                } elseif ($level === 1) {
-                    $statusPenghapusanSaya[] = 'approved_pengawas_2';
-                }
-            }
-
-            $menungguPenghapusanSaya = empty($statusPenghapusanSaya)
-                ? 0
-                : (int) $penghapusanRows
-                    ->filter(fn ($row) => in_array($row->status, $statusPenghapusanSaya, true) && ! (bool) $row->oleh_saya)
-                    ->sum('jumlah');
-        }
+        $penghapusanBerjalan = PengajuanPenghapusanPinjaman::whereIn('status', $penghapusanStatusAktif)->count();
+        $menungguPenghapusanSaya = app(PenghapusanPinjamanService::class)->hitungAntreanUntukUser($userAktif);
 
         $rincianAntrean = [
             'limit_bendahara' => $menungguPengajuanLimitBendahara,

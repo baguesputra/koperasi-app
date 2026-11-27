@@ -58,8 +58,9 @@ class PenghapusanPinjamanService
     /**
      * Daftar pinjaman aktif yang memiliki cicilan belum terbayar dan belum memiliki
      * pengajuan penghapusan aktif (diajukan / dalam proses approval).
+     * Bila $aktor diisi, pinjaman milik $aktor sendiri dikecualikan agar tidak self-submit.
      */
-    public function daftarPinjamanMenunggak(): Collection
+    public function daftarPinjamanMenunggak(?User $aktor = null): Collection
     {
         $pinjamanBerpengajuan = PengajuanPenghapusanPinjaman::whereNotIn('status', ['ditolak'])
             ->pluck('pinjaman_id')
@@ -72,6 +73,7 @@ class PenghapusanPinjamanService
         ])
             ->where('status', 'aktif')
             ->when(! empty($pinjamanBerpengajuan), fn ($q) => $q->whereNotIn('id', $pinjamanBerpengajuan))
+            ->when($aktor, fn ($q) => $q->whereDoesntHave('anggota', fn ($qa) => $qa->where('user_id', $aktor->id)))
             ->orderBy('tanggal_pencairan')
             ->get()
             ->map(function (Pinjaman $p) {
@@ -124,9 +126,7 @@ class PenghapusanPinjamanService
         }
 
         return match ($pengajuan->status) {
-            'diajukan' => $user->can('penghapusan-pinjaman.approve-bendahara'),
-            'approved_bendahara' => $user->can('penghapusan-pinjaman.approve-ketua'),
-            'approved_ketua' => $user->can('penghapusan-pinjaman.approve-pengawas') && $user->levelPengawas() === 3,
+            'diajukan' => $user->can('penghapusan-pinjaman.approve-pengawas') && $user->levelPengawas() === 3,
             'approved_pengawas_3' => $user->can('penghapusan-pinjaman.approve-pengawas') && $user->levelPengawas() === 2,
             'approved_pengawas_2' => $user->can('penghapusan-pinjaman.approve-pengawas') && $user->levelPengawas() === 1,
             default => false,
@@ -141,31 +141,23 @@ class PenghapusanPinjamanService
         if ($user->hasRole('super_admin')) {
             return PengajuanPenghapusanPinjaman::whereIn('status', [
                 'diajukan',
-                'approved_bendahara',
-                'approved_ketua',
                 'approved_pengawas_3',
                 'approved_pengawas_2',
-            ])->count();
+            ])
+                ->whereDoesntHave('anggota', fn ($qa) => $qa->where('user_id', $user->id))
+                ->count();
         }
 
-        $statuses = [];
+        if (! $user->can('penghapusan-pinjaman.approve-pengawas')) {
+            return 0;
+        }
 
-        if ($user->can('penghapusan-pinjaman.approve-bendahara')) {
-            $statuses[] = 'diajukan';
-        }
-        if ($user->can('penghapusan-pinjaman.approve-ketua')) {
-            $statuses[] = 'approved_bendahara';
-        }
-        if ($user->can('penghapusan-pinjaman.approve-pengawas')) {
-            $level = $user->levelPengawas();
-            if ($level === 3) {
-                $statuses[] = 'approved_ketua';
-            } elseif ($level === 2) {
-                $statuses[] = 'approved_pengawas_3';
-            } elseif ($level === 1) {
-                $statuses[] = 'approved_pengawas_2';
-            }
-        }
+        $statuses = match ($user->levelPengawas()) {
+            3 => ['diajukan'],
+            2 => ['approved_pengawas_3'],
+            1 => ['approved_pengawas_2'],
+            default => [],
+        };
 
         if (empty($statuses)) {
             return 0;
@@ -173,18 +165,24 @@ class PenghapusanPinjamanService
 
         return PengajuanPenghapusanPinjaman::whereIn('status', $statuses)
             ->where(fn ($q) => $q->whereNull('pengaju_user_id')->orWhere('pengaju_user_id', '!=', $user->id))
+            ->whereDoesntHave('anggota', fn ($qa) => $qa->where('user_id', $user->id))
             ->count();
     }
 
     /**
-     * Pengurus (Sekretaris atau Bendahara) mengajukan penghapusan pinjaman menunggak.
+     * Ketua Koperasi atau Super Admin mengajukan penghapusan pinjaman menunggak.
+     * Alur persetujuan dimulai langsung dari Pengawas 3 -> Pengawas 2 -> Pengawas 1.
      */
     public function ajukan(Pinjaman $pinjaman, string $alasan, User $aktor): PengajuanPenghapusanPinjaman
     {
+        if (! $aktor->hasRole('super_admin') && ! $aktor->can('penghapusan-pinjaman.ajukan')) {
+            throw new RuntimeException('Pengajuan penghapusan pinjaman hanya dapat dilakukan oleh Ketua Koperasi atau Super Admin.');
+        }
+
         $alasan = trim($alasan);
 
         return DB::transaction(function () use ($pinjaman, $alasan, $aktor) {
-            $pinjamanLocked = Pinjaman::with('anggota')->lockForUpdate()->findOrFail($pinjaman->id);
+            $pinjamanLocked = Pinjaman::with('anggota.user')->lockForUpdate()->findOrFail($pinjaman->id);
 
             if ($pinjamanLocked->status !== 'aktif') {
                 throw new RuntimeException('Hanya pinjaman berstatus Aktif yang dapat diajukan penghapusan.');
@@ -210,10 +208,9 @@ class PenghapusanPinjamanService
                 throw new RuntimeException('Pinjaman ini tidak memiliki sisa pokok angsuran yang belum dibayar.');
             }
 
-            // Jika diajukan langsung oleh Bendahara, tahap verifikasi Bendahara otomatis terpenuhi
-            // agar langsung masuk ke antrean Ketua Koperasi (hindari self-approval).
-            $diajukanBendahara = $aktor->hasRole('bendahara') && ! $aktor->hasRole('sekretaris');
-            $statusAwal = $diajukanBendahara ? 'approved_bendahara' : 'diajukan';
+            // Bila pinjaman menunggak dimiliki Pengawas 3, lewati tahap Pengawas 3 agar tak self-approve.
+            $skipP3 = $pinjamanLocked->anggota?->user?->levelPengawas() === 3;
+            $statusAwal = $skipP3 ? 'approved_pengawas_3' : 'diajukan';
 
             $pengajuan = PengajuanPenghapusanPinjaman::create([
                 'pinjaman_id' => $pinjamanLocked->id,
@@ -229,9 +226,8 @@ class PenghapusanPinjamanService
                 'sisa_bunga' => $rincian['sisa_bunga'],
                 'sisa_total_tagihan' => $rincian['sisa_total_tagihan'],
                 'status' => $statusAwal,
-                'approved_bendahara_by' => $diajukanBendahara ? $aktor->id : null,
-                'approved_bendahara_at' => $diajukanBendahara ? now() : null,
-                'catatan_bendahara' => $diajukanBendahara ? "Diajukan langsung oleh Bendahara: {$alasan}" : null,
+                'approved_pengawas_3_at' => $skipP3 ? now() : null,
+                'catatan_pengawas_3' => $skipP3 ? 'Dilewati otomatis (pinjaman milik Pengawas 3)' : null,
             ]);
 
             AuditLog::catat(
@@ -256,24 +252,22 @@ class PenghapusanPinjamanService
     }
 
     /**
-     * Proses persetujuan berjenjang sesuai status pengajuan saat ini:
-     * diajukan -> approved_bendahara -> approved_ketua -> approved_pengawas_3 -> approved_pengawas_2 -> disetujui (Pengawas 1 / Ketua Pengawas).
+     * Proses persetujuan berjenjang oleh Badan Pengawas:
+     * diajukan (Pengawas 3) -> approved_pengawas_3 (Pengawas 2) -> approved_pengawas_2 -> disetujui (Pengawas 1 / Ketua Pengawas).
      */
     public function approve(PengajuanPenghapusanPinjaman $pengajuan, string $catatan, User $aktor): PengajuanPenghapusanPinjaman
     {
         $catatan = trim($catatan);
 
         return DB::transaction(function () use ($pengajuan, $catatan, $aktor) {
-            $locked = PengajuanPenghapusanPinjaman::with(['pinjaman.anggota', 'anggota'])
+            $locked = PengajuanPenghapusanPinjaman::with(['pinjaman.anggota.user', 'anggota.user'])
                 ->lockForUpdate()
                 ->findOrFail($pengajuan->id);
 
             $this->validasiHakProses($locked, $aktor);
 
             return match ($locked->status) {
-                'diajukan' => $this->eksekusiApproveBendahara($locked, $catatan, $aktor),
-                'approved_bendahara' => $this->eksekusiApproveKetua($locked, $catatan, $aktor),
-                'approved_ketua' => $this->eksekusiApprovePengawas3($locked, $catatan, $aktor),
+                'diajukan' => $this->eksekusiApprovePengawas3($locked, $catatan, $aktor),
                 'approved_pengawas_3' => $this->eksekusiApprovePengawas2($locked, $catatan, $aktor),
                 'approved_pengawas_2' => $this->eksekusiApprovePengawas1Final($locked, $catatan, $aktor),
                 default => throw new RuntimeException('Pengajuan penghapusan pinjaman ini tidak dalam status menunggu persetujuan.'),
@@ -282,7 +276,8 @@ class PenghapusanPinjamanService
     }
 
     /**
-     * Tolak pengajuan penghapusan pinjaman pada tahap aktif saat ini.
+     * Tolak pengajuan penghapusan pinjaman pada tahap Pengawas mana pun (3, 2, atau 1).
+     * Pengajuan langsung berstatus 'ditolak' dan pinjaman tetap aktif untuk terus ditagih.
      */
     public function reject(PengajuanPenghapusanPinjaman $pengajuan, string $catatan, User $aktor): PengajuanPenghapusanPinjaman
     {
@@ -297,12 +292,10 @@ class PenghapusanPinjamanService
 
             $statusLama = $locked->status;
             $tahap = match ($statusLama) {
-                'diajukan' => 'bendahara',
-                'approved_bendahara' => 'ketua',
-                'approved_ketua' => 'pengawas_3',
+                'diajukan' => 'pengawas_3',
                 'approved_pengawas_3' => 'pengawas_2',
                 'approved_pengawas_2' => 'pengawas_1',
-                default => 'pengurus',
+                default => 'pengawas',
             };
 
             $locked->update([
@@ -315,7 +308,7 @@ class PenghapusanPinjamanService
 
             AuditLog::catat(
                 aksi: 'penghapusan_pinjaman_ditolak',
-                keterangan: "Pengajuan penghapusan pinjaman #{$locked->pinjaman_id} ({$locked->anggota->nama}) ditolak pada tahap {$tahap} oleh {$aktor->name}. Catatan: {$catatan}",
+                keterangan: "Pengajuan penghapusan pinjaman #{$locked->pinjaman_id} ({$locked->anggota->nama}) ditolak pada tahap {$tahap} oleh {$aktor->name}. Pinjaman tetap aktif untuk terus ditagih. Catatan: {$catatan}",
                 dataLama: ['status' => $statusLama],
                 dataBaru: ['status' => 'ditolak', 'tahap_ditolak' => $tahap, 'catatan_tolak' => $catatan],
                 userId: $aktor->id,
@@ -344,11 +337,7 @@ class PenghapusanPinjamanService
         }
 
         match ($pengajuan->status) {
-            'diajukan' => $aktor->can('penghapusan-pinjaman.approve-bendahara')
-                ?: throw new RuntimeException('Tahap ini hanya dapat diproses oleh Bendahara.'),
-            'approved_bendahara' => $aktor->can('penghapusan-pinjaman.approve-ketua')
-                ?: throw new RuntimeException('Tahap ini hanya dapat diproses oleh Ketua Koperasi.'),
-            'approved_ketua' => ($aktor->can('penghapusan-pinjaman.approve-pengawas') && $aktor->levelPengawas() === 3)
+            'diajukan' => ($aktor->can('penghapusan-pinjaman.approve-pengawas') && $aktor->levelPengawas() === 3)
                 ?: throw new RuntimeException('Tahap ini menunggu persetujuan Pengawas 3.'),
             'approved_pengawas_3' => ($aktor->can('penghapusan-pinjaman.approve-pengawas') && $aktor->levelPengawas() === 2)
                 ?: throw new RuntimeException('Tahap ini menunggu persetujuan Pengawas 2.'),
@@ -358,60 +347,37 @@ class PenghapusanPinjamanService
         };
     }
 
-    private function eksekusiApproveBendahara(PengajuanPenghapusanPinjaman $locked, string $catatan, User $aktor): PengajuanPenghapusanPinjaman
+    private function levelPengawasPemilik(PengajuanPenghapusanPinjaman $locked): ?int
     {
-        $locked->update([
-            'status' => 'approved_bendahara',
-            'approved_bendahara_by' => $aktor->id,
-            'approved_bendahara_at' => now(),
-            'catatan_bendahara' => $catatan,
-        ]);
+        $locked->loadMissing('anggota.user');
 
-        AuditLog::catat(
-            aksi: 'penghapusan_pinjaman_approve_bendahara',
-            keterangan: "Penghapusan pinjaman #{$locked->pinjaman_id} ({$locked->anggota->nama}) diverifikasi oleh Bendahara ({$aktor->name}). Sisa pokok: ".WaPesan::rupiah($locked->sisa_pokok),
-            dataLama: ['status' => 'diajukan'],
-            dataBaru: ['status' => 'approved_bendahara', 'catatan_bendahara' => $catatan],
-            userId: $aktor->id,
-        );
-
-        return $locked->refresh();
-    }
-
-    private function eksekusiApproveKetua(PengajuanPenghapusanPinjaman $locked, string $catatan, User $aktor): PengajuanPenghapusanPinjaman
-    {
-        $locked->update([
-            'status' => 'approved_ketua',
-            'approved_ketua_by' => $aktor->id,
-            'approved_ketua_at' => now(),
-            'catatan_ketua' => $catatan,
-        ]);
-
-        AuditLog::catat(
-            aksi: 'penghapusan_pinjaman_approve_ketua',
-            keterangan: "Penghapusan pinjaman #{$locked->pinjaman_id} ({$locked->anggota->nama}) disetujui oleh Ketua Koperasi ({$aktor->name}), diteruskan ke Pengawas 3. Sisa pokok: ".WaPesan::rupiah($locked->sisa_pokok),
-            dataLama: ['status' => 'approved_bendahara'],
-            dataBaru: ['status' => 'approved_ketua', 'catatan_ketua' => $catatan],
-            userId: $aktor->id,
-        );
-
-        return $locked->refresh();
+        return $locked->anggota?->user?->levelPengawas();
     }
 
     private function eksekusiApprovePengawas3(PengajuanPenghapusanPinjaman $locked, string $catatan, User $aktor): PengajuanPenghapusanPinjaman
     {
-        $locked->update([
-            'status' => 'approved_pengawas_3',
+        $skipP2 = $this->levelPengawasPemilik($locked) === 2;
+
+        $payload = [
+            'status' => $skipP2 ? 'approved_pengawas_2' : 'approved_pengawas_3',
             'approved_pengawas_3_by' => $aktor->id,
             'approved_pengawas_3_at' => now(),
             'catatan_pengawas_3' => $catatan,
-        ]);
+        ];
+
+        if ($skipP2) {
+            $payload['approved_pengawas_2_at'] = now();
+            $payload['catatan_pengawas_2'] = 'Dilewati otomatis (pinjaman milik Pengawas 2)';
+        }
+
+        $locked->update($payload);
 
         AuditLog::catat(
             aksi: 'penghapusan_pinjaman_approve_pengawas_3',
-            keterangan: "Penghapusan pinjaman #{$locked->pinjaman_id} ({$locked->anggota->nama}) disetujui oleh Pengawas 3 ({$aktor->name}), diteruskan ke Pengawas 2.",
-            dataLama: ['status' => 'approved_ketua'],
-            dataBaru: ['status' => 'approved_pengawas_3', 'catatan_pengawas_3' => $catatan],
+            keterangan: "Penghapusan pinjaman #{$locked->pinjaman_id} ({$locked->anggota->nama}) disetujui oleh Pengawas 3 ({$aktor->name}), diteruskan ke "
+                .($skipP2 ? 'Pengawas 1 (tahap Pengawas 2 dilewati agar tak self-approve).' : 'Pengawas 2.'),
+            dataLama: ['status' => 'diajukan'],
+            dataBaru: ['status' => $payload['status'], 'catatan_pengawas_3' => $catatan],
             userId: $aktor->id,
         );
 
@@ -424,6 +390,8 @@ class PenghapusanPinjamanService
             throw new RuntimeException('Akun Pengawas yang sama tidak dapat menyetujui lebih dari satu jenjang.');
         }
 
+        $skipP1 = $this->levelPengawasPemilik($locked) === 1;
+
         $locked->update([
             'status' => 'approved_pengawas_2',
             'approved_pengawas_2_by' => $aktor->id,
@@ -433,11 +401,21 @@ class PenghapusanPinjamanService
 
         AuditLog::catat(
             aksi: 'penghapusan_pinjaman_approve_pengawas_2',
-            keterangan: "Penghapusan pinjaman #{$locked->pinjaman_id} ({$locked->anggota->nama}) disetujui oleh Pengawas 2 ({$aktor->name}), diteruskan ke Pengawas 1 (Ketua Pengawas).",
+            keterangan: "Penghapusan pinjaman #{$locked->pinjaman_id} ({$locked->anggota->nama}) disetujui oleh Pengawas 2 ({$aktor->name}), "
+                .($skipP1 ? 'langsung difinalisasi karena pinjaman milik Pengawas 1.' : 'diteruskan ke Pengawas 1 (Ketua Pengawas).'),
             dataLama: ['status' => 'approved_pengawas_3'],
             dataBaru: ['status' => 'approved_pengawas_2', 'catatan_pengawas_2' => $catatan],
             userId: $aktor->id,
         );
+
+        if ($skipP1) {
+            return $this->eksekusiFinalisasiPenghapusan(
+                $locked->refresh(),
+                'Dilewati otomatis (pinjaman milik Pengawas 1); difinalisasi pada tahap Pengawas 2',
+                $aktor,
+                pengawas1By: null,
+            );
+        }
 
         return $locked->refresh();
     }
@@ -459,6 +437,15 @@ class PenghapusanPinjamanService
             throw new RuntimeException('Akun Pengawas yang sama tidak dapat menyetujui lebih dari satu jenjang.');
         }
 
+        return $this->eksekusiFinalisasiPenghapusan($locked, $catatan, $aktor, pengawas1By: $aktor->id);
+    }
+
+    private function eksekusiFinalisasiPenghapusan(
+        PengajuanPenghapusanPinjaman $locked,
+        string $catatan,
+        User $aktor,
+        ?int $pengawas1By,
+    ): PengajuanPenghapusanPinjaman {
         $pinjaman = Pinjaman::lockForUpdate()->findOrFail($locked->pinjaman_id);
         if ($pinjaman->status !== 'aktif') {
             throw new RuntimeException("Pinjaman #{$pinjaman->id} sudah tidak berstatus Aktif (status saat ini: {$pinjaman->status}).");
@@ -514,7 +501,7 @@ class PenghapusanPinjamanService
             'sisa_bunga' => $rincianAktual['sisa_bunga'],
             'sisa_total_tagihan' => $rincianAktual['sisa_total_tagihan'],
             'status' => 'disetujui',
-            'approved_pengawas_1_by' => $aktor->id,
+            'approved_pengawas_1_by' => $pengawas1By,
             'approved_pengawas_1_at' => $waktuFinal,
             'catatan_pengawas_1' => $catatan,
             'disetujui_pada' => $waktuFinal,
@@ -522,7 +509,7 @@ class PenghapusanPinjamanService
 
         AuditLog::catat(
             aksi: 'penghapusan_pinjaman_disetujui_final',
-            keterangan: "Penghapusan pinjaman #{$pinjaman->id} ({$anggota->nama}) DISETUJUI FINAL oleh Pengawas 1 / Ketua Pengawas ({$aktor->name}) dengan dokumen {$nomorDokumen}. "
+            keterangan: "Penghapusan pinjaman #{$pinjaman->id} ({$anggota->nama}) DISETUJUI FINAL oleh {$aktor->name} dengan dokumen {$nomorDokumen}. "
                 .'Sisa pokok dihapusbukukan: '.WaPesan::rupiah($rincianAktual['sisa_pokok'])
                 ." ({$rincianAktual['sisa_cicilan']}x angsuran). Status anggota diubah dari '{$statusAnggotaLama}' menjadi 'nonaktif' (simpanan tetap mengendap).",
             dataLama: [

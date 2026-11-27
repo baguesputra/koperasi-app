@@ -1,7 +1,7 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, router, usePage } from '@inertiajs/react';
-import { CheckCircle2, Clock, BadgeCheck, Search, XCircle, Wallet, ChevronRight, ChevronDown, X, RefreshCw, Printer, HandCoins } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { CheckCircle2, Clock, Search, Wallet, ChevronRight, X, RefreshCw, Printer, HandCoins, Plus } from 'lucide-react';
+import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import useDebouncedValue from '@/Utils/useDebouncedValue';
 import Button from '@/Components/ui/Button';
 import Card from '@/Components/ui/Card';
@@ -12,21 +12,29 @@ import PageHeader from '@/Components/ui/PageHeader';
 import TextField from '@/Components/ui/TextField';
 import Select from '@/Components/ui/Select';
 import Drawer from '@/Components/ui/Drawer';
+import { DrawerBody } from '@/Components/ui/DrawerSection';
 import DetailDrawer from './Partials/DetailDrawer';
 import { formatRupiah } from '@/Utils/formatCurrency';
 import Pagination from '@/Components/ui/Pagination';
 
-const statusOptions = [
-    { value: '', label: 'Semua Status' },
-    { value: 'diajukan', label: '1. Diajukan (Menunggu Sekretaris)' },
-    { value: 'approved_admin', label: '2. Diteruskan Sekretaris (Menunggu Bendahara)' },
-    { value: 'approved_bendahara', label: '3. Disetujui Bendahara (Menunggu Ketua)' },
-    { value: 'approved_ketua', label: '4. Disetujui Ketua (Menunggu Pencairan)' },
-    { value: 'aktif', label: 'Aktif' },
-    { value: 'lunas', label: 'Lunas' },
-    { value: 'ditolak', label: 'Ditolak' },
-    { value: 'dihapusbukukan', label: 'Dihapusbukukan' },
-];
+const AjukanPenghapusanDrawer = lazy(() =>
+    import('@/Pages/Persetujuan/Partials/PenghapusanDrawers').then((m) => ({ default: m.AjukanPenghapusanDrawer }))
+);
+
+function buildStatusOptions(statistik = {}) {
+    return [
+        { value: '', label: 'Semua Status' },
+        { value: 'diajukan', label: '1. Diajukan (Menunggu Sekretaris)' },
+        { value: 'approved_admin', label: '2. Diteruskan Sekretaris (Menunggu Bendahara)' },
+        { value: 'approved_bendahara', label: '3. Disetujui Bendahara (Menunggu Ketua)' },
+        { value: 'approved_ketua', label: '4. Disetujui Ketua (Menunggu Pencairan)' },
+        { value: 'aktif', label: 'Aktif' },
+        { value: 'menunggak', label: `Menunggak (${statistik.menunggak ?? 0})` },
+        { value: 'lunas', label: 'Lunas' },
+        { value: 'ditolak', label: 'Ditolak' },
+        { value: 'dihapusbukukan', label: 'Dihapusbukukan' },
+    ];
+}
 
 function progresAngsuran(angsuran = []) {
     const total = angsuran.length;
@@ -35,16 +43,54 @@ function progresAngsuran(angsuran = []) {
     return { lunas, total, persen: Math.round((lunas / total) * 100) };
 }
 
-export default function Index({ pinjaman, filters, statistik, cabangAktif, daftarCabang = [] }) {
+export default function Index({
+    pinjaman,
+    filters,
+    statistik,
+    cabangAktif,
+    daftarCabang = [],
+    bisaAjukanPenghapusan: bisaAjukanProp = false,
+    ajukanInitialPinjaman = null,
+    pinjamanMenunggak = [],
+}) {
     const { auth } = usePage().props;
     const roles = auth?.user?.roles ?? [];
-    const bisaCetakBukti = !(roles.includes('pengawas') && !roles.some((r) => ['super_admin', 'sekretaris', 'bendahara', 'ketua_koperasi'].includes(r)));
+    const userPermissions = auth?.user?.permissions ?? [];
+    const isPengawasSaja = roles.includes('pengawas') && !roles.some((r) => ['super_admin', 'sekretaris', 'bendahara', 'ketua_koperasi'].includes(r));
+    const bisaAjukanPenghapusan = Boolean(bisaAjukanProp || userPermissions.includes('penghapusan-pinjaman.ajukan'));
+    const bisaCetakBaris = (p) => !isPengawasSaja || Boolean(p.is_milik_sendiri);
     const daftarCabangAman = Array.isArray(daftarCabang) ? daftarCabang : Object.values(daftarCabang ?? {});
+    const statusOptions = buildStatusOptions(statistik);
     const [cari, setCari] = useState(filters.cari ?? '');
     const cariDebounced = useDebouncedValue(cari);
     const pertama = useRef(true);
     const [detailPinjaman, setDetailPinjaman] = useState(null);
     const [drawerOpen, setDrawerOpen] = useState(false);
+    const [ajukanOpen, setAjukanOpen] = useState(Boolean(ajukanInitialPinjaman));
+    const [initialPinjamanHapus, setInitialPinjamanHapus] = useState(ajukanInitialPinjaman);
+    const [loadingMenunggak, setLoadingMenunggak] = useState(false);
+
+    useEffect(() => {
+        if (ajukanInitialPinjaman) {
+            setInitialPinjamanHapus(ajukanInitialPinjaman);
+            setAjukanOpen(true);
+        }
+    }, [ajukanInitialPinjaman]);
+
+    function bukaAjukanPenghapusan(pinjamanDipilih = null) {
+        setDrawerOpen(false);
+        setInitialPinjamanHapus(pinjamanDipilih);
+        setAjukanOpen(true);
+        if (!pinjamanDipilih) {
+            setLoadingMenunggak(true);
+            router.reload({
+                only: ['pinjamanMenunggak'],
+                preserveState: true,
+                preserveScroll: true,
+                onFinish: () => setLoadingMenunggak(false),
+            });
+        }
+    }
 
     const totalMenunggu = (statistik.diajukan ?? 0) + (statistik.approved_admin ?? 0) + (statistik.approved_bendahara ?? 0) + (statistik.approved_ketua ?? 0);
     const filterAktif = Boolean((filters.cari ?? '') || (filters.status ?? '') || cabangAktif);
@@ -109,7 +155,18 @@ export default function Index({ pinjaman, filters, statistik, cabangAktif, dafta
         <AppLayout>
             <Head title="Pinjaman" />
 
-            <PageHeader title="Pinjaman" subtitle={`${pinjaman.total} pengajuan tercatat`} />
+            <PageHeader
+                title="Pinjaman"
+                subtitle={`${pinjaman.total} pengajuan tercatat`}
+                actions={
+                    bisaAjukanPenghapusan ? (
+                        <Button type="button" size="sm" variant="outline" onClick={() => bukaAjukanPenghapusan(null)}>
+                            <Plus size={15} aria-hidden="true" />
+                            Ajukan Penghapusan
+                        </Button>
+                    ) : null
+                }
+            />
 
             {/* Ringkasan Eksekutif Ringkas */}
             <UnifiedLedgerStrip
@@ -121,13 +178,28 @@ export default function Index({ pinjaman, filters, statistik, cabangAktif, dafta
                         label: 'Pinjaman Aktif',
                         icon: HandCoins,
                         value: formatRupiah(statistik.total_nominal_aktif),
-                        active: filters.status === 'aktif',
+                        active: filters.status === 'aktif' || filters.status === 'menunggak',
                         onClick: () => terapkanFilter({ status: filters.status === 'aktif' ? '' : 'aktif' }),
                         badge:
                             filters.status === 'aktif' ? (
                                 <span className="px-1.5 py-0.5 rounded bg-emerald-400/20 text-emerald-200 border border-emerald-300/35 text-[10px] font-semibold">
                                     Aktif ✓
                                 </span>
+                            ) : (statistik.menunggak ?? 0) > 0 ? (
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        terapkanFilter({ status: filters.status === 'menunggak' ? '' : 'menunggak' });
+                                    }}
+                                    className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors border ${
+                                        filters.status === 'menunggak'
+                                            ? 'bg-rose-500 text-white border-rose-400'
+                                            : 'bg-rose-400/20 text-rose-200 border-rose-300/35 hover:bg-rose-400/35'
+                                    }`}
+                                >
+                                    {statistik.menunggak} Menunggak
+                                </button>
                             ) : null,
                         meta: `${statistik.aktif} akad aktif berjalan`,
                     },
@@ -277,15 +349,13 @@ export default function Index({ pinjaman, filters, statistik, cabangAktif, dafta
                                 <th className="hidden lg:table-cell px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Tenor</th>
                                 <th className="hidden lg:table-cell px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Tanggal</th>
                                 <th className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Status</th>
-                                {bisaCetakBukti && (
-                                    <th className="px-4 py-2.5 text-right text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap"><span className="sr-only">Cetak</span></th>
-                                )}
+                                <th className="px-4 py-2.5 text-right text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap"><span className="sr-only">Cetak</span></th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 bg-white">
                             {pinjaman.data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={bisaCetakBukti ? 6 : 5} className="px-4 py-10 text-center">
+                                    <td colSpan={6} className="px-4 py-10 text-center">
                                         <p className="text-sm font-semibold text-slate-600">Tidak ada data ditemukan</p>
                                         <p className="text-sm text-slate-500 mt-1">Coba ubah kata kunci atau filter.</p>
                                         {filterAktif && (
@@ -330,24 +400,34 @@ export default function Index({ pinjaman, filters, statistik, cabangAktif, dafta
                                             <td className="hidden lg:table-cell px-4 py-2.5 text-slate-600 whitespace-nowrap">{p.tenor_bulan} bln</td>
                                             <td className="hidden lg:table-cell px-4 py-2.5 text-slate-600 whitespace-nowrap">{p.tanggal_pengajuan}</td>
                                             <td className="px-4 py-2.5">
-                                                <StatusBadge status={p.status} />
-                                            </td>
-                                            {bisaCetakBukti && (
-                                                <td className="px-4 py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
-                                                    {p.status === 'aktif' ? (
-                                                        <button
-                                                            onClick={(e) => bukaCetak(e, p)}
-                                                            aria-label={`Cetak bukti pinjaman ${p.nama}`}
-                                                            title="Cetak bukti"
-                                                            className="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-transparent text-slate-400 transition-all duration-200 hover:text-brand-green-dark hover:bg-brand-green-light hover:border-brand-green/30 hover:shadow-sm"
-                                                        >
-                                                            <Printer size={16} />
-                                                        </button>
-                                                    ) : (
-                                                        <span className="inline-block w-9" aria-hidden="true" />
+                                                <div className="flex flex-wrap items-center gap-1.5">
+                                                    <StatusBadge status={p.status} />
+                                                    {p.status === 'aktif' && p.jumlah_terlambat > 0 && (
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200/80">
+                                                            Menunggak {p.jumlah_terlambat}x
+                                                        </span>
                                                     )}
-                                                </td>
-                                            )}
+                                                    {p.penghapusan_aktif && (
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200/80">
+                                                            Proses Penghapusan
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
+                                                {p.status === 'aktif' && bisaCetakBaris(p) ? (
+                                                    <button
+                                                        onClick={(e) => bukaCetak(e, p)}
+                                                        aria-label={`Cetak bukti pinjaman ${p.nama}`}
+                                                        title="Cetak bukti"
+                                                        className="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-transparent text-slate-400 transition-all duration-200 hover:text-brand-green-dark hover:bg-brand-green-light hover:border-brand-green/30 hover:shadow-sm"
+                                                    >
+                                                        <Printer size={16} />
+                                                    </button>
+                                                ) : (
+                                                    <span className="inline-block w-9" aria-hidden="true" />
+                                                )}
+                                            </td>
                                         </tr>
                                     );
                                 })
@@ -367,9 +447,58 @@ export default function Index({ pinjaman, filters, statistik, cabangAktif, dafta
                         angsuran={detailPinjaman.angsuran ?? []}
                         pelunasan_resign={detailPinjaman.pelunasan_resign ?? { total: 0, tanggal: null }}
                         jurnal_pelunasan={detailPinjaman.jurnal_pelunasan ?? []}
+                        onAjukanPenghapusan={(p) =>
+                            bukaAjukanPenghapusan({
+                                pinjaman_id: p.id,
+                                nomor_dokumen: p.nomor_dokumen ?? `#${p.id}`,
+                                nominal_pinjaman: p.nominal,
+                                total_pokok_terbayar: p.total_pokok_terbayar ?? 0,
+                                sisa_cicilan: p.sisa_cicilan ?? 0,
+                                sisa_pokok: p.sisa_pokok ?? p.nominal,
+                                sisa_bunga: p.sisa_bunga ?? 0,
+                                jumlah_terlambat: p.jumlah_terlambat ?? 0,
+                                anggota: {
+                                    nama: p.nama,
+                                    no_karyawan: p.no_karyawan,
+                                    cabang: p.cabang,
+                                    foto_url: p.foto_url,
+                                },
+                            })
+                        }
                     />
                 )}
             </Drawer>
+
+            {bisaAjukanPenghapusan && (
+                <Drawer
+                    show={ajukanOpen}
+                    layout="split"
+                    title="Ajukan Penghapusan Pinjaman"
+                    description="Pilih pinjaman menunggak / macet untuk proses persetujuan berjenjang."
+                    onClose={() => setAjukanOpen(false)}
+                    maxWidth="xl"
+                >
+                    {ajukanOpen && (
+                        <Suspense
+                            fallback={
+                                <DrawerBody>
+                                    <div className="space-y-3 animate-pulse">
+                                        <div className="h-24 rounded-2xl bg-slate-100" />
+                                        <div className="h-24 rounded-2xl bg-slate-100" />
+                                    </div>
+                                </DrawerBody>
+                            }
+                        >
+                            <AjukanPenghapusanDrawer
+                                pinjamanMenunggak={pinjamanMenunggak}
+                                loading={loadingMenunggak}
+                                initialPinjaman={initialPinjamanHapus}
+                                onClose={() => setAjukanOpen(false)}
+                            />
+                        </Suspense>
+                    )}
+                </Drawer>
+            )}
         </AppLayout>
     );
 }

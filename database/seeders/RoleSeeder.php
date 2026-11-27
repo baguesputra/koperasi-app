@@ -21,7 +21,7 @@ class RoleSeeder extends Seeder
             'simpanan.lihat',
             'tabungan.lihat', 'tabungan.tinjau-admin',
             'pinjaman.lihat', 'pinjaman.tinjau-admin',
-            'penghapusan-pinjaman.lihat', 'penghapusan-pinjaman.ajukan',
+            'penghapusan-pinjaman.lihat',
             'kas.lihat',
             'jurnal.lihat',
             'laporan.lihat',
@@ -31,6 +31,7 @@ class RoleSeeder extends Seeder
             'pengaturan.audit.lihat',
             'pengaturan.kebijakan.lihat',
             'migrasi.kelola',
+            'portal.akses',
         ]);
 
         // 3. Bendahara: Evaluasi keuangan pinjaman tahap 2, kas, payroll, dan pemantauan kebijakan
@@ -40,7 +41,7 @@ class RoleSeeder extends Seeder
             'simpanan.lihat', 'simpanan.konfirmasi',
             'tabungan.lihat', 'tabungan.kelola', 'tabungan.tinjau-bendahara',
             'pinjaman.lihat', 'pinjaman.tinjau-bendahara', 'pinjaman.cairkan',
-            'penghapusan-pinjaman.lihat', 'penghapusan-pinjaman.ajukan', 'penghapusan-pinjaman.approve-bendahara',
+            'penghapusan-pinjaman.lihat',
             'limit.tinjau-bendahara',
             'angsuran.konfirmasi',
             'kas.lihat', 'kas.topup',
@@ -58,7 +59,7 @@ class RoleSeeder extends Seeder
             'simpanan.lihat',
             'tabungan.lihat', 'tabungan.approve-ketua',
             'pinjaman.lihat', 'pinjaman.approve-ketua',
-            'penghapusan-pinjaman.lihat', 'penghapusan-pinjaman.approve-ketua',
+            'penghapusan-pinjaman.lihat', 'penghapusan-pinjaman.ajukan',
             'limit.approve-ketua',
             'aktivasi.approve-ketua',
             'kas.lihat',

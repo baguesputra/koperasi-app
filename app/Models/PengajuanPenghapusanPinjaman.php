@@ -68,13 +68,20 @@ class PengajuanPenghapusanPinjaman extends Model
     ];
 
     public const STATUS_LABEL = [
-        'diajukan' => 'Menunggu Verifikasi Bendahara',
-        'approved_bendahara' => 'Menunggu Persetujuan Ketua',
-        'approved_ketua' => 'Menunggu Pengawas 3',
+        'diajukan' => 'Menunggu Pengawas 3',
         'approved_pengawas_3' => 'Menunggu Pengawas 2',
         'approved_pengawas_2' => 'Menunggu Pengawas 1 (Ketua Pengawas)',
         'disetujui' => 'Disetujui (Dihapusbukukan)',
         'ditolak' => 'Ditolak',
+    ];
+
+    public const TAHAP_DITOLAK_LABEL = [
+        'pengawas_3' => 'Pengawas 3',
+        'pengawas_2' => 'Pengawas 2',
+        'pengawas_1' => 'Pengawas 1 (Ketua Pengawas)',
+        'bendahara' => 'Bendahara',
+        'ketua' => 'Ketua Koperasi',
+        'pengurus' => 'Pengurus',
     ];
 
     public function pinjaman(): BelongsTo
@@ -126,22 +133,18 @@ class PengajuanPenghapusanPinjaman extends Model
     {
         $urutanStatus = [
             'diajukan' => 1,
-            'approved_bendahara' => 2,
-            'approved_ketua' => 3,
-            'approved_pengawas_3' => 4,
-            'approved_pengawas_2' => 5,
-            'disetujui' => 6,
+            'approved_pengawas_3' => 2,
+            'approved_pengawas_2' => 3,
+            'disetujui' => 4,
         ];
 
         $langkahSekarang = $urutanStatus[$this->status] ?? 0;
         $ditolak = $this->status === 'ditolak';
 
         $tahapKeAngka = [
-            'bendahara' => 2,
-            'ketua' => 3,
-            'pengawas_3' => 4,
-            'pengawas_2' => 5,
-            'pengawas_1' => 6,
+            'pengawas_3' => 2,
+            'pengawas_2' => 3,
+            'pengawas_1' => 4,
         ];
         $angkaTolak = $ditolak ? ($tahapKeAngka[$this->tahap_ditolak] ?? 2) : 0;
 
@@ -168,56 +171,38 @@ class PengajuanPenghapusanPinjaman extends Model
         return [
             [
                 'tahap' => 'pengajuan',
-                'label' => '1. Pengajuan Pengurus',
+                'label' => '1. Pengajuan (Ketua Koperasi / Super Admin)',
                 'user' => $this->pengaju?->name ?? '-',
                 'tanggal' => $this->tanggal_pengajuan?->translatedFormat('d M Y') ?? '-',
                 'catatan' => $this->alasan,
                 'status' => 'done',
             ],
             [
-                'tahap' => 'bendahara',
-                'label' => '2. Verifikasi Bendahara',
-                'user' => $this->approverBendahara?->name ?? ($ditolak && $this->tahap_ditolak === 'bendahara' ? ($this->penolak?->name ?? '-') : 'Menunggu'),
-                'tanggal' => $this->approved_bendahara_at?->translatedFormat('d M Y, H:i')
-                    ?? ($ditolak && $this->tahap_ditolak === 'bendahara' ? ($this->ditolak_pada?->translatedFormat('d M Y, H:i') ?? '-') : '-'),
-                'catatan' => $ditolak && $this->tahap_ditolak === 'bendahara' ? $this->catatan_tolak : $this->catatan_bendahara,
-                'status' => $statusTahap(2, $this->approved_bendahara_at),
-            ],
-            [
-                'tahap' => 'ketua',
-                'label' => '3. Persetujuan Ketua Koperasi',
-                'user' => $this->approverKetua?->name ?? ($ditolak && $this->tahap_ditolak === 'ketua' ? ($this->penolak?->name ?? '-') : 'Menunggu'),
-                'tanggal' => $this->approved_ketua_at?->translatedFormat('d M Y, H:i')
-                    ?? ($ditolak && $this->tahap_ditolak === 'ketua' ? ($this->ditolak_pada?->translatedFormat('d M Y, H:i') ?? '-') : '-'),
-                'catatan' => $ditolak && $this->tahap_ditolak === 'ketua' ? $this->catatan_tolak : $this->catatan_ketua,
-                'status' => $statusTahap(3, $this->approved_ketua_at),
-            ],
-            [
                 'tahap' => 'pengawas_3',
-                'label' => '4. Persetujuan Pengawas 3',
+                'label' => '2. Persetujuan Pengawas 3',
                 'user' => $this->approverPengawas3?->name ?? ($ditolak && $this->tahap_ditolak === 'pengawas_3' ? ($this->penolak?->name ?? '-') : 'Menunggu'),
                 'tanggal' => $this->approved_pengawas_3_at?->translatedFormat('d M Y, H:i')
                     ?? ($ditolak && $this->tahap_ditolak === 'pengawas_3' ? ($this->ditolak_pada?->translatedFormat('d M Y, H:i') ?? '-') : '-'),
                 'catatan' => $ditolak && $this->tahap_ditolak === 'pengawas_3' ? $this->catatan_tolak : $this->catatan_pengawas_3,
-                'status' => $statusTahap(4, $this->approved_pengawas_3_at),
+                'status' => $statusTahap(2, $this->approved_pengawas_3_at),
             ],
             [
                 'tahap' => 'pengawas_2',
-                'label' => '5. Persetujuan Pengawas 2',
+                'label' => '3. Persetujuan Pengawas 2',
                 'user' => $this->approverPengawas2?->name ?? ($ditolak && $this->tahap_ditolak === 'pengawas_2' ? ($this->penolak?->name ?? '-') : 'Menunggu'),
                 'tanggal' => $this->approved_pengawas_2_at?->translatedFormat('d M Y, H:i')
                     ?? ($ditolak && $this->tahap_ditolak === 'pengawas_2' ? ($this->ditolak_pada?->translatedFormat('d M Y, H:i') ?? '-') : '-'),
                 'catatan' => $ditolak && $this->tahap_ditolak === 'pengawas_2' ? $this->catatan_tolak : $this->catatan_pengawas_2,
-                'status' => $statusTahap(5, $this->approved_pengawas_2_at),
+                'status' => $statusTahap(3, $this->approved_pengawas_2_at),
             ],
             [
                 'tahap' => 'pengawas_1',
-                'label' => '6. Persetujuan Pengawas 1 (Ketua Pengawas)',
+                'label' => '4. Persetujuan Pengawas 1 (Ketua Pengawas)',
                 'user' => $this->approverPengawas1?->name ?? ($ditolak && $this->tahap_ditolak === 'pengawas_1' ? ($this->penolak?->name ?? '-') : 'Menunggu'),
                 'tanggal' => $this->approved_pengawas_1_at?->translatedFormat('d M Y, H:i')
                     ?? ($ditolak && $this->tahap_ditolak === 'pengawas_1' ? ($this->ditolak_pada?->translatedFormat('d M Y, H:i') ?? '-') : '-'),
                 'catatan' => $ditolak && $this->tahap_ditolak === 'pengawas_1' ? $this->catatan_tolak : $this->catatan_pengawas_1,
-                'status' => $statusTahap(6, $this->approved_pengawas_1_at),
+                'status' => $statusTahap(4, $this->approved_pengawas_1_at),
             ],
         ];
     }

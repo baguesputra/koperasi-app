@@ -459,10 +459,10 @@ Route::middleware(['auth', 'permission:penghapusan-pinjaman.lihat'])->prefix('pe
         ->middleware(['permission:penghapusan-pinjaman.ajukan', 'idempotent']);
     Route::post('/penghapusan-pinjaman/{pengajuan}/approve', [PenghapusanPinjamanController::class, 'approve'])
         ->name('penghapusan-pinjaman.approve')
-        ->middleware(['permission:penghapusan-pinjaman.approve-bendahara|penghapusan-pinjaman.approve-ketua|penghapusan-pinjaman.approve-pengawas', 'idempotent']);
+        ->middleware(['permission:penghapusan-pinjaman.approve-pengawas', 'idempotent']);
     Route::post('/penghapusan-pinjaman/{pengajuan}/reject', [PenghapusanPinjamanController::class, 'reject'])
         ->name('penghapusan-pinjaman.reject')
-        ->middleware(['permission:penghapusan-pinjaman.approve-bendahara|penghapusan-pinjaman.approve-ketua|penghapusan-pinjaman.approve-pengawas', 'idempotent']);
+        ->middleware(['permission:penghapusan-pinjaman.approve-pengawas', 'idempotent']);
 });
 
 // ==========================================

@@ -2,7 +2,7 @@ import { useForm } from '@inertiajs/react';
 import {
     AlertTriangle, ArrowLeft, CheckCircle2, Clock, FileX2, Search, ShieldCheck, X, XCircle,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import Button from '@/Components/ui/Button';
 import {
     DrawerBody,
@@ -60,7 +60,21 @@ export function PenghapusanDetailDrawer({ detail, peranSaya, onClose }) {
                     </div>
                 </DrawerSection>
 
-                <DrawerSection title="Alur Persetujuan Berjenjang (Pengurus → Pengawas 3 → 2 → 1)" icon={ShieldCheck}>
+                <DrawerSection title="Alur Persetujuan Berjenjang (Pengawas 3 → Pengawas 2 → Pengawas 1)" icon={ShieldCheck}>
+                    {detail.status === 'ditolak' && (
+                        <div className="mb-3 rounded-xl bg-rose-50/90 border border-rose-200 p-3 text-xs text-rose-900 space-y-1">
+                            <p className="font-bold text-rose-800">
+                                Pengajuan Ditolak{detail.tahap_ditolak_label ? ` oleh ${detail.tahap_ditolak_label}` : ''}
+                                {detail.penolak_nama ? ` (${detail.penolak_nama})` : ''}
+                            </p>
+                            {detail.catatan_tolak && (
+                                <p className="italic">&ldquo;{detail.catatan_tolak}&rdquo;</p>
+                            )}
+                            <p className="text-[11px] text-rose-700">
+                                Pinjaman tetap berstatus Aktif dan angsuran terus ditagih.
+                            </p>
+                        </div>
+                    )}
                     <ol className="space-y-2.5">
                         {(detail.timeline ?? []).map((step) => {
                             const isDone = step.status === 'done';
@@ -110,6 +124,19 @@ export function PenghapusanDetailDrawer({ detail, peranSaya, onClose }) {
 
                 {detail.bisa_diproses && (
                     <DrawerSection title={`Keputusan Anda (${peranSaya})`} tone="emerald">
+                        <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
+                            <span className="text-[11px] font-medium text-slate-500 mr-1">Alasan cepat:</span>
+                            {['Terus ditagih', 'Masih dapat dihubungi / aktif', 'Setuju dihapusbukukan'].map((preset) => (
+                                <button
+                                    key={preset}
+                                    type="button"
+                                    onClick={() => form.setData('catatan', preset)}
+                                    className="px-2.5 py-1 rounded-full text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-colors cursor-pointer"
+                                >
+                                    {preset}
+                                </button>
+                            ))}
+                        </div>
                         <FormField label="Catatan Keputusan" error={form.errors.catatan} required>
                             <TextField
                                 data-autofocus
@@ -117,10 +144,13 @@ export function PenghapusanDetailDrawer({ detail, peranSaya, onClose }) {
                                 rows={3}
                                 value={form.data.catatan}
                                 onChange={(e) => form.setData('catatan', e.target.value)}
-                                placeholder="Tulis catatan verifikasi / alasan persetujuan atau penolakan..."
+                                placeholder="Tulis catatan verifikasi / alasan (misal: Terus ditagih jika menolak, atau alasan persetujuan)..."
                                 required
                             />
                         </FormField>
+                        <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
+                            Jika tidak disetujui pada tahap Pengawas 3, Pengawas 2, maupun Pengawas 1 (misalnya dengan alasan <strong>Terus ditagih</strong>), pengajuan langsung berstatus <strong>Ditolak</strong> dan pinjaman tetap aktif.
+                        </p>
                     </DrawerSection>
                 )}
             </DrawerBody>
@@ -148,10 +178,21 @@ export function PenghapusanDetailDrawer({ detail, peranSaya, onClose }) {
     );
 }
 
-export function AjukanPenghapusanDrawer({ pinjamanMenunggak = [], loading = false, onClose }) {
+export function AjukanPenghapusanDrawer({ pinjamanMenunggak = [], loading = false, initialPinjaman = null, onClose }) {
     const [cari, setCari] = useState('');
-    const [dipilih, setDipilih] = useState(null);
-    const form = useForm({ pinjaman_id: '', alasan: '' });
+    const [dipilih, setDipilih] = useState(initialPinjaman);
+    const form = useForm({
+        pinjaman_id: initialPinjaman ? String(initialPinjaman.pinjaman_id ?? initialPinjaman.id ?? '') : '',
+        alasan: '',
+    });
+
+    useEffect(() => {
+        if (initialPinjaman) {
+            setDipilih(initialPinjaman);
+            form.setData('pinjaman_id', String(initialPinjaman.pinjaman_id ?? initialPinjaman.id ?? ''));
+            form.clearErrors();
+        }
+    }, [initialPinjaman]);
 
     const tersaring = useMemo(() => {
         const q = cari.trim().toLowerCase();
@@ -289,20 +330,31 @@ export function AjukanPenghapusanDrawer({ pinjamanMenunggak = [], loading = fals
                         />
                     </FormField>
                     <p className="text-xs text-amber-900 mt-2">
-                        Saat disetujui final oleh Pengawas 1, sisa pokok ({formatRupiah(dipilih.sisa_pokok)}) dihapusbukukan tanpa memotong saldo bank, dan anggota dinonaktifkan.
+                        Pengajuan akan diproses berjenjang mulai dari Pengawas 3 → Pengawas 2 → Pengawas 1. Saat disetujui final oleh Pengawas 1, sisa pokok ({formatRupiah(dipilih.sisa_pokok)}) dihapusbukukan tanpa memotong saldo bank, dan anggota dinonaktifkan.
                     </p>
                 </DrawerSection>
             </DrawerBody>
 
             <DrawerFooter>
-                <DrawerFooterActions cols={2} stackOnMobile>
-                    <Button type="button" variant="neutral" size="drawer" onClick={() => setDipilih(null)}>
-                        <ArrowLeft size={15} /> Pilih Lain
-                    </Button>
-                    <Button type="submit" size="drawer" disabled={form.processing}>
-                        {form.processing ? 'Mengirim...' : 'Kirim Pengajuan'}
-                    </Button>
-                </DrawerFooterActions>
+                {(!initialPinjaman || (pinjamanMenunggak && pinjamanMenunggak.length > 0)) ? (
+                    <DrawerFooterActions cols={2} stackOnMobile>
+                        <Button type="button" variant="neutral" size="drawer" onClick={() => setDipilih(null)}>
+                            <ArrowLeft size={15} /> Pilih Lain
+                        </Button>
+                        <Button type="submit" size="drawer" disabled={form.processing}>
+                            {form.processing ? 'Mengirim...' : 'Kirim Pengajuan'}
+                        </Button>
+                    </DrawerFooterActions>
+                ) : (
+                    <DrawerFooterActions cols={2} stackOnMobile>
+                        <Button type="button" variant="neutral" size="drawer" onClick={onClose}>
+                            Batal
+                        </Button>
+                        <Button type="submit" size="drawer" disabled={form.processing}>
+                            {form.processing ? 'Mengirim...' : 'Kirim Pengajuan'}
+                        </Button>
+                    </DrawerFooterActions>
+                )}
             </DrawerFooter>
         </form>
     );

@@ -67,13 +67,18 @@ class PenghapusanPinjamanController extends Controller
                     'status' => $p->anggota?->status ?? '-',
                 ],
                 'pengaju_nama' => $p->pengaju?->name ?? '-',
+                'tahap_ditolak' => $p->tahap_ditolak,
+                'tahap_ditolak_label' => $p->tahap_ditolak ? (PengajuanPenghapusanPinjaman::TAHAP_DITOLAK_LABEL[$p->tahap_ditolak] ?? $p->tahap_ditolak) : null,
+                'catatan_tolak' => $p->catatan_tolak,
+                'ditolak_pada' => $p->ditolak_pada?->format('Y-m-d H:i'),
+                'penolak_nama' => $p->penolak?->name,
                 'bisa_diproses' => $this->service->bisaDiprosesOleh($p, $user),
                 'timeline' => $p->getTimelineApproval(),
             ])
             ->values();
 
         $bisaAjukan = $user->can('penghapusan-pinjaman.ajukan');
-        $pinjamanMenunggak = $bisaAjukan ? $this->service->daftarPinjamanMenunggak()->values()->all() : [];
+        $pinjamanMenunggak = $bisaAjukan ? $this->service->daftarPinjamanMenunggak($user)->values()->all() : [];
 
         return response()->json([
             'data' => $daftar->all(),
@@ -83,8 +88,6 @@ class PenghapusanPinjamanController extends Controller
                 'menunggu_saya' => $daftar->where('bisa_diproses', true)->count(),
                 'sedang_berjalan' => $daftar->whereIn('status', [
                     'diajukan',
-                    'approved_bendahara',
-                    'approved_ketua',
                     'approved_pengawas_3',
                     'approved_pengawas_2',
                 ])->count(),
@@ -123,9 +126,9 @@ class PenghapusanPinjamanController extends Controller
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
-        $tahapBerikut = $pengajuan->status === 'approved_bendahara'
-            ? 'Ketua Koperasi'
-            : 'Bendahara';
+        $tahapBerikut = $pengajuan->status === 'approved_pengawas_3'
+            ? 'Pengawas 2'
+            : 'Pengawas 3';
 
         return response()->json([
             'message' => "Pengajuan penghapusan pinjaman berhasil dibuat dan menunggu {$tahapBerikut}.",
@@ -138,7 +141,7 @@ class PenghapusanPinjamanController extends Controller
     }
 
     /**
-     * Setujui tahap aktif penghapusan pinjaman (Bendahara -> Ketua -> Pengawas 3 -> Pengawas 2 -> Pengawas 1).
+     * Setujui tahap aktif penghapusan pinjaman (Pengawas 3 -> Pengawas 2 -> Pengawas 1).
      */
     public function approve(Request $request, PengajuanPenghapusanPinjaman $pengajuan): JsonResponse
     {
@@ -199,7 +202,7 @@ class PenghapusanPinjamanController extends Controller
         }
 
         return response()->json([
-            'message' => 'Pengajuan penghapusan pinjaman telah ditolak.',
+            'message' => 'Pengajuan penghapusan pinjaman telah ditolak. Pinjaman tetap aktif untuk terus ditagih.',
             'data' => [
                 'id' => $hasil->id,
                 'status' => $hasil->status,

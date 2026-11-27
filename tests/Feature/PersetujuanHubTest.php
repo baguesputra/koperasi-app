@@ -452,8 +452,19 @@ class PersetujuanHubTest extends TestCase
             ]);
         }
 
-        // 1. Kunjungan awal /persetujuan tidak menjalankan query daftarPinjamanMenunggak
+        // 1. Kunjungan awal /persetujuan oleh Sekretaris: bisa lihat tab Penghapusan, namun tidak bisa mengajukan
         $this->masuk('ADM-000001');
+        $this->get(route('persetujuan.index'))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Persetujuan/Index')
+                ->where('inbox.bisaAjukanPenghapusan', false)
+                ->missing('inbox.pinjamanMenunggak')
+                ->missing('pinjamanMenunggak')
+            );
+
+        // Ketua Koperasi: bisaAjukanPenghapusan = true & pinjamanMenunggak dimuat lazy
+        $this->masuk('KET-000001');
         $this->get(route('persetujuan.index'))
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page

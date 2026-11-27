@@ -91,10 +91,7 @@ export default function Dashboard({ stats, actionable, grafikTren, grafikKas, ak
         },
     ];
 
-    const bisaApprovePenghapusan =
-        bisaAkses('penghapusan-pinjaman.approve-bendahara') ||
-        bisaAkses('penghapusan-pinjaman.approve-ketua') ||
-        bisaAkses('penghapusan-pinjaman.approve-pengawas');
+    const bisaApprovePenghapusan = bisaAkses('penghapusan-pinjaman.approve-pengawas');
 
     const grupAksi = [
         {

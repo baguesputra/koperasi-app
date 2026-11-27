@@ -1,5 +1,5 @@
-import { usePage } from '@inertiajs/react';
-import { Printer, Wallet, CalendarDays, Layers, Receipt, FileText, ExternalLink } from 'lucide-react';
+import { Link, usePage } from '@inertiajs/react';
+import { Printer, Wallet, CalendarDays, Layers, Receipt, FileText, ExternalLink, FileX2, AlertTriangle } from 'lucide-react';
 import {
     DrawerField,
     DrawerFieldGrid,
@@ -17,10 +17,11 @@ const angsuranStatusBadgeMap = {
     digantikan: 'pending',
 };
 
-export default function DetailDrawer({ pinjaman, angsuran, pelunasan_resign, jurnal_pelunasan }) {
+export default function DetailDrawer({ pinjaman, angsuran, pelunasan_resign, jurnal_pelunasan, onAjukanPenghapusan }) {
     const { auth } = usePage().props;
     const roles = auth?.user?.roles ?? [];
-    const bisaCetakBukti = !(roles.includes('pengawas') && !roles.some((r) => ['super_admin', 'sekretaris', 'bendahara', 'ketua_koperasi'].includes(r)));
+    const isPengawasSaja = roles.includes('pengawas') && !roles.some((r) => ['super_admin', 'sekretaris', 'bendahara', 'ketua_koperasi'].includes(r));
+    const bisaCetakBukti = !isPengawasSaja || Boolean(pinjaman.is_milik_sendiri);
     const isResign = pinjaman.anggota_status === 'resign';
     const dilunasiViaResign = pelunasan_resign.total > 0;
     const lunasCount = angsuran.filter((a) => a.status === 'lunas').length;
@@ -57,7 +58,19 @@ export default function DetailDrawer({ pinjaman, angsuran, pelunasan_resign, jur
                 icon={Wallet}
                 padding="none"
                 action={
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                        {pinjaman.bisa_ajukan_penghapusan && onAjukanPenghapusan && (
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="dangerSoft"
+                                onClick={() => onAjukanPenghapusan(pinjaman)}
+                                className="rounded-full"
+                            >
+                                <FileX2 size={14} aria-hidden="true" />
+                                Ajukan Penghapusan
+                            </Button>
+                        )}
                         {pinjaman.bukti_pencairan_url && (
                             <a
                                 href={pinjaman.bukti_pencairan_url}
@@ -110,6 +123,22 @@ export default function DetailDrawer({ pinjaman, angsuran, pelunasan_resign, jur
                     </div>
                 )}
             </DrawerSection>
+
+            {pinjaman.penghapusan_aktif && (
+                <DrawerSection title="Pengajuan Penghapusan Pinjaman Berjalan" icon={AlertTriangle} tone="amber">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <p className="text-xs sm:text-sm text-amber-900">
+                            Status saat ini: <strong>{pinjaman.penghapusan_aktif.status_label}</strong>
+                        </p>
+                        <Link
+                            href={route('persetujuan.index', { view: 'berjalan' })}
+                            className="inline-flex items-center gap-1 text-xs font-semibold text-brand-navy hover:underline shrink-0"
+                        >
+                            Pantau di Pusat Persetujuan →
+                        </Link>
+                    </div>
+                </DrawerSection>
+            )}
 
             {dilunasiViaResign && (
                 <DrawerSection title="Pelunasan via Resign" icon={Wallet} tone="rose">

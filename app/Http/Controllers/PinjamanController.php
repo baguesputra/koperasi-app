@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Angsuran;
 use App\Models\JurnalKas;
+use App\Models\PengajuanPenghapusanPinjaman;
 use App\Models\Pinjaman;
+use App\Services\Pinjaman\PenghapusanPinjamanService;
 use App\Services\Pinjaman\PerhitunganBungaService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -17,16 +19,36 @@ class PinjamanController extends Controller
 {
     public function __construct(
         private PerhitunganBungaService $bunga,
+        private PenghapusanPinjamanService $penghapusanService,
     ) {}
 
     public function index(Request $request): Response
     {
-        $query = Pinjaman::with(['anggota', 'angsuran' => fn ($q) => $q->orderBy('cicilan_ke')]);
+        $user = $request->user();
+        $hariIni = now()->toDateString();
+
+        $scopeMenunggak = function ($q) use ($hariIni) {
+            $q->where('status', 'aktif')->where(function ($sub) use ($hariIni) {
+                $sub->whereHas('angsuran', fn ($a) => $a->where('status', 'belum_bayar')->whereDate('tanggal_jatuh_tempo', '<', $hariIni))
+                    ->orWhereHas('pengajuanPercepatan', fn ($pp) => $pp->where('status', 'aktif')
+                        ->whereHas('angsuranBaru', fn ($ab) => $ab->where('status', 'belum_bayar')->whereDate('tanggal_jatuh_tempo', '<', $hariIni)));
+            });
+        };
+
+        $query = Pinjaman::with([
+            'anggota',
+            'angsuran' => fn ($q) => $q->orderBy('cicilan_ke'),
+            'pengajuanPercepatan' => fn ($q) => $q->where('status', 'aktif')->latest()->with('angsuranBaru'),
+            'pengajuanPenghapusan' => fn ($q) => $q->whereNotIn('status', ['ditolak', 'disetujui'])->latest('id'),
+        ]);
 
         $cabangAktif = $request->string('cabang');
+        $statusFilter = $request->string('status')->value();
 
-        if ($request->filled('status')) {
-            $query->where('status', $request->string('status'));
+        if ($statusFilter === 'menunggak') {
+            $scopeMenunggak($query);
+        } elseif ($statusFilter !== '') {
+            $query->where('status', $statusFilter);
         }
 
         if ($request->filled('cari')) {
@@ -40,18 +62,39 @@ class PinjamanController extends Controller
             $query->whereHas('anggota', fn ($q) => $q->where('cabang', $cabangAktif));
         }
 
+        $bisaAjukanGlobal = $user ? $user->can('penghapusan-pinjaman.ajukan') : false;
+        $hariIniStart = now()->startOfDay();
+
         $pinjaman = $query->latest('tanggal_pengajuan')
             ->paginate(15)
             ->withQueryString()
-            ->through(function ($p) {
+            ->through(function (Pinjaman $p) use ($user, $bisaAjukanGlobal, $hariIniStart) {
+                $jadwal = $p->jadwalAktif();
+                $lunas = $jadwal->where('status', 'lunas');
+                $belum = $jadwal->where('status', 'belum_bayar');
+                $nominalPinjaman = round((float) $p->nominal, 2);
+                $totalPokokTerbayar = round((float) $lunas->sum('nominal_pokok'), 2);
+                $sisaPokok = round(max(0.0, $nominalPinjaman - $totalPokokTerbayar), 2);
+                $sisaBunga = round((float) $belum->sum('nominal_bunga'), 2);
+                $sisaCicilan = $belum->count();
+                $jumlahTerlambat = $p->status === 'aktif'
+                    ? $belum->filter(fn ($a) => $a->tanggal_jatuh_tempo && $a->tanggal_jatuh_tempo->lt($hariIniStart))->count()
+                    : 0;
+
+                $pengAktif = $p->pengajuanPenghapusan->first();
+                $isMilikSendiri = $user && $p->anggota?->user_id !== null
+                    && (int) $p->anggota->user_id === (int) $user->id;
+
                 return [
                     'id' => $p->id,
+                    'nomor_dokumen' => $p->nomor_dokumen ?? ('#'.$p->id),
                     'nama' => $p->anggota->nama,
                     'no_anggota' => $p->anggota->no_anggota,
                     'no_karyawan' => $p->anggota->no_karyawan,
                     'cabang' => $p->anggota->cabang,
                     'foto_url' => $p->anggota->foto_url,
                     'anggota_status' => $p->anggota->status,
+                    'is_milik_sendiri' => $isMilikSendiri,
                     'nominal' => (float) $p->nominal,
                     'tenor_bulan' => $p->tenor_bulan,
                     'status' => $p->status,
@@ -60,6 +103,21 @@ class PinjamanController extends Controller
                     'ada_bukti_pencairan' => (bool) $p->bukti_pencairan_path,
                     'bukti_pencairan_url' => $p->bukti_pencairan_path ? route('pinjaman.bukti-pencairan', $p->id) : null,
                     'keperluan' => $p->keperluan,
+                    'total_pokok_terbayar' => $totalPokokTerbayar,
+                    'sisa_cicilan' => $sisaCicilan,
+                    'sisa_pokok' => $sisaPokok,
+                    'sisa_bunga' => $sisaBunga,
+                    'jumlah_terlambat' => $jumlahTerlambat,
+                    'penghapusan_aktif' => $pengAktif ? [
+                        'id' => $pengAktif->id,
+                        'status' => $pengAktif->status,
+                        'status_label' => PengajuanPenghapusanPinjaman::STATUS_LABEL[$pengAktif->status] ?? $pengAktif->status,
+                    ] : null,
+                    'bisa_ajukan_penghapusan' => $bisaAjukanGlobal
+                        && $p->status === 'aktif'
+                        && $sisaPokok > 0
+                        && $pengAktif === null
+                        && ! $isMilikSendiri,
                     'pelunasan_resign_total' => 0.0,
                     'tanggal_pelunasan_resign' => null,
                     'is_resign' => $p->anggota->status === 'resign',
@@ -149,11 +207,27 @@ class PinjamanController extends Controller
             ")
             ->first();
 
+        $menunggakCount = Pinjaman::query()->tap($scopeMenunggak)->count();
+
+        $ajukanId = $request->filled('ajukan_penghapusan') ? (int) $request->input('ajukan_penghapusan') : null;
+        $ajukanInitialPinjaman = null;
+        if ($ajukanId && $bisaAjukanGlobal) {
+            $kandidat = $this->penghapusanService->daftarPinjamanMenunggak($user)->firstWhere('pinjaman_id', $ajukanId);
+            if ($kandidat) {
+                $ajukanInitialPinjaman = $kandidat;
+            }
+        }
+
         return Inertia::render('Pinjaman/Index', [
             'pinjaman' => $pinjaman,
             'filters' => $request->only(['cari', 'status', 'cabang']),
             'cabangAktif' => $cabangAktif->value(),
             'daftarCabang' => $daftarCabang,
+            'bisaAjukanPenghapusan' => $bisaAjukanGlobal,
+            'ajukanInitialPinjaman' => $ajukanInitialPinjaman,
+            'pinjamanMenunggak' => Inertia::lazy(fn () => $bisaAjukanGlobal
+                ? $this->penghapusanService->daftarPinjamanMenunggak($user)->values()->all()
+                : []),
             'statistik' => [
                 'total' => (int) $statistik->total,
                 'diajukan' => (int) $statistik->diajukan,
@@ -161,6 +235,7 @@ class PinjamanController extends Controller
                 'approved_bendahara' => (int) $statistik->approved_bendahara,
                 'approved_ketua' => (int) $statistik->approved_ketua,
                 'aktif' => (int) $statistik->aktif,
+                'menunggak' => (int) $menunggakCount,
                 'lunas' => (int) $statistik->lunas,
                 'ditolak' => (int) $statistik->ditolak,
                 'dihapusbukukan' => (int) $statistik->dihapusbukukan,
@@ -254,10 +329,15 @@ class PinjamanController extends Controller
     public function cetakBukti(Request $request, Pinjaman $pinjaman)
     {
         $user = $request->user();
+        $pinjaman->loadMissing('anggota');
+        $isOnlyPengawas = $user && $user->hasRole('pengawas') && ! $user->hasAnyRole(['super_admin', 'sekretaris', 'bendahara', 'ketua_koperasi']);
+        $isMilikSendiri = $user && $pinjaman->anggota?->user_id !== null
+            && (int) $pinjaman->anggota->user_id === (int) $user->id;
+
         abort_if(
-            $user && $user->hasRole('pengawas') && ! $user->hasAnyRole(['super_admin', 'sekretaris', 'bendahara', 'ketua_koperasi']),
+            $isOnlyPengawas && ! $isMilikSendiri,
             403,
-            'Akses pengawas pada data pinjaman hanya bersifat lihat (view-only).'
+            'Pengawas hanya dapat mencetak bukti pinjaman miliknya sendiri.'
         );
 
         abort_unless($pinjaman->status === 'aktif', 403, 'Bukti peminjaman hanya tersedia untuk pinjaman dengan status Aktif.');

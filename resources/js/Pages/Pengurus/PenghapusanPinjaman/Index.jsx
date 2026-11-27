@@ -137,7 +137,7 @@ export default function Index({
 
             <PageHeader
                 title="Penghapusan Pinjaman Menunggak"
-                subtitle={`Alur berjenjang Pengurus → Pengawas 3 → Pengawas 2 → Pengawas 1 (Ketua Pengawas) • Peran Anda: ${peranSaya}`}
+                subtitle={`Pengajuan oleh Ketua / Super Admin → Approval berjenjang Pengawas 3 → Pengawas 2 → Pengawas 1 • Peran Anda: ${peranSaya}`}
             >
                 {bisaAjukan && (
                     <Button
@@ -191,7 +191,7 @@ export default function Index({
                     </div>
                     <div className="mt-2">
                         <p className="text-2xl font-bold text-slate-800 tabular-nums">{statistik.sedang_berjalan ?? 0}</p>
-                        <p className="text-xs text-slate-400 mt-1 truncate">Proses Pengurus & 3 Pengawas</p>
+                        <p className="text-xs text-slate-400 mt-1 truncate">Proses Pengawas 3 → 2 → 1</p>
                     </div>
                 </button>
 
@@ -393,7 +393,11 @@ export default function Index({
                                             <td className="px-4 py-2.5">
                                                 <div className="flex flex-col items-start gap-1">
                                                     <StatusBadge status={item.status} />
-                                                    <span className="text-[11px] font-medium text-slate-500">{item.status_label}</span>
+                                                    <span className="text-[11px] font-medium text-slate-500">
+                                                        {item.status === 'ditolak' && item.tahap_ditolak_label
+                                                            ? `Ditolak ${item.tahap_ditolak_label}`
+                                                            : item.status_label}
+                                                    </span>
                                                 </div>
                                             </td>
                                             <td className="px-3 py-2.5 text-right">
@@ -412,7 +416,7 @@ export default function Index({
             <Drawer
                 show={drawerAjukanOpen}
                 title={targetPinjaman ? `Ajukan Penghapusan — ${targetPinjaman.anggota.nama}` : 'Ajukan Penghapusan Pinjaman'}
-                description="Penghapusan khusus pinjaman anggota menunggak / menghilang (6 jenjang approval)."
+                description="Penghapusan pinjaman menunggak oleh Ketua Koperasi / Super Admin (approval Pengawas 3 → 2 → 1)."
                 onClose={() => setDrawerAjukanOpen(false)}
                 maxWidth="xl"
             >
@@ -463,7 +467,7 @@ export default function Index({
                                 1. Hanya <strong>Sisa Pokok Pinjaman ({formatRupiah(targetPinjaman.sisa_pokok)})</strong> yang diakui sebagai Beban Penghapusan Pinjaman pada Laporan Laba Rugi / SHU dan mengurangi Piutang di Neraca (tanpa memotong saldo bank dua kali).
                             </p>
                             <p>
-                                2. Saat disetujui final oleh Pengawas 1 (Ketua Pengawas), anggota dinonaktifkan agar tidak terbit tagihan iuran baru, namun simpanan lamanya tetap mengendap utuh.
+                                2. Pengajuan diproses berjenjang mulai dari Pengawas 3 → Pengawas 2 → Pengawas 1. Saat disetujui final oleh Pengawas 1 (Ketua Pengawas), anggota dinonaktifkan agar tidak terbit tagihan iuran baru, namun simpanan lamanya tetap mengendap utuh.
                             </p>
                         </div>
 
@@ -520,11 +524,25 @@ export default function Index({
                             </div>
                         </div>
 
-                        {/* Timeline 6 Jenjang */}
+                        {/* Timeline 4 Jenjang */}
                         <div className="rounded-xl bg-white border border-slate-200/80 p-4">
                             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
-                                Alur Persetujuan Berjenjang (Pengurus → Pengawas 3 → 2 → 1)
+                                Alur Persetujuan Berjenjang (Pengawas 3 → Pengawas 2 → Pengawas 1)
                             </h3>
+                            {detail.status === 'ditolak' && (
+                                <div className="mb-3 rounded-xl bg-rose-50/90 border border-rose-200 p-3 text-xs text-rose-900 space-y-1">
+                                    <p className="font-bold text-rose-800">
+                                        Pengajuan Ditolak{detail.tahap_ditolak_label ? ` oleh ${detail.tahap_ditolak_label}` : ''}
+                                        {detail.penolak_nama ? ` (${detail.penolak_nama})` : ''}
+                                    </p>
+                                    {detail.catatan_tolak && (
+                                        <p className="italic">&ldquo;{detail.catatan_tolak}&rdquo;</p>
+                                    )}
+                                    <p className="text-[11px] text-rose-700">
+                                        Pinjaman tetap berstatus Aktif dan angsuran terus ditagih.
+                                    </p>
+                                </div>
+                            )}
                             <ol className="space-y-3">
                                 {(detail.timeline ?? []).map((step) => {
                                     const isDone = step.status === 'done';
@@ -577,16 +595,32 @@ export default function Index({
                                 <h3 className="text-sm font-bold text-brand-navy">
                                     Keputusan Anda ({peranSaya})
                                 </h3>
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                    <span className="text-[11px] font-medium text-slate-500 mr-1">Alasan cepat:</span>
+                                    {['Terus ditagih', 'Masih dapat dihubungi / aktif', 'Setuju dihapusbukukan'].map((preset) => (
+                                        <button
+                                            key={preset}
+                                            type="button"
+                                            onClick={() => formKeputusan.setData('catatan', preset)}
+                                            className="px-2.5 py-1 rounded-full text-[11px] font-semibold border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 hover:border-slate-300 transition-colors cursor-pointer"
+                                        >
+                                            {preset}
+                                        </button>
+                                    ))}
+                                </div>
                                 <FormField label="Catatan Keputusan" error={formKeputusan.errors.catatan} required>
                                     <textarea
                                         rows={3}
                                         value={formKeputusan.data.catatan}
                                         onChange={(e) => formKeputusan.setData('catatan', e.target.value)}
-                                        placeholder="Tulis catatan verifikasi / alasan persetujuan atau penolakan..."
+                                        placeholder="Tulis catatan verifikasi / alasan (misal: Terus ditagih jika menolak, atau alasan persetujuan)..."
                                         className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:border-brand-green focus:outline-none focus:ring-2 focus:ring-brand-green/20"
                                         required
                                     />
                                 </FormField>
+                                <p className="text-[11px] text-slate-500 leading-relaxed">
+                                    Penolakan oleh Pengawas 3, Pengawas 2, maupun Pengawas 1 (contoh alasan: <strong>Terus ditagih</strong>) langsung menghentikan pengajuan menjadi <strong>Ditolak</strong> dan pinjaman tetap aktif.
+                                </p>
                                 <div className="grid grid-cols-2 gap-3">
                                     <Button
                                         type="button"

@@ -152,8 +152,12 @@ export default function Index({
                 label: t.label,
                 count: viewAktif === 'menunggu' ? (t.count ?? kategoriCounts[t.key] ?? 0) : (kategoriCounts[t.key] ?? 0),
             }))
-            .filter((chip) => chip.count > 0 || chip.key === kategori)
-    ), [tabs, viewAktif, kategoriCounts, kategori]);
+            .filter((chip) => (
+                chip.count > 0
+                || chip.key === kategori
+                || (chip.key === 'penghapusan' && (bisaAjukanPenghapusan || displayView === 'berjalan'))
+            ))
+    ), [tabs, viewAktif, kategoriCounts, kategori, bisaAjukanPenghapusan, displayView]);
 
     // Filter tahap hanya muncul jika ada >1 jenjang berbeda di kategori yang terpilih (mis. Super Admin)
     const stageOptions = useMemo(() => {

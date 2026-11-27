@@ -149,7 +149,7 @@ class MobileParityApiTest extends TestCase
             ->assertJsonPath('rekening.saldo', 150000);
     }
 
-    public function test_penghapusan_pinjaman_5_tahap_dan_anti_double_approve(): void
+    public function test_penghapusan_pinjaman_berjenjang_ketua_dan_pengawas_3_ke_1_termasuk_tolak(): void
     {
         Queue::fake();
         $anggota = $this->buatAnggota('TOP-970020');
@@ -188,16 +188,30 @@ class MobileParityApiTest extends TestCase
         $tokP2 = $this->tokenRole('PGW2-970020', 'pengawas', 2);
         $tokP1 = $this->tokenRole('PGW1-970020', 'pengawas', 1);
 
-        $resStore = $this->headerToken($tokSek)
+        // Sekretaris dan Bendahara tidak berhak mengajukan penghapusan pinjaman.
+        $this->headerToken($tokSek)
+            ->postJson('/api/v1/pengurus/penghapusan-pinjaman', [
+                'pinjaman_id' => $pinjaman->id,
+                'alasan' => 'Sekretaris mencoba mengajukan',
+            ])
+            ->assertForbidden();
+
+        $this->headerToken($tokBen)
+            ->postJson('/api/v1/pengurus/penghapusan-pinjaman', [
+                'pinjaman_id' => $pinjaman->id,
+                'alasan' => 'Bendahara mencoba mengajukan',
+            ])
+            ->assertForbidden();
+
+        // Ketua Koperasi mengajukan -> langsung masuk antrean Pengawas 3 (status: diajukan).
+        $resStore = $this->headerToken($tokKet)
             ->postJson('/api/v1/pengurus/penghapusan-pinjaman', [
                 'pinjaman_id' => $pinjaman->id,
                 'alasan' => 'Karyawan sudah tidak dapat dihubungi lebih dari 90 hari',
             ])
             ->assertCreated();
         $id = $resStore->json('data.id');
-
-        $this->headerToken($tokBen)->postJson("/api/v1/pengurus/penghapusan-pinjaman/{$id}/approve", ['catatan' => 'Setuju bendahara'])->assertOk();
-        $this->headerToken($tokKet)->postJson("/api/v1/pengurus/penghapusan-pinjaman/{$id}/approve", ['catatan' => 'Setuju ketua'])->assertOk();
+        $this->assertSame('diajukan', $resStore->json('data.status'));
 
         // Pengawas 2 tidak bisa mendahului Pengawas 3
         $this->headerToken($tokP2)->postJson("/api/v1/pengurus/penghapusan-pinjaman/{$id}/approve", ['catatan' => 'Terlalu cepat'])->assertForbidden();

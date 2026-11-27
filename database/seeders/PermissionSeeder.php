@@ -49,8 +49,6 @@ class PermissionSeeder extends Seeder
             'api.akses-limit',
             'penghapusan-pinjaman.lihat',
             'penghapusan-pinjaman.ajukan',
-            'penghapusan-pinjaman.approve-bendahara',
-            'penghapusan-pinjaman.approve-ketua',
             'penghapusan-pinjaman.approve-pengawas',
         ];
 
