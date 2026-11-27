@@ -118,4 +118,48 @@ class ProfileTest extends TestCase
 
         $this->assertTrue(Hash::check('135791', $user->fresh()->pin));
     }
+
+    public function test_pengawas_memiliki_profil_anggota_aktif_dan_bisa_membuka_portal_anggota(): void
+    {
+        $this->seed();
+
+        foreach (['WAS-000001', 'WAS-000002', 'WAS-000003'] as $noKaryawan) {
+            $pengawas = User::where('no_karyawan', $noKaryawan)->firstOrFail();
+
+            $this->actingAs($pengawas)
+                ->get('/profile')
+                ->assertOk()
+                ->assertInertia(fn ($page) => $page
+                    ->component('Profile/Edit')
+                    ->where('pengguna.anggota.status', 'aktif'));
+
+            $this->actingAs($pengawas)
+                ->get(route('portal.dashboard'))
+                ->assertOk();
+        }
+
+        // Simulasikan pengawas pada DB eksisting yang belum punya baris Anggota lalu jalankan migrasi backfill.
+        $pengawasBaru = User::factory()->create([
+            'no_karyawan' => 'WAS-990001',
+            'name' => 'Pengawas Uji Migrasi',
+            'jabatan_pengawas' => 2,
+        ]);
+        $pengawasBaru->assignRole('pengawas');
+        $this->assertNull($pengawasBaru->fresh()->anggota);
+
+        $migrasi = require database_path('migrations/2026_11_27_000005_buat_profil_anggota_pengawas_dan_sekretaris.php');
+        $migrasi->up();
+
+        $this->assertEquals('aktif', $pengawasBaru->fresh()->anggota?->status);
+
+        $this->actingAs($pengawasBaru->fresh())
+            ->get('/profile')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('pengguna.anggota.status', 'aktif'));
+
+        $this->actingAs($pengawasBaru->fresh())
+            ->get(route('portal.dashboard'))
+            ->assertOk();
+    }
 }
