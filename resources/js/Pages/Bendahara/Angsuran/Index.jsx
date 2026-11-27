@@ -1,7 +1,7 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useId, useMemo, useState } from 'react';
-import { TrendingUp, Calendar, Check, ChevronLeft, ChevronRight, Search, X, RefreshCw, MapPin, AlarmClock, RotateCcw, AlertCircle, FileX2 } from 'lucide-react';
+import { TrendingUp, Calendar, Check, ChevronLeft, ChevronRight, Search, X, RefreshCw, MapPin, AlarmClock, RotateCcw, AlertCircle, FileX2, Wallet } from 'lucide-react';
 import Card from '@/Components/ui/Card';
 import FotoAnggota from '@/Components/ui/FotoAnggota';
 import PrivacyWrapper from '@/Components/ui/PrivacyWrapper';

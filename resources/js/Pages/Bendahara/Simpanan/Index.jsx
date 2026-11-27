@@ -1,7 +1,7 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useId, useMemo, useState } from 'react';
-import { HeartHandshake, Check, ChevronLeft, ChevronRight, Search, X, RefreshCw, MapPin, Calendar, RotateCcw, AlertCircle, Clock, AlarmClock } from 'lucide-react';
+import { HeartHandshake, Check, ChevronLeft, ChevronRight, Search, X, RefreshCw, MapPin, Calendar, RotateCcw, AlertCircle, Clock, AlarmClock, Users, Wallet } from 'lucide-react';
 import Card from '@/Components/ui/Card';
 import FotoAnggota from '@/Components/ui/FotoAnggota';
 import PrivacyWrapper from '@/Components/ui/PrivacyWrapper';
