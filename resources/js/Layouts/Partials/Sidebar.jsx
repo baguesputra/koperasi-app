@@ -2,12 +2,13 @@ import { Link, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import { usePrivacy } from '@/Contexts/PrivacyContext';
 import CountBadge, { CountDot } from '@/Components/ui/CountBadge';
+import FotoAnggota from '@/Components/ui/FotoAnggota';
 import PrivacyIcon from '@/Components/ui/PrivacyIcon';
 import {
     LayoutDashboard, Users, PiggyBank, HeartHandshake,
     BookOpenText, HandCoins, ClipboardCheck,
     CalendarCheck, Wallet, Percent, FileBarChart,
-    ChevronLeft, ChevronRight, ChevronDown, Settings, LogOut, UserCheck,
+    ChevronLeft, ChevronRight, ChevronDown, Settings, LogOut,
 } from 'lucide-react';
 
 const STORAGE_KEY = 'sidebar-groups-state-v2';
@@ -149,9 +150,8 @@ export default function Sidebar({ collapsed = false, expanding = false, mobile =
     const [groupPrefs, setGroupPrefs] = useState(bacaPreferensiGrup);
     const tertutup = collapsed && !expanding;
     const userPermissions = auth.user?.permissions ?? [];
-    const bisaPortalAnggota = auth.user?.anggota_status === 'aktif' && userPermissions.includes('portal.akses');
     const bisaPengaturan = userPermissions.some((p) => PENGATURAN_PERMISSIONS.includes(p));
-    const initial = auth.user?.name?.charAt(0)?.toUpperCase() ?? '?';
+    const sedangDiProfil = route().current('profile.edit');
     const csrfToken = typeof document !== 'undefined'
         ? document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
         : null;
@@ -173,12 +173,7 @@ export default function Sidebar({ collapsed = false, expanding = false, mobile =
         return itemOrPermission.permission === null || userPermissions.includes(itemOrPermission.permission);
     }
 
-    const visiblePinnedItems = [
-        ...pinnedItems.filter((item) => bisaAkses(item)),
-        ...(bisaPortalAnggota
-            ? [{ label: 'Portal Anggota', routeName: 'portal.dashboard', icon: UserCheck, activeRoutes: ['portal.*'] }]
-            : []),
-    ];
+    const visiblePinnedItems = pinnedItems.filter((item) => bisaAkses(item));
 
     const visibleGroups = menuGroups
         .map((group) => {
@@ -431,9 +426,15 @@ export default function Sidebar({ collapsed = false, expanding = false, mobile =
                         href={route('profile.edit')}
                         onClick={mobile ? onNavigate : undefined}
                         title="Profil Saya"
-                        className={`w-8 h-8 rounded-full bg-brand-green text-white flex items-center justify-center text-xs font-bold hover:opacity-90 transition-opacity ${fokusRing}`}
+                        className={`rounded-full transition-all hover:opacity-90 ${
+                            sedangDiProfil ? 'ring-2 ring-brand-navy ring-offset-2' : ''
+                        } ${fokusRing}`}
                     >
-                        {initial}
+                        <FotoAnggota
+                            nama={auth.user?.name}
+                            fotoUrl={auth.user?.foto_url}
+                            ukuran="xs"
+                        />
                     </Link>
                 </div>
             ) : (
@@ -445,11 +446,18 @@ export default function Sidebar({ collapsed = false, expanding = false, mobile =
                         href={route('profile.edit')}
                         onClick={mobile ? onNavigate : undefined}
                         title="Profil Saya"
-                        className={`flex items-center gap-2 min-w-0 flex-1 rounded-xl p-1 -m-0.5 hover:bg-slate-100/80 transition-all ${fokusRing}`}
+                        className={`flex items-center gap-2 min-w-0 flex-1 rounded-xl p-1 -m-0.5 transition-all ${
+                            sedangDiProfil
+                                ? 'bg-slate-100/90 ring-1 ring-slate-200/90'
+                                : 'hover:bg-slate-100/80'
+                        } ${fokusRing}`}
                     >
-                        <span className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-green to-brand-green-dark text-white ring-2 ring-brand-green-light flex items-center justify-center text-xs font-bold shrink-0">
-                            {initial}
-                        </span>
+                        <FotoAnggota
+                            nama={auth.user?.name}
+                            fotoUrl={auth.user?.foto_url}
+                            ukuran="xs"
+                            className="ring-2 ring-brand-green-light"
+                        />
                         <span className="min-w-0 leading-tight">
                             <span className="block text-sm font-semibold text-[#0F1E36] truncate">{auth.user?.name}</span>
                             <span className="block text-xs text-slate-500 capitalize truncate">

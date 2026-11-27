@@ -5,8 +5,9 @@ import {
     User, Building2, Briefcase, Calendar, Mail,
     CreditCard, Plus, Star, Trash2, Landmark, Network,
     Info, ShieldCheck, ChevronRight, Copy, Check,
-    Sparkles, X,
+    Sparkles, X, KeyRound,
 } from 'lucide-react';
+import UbahPinDrawer from '@/Components/security/UbahPinDrawer';
 
 export default function Profil({ anggota, rekening }) {
     const { auth } = usePage().props;
@@ -14,6 +15,7 @@ export default function Profil({ anggota, rekening }) {
     const isPengurus = roles.some((r) => ['super_admin', 'sekretaris', 'admin', 'bendahara', 'ketua_koperasi', 'pengawas'].includes(r));
 
     const [showForm, setShowForm] = useState(false);
+    const [showPinDrawer, setShowPinDrawer] = useState(false);
     const [copiedId, setCopiedId] = useState(null);
     const [fotoGagal, setFotoGagal] = useState(false);
 
@@ -379,7 +381,7 @@ export default function Profil({ anggota, rekening }) {
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div className={`grid grid-cols-1 ${isPengurus ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-3 pt-1`}>
                         <button
                             type="button"
                             onClick={() => window.dispatchEvent(new CustomEvent('open-panduan'))}
@@ -395,6 +397,27 @@ export default function Profil({ anggota, rekening }) {
                                     </p>
                                     <p className="text-xs text-slate-400 mt-0.5">
                                         Panduan eligibilitas, limit, dan tenor
+                                    </p>
+                                </div>
+                            </div>
+                            <ChevronRight size={16} className="text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => setShowPinDrawer(true)}
+                            className="group flex items-center justify-between p-4 rounded-2xl border border-slate-200/80 hover:border-slate-300 hover:shadow-xs transition-all text-left"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-slate-100 text-brand-navy flex items-center justify-center shrink-0 group-hover:bg-brand-navy group-hover:text-white transition-colors">
+                                    <KeyRound size={18} />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-slate-800 group-hover:text-brand-navy transition-colors">
+                                        {auth?.user?.has_pin ? 'Ubah PIN Keamanan' : 'Atur PIN Keamanan'}
+                                    </p>
+                                    <p className="text-xs text-slate-400 mt-0.5">
+                                        Perbarui PIN 6 digit untuk kunci layar &amp; pengajuan
                                     </p>
                                 </div>
                             </div>
@@ -425,6 +448,12 @@ export default function Profil({ anggota, rekening }) {
                     </div>
                 </div>
             </div>
+
+            <UbahPinDrawer
+                show={showPinDrawer}
+                onClose={() => setShowPinDrawer(false)}
+                hasPin={Boolean(auth?.user?.has_pin)}
+            />
         </AnggotaLayout>
     );
 }

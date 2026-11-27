@@ -1,9 +1,11 @@
 import { useState } from 'react';
 
 const ukuranClass = {
+    xs: 'w-8 h-8 text-xs',
     sm: 'w-9 h-9 text-sm',
     md: 'w-11 h-11 text-base',
     lg: 'w-16 h-16 text-xl',
+    xl: 'w-16 h-16 sm:w-20 sm:h-20 text-xl sm:text-2xl',
 };
 
 export default function FotoAnggota({ nama, fotoUrl, ukuran = 'sm', className = '' }) {
